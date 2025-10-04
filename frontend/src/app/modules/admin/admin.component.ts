@@ -1,7 +1,11 @@
 import { Component } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-admin',
-  template: `<h2>Panel de administrador</h2>`
+  templateUrl: './admin.component.html',
+  styleUrls: ['./admin.component.scss']
 })
-export class AdminComponent { }
+export class AdminComponent {
+  constructor(public auth: AuthService) {}
+}

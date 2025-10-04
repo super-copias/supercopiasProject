@@ -6,6 +6,6 @@ import { LoginComponent } from './login.component';
 
 @NgModule({
   declarations: [LoginComponent],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule.forChild([{ path: 'login', component: LoginComponent }])]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule.forChild([{ path: '', component: LoginComponent }])]
 })
 export class LoginModule { }

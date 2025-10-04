@@ -1,0 +1,28 @@
+<div class="admin-layout">
+    <app-side-nav></app-side-nav>
+    <main class="content">
+        <nav class="navbar bg-white shadow-sm">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">SuperCopias Admin</span>
+                <div class="d-flex align-items-center">
+                    <span class="me-3">{{(auth.user$ | async)?.username}}</span>
+                    <div class="dropdown">
+                        <button class="btn btn-link dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle fa-lg"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog"></i> Mi cuenta</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item text-danger" (click)="auth.logout()">
+                                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                            </button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <div class="content-body">
+            <router-outlet></router-outlet>
+        </div>
+    </main>
+</div>

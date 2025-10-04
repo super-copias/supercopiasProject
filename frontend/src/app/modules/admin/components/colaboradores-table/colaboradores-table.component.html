@@ -1,0 +1,53 @@
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Cargo</th>
+                <th>Departamento</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let colaborador of colaboradores">
+                <td>{{colaborador.id}}</td>
+                <td>{{colaborador.nombre}}</td>
+                <td>{{colaborador.correo}}</td>
+                <td>{{colaborador.cargo}}</td>
+                <td>{{colaborador.departamento}}</td>
+                <td>
+                    <span class="badge" [class.bg-success]="colaborador.estado === 'Activo'"
+                                      [class.bg-danger]="colaborador.estado === 'Inactivo'">
+                        {{colaborador.estado}}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-link" (click)="verDetalles(colaborador)">
+                        <i class="fas fa-info-circle"></i> Detalles
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="small text-muted">
+        Mostrando {{colaboradores.length}} colaboradores
+    </div>
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1">Anterior</a>
+            </li>
+            <li class="page-item active">
+                <a class="page-link" href="#">1</a>
+            </li>
+            <li class="page-item disabled">
+                <a class="page-link" href="#">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+</div>

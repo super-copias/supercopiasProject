@@ -12,11 +12,13 @@ import { AuthInterceptor } from './services/auth-interceptor';
 
 const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'login', loadChildren: () => import('./modules/login/login.module').then(m => m.LoginModule) },
+  { path: 'admin', loadChildren: () => import('./modules/admin/admin.module').then(m => m.AdminModule) }
 ];
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes), LoginModule, AdminModule, ClientesModule, EmpleadosModule],
+  imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes)],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
   ],

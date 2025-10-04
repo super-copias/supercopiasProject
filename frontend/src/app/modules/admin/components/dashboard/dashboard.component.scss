@@ -1,0 +1,29 @@
+.dashboard {
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+    }
+    
+    .text-lg {
+        font-size: 1.5rem;
+    }
+    
+    .input-group {
+        width: auto;
+    }
+}
+
+// Card colors
+.bg-primary {
+    background: var(--color-deep-blue) !important;
+}
+
+.bg-warning {
+    background: var(--color-cyber-yellow) !important;
+}
+
+// Ensure text is readable on yellow background
+.bg-warning.text-white {
+    color: #000 !important;
+}
