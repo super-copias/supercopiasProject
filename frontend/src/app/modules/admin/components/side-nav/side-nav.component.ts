@@ -16,25 +16,23 @@ export class SideNavComponent implements OnChanges {
       text: 'Principal',
       items: [
         { icon: 'fas fa-tachometer-alt', text: 'Dashboard', link: '/admin' },
-        { icon: 'fas fa-users', text: 'Gestión de Empleados', link: '/admin/empleados' },
-        { icon: 'fas fa-user-friends', text: 'Gestión de Clientes', link: '/admin/clientes' }
-      ]
-    },
-    {
-      text: 'Operaciones',
-      items: [
-        { icon: 'fas fa-copy', text: 'Servicios de Copias', link: '/admin/servicios' },
-        { icon: 'fas fa-print', text: 'Estado de Impresoras', link: '/admin/impresoras' },
-        { icon: 'fas fa-tasks', text: 'Trabajos Pendientes', link: '/admin/trabajos' }
+        { icon: 'fas fa-users', text: 'Empleados', link: '/admin/empleados' },
+        { icon: 'fas fa-user-friends', text: 'Clientes', link: '/admin/clientes' },
+        // espacio vacío para Colaboradores (placeholder)
+        { icon: 'fas fa-user-tie', text: 'Colaboradores', link: '/admin/colaboradores' }
       ]
     },
     {
       text: 'Administración',
       items: [
+        { icon: 'fas fa-boxes', text: 'Inventarios', link: '/admin/inventarios' },
+        { icon: 'fas fa-tv', text: 'Equipos', link: '/admin/equipos' },
         { icon: 'fas fa-chart-bar', text: 'Reportes', link: '/admin/reportes' },
-        { icon: 'fas fa-cog', text: 'Configuración', link: '/admin/configuracion' }
+        { icon: 'fas fa-cash-register', text: 'PuntoVenta', link: '/admin/punto-venta' }
       ]
     }
+    ,
+    // Operaciones sección removida según solicitud
   ];
 
   constructor(

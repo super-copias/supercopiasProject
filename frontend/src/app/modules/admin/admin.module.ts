@@ -29,6 +29,11 @@ import { AuthGuard } from '../../services/auth.guard';
           { path: '', component: DashboardComponent },
           { path: 'empleados', loadChildren: () => import('../empleados/empleados.module').then(m => m.EmpleadosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
           { path: 'clientes', loadChildren: () => import('../clientes/clientes.module').then(m => m.ClientesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] }
+          ,{ path: 'inventarios', loadChildren: () => import('./inventarios/inventarios.module').then(m => m.InventariosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
+          { path: 'equipos', loadChildren: () => import('./equipos/equipos.module').then(m => m.EquiposModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
+          { path: 'reportes', loadChildren: () => import('./reportes/reportes.module').then(m => m.ReportesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
+          { path: 'punto-venta', loadChildren: () => import('./punto-venta/punto-venta.module').then(m => m.PuntoVentaModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
+          { path: 'colaboradores', component: ColaboradoresTableComponent }
         ],
         canActivateChild: [AuthGuard]
       }
