@@ -1,0 +1,12 @@
+{
+  "usuarios": [
+    {
+      "id": "H9_D5a5-sJgRE6bsvOvmk",
+      "username": "admin",
+      "password": "$2a$08$F6C1JyS7JIZkEm3MXnfi1uy/BJ.Ah6mFssWIof3KW1sbKi7GqmHva",
+      "role": "admin"
+    }
+  ],
+  "clientes": [],
+  "empleados": []
+}
