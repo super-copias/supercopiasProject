@@ -1,9 +1,9 @@
+# Angular
+.angular/
+dist/
+
 # Node
 node_modules/
-
-# Angular
-dist/
-.angular/cache/
 
 # Logs
 *.log
