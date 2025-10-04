@@ -12,6 +12,58 @@
     .input-group {
         width: auto;
     }
+
+    /* Responsive header actions: input + button */
+    .card-header > .d-flex {
+        align-items: center;
+    }
+
+    .card-header .d-flex .input-group {
+        min-width: 160px;
+        max-width: 420px;
+        min-width: 0; /* allow shrinking in flex layouts */
+    }
+
+    .card-header .d-flex .input-group .form-control {
+        min-width: 0; /* prevent overflow when container is narrow */
+    }
+
+    .card-header .d-flex .btn-primary {
+        white-space: nowrap;
+    }
+
+    @media (max-width: 767.98px) {
+        .card-header.d-flex {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+        .card-header.d-flex .d-flex {
+            justify-content: space-between;
+            width: 100%;
+        }
+        .card-header .input-group {
+            width: 100%;
+        }
+            /* allow the table to scroll horizontally instead of breaking layout */
+            .card-body {
+                overflow-x: auto;
+            }
+        .card-header .input-group .form-control {
+            width: calc(100% - 48px); /* leave space for button inside input-group */
+        }
+        .card-header .btn-primary {
+            align-self: flex-end;
+        }
+        /* Cards should occupy full width in mobile to avoid left gap */
+        .card {
+            width: 100%;
+            margin: 0;
+        }
+        .card .card-body {
+            padding: 0.75rem;
+        }
+    }
 }
 
 // Card colors

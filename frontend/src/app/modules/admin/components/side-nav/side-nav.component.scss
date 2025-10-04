@@ -4,9 +4,11 @@
 }
 
 .sidenav {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
+    min-height: 100vh;
     width: 225px;
     position: fixed;
     left: 0;
@@ -14,12 +16,16 @@
     background-color: var(--color-deep-blue);
     color: rgba(255, 255, 255, 0.95);
     transition: width 200ms ease, transform 200ms ease, left 200ms ease;
-    z-index: 1050;
+    z-index: 1060;
 }
 
 .sidenav-menu {
-    flex-grow: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 0; /* prevent extra bottom space */
+    margin-bottom: 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Forzar que la lista de navegación sea una columna vertical */
@@ -71,6 +77,7 @@
 .sidenav-footer {
     padding: 0.75rem;
     background-color: var(--color-dark-blue);
+    flex: 0 0 auto;
 }
 
 .sidenav-footer-content {
@@ -132,7 +139,15 @@
 @media (max-width: 767.98px) {
     .sidenav {
         transform: translateX(-110%);
-        width: 220px; /* reduced overlay width */
+        width: 200px; /* reduced overlay width to 200px */
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        min-height: 100vh;
+        height: 100%;
+        overflow-y: auto; /* allow scrolling inside sidebar */
+        z-index: 1062;
     }
     .sidenav-wrapper.collapsed .sidenav {
         transform: translateX(-110%);
@@ -145,7 +160,9 @@
     .sidenav-wrapper.mobile-open.collapsed .sidenav {
         transform: translateX(0) !important;
         left: 0 !important;
-        width: 220px !important; /* match reduced mobile width */
+        width: 200px !important; /* match reduced mobile width */
+        bottom: 0 !important;
+        min-height: 100vh !important;
     }
     .sidenav-wrapper.mobile-open .sidenav-backdrop {
         display: block;
@@ -196,5 +213,11 @@
     }
     .sidenav .nav-link + .nav-link {
         margin-top: 0.25rem;
+    }
+
+    /* remove any unexpected bottom gap inside nav list */
+    .sidenav .nav > *:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
     }
 }

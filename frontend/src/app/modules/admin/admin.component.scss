@@ -5,14 +5,17 @@
 
 .content {
     flex: 1;
-    margin-left: 225px;
+    margin-left: 0; /* default mobile: no left margin */
     display: flex;
     flex-direction: column;
+    min-height: 100vh; /* ensure content fills viewport to avoid extra whitespace */
+    overflow-x: hidden;
+    width: 100%;
 }
 
-/* when sidebar is collapsed reduce left margin */
-.side-collapsed .content {
-    margin-left: 72px;
+/* prevent horizontal scroll across app */
+html, body, app-root, .admin-layout {
+    overflow-x: hidden;
 }
 
 /* when mobile open, don't shift content (overlay) */
@@ -60,6 +63,16 @@
 @media (max-width: 767.98px) {
     .content {
         margin-left: 0;
+    }
+}
+
+/* Desktop rules: apply left margin only on larger screens */
+@media (min-width: 768px) {
+    .content {
+        margin-left: 225px;
+    }
+    .side-collapsed .content {
+        margin-left: 72px;
     }
 }
 
