@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
 
@@ -7,7 +7,10 @@ import { AuthService } from '../../../../services/auth.service';
   templateUrl: './side-nav.component.html',
   styleUrls: ['./side-nav.component.scss']
 })
-export class SideNavComponent {
+export class SideNavComponent implements OnChanges {
+  @Input() collapsed = false;
+  @Input() mobileOpen = false;
+  @Output() requestClose = new EventEmitter<void>();
   menuItems = [
     {
       text: 'Principal',
@@ -42,5 +45,21 @@ export class SideNavComponent {
   logout() {
     this.auth.logout();
     this.router.navigate(['/login']);
+  }
+
+  onNavItemClick() {
+    // if in mobile overlay mode, request to close after navigating
+    if (this.mobileOpen && window.innerWidth < 768) {
+      this.requestClose.emit();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['mobileOpen']) {
+      console.log('[SideNav] mobileOpen changed ->', changes['mobileOpen'].currentValue);
+    }
+    if (changes['collapsed']) {
+      console.log('[SideNav] collapsed changed ->', changes['collapsed'].currentValue);
+    }
   }
 }

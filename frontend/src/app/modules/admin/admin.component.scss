@@ -10,6 +10,16 @@
     flex-direction: column;
 }
 
+/* when sidebar is collapsed reduce left margin */
+.side-collapsed .content {
+    margin-left: 72px;
+}
+
+/* when mobile open, don't shift content (overlay) */
+.content.shifted {
+    margin-left: 225px;
+}
+
 .navbar {
     padding: 0.75rem 1.5rem;
     background-color: #fff;
@@ -38,5 +48,49 @@
     
     &:hover {
         color: var(--color-dark-blue);
+    }
+}
+
+.sidebar-toggle {
+    color: var(--color-deep-blue);
+    background: transparent;
+    border: none;
+}
+
+@media (max-width: 767.98px) {
+    .content {
+        margin-left: 0;
+    }
+}
+
+/* helpers */
+.desktop-only { display: inline-flex; }
+.mobile-only { display: none; }
+
+@media (max-width: 767.98px) {
+    .desktop-only { display: none !important; }
+    .mobile-only { display: inline-flex !important; }
+    /* colocar la hamburguesa móvil a la derecha de la navbar */
+    .navbar {
+        position: relative;
+    }
+    .navbar .sidebar-toggle.mobile-only {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1060;
+    }
+}
+
+/* Móvil: posicionar la hamburguesa a la derecha dentro de la navbar para coincidir con la referencia */
+@media (max-width: 767.98px) {
+    .navbar .sidebar-toggle {
+        order: 2; /* mostrar al final dentro del d-flex */
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+    .navbar .navbar-brand {
+        order: 1;
     }
 }

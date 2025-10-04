@@ -1,10 +1,20 @@
-<div class="admin-layout">
-    <app-side-nav></app-side-nav>
-    <main class="content">
+<div class="admin-layout" [class.side-collapsed]="collapsed">
+    <app-side-nav [collapsed]="collapsed" [mobileOpen]="mobileOpen" (requestClose)="closeMobile()"></app-side-nav>
+    <main class="content" [class.shifted]="!collapsed && !mobileOpen">
         <nav class="navbar bg-white shadow-sm">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">SuperCopias Admin</span>
                 <div class="d-flex align-items-center">
+                    <!-- Botón hamburguesa para desktop -->
+                    <button class="btn btn-link me-3 sidebar-toggle desktop-only" (click)="toggleSidebar()" aria-label="Toggle navigation">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
+                    <span class="navbar-brand mb-0 h1">SuperCopias Admin</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <!-- Botón hamburguesa para móvil (a la derecha) -->
+                    <button class="btn btn-link sidebar-toggle mobile-only me-2" (click)="toggleSidebar(true)" aria-label="Toggle navigation">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
                     <span class="me-3">{{(auth.user$ | async)?.username}}</span>
                     <div class="dropdown">
                         <button class="btn btn-link dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
