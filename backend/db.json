@@ -8,5 +8,24 @@
     }
   ],
   "clientes": [],
-  "empleados": []
+  "empleados": [
+    {
+      "id": "1",
+      "nombre": "Juan Pérez",
+      "correo": "juan.perez@supercopias.com",
+      "cargo": "Operador de Impresión",
+      "departamento": "Producción",
+      "fechaIngreso": "2024-01-15",
+      "estado": "Activo"
+    },
+    {
+      "id": "2",
+      "nombre": "María González",
+      "correo": "maria.gonzalez@supercopias.com",
+      "cargo": "Atención al Cliente",
+      "departamento": "Ventas",
+      "fechaIngreso": "2024-02-01",
+      "estado": "Activo"
+    }
+  ]
 }

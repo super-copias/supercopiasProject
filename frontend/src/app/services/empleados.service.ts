@@ -19,4 +19,7 @@ export class EmpleadosService {
   assignRole(id: string, role: string, extra: any = {}) {
     return this.http.post(`${this.base}/${id}/role`, Object.assign({ role }, extra));
   }
+  get(id: string) { return this.http.get(`${this.base}/${id}`); }
+  update(id: string, data: any) { return this.http.put(`${this.base}/${id}`, data); }
+  delete(id: string) { return this.http.delete(`${this.base}/${id}`); }
 }

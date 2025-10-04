@@ -19,7 +19,7 @@ export class SideNavComponent implements OnChanges {
         { icon: 'fas fa-users', text: 'Empleados', link: '/admin/empleados' },
         { icon: 'fas fa-user-friends', text: 'Clientes', link: '/admin/clientes' },
         // espacio vacío para Colaboradores (placeholder)
-        { icon: 'fas fa-user-tie', text: 'Colaboradores', link: '/admin/colaboradores' }
+          { icon: 'fas fa-store', text: 'Proveedores', link: '/admin/proveedores' }
       ]
     },
     {

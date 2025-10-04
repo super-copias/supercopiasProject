@@ -8,3 +8,4 @@ import { PuntoVentaComponent } from './punto-venta.component';
   imports: [CommonModule, RouterModule.forChild([{ path: '', component: PuntoVentaComponent }])]
 })
 export class PuntoVentaModule { }
+// touched to refresh TS server

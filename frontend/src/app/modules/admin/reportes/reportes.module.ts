@@ -8,3 +8,4 @@ import { ReportesComponent } from './reportes.component';
   imports: [CommonModule, RouterModule.forChild([{ path: '', component: ReportesComponent }])]
 })
 export class ReportesModule { }
+// touched to refresh TS server

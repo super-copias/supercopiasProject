@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   template: `
     <div class="p-4">
       <h3>Gestión de Equipos</h3>
-      <p>Modulo placeholder para equipos electrónicos.</p>
+      <p>Módulo placeholder para equipos electrónicos.</p>
     </div>
   `
 })

@@ -8,3 +8,4 @@ import { OperacionesComponent } from './operaciones.component';
   imports: [CommonModule, RouterModule.forChild([{ path: '', component: OperacionesComponent }])]
 })
 export class OperacionesModule { }
+// touched to refresh TS server

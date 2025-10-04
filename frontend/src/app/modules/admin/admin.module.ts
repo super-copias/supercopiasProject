@@ -6,20 +6,21 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AdminComponent } from './admin.component';
 import { SideNavComponent } from './components/side-nav/side-nav.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
-import { ColaboradoresTableComponent } from './components/colaboradores-table/colaboradores-table.component';
+// ColaboradoresTableComponent ahora está en SharedModule
 import { AuthGuard } from '../../services/auth.guard';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
     AdminComponent,
     SideNavComponent,
-    DashboardComponent,
-    ColaboradoresTableComponent
+    DashboardComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    SharedModule,
     RouterModule.forChild([
       {
         path: '',
@@ -33,7 +34,7 @@ import { AuthGuard } from '../../services/auth.guard';
           { path: 'equipos', loadChildren: () => import('./equipos/equipos.module').then(m => m.EquiposModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
           { path: 'reportes', loadChildren: () => import('./reportes/reportes.module').then(m => m.ReportesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
           { path: 'punto-venta', loadChildren: () => import('./punto-venta/punto-venta.module').then(m => m.PuntoVentaModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'colaboradores', component: ColaboradoresTableComponent }
+          { path: 'proveedores', loadChildren: () => import('../proveedores/proveedores.module').then(m => m.ProveedoresModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] }
         ],
         canActivateChild: [AuthGuard]
       }

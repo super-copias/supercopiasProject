@@ -8,3 +8,4 @@ import { InventariosComponent } from './inventarios.component';
   imports: [CommonModule, RouterModule.forChild([{ path: '', component: InventariosComponent }])]
 })
 export class InventariosModule { }
+// touched to refresh TS server
