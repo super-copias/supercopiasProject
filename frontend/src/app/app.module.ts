@@ -8,6 +8,7 @@ import { LoginModule } from './modules/login/login.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { EmpleadosModule } from './modules/empleados/empleados.module';
+import { AuthInterceptor } from './services/auth-interceptor';
 
 const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -16,7 +17,9 @@ const routes: Routes = [
 @NgModule({
   declarations: [AppComponent],
   imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes), LoginModule, AdminModule, ClientesModule, EmpleadosModule],
-  providers: [],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

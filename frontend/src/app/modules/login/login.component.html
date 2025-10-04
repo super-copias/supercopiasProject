@@ -1,0 +1,40 @@
+<div class="auth-layout">
+  <div class="container-xl px-4">
+    <div class="row gx-4 justify-content-center">
+      <div class="col-lg-5">
+        <div class="card shadow-lg border-0 rounded-lg mt-5">
+          <div class="card-header justify-content-center"><h3 class="fw-light my-4">Iniciar sesión</h3></div>
+          <div class="card-body">
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+              <div class="mb-3">
+                <label class="small mb-1" for="inputIdentifier">Usuario o correo</label>
+                <input class="form-control" id="inputIdentifier" data-cy="identifierInput" type="text" placeholder="Usuario o correo" aria-describedby="identifierHelp" formControlName="identifier" [class.is-valid]="identifierControlValid" [class.is-invalid]="identifierControlInvalid" />
+                <div class="invalid-feedback" *ngIf='identifierControl.hasError("required")'>El usuario o correo es obligatorio.</div>
+              </div>
+              <div class="mb-3">
+                <label class="small mb-1" for="inputPassword">Contraseña</label>
+                <div class="input-group">
+                  <input class="form-control" id="inputPassword" data-cy="passwordInput" [type]="isPasswordVisible ? 'text' : 'password'" placeholder="Contraseña" formControlName="password" [class.is-valid]="passwordControlValid" [class.is-invalid]="passwordControlInvalid" />
+                  <button class="btn btn-outline-secondary" type="button" aria-label="Mostrar contraseña" title="Mantener presionado para ver" 
+                    (mousedown)="showPassword()" (mouseup)="hidePassword()" (mouseleave)="hidePassword()"
+                    (touchstart)="showPassword(); $event.preventDefault()" (touchend)="hidePassword()">
+                    <i [class]="isPasswordVisible ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                  </button>
+                </div>
+                <div class="invalid-feedback" *ngIf='passwordControl.hasError("required")'>La contraseña es obligatoria.</div>
+                <div class="invalid-feedback" *ngIf='passwordControl.hasError("minlength")'>La contraseña debe tener al menos 8 caracteres.</div>
+              </div>
+              <div class="mb-3">
+                <div class="form-check"><input class="form-check-input" id="rememberPasswordCheck" data-cy="rememberPasswordCheck" type="checkbox" formControlName="checkbox" /><label class="form-check-label" for="rememberPasswordCheck">Remember password</label></div>
+              </div>
+              <div class="d-flex align-items-center justify-content-between mt-4"><a class="small" routerLink="/auth/forgot-password">¿Olvidaste tu contraseña?</a><button class="btn btn-primary" data-cy="loginButton" type="submit" [disabled]="loginForm.invalid">Iniciar sesión</button></div>
+            </form>
+          </div>
+          <div class="card-footer text-center">
+            <div class="small"><a routerLink="/auth/register">¿Necesitas una cuenta? Regístrate</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,6 @@
+.auth-layout { min-height: 100vh; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, var(--color-deep-blue) 0%, var(--color-blue) 100%); }
+.card { max-width: 480px; }
+.card .card-header { background: transparent; border-bottom: none; }
+.btn-primary { background-color: var(--color-deep-blue); border-color: var(--color-deep-blue); }
+/* darken() no funciona con variables CSS en tiempo de compilación, usar un hex más oscuro */
+.btn-primary:hover { background-color: #002b66; border-color: #002b66; }
