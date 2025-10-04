@@ -44,7 +44,6 @@ export class SideNavComponent implements OnChanges {
 
   logout() {
     this.auth.logout();
-    this.router.navigate(['/login']);
   }
 
   onNavItemClick() {

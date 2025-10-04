@@ -7,6 +7,7 @@ import { AdminComponent } from './admin.component';
 import { SideNavComponent } from './components/side-nav/side-nav.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { ColaboradoresTableComponent } from './components/colaboradores-table/colaboradores-table.component';
+import { AuthGuard } from '../../services/auth.guard';
 
 @NgModule({
   declarations: [
@@ -23,11 +24,13 @@ import { ColaboradoresTableComponent } from './components/colaboradores-table/co
       {
         path: '',
         component: AdminComponent,
+        canActivate: [AuthGuard],
         children: [
           { path: '', component: DashboardComponent },
-          { path: 'empleados', loadChildren: () => import('../empleados/empleados.module').then(m => m.EmpleadosModule) },
-          { path: 'clientes', loadChildren: () => import('../clientes/clientes.module').then(m => m.ClientesModule) }
-        ]
+          { path: 'empleados', loadChildren: () => import('../empleados/empleados.module').then(m => m.EmpleadosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
+          { path: 'clientes', loadChildren: () => import('../clientes/clientes.module').then(m => m.ClientesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] }
+        ],
+        canActivateChild: [AuthGuard]
       }
     ])
   ]
