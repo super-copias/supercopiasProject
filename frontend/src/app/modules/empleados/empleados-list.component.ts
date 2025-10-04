@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { EmpleadosService } from '../../services/empleados.service';
 
@@ -10,7 +12,7 @@ import { EmpleadosService } from '../../services/empleados.service';
         <h5 class="mb-0">Empleados</h5>
         <div class="d-flex gap-2">
           <div class="input-group">
-            <input type="text" class="form-control" placeholder="Buscar colaborador..." [(ngModel)]="q" (input)="load()" />
+            <input type="text" class="form-control" placeholder="Buscar colaborador..." [(ngModel)]="q" (input)="search$.next(q)" />
             <button class="btn btn-outline-secondary" type="button" (click)="load()"><i class="fas fa-search"></i></button>
           </div>
           <button class="btn btn-primary btn-sm d-inline-flex align-items-center" (click)="nuevo()">
@@ -28,8 +30,14 @@ import { EmpleadosService } from '../../services/empleados.service';
 export class EmpleadosListComponent implements OnInit {
   empleados: any[] = [];
   q = '';
+  search$ = new Subject<string>();
+  private searchSub: Subscription | null = null;
     constructor(private svc: EmpleadosService, private router: Router) { }
-  ngOnInit() { this.load(); }
+  ngOnInit() { 
+    this.load();
+    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(q => { this.q = q; this.load(); });
+  }
+  ngOnDestroy() { if (this.searchSub) this.searchSub.unsubscribe(); }
   load() {
     this.svc.list(this.q).subscribe((r: any) => { this.empleados = r.data; });
   }

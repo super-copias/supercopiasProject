@@ -8,7 +8,14 @@ function listEmpleados(req, res) {
   const q = (req.query.q || '').toLowerCase();
   let items = db.get('empleados').value() || [];
   if (q) {
-    items = items.filter(c => (c.nombre || '').toLowerCase().includes(q) || (c.id || '').includes(q));
+    const qnorm = q.normalize ? q.normalize('NFD').replace(/\p{Diacritic}/gu, '') : q;
+    items = items.filter(c => {
+      return Object.values(c).some(v => {
+        const s = (v || '').toString();
+        const sn = s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '') : s;
+        return sn.toLowerCase().includes(qnorm.toLowerCase());
+      });
+    });
   }
   const page = parseInt(req.query.page || '1');
   const limit = parseInt(req.query.limit || '10');

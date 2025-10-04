@@ -59,7 +59,7 @@
             <h5 class="mb-0">Empleados</h5>
             <div class="d-flex gap-2">
                 <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Buscar colaborador..." #searchInput>
+                    <input type="text" class="form-control" placeholder="Buscar colaborador..." (input)="search$.next($any($event.target).value)">
                     <button class="btn btn-outline-secondary" type="button">
                         <i class="fas fa-search"></i>
                     </button>
@@ -67,7 +67,7 @@
             </div>
         </div>
         <div class="card-body">
-            <app-colaboradores-table [colaboradores]="colaboradores"></app-colaboradores-table>
+            <app-colaboradores-table [colaboradores]="colaboradoresFiltered"></app-colaboradores-table>
         </div>
     </div>
 </div>

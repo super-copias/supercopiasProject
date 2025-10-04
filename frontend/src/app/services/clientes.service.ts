@@ -14,10 +14,11 @@ export class ClientesService {
   }
 
   list(q = '', page = 1, limit = 10): Observable<any> {
+    const normalize = (s: string) => s ? s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase() : s.toLowerCase() : '';
+    const qnorm = normalize(q || '');
     const filtered = this.store.filter(c => {
-      if (!q) return true;
-      const qq = q.toLowerCase();
-      return (c.nombre || '').toLowerCase().includes(qq) || (c.telefono || '').toLowerCase().includes(qq) || String(c.id) === q;
+      if (!qnorm) return true;
+      return Object.values(c).some(v => normalize((v || '').toString()).includes(qnorm)) || String(c.id) === q;
     });
     const start = (page - 1) * limit;
     const data = filtered.slice(start, start + limit);

@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { ClientesService } from '../../services/clientes.service';
 
 @Component({
@@ -9,7 +11,7 @@ import { ClientesService } from '../../services/clientes.service';
       <h5 class="mb-0">Clientes</h5>
       <div class="d-flex gap-2">
         <div class="input-group">
-          <input class="form-control" placeholder="Buscar cliente..." [(ngModel)]="q" (input)="load()" />
+          <input class="form-control" placeholder="Buscar cliente..." [(ngModel)]="q" (input)="search$.next(q)" />
           <button class="btn btn-outline-secondary" type="button" (click)="load()"><i class="fas fa-search"></i></button>
         </div>
         <a class="btn btn-primary btn-sm d-inline-flex align-items-center" [routerLink]="['/admin/clientes/nuevo']">
@@ -39,12 +41,18 @@ import { ClientesService } from '../../services/clientes.service';
 export class ClientesListComponent implements OnInit {
   clientes: any[] = [];
   q = '';
+  search$ = new Subject<string>();
+  private searchSub: Subscription | null = null;
   page = 1;
   limit = 10;
   total = 0;
   pages = 1;
   constructor(private svc: ClientesService) { }
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(q => { this.q = q; this.load(); });
+  }
+  ngOnDestroy() { if (this.searchSub) this.searchSub.unsubscribe(); }
   load() {
     this.svc.list(this.q, this.page, this.limit).subscribe((r: any) => { this.clientes = r.data; this.total = r.total; this.pages = Math.max(1, Math.ceil(this.total / this.limit)); });
   }
