@@ -1,0 +1,13 @@
+# Node
+node_modules/
+
+# Angular
+dist/
+.angular/cache/
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
