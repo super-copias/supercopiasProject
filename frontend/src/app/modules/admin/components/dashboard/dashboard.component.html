@@ -59,8 +59,8 @@
             <h5 class="mb-0">Empleados</h5>
             <div class="d-flex gap-2">
                 <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Buscar colaborador..." (input)="search$.next($any($event.target).value)">
-                    <button class="btn btn-outline-secondary" type="button">
+                    <input type="text" class="form-control" placeholder="Buscar colaborador..." [(ngModel)]="q" (input)="search$.next(q)" [disabled]="loading">
+                    <button class="btn btn-outline-secondary" type="button" (click)="load()" [disabled]="loading">
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
@@ -68,6 +68,20 @@
         </div>
         <div class="card-body">
             <app-colaboradores-table [colaboradores]="colaboradoresFiltered"></app-colaboradores-table>
+            <div *ngIf="loading" class="my-2">
+                <small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</small>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="small text-muted">Mostrando {{total}} empleados</div>
+                <nav aria-label="paginacion-empleados">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" [class.disabled]="page===1"><a class="page-link" (click)="go(page-1)">Anterior</a></li>
+                        <li class="page-item disabled"><span class="page-link">Página {{page}} / {{pages}}</span></li>
+                        <li class="page-item" [class.disabled]="page===pages"><a class="page-link" (click)="go(page+1)">Siguiente</a></li>
+                    </ul>
+                </nav>
+            </div>
         </div>
     </div>
 </div>
