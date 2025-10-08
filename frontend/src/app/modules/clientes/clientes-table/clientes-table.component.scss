@@ -103,9 +103,139 @@
                 }
                 
                 &:last-child {
-                    min-width: 100px;
+                    min-width: 140px;
                 }
             }
         }
     }
+}
+
+/* Modal customizations */
+.modal {
+    &.show {
+        animation: modalFadeIn 0.3s ease-out;
+    }
+}
+
+.modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    
+    .modal-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+}
+
+.modal-body {
+    padding: 1.5rem;
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.05);
+        
+        .card-header {
+            background-color: rgba(243, 243, 242, 0.5) !important;
+            border-bottom: 1px solid rgba(0, 61, 128, 0.1);
+            
+            h6 {
+                font-weight: 600;
+                color: var(--color-deep-blue);
+            }
+        }
+    }
+    
+    dt {
+        font-weight: 600;
+        color: var(--color-dark-blue);
+        font-size: 0.875rem;
+    }
+    
+    dd {
+        color: #333;
+        font-size: 0.875rem;
+        
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        i {
+            color: var(--color-deep-blue);
+        }
+    }
+}
+
+.modal-footer {
+    border-top: none;
+    padding: 1rem 1.5rem 1.5rem;
+    
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        
+        i {
+            font-size: 0.875rem;
+        }
+        
+        &.btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            
+            &:hover {
+                background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 0.25rem 0.75rem rgba(40, 167, 69, 0.3);
+            }
+        }
+    }
+}
+
+.modal-backdrop {
+    &.show {
+        animation: backdropFadeIn 0.3s ease-out;
+    }
+}
+
+/* Button group improvements */
+.btn-group-sm .btn {
+    padding: 0.375rem 0.5rem;
+    border-radius: 4px;
+    
+    &:not(:last-child) {
+        margin-right: 2px;
+    }
+    
+    i {
+        font-size: 0.875rem;
+    }
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Animations */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.5; }
 }

@@ -5,9 +5,9 @@
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Teléfono</th>
+                <th>Segundo Teléfono</th>
                 <th>Correo</th>
                 <th>Dirección</th>
-                <th>Entrega</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -16,16 +16,133 @@
                 <td>{{c.id}}</td>
                 <td>{{c.nombre}}</td>
                 <td>{{c.telefono}}</td>
+                <td>{{c.segundoTelefono}}</td>
                 <td>{{c.email}}</td>
                 <td>{{c.direccion}}</td>
-                <td>{{c.entrega}}</td>
                 <td>
-                    <button class="btn btn-sm btn-link" (click)="verDetalles(c)">
-                        <i class="fas fa-info-circle"></i> Detalles
-                    </button>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" (click)="verDetalles(c)" title="Ver detalles">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-warning" (click)="editarCliente(c)" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" (click)="eliminarCliente(c)" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
+
+<!-- Modal de Detalles -->
+<div class="modal fade" [class.show]="showDetalles" [style.display]="showDetalles ? 'block' : 'none'" 
+     *ngIf="showDetalles" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-corporate-blue text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-user-circle me-2"></i>
+          Detalles del Cliente
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="cerrarDetalles()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedCliente">
+        <div class="row">
+          <!-- Información Personal -->
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-user me-2 text-corporate-blue"></i>
+                  Información Personal
+                </h6>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">ID:</dt>
+                  <dd class="col-sm-8">{{selectedCliente.id}}</dd>
+                  
+                  <dt class="col-sm-4">Nombre:</dt>
+                  <dd class="col-sm-8">{{selectedCliente.nombre}}</dd>
+                  
+                  <dt class="col-sm-4">Teléfono:</dt>
+                  <dd class="col-sm-8">
+                    <i class="fas fa-phone me-1 text-muted"></i>
+                    {{selectedCliente.telefono}}
+                  </dd>
+                  
+                  <dt class="col-sm-4">Segundo Tel:</dt>
+                  <dd class="col-sm-8">
+                    <i class="fas fa-phone me-1 text-muted"></i>
+                    {{selectedCliente.segundoTelefono || 'No especificado'}}
+                  </dd>
+                  
+                  <dt class="col-sm-4">Correo:</dt>
+                  <dd class="col-sm-8">
+                    <i class="fas fa-envelope me-1 text-muted"></i>
+                    {{selectedCliente.email}}
+                  </dd>
+                  
+                  <dt class="col-sm-4">Dirección:</dt>
+                  <dd class="col-sm-8">
+                    <i class="fas fa-map-marker-alt me-1 text-muted"></i>
+                    {{selectedCliente.direccion}}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Información Fiscal -->
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-file-invoice me-2 text-corporate-blue"></i>
+                  Datos de Facturación
+                </h6>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">RFC:</dt>
+                  <dd class="col-sm-8">
+                    <span class="badge bg-cyber text-dark">{{selectedCliente.rfc}}</span>
+                  </dd>
+                  
+                  <dt class="col-sm-4">Razón Social:</dt>
+                  <dd class="col-sm-8">{{selectedCliente.razon || 'No especificada'}}</dd>
+                  
+                  <dt class="col-sm-4">Régimen:</dt>
+                  <dd class="col-sm-8">{{selectedCliente.regimen || 'No especificado'}}</dd>
+                  
+                  <dt class="col-sm-4">Código Postal:</dt>
+                  <dd class="col-sm-8">{{selectedCliente.cp || 'No especificado'}}</dd>
+                  
+                  <dt class="col-sm-4">Uso CFDI:</dt>
+                  <dd class="col-sm-8">{{selectedCliente.cfdi || 'No especificado'}}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" (click)="imprimirCliente()">
+          <i class="fas fa-print me-1"></i>
+          Imprimir
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cerrarDetalles()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Backdrop del modal -->
+<div class="modal-backdrop fade" [class.show]="showDetalles" *ngIf="showDetalles" (click)="cerrarDetalles()"></div>
+
 <!-- pagination and summary moved to the parent list component -->

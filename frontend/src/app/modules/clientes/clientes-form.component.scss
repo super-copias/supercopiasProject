@@ -1,0 +1,115 @@
+/* Formulario de clientes corporativo */
+.p-4 {
+  h3 {
+    color: var(--color-deep-blue);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+
+  h5 {
+    color: var(--color-dark-blue);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-cyber-yellow);
+    font-weight: 600;
+  }
+
+  label {
+    color: var(--color-dark-blue);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    transition: all 0.15s ease-in-out;
+
+    &:focus {
+      border-color: var(--color-cyber-yellow);
+      box-shadow: 0 0 0 0.2rem rgba(255, 221, 2, 0.25);
+      outline: none;
+    }
+
+    &:hover {
+      border-color: var(--color-deep-blue);
+    }
+  }
+
+  select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23003d80' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+    
+    option {
+      padding: 0.5rem;
+      background: white;
+      color: #333;
+      
+      &:checked {
+        background: var(--color-cyber-yellow);
+        color: #333;
+      }
+    }
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.15s ease-in-out;
+
+    &.btn-primary {
+      background: linear-gradient(135deg, var(--color-deep-blue) 0%, var(--color-dark-blue) 100%);
+      border: none;
+
+      &:hover {
+        background: linear-gradient(135deg, var(--color-dark-blue) 0%, #152144 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 61, 128, 0.3);
+      }
+    }
+
+    &.btn-secondary {
+      background: #6c757d;
+      border: none;
+
+      &:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .mb-2 {
+    margin-bottom: 1rem !important;
+  }
+
+  .mt-3 {
+    margin-top: 2rem !important;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+  }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .p-4 {
+    padding: 1.5rem !important;
+    
+    .btn {
+      width: 100%;
+      margin-bottom: 0.5rem;
+      
+      &.ms-2 {
+        margin-left: 0 !important;
+      }
+    }
+  }
+}

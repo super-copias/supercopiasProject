@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, finalize } from 'rxjs/operators';
+import { Router } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
 
 @Component({
@@ -25,7 +26,9 @@ import { ClientesService } from '../../services/clientes.service';
       </div>
     </div>
     <div class="card-body">
-      <app-clientes-table [clientes]="clientes"></app-clientes-table>
+      <app-clientes-table [clientes]="clientes" 
+                          (editar)="onEditar($event)" 
+                          (eliminar)="onEliminar($event)"></app-clientes-table>
       <div *ngIf="loading" class="my-2">
         <small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</small>
       </div>
@@ -54,7 +57,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   limit = 10;
   total = 0;
   pages = 1;
-  constructor(private svc: ClientesService) { }
+  constructor(private svc: ClientesService, private router: Router) { }
   ngOnInit() {
     this.load();
     this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(q => { this.q = q; this.load(); });
@@ -65,4 +68,18 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     this.svc.list(this.q, this.page, this.limit).pipe(finalize(() => this.loading = false)).subscribe((r: any) => { this.clientes = r.data; this.total = r.total; this.pages = Math.max(1, Math.ceil(this.total / this.limit)); });
   }
   go(p: number) { if (p<1 || p>this.pages) return; this.page = p; this.load(); }
+
+  onEditar(cliente: any) {
+    // Por ahora redirigir al formulario de nuevo cliente
+    // En el futuro se puede crear un formulario de edición específico
+    this.router.navigate(['/admin/clientes/nuevo'], { queryParams: { id: cliente.id } });
+  }
+
+  onEliminar(cliente: any) {
+    this.svc.delete(cliente.id).subscribe((success) => {
+      if (success) {
+        this.load(); // Recargar la lista
+      }
+    });
+  }
 }

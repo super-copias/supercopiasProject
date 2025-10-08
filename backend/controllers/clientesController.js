@@ -58,4 +58,36 @@ function deleteCliente(req, res) {
   res.json(item);
 }
 
-module.exports = { listClientes, getCliente, createCliente, updateCliente, deleteCliente };
+function getUsosCFDI(req, res) {
+  // Catálogo completo de Usos CFDI vigentes en México
+  const usosCFDI = [
+    { codigo: 'G01', descripcion: 'Adquisición de mercancías' },
+    { codigo: 'G02', descripcion: 'Devoluciones, descuentos o bonificaciones' },
+    { codigo: 'G03', descripcion: 'Gastos en general' },
+    { codigo: 'I01', descripcion: 'Construcciones' },
+    { codigo: 'I02', descripcion: 'Mobilario y equipo de oficina por inversiones' },
+    { codigo: 'I03', descripcion: 'Equipo de transporte' },
+    { codigo: 'I04', descripcion: 'Equipo de cómputo y accesorios' },
+    { codigo: 'I05', descripcion: 'Dados, troqueles, moldes, matrices y herramental' },
+    { codigo: 'I06', descripcion: 'Comunicaciones telefónicas' },
+    { codigo: 'I07', descripcion: 'Comunicaciones satelitales' },
+    { codigo: 'I08', descripcion: 'Otra maquinaria y equipo' },
+    { codigo: 'D01', descripcion: 'Honorarios médicos, dentales y gastos hospitalarios' },
+    { codigo: 'D02', descripcion: 'Gastos médicos por incapacidad o discapacidad' },
+    { codigo: 'D03', descripcion: 'Gastos funerales' },
+    { codigo: 'D04', descripcion: 'Donativos' },
+    { codigo: 'D05', descripcion: 'Intereses reales efectivamente pagados por créditos hipotecarios (casa habitación)' },
+    { codigo: 'D06', descripcion: 'Aportaciones voluntarias al SAR' },
+    { codigo: 'D07', descripcion: 'Primas por seguros de gastos médicos' },
+    { codigo: 'D08', descripcion: 'Gastos de transportación escolar obligatoria' },
+    { codigo: 'D09', descripcion: 'Depósitos en cuentas para el ahorro, primas que tengan como base planes de pensiones' },
+    { codigo: 'D10', descripcion: 'Pagos por servicios educativos (colegiaturas)' },
+    { codigo: 'S01', descripcion: 'Sin efectos fiscales' },
+    { codigo: 'CP01', descripcion: 'Pagos' },
+    { codigo: 'CN01', descripcion: 'Nómina' }
+  ];
+  
+  res.json(usosCFDI);
+}
+
+module.exports = { listClientes, getCliente, createCliente, updateCliente, deleteCliente, getUsosCFDI };

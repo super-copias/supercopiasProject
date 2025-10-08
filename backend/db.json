@@ -12,91 +12,91 @@
       "id": "1",
       "nombre": "Imprenta Central",
       "telefono": "55-1010-2020",
+      "segundoTelefono": "55-1010-2021",
       "email": "contacto@imprentacentral.com",
       "direccion": "Calle 10 #100",
-      "rfc": "IMP123456T1",
-      "entrega": "Recoge"
+      "rfc": "IMP123456T1"
     },
     {
       "id": "2",
       "nombre": "Copias Express",
       "telefono": "55-2020-3030",
+      "segundoTelefono": "55-2020-3031",
       "email": "ventas@copiasexpress.mx",
       "direccion": "Av. Reforma 200",
-      "rfc": "COP987654A2",
-      "entrega": "Envio"
+      "rfc": "COP987654A2"
     },
     {
       "id": "3",
       "nombre": "Oficina & Más",
       "telefono": "55-3030-4040",
+      "segundoTelefono": "55-3030-4041",
       "email": "info@oficinaymas.com",
       "direccion": "Boulevard Central 45",
-      "rfc": "OFI564738B3",
-      "entrega": "Recoge"
+      "rfc": "OFI564738B3"
     },
     {
       "id": "4",
       "nombre": "Gráficos Rápidos",
       "telefono": "55-4040-5050",
+      "segundoTelefono": "55-4040-5051",
       "email": "contacto@graficosrapidos.com",
       "direccion": "Calle 7 #77",
-      "rfc": "GRA112233C4",
-      "entrega": "Envio"
+      "rfc": "GRA112233C4"
     },
     {
       "id": "5",
       "nombre": "Servicios Imprime",
       "telefono": "55-5050-6060",
+      "segundoTelefono": "55-5050-6061",
       "email": "hola@serviciosimprime.mx",
       "direccion": "Av. Libertad 88",
-      "rfc": "SER445566D5",
-      "entrega": "Recoge"
+      "rfc": "SER445566D5"
     },
     {
       "id": "6",
       "nombre": "Documentos YA",
       "telefono": "55-6060-7070",
+      "segundoTelefono": "55-6060-7071",
       "email": "soporte@documentosya.com",
       "direccion": "Plaza Central Local 3",
-      "rfc": "DOC778899E6",
-      "entrega": "Envio"
+      "rfc": "DOC778899E6"
     },
     {
       "id": "7",
       "nombre": "Papelería El Siglo",
       "telefono": "55-7070-8080",
+      "segundoTelefono": "55-7070-8081",
       "email": "ventas@papsiglo.com",
       "direccion": "Calle Independencia 12",
-      "rfc": "PAP334455F7",
-      "entrega": "Recoge"
+      "rfc": "PAP334455F7"
     },
     {
       "id": "8",
       "nombre": "Copy & Print",
       "telefono": "55-8080-9090",
+      "segundoTelefono": "55-8080-9091",
       "email": "contacto@copyandprint.mx",
       "direccion": "Av. Reforma 900",
-      "rfc": "COP556677G8",
-      "entrega": "Envio"
+      "rfc": "COP556677G8"
     },
     {
       "id": "9",
       "nombre": "Rápido Impreso",
       "telefono": "55-9090-0000",
+      "segundoTelefono": "55-9090-0001",
       "email": "rapido@impreso.com",
       "direccion": "Calle 3 #5",
-      "rfc": "RAP990011H9",
-      "entrega": "Recoge"
+      "rfc": "RAP990011H9"
     },
     {
       "id": "10",
       "nombre": "Servicios de Copiado S.A.",
       "telefono": "55-0000-1111",
+      "segundoTelefono": "55-0000-1112",
       "email": "contacto@serviciosdecopiado.mx",
       "direccion": "Av. Industrial 10",
-      "rfc": "SER223344I0",
-      "entrega": "Envio"
+      "rfc": "SER223344I0"
     }
   ],
   "empleados": [
