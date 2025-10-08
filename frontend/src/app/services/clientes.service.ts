@@ -1,3 +1,9 @@
+/**
+ * Servicio de Clientes
+ * Gestiona todas las operaciones CRUD para clientes y operaciones relacionadas
+ * Incluye datos mock para desarrollo y llamadas al backend
+ */
+
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -5,13 +11,13 @@ import { catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class ClientesService {
-  // Mock in-memory store for development
+  // Store local para desarrollo (datos mock)
   private store: any[] = [];
   private idSeq = 1;
   private baseUrl = '/api/clientes';
 
   constructor(private http: HttpClient) {
-    // seed with 10 records matching backend sample data
+    // Datos de muestra para desarrollo - coinciden con el backend
     const seeds = [
       { nombre: 'Imprenta Central', telefono: '55-1010-2020', segundoTelefono: '55-1010-2021', email: 'contacto@imprentacentral.com', direccion: 'Calle 10 #100', rfc: 'IMP123456T1', razon: 'Imprenta Central S.A. de C.V.', regimen: 'General de Ley', cp: '06700', cfdi: 'G01 - Adquisición de mercancías' },
       { nombre: 'Copias Express', telefono: '55-2020-3030', segundoTelefono: '55-2020-3031', email: 'ventas@copiasexpress.mx', direccion: 'Av. Reforma 200', rfc: 'COP987654A2', razon: 'Copias Express S.A.', regimen: 'General de Ley', cp: '11000', cfdi: 'G03 - Gastos en general' },
@@ -27,35 +33,73 @@ export class ClientesService {
     seeds.forEach(s => this.create(s).subscribe());
   }
 
+  /**
+   * Obtener lista de clientes con búsqueda y paginación
+   * Usar datos mock para desarrollo
+   * 
+   * @param q - Término de búsqueda
+   * @param page - Número de página
+   * @param limit - Elementos por página
+   * @returns Observable con datos paginados
+   */
   list(q = '', page = 1, limit = 10): Observable<any> {
     const normalize = (s: string) => s ? s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase() : s.toLowerCase() : '';
     const qnorm = normalize(q || '');
+    
     const filtered = this.store.filter(c => {
       if (!qnorm) return true;
       return Object.values(c).some(v => normalize((v || '').toString()).includes(qnorm)) || String(c.id) === q;
     });
+    
     const start = (page - 1) * limit;
     const data = filtered.slice(start, start + limit);
     return of({ data, total: filtered.length });
   }
 
+  /**
+   * Crear un nuevo cliente
+   * Usa datos mock para desarrollo
+   * 
+   * @param data - Datos del cliente
+   * @returns Observable con el cliente creado
+   */
   create(data: any): Observable<any> {
     const item = { id: this.idSeq++, ...data };
     this.store.push(item);
     return of(item);
   }
 
+  /**
+   * Crear múltiples clientes
+   * Usado para inicializar datos de desarrollo
+   * 
+   * @param arr - Array de clientes
+   * @returns Observable con resultado de la operación
+   */
   createMany(arr: any[]): Observable<any> {
     const created = arr.map(a => ({ id: this.idSeq++, ...a }));
     this.store.push(...created);
     return of({ createdCount: created.length, created });
   }
 
+  /**
+   * Obtener un cliente por ID
+   * 
+   * @param id - ID del cliente
+   * @returns Observable con el cliente o null
+   */
   getById(id: string | number): Observable<any> {
     const cliente = this.store.find(c => c.id == id);
     return cliente ? of(cliente) : of(null);
   }
 
+  /**
+   * Actualizar un cliente existente
+   * 
+   * @param id - ID del cliente
+   * @param data - Datos a actualizar
+   * @returns Observable con el cliente actualizado o null
+   */
   update(id: string | number, data: any): Observable<any> {
     const index = this.store.findIndex(c => c.id == id);
     if (index === -1) return of(null);
@@ -63,6 +107,12 @@ export class ClientesService {
     return of(this.store[index]);
   }
 
+  /**
+   * Eliminar un cliente
+   * 
+   * @param id - ID del cliente
+   * @returns Observable con resultado booleano
+   */
   delete(id: string | number): Observable<any> {
     const index = this.store.findIndex(c => c.id == id);
     if (index === -1) return of(false);
@@ -70,6 +120,13 @@ export class ClientesService {
     return of(true);
   }
 
+  /**
+   * Obtener catálogo de Usos CFDI de México
+   * Endpoint: GET /api/clientes/usos-cfdi
+   * Incluye fallback con datos locales si el backend no está disponible
+   * 
+   * @returns Observable con array de códigos CFDI
+   */
   getUsosCFDI(): Observable<any[]> {
     // Intentar obtener del backend primero, si falla usar datos locales
     return this.http.get<any[]>(`${this.baseUrl}/usos-cfdi`).pipe(

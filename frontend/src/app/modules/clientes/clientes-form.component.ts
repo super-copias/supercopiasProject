@@ -1,3 +1,9 @@
+/**
+ * Componente de Formulario de Clientes
+ * Permite crear y editar clientes del sistema SuperCopias
+ * Incluye funcionalidad de selección de dirección con Google Maps
+ */
+
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
@@ -12,6 +18,8 @@ import { ClientesService } from '../../services/clientes.service';
       <div class="mb-2"><label>Teléfono</label><input class="form-control" [(ngModel)]="model.telefono" name="telefono" /></div>
       <div class="mb-2"><label>Segundo teléfono</label><input class="form-control" [(ngModel)]="model.segundoTelefono" name="segundoTelefono" /></div>
       <div class="mb-2"><label>Correo</label><input class="form-control" [(ngModel)]="model.email" name="email" type="email" /></div>
+      
+      <!-- Campo de dirección con selector de Google Maps -->
       <div class="mb-2">
         <label>Dirección</label>
         <div class="input-group">
@@ -55,6 +63,7 @@ import { ClientesService } from '../../services/clientes.service';
           </div>
         </div>
       </div>
+      
       <h5>Datos de facturación</h5>
       <div class="mb-2"><label>Razón social</label><input class="form-control" [(ngModel)]="model.razon" name="razon" /></div>
       <div class="mb-2"><label>RFC</label><input class="form-control" [(ngModel)]="model.rfc" name="rfc" /></div>
@@ -78,12 +87,15 @@ import { ClientesService } from '../../services/clientes.service';
   `
 })
 export class ClientesFormComponent implements OnInit {
+  // Modelo de datos del cliente
   model: any = {};
   isEdit = false;
   clienteId: string | null = null;
+  
+  // Catálogo de Usos CFDI de México
   usosCFDI: any[] = [];
   
-  // Variables para el selector de mapa (sin modal)
+  // Variables para el selector de mapa (accordion expandible)
   showMapSelector = false;
   busquedaDireccion = '';
   direccionCopiada = '';
@@ -95,6 +107,10 @@ export class ClientesFormComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
+  /**
+   * Inicialización del componente
+   * Carga los Usos CFDI y verifica si es modo edición
+   */
   ngOnInit() {
     this.loadUsosCFDI();
     this.route.queryParams.subscribe(params => {
@@ -106,12 +122,20 @@ export class ClientesFormComponent implements OnInit {
     });
   }
 
+  /**
+   * Cargar catálogo de Usos CFDI
+   * Endpoint: GET /api/clientes/usos-cfdi
+   */
   loadUsosCFDI() {
     this.svc.getUsosCFDI().subscribe(usos => {
       this.usosCFDI = usos;
     });
   }
 
+  /**
+   * Cargar datos del cliente para edición
+   * Usa el servicio mock para desarrollo
+   */
   loadCliente() {
     if (this.clienteId) {
       this.svc.getById(this.clienteId).subscribe(cliente => {
@@ -122,24 +146,37 @@ export class ClientesFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Guardar cliente (crear o actualizar)
+   * Usa el servicio mock para desarrollo
+   */
   save() {
     if (this.isEdit && this.clienteId) {
+      // Actualizar cliente existente
       this.svc.update(this.clienteId, this.model).subscribe(() => {
         this.router.navigate(['/admin/clientes']);
       });
     } else {
+      // Crear nuevo cliente
       this.svc.create(this.model).subscribe(() => {
         this.router.navigate(['/admin/clientes']);
       });
     }
   }
   
+  /**
+   * Cancelar operación y regresar a la lista de clientes
+   */
   cancel() { 
     this.router.navigate(['/admin/clientes']); 
   }
 
-  // Métodos para el selector de mapa
-  // Métodos para el selector de mapa (sin modal)
+  // === MÉTODOS PARA SELECTOR DE GOOGLE MAPS ===
+  
+  /**
+   * Mostrar/ocultar el selector de mapa (accordion expandible)
+   * Inicializa campos con datos actuales del formulario
+   */
   toggleSelectorMapa() {
     this.showMapSelector = !this.showMapSelector;
     if (this.showMapSelector) {
@@ -148,18 +185,29 @@ export class ClientesFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Cerrar el selector de mapa y limpiar campos temporales
+   */
   cerrarSelector() {
     this.showMapSelector = false;
     this.busquedaDireccion = '';
     this.direccionCopiada = '';
   }
 
+  /**
+   * Abrir Google Maps en nueva ventana con la dirección de búsqueda
+   * Permite al usuario navegar y obtener la dirección exacta
+   */
   abrirGoogleMaps() {
     const direccionBusqueda = this.busquedaDireccion?.trim() || 'Ciudad de México';
     const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(direccionBusqueda)}`;
     window.open(googleMapsUrl, '_blank', 'width=1200,height=800');
   }
 
+  /**
+   * Aplicar la dirección copiada de Google Maps al formulario principal
+   * Se ejecuta al presionar Enter en el textarea de dirección
+   */
   aplicarDireccion() {
     if (this.direccionCopiada?.trim()) {
       this.model.direccion = this.direccionCopiada.trim();
