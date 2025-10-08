@@ -8,7 +8,7 @@ import { LoginModule } from './modules/login/login.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { EmpleadosModule } from './modules/empleados/empleados.module';
-import { AuthInterceptor } from './services/auth-interceptor';
+import { EnhancedAuthInterceptor } from './services/enhanced-auth-interceptor';
 import { AuthGuard } from './services/auth.guard';
 
 const routes: Routes = [
@@ -21,7 +21,7 @@ const routes: Routes = [
   declarations: [AppComponent],
   imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes)],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: EnhancedAuthInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]
 })

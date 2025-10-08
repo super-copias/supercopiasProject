@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, switchMap, takeUntil, finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { EmpleadosService } from '../../services/empleados.service';
+import { RequestCancellationService } from '../../services/request-cancellation.service';
 
 @Component({
   selector: 'app-empleados-list',
@@ -38,25 +39,72 @@ import { EmpleadosService } from '../../services/empleados.service';
     </div>
   `
 })
-export class EmpleadosListComponent implements OnInit {
+export class EmpleadosListComponent implements OnInit, OnDestroy {
   empleados: any[] = [];
   q = '';
   search$ = new Subject<string>();
+  private destroy$ = new Subject<void>();
   private searchSub: Subscription | null = null;
   page = 1;
   limit = 10;
   total = 0;
   pages = 1;
-    constructor(private svc: EmpleadosService, private router: Router) { }
+  loading = false;
+  
+  constructor(
+    private svc: EmpleadosService, 
+    private router: Router,
+    private cancellationService: RequestCancellationService
+  ) { }
   ngOnInit() { 
     this.load();
-    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(q => { this.q = q; this.load(); });
+    
+    // Búsqueda optimizada con cancelación automática
+    this.searchSub = this.search$.pipe(
+      debounceTime(300),
+      switchMap(q => {
+        this.q = q; 
+        this.page = 1;
+        return this.loadData();
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe();
   }
-  ngOnDestroy() { if (this.searchSub) this.searchSub.unsubscribe(); }
+  
+  private loadData() {
+    this.loading = true;
+    return this.svc.list(this.q, this.page, this.limit).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.loading = false)
+    );
+  }
+  
   load() {
-    this.svc.list(this.q, this.page, this.limit).subscribe((r: any) => { this.empleados = r.data; this.total = r.total; this.pages = Math.max(1, Math.ceil(this.total / this.limit)); });
+    this.loadData().subscribe({
+      next: (r: any) => { 
+        this.empleados = r.data || []; 
+        this.total = r.total || 0; 
+        this.pages = Math.max(1, Math.ceil(this.total / this.limit)); 
+      },
+      error: (error) => {
+        console.error('Error loading empleados:', error);
+        this.empleados = [];
+        this.total = 0;
+        this.pages = 1;
+      }
+    });
   }
-  go(p: number) { if (p<1 || p>this.pages) return; this.page = p; this.load(); }
+  
+  ngOnDestroy() { 
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.searchSub) this.searchSub.unsubscribe(); 
+  }
+  go(p: number) { 
+    if (p < 1 || p > this.pages || p === this.page) return; 
+    this.page = p; 
+    this.load(); 
+  }
   
     verDetalles(empleado: any) {
         // placeholder: abrir modal o navegar a vista detalle
@@ -74,6 +122,8 @@ export class EmpleadosListComponent implements OnInit {
 
     eliminar(empleado: any) {
         if (!confirm(`Eliminar empleado ${empleado.nombre || empleado.id}?`)) return;
-        this.svc.delete(String(empleado.id)).subscribe(() => this.load());
+        this.svc.delete(String(empleado.id)).pipe(
+          takeUntil(this.destroy$)
+        ).subscribe(() => this.load());
     }
 }

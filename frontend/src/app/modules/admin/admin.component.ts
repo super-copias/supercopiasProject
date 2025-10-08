@@ -1,5 +1,8 @@
 import { Component, HostListener, OnInit } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
+import { RequestCancellationService } from '../../services/request-cancellation.service';
 
 @Component({
   selector: 'app-admin',
@@ -12,10 +15,22 @@ export class AdminComponent {
   // mobileOpen: overlay visible on small screens
   mobileOpen = false;
 
-  constructor(public auth: AuthService) {}
+  constructor(
+    public auth: AuthService,
+    private router: Router,
+    private cancellationService: RequestCancellationService
+  ) {}
 
   ngOnInit(): void {
     this.updateForWidth(window.innerWidth);
+    
+    // Cancelar requests al navegar entre módulos
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      // Cancelar todos los requests pendientes al cambiar de ruta
+      this.cancellationService.cancelAllRequests();
+    });
   }
 
   @HostListener('window:resize', ['$event'])
