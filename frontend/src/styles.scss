@@ -49,6 +49,36 @@ body {
 	}
 }
 
+/* Estilos globales para select/combobox */
+select.form-control,
+select.form-select,
+.form-select {
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23003d80' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 0.75rem center !important;
+	background-size: 16px 12px !important;
+	padding-right: 2.5rem !important;
+	appearance: none !important;
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	cursor: pointer;
+	
+	&:hover {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffd302' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+	}
+
+	&:focus {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffd302' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+	}
+}
+
+/* Asegurar que los inputs no tengan el icono */
+input.form-control,
+textarea.form-control {
+	background-image: none !important;
+	padding-right: 0.75rem !important;
+}
+
 .btn-outline-primary {
 	color: var(--color-deep-blue);
 	border-color: var(--color-deep-blue);

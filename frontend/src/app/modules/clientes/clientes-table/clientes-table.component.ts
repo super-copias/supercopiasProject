@@ -34,6 +34,22 @@ export class ClientesTableComponent {
     }
   }
 
+  verUbicacion(cliente: any) {
+    if (!cliente.direccion || cliente.direccion.trim() === '') {
+      alert('Este cliente no tiene una dirección registrada.');
+      return;
+    }
+
+    // Codificar la dirección para URL
+    const direccionCodificada = encodeURIComponent(cliente.direccion.trim());
+    
+    // Crear URL de Google Maps
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${direccionCodificada}`;
+    
+    // Abrir en nueva ventana
+    window.open(googleMapsUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  }
+
   imprimirCliente() {
     if (!this.selectedCliente) return;
     
