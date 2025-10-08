@@ -5,6 +5,8 @@
 
 const { db, init } = require('../db');
 const { nanoid } = require('nanoid');
+const XLSX = require('xlsx');
+const fs = require('fs');
 
 /**
  * Obtener lista de clientes con búsqueda y paginación
@@ -167,11 +169,170 @@ function getUsosCFDI(req, res) {
   res.json(usosCFDI);
 }
 
+/**
+ * Carga masiva de clientes desde archivo Excel
+ * Endpoint: POST /api/clientes/upload-excel
+ * 
+ * @param {Object} req - Request object con archivo Excel
+ * @param {Object} res - Response object
+ * @returns {Object} JSON con resultado de la carga masiva
+ */
+function uploadExcelClientes(req, res) {
+  try {
+    console.log('📁 Upload Excel iniciado...');
+    init();
+    
+    // Verificar que se subió un archivo
+    if (!req.file) {
+      console.log('❌ No se recibió archivo');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se encontró archivo Excel' 
+      });
+    }
+
+    console.log(`📄 Archivo recibido: ${req.file.originalname} (${req.file.size} bytes)`);
+    console.log(`📄 Tipo MIME: ${req.file.mimetype}`);
+    console.log(`📄 Ruta temporal: ${req.file.path}`);
+
+    // Leer el archivo Excel
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0]; // Primera hoja
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // Convertir a JSON
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    console.log(`📊 Filas encontradas: ${data.length}`);
+    
+    if (data.length < 2) {
+      // Limpiar archivo temporal
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'El archivo debe contener al menos una fila de encabezados y una fila de datos' 
+      });
+    }
+
+    // Validar encabezados esperados
+    const encabezadosEsperados = [
+      'nombre', 'telefono', 'segundo telefono', 'correo', 'direccion',
+      'razon social', 'rfc', 'regimen fiscal', 'codigo postal', 'uso cfdi'
+    ];
+    
+    const encabezados = data[0].map(h => (h || '').toString().toLowerCase().trim());
+    
+    // Verificar que todos los encabezados requeridos estén presentes
+    const encabezadosFaltantes = encabezadosEsperados.filter(e => !encabezados.includes(e));
+    if (encabezadosFaltantes.length > 0) {
+      // Limpiar archivo temporal
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Faltan encabezados requeridos: ${encabezadosFaltantes.join(', ')}`,
+        encabezadosRequeridos: encabezadosEsperados
+      });
+    }
+
+    // Procesar filas de datos (desde la fila 2)
+    const clientesParaCrear = [];
+    const errores = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const fila = data[i];
+      
+      // Saltar filas vacías
+      if (!fila || fila.every(cell => !cell || cell.toString().trim() === '')) {
+        continue;
+      }
+
+      try {
+        // Mapear columnas a propiedades del cliente
+        const cliente = {
+          id: nanoid(),
+          nombre: (fila[encabezados.indexOf('nombre')] || '').toString().trim(),
+          telefono: (fila[encabezados.indexOf('telefono')] || '').toString().trim(),
+          segundoTelefono: (fila[encabezados.indexOf('segundo telefono')] || '').toString().trim(),
+          email: (fila[encabezados.indexOf('correo')] || '').toString().trim(),
+          direccion: (fila[encabezados.indexOf('direccion')] || '').toString().trim(),
+          razon: (fila[encabezados.indexOf('razon social')] || '').toString().trim(),
+          rfc: (fila[encabezados.indexOf('rfc')] || '').toString().trim(),
+          regimen: (fila[encabezados.indexOf('regimen fiscal')] || '').toString().trim(),
+          cp: (fila[encabezados.indexOf('codigo postal')] || '').toString().trim(),
+          cfdi: (fila[encabezados.indexOf('uso cfdi')] || '').toString().trim()
+        };
+
+        // Validación básica: nombre es requerido
+        if (!cliente.nombre) {
+          errores.push(`Fila ${i + 1}: Nombre es requerido`);
+          continue;
+        }
+
+        clientesParaCrear.push(cliente);
+        
+      } catch (error) {
+        errores.push(`Fila ${i + 1}: Error procesando datos - ${error.message}`);
+      }
+    }
+
+    // Si hay errores críticos, no procesar nada
+    if (clientesParaCrear.length === 0) {
+      // Limpiar archivo temporal
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se encontraron clientes válidos para procesar',
+        errores 
+      });
+    }
+
+    // Insertar clientes en la base de datos
+    const clientesInsertados = [];
+    
+    clientesParaCrear.forEach(cliente => {
+      try {
+        db.get('clientes').push(cliente).write();
+        clientesInsertados.push(cliente);
+      } catch (error) {
+        errores.push(`Error insertando cliente ${cliente.nombre}: ${error.message}`);
+      }
+    });
+
+    // Limpiar archivo temporal
+    fs.unlinkSync(req.file.path);
+
+    // Respuesta con resumen
+    res.json({
+      success: true,
+      message: `Carga masiva completada: ${clientesInsertados.length} clientes agregados`,
+      total: data.length - 1,
+      insertados: clientesInsertados.length,
+      errores: errores.length > 0 ? errores.map((error, index) => ({ 
+        fila: index + 2, 
+        mensaje: error 
+      })) : [],
+      datos: clientesInsertados
+    });
+
+  } catch (error) {
+    // Limpiar archivo temporal en caso de error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error procesando archivo Excel',
+      error: error.message
+    });
+  }
+}
+
 module.exports = { 
   listClientes, 
   getCliente, 
   createCliente, 
   updateCliente, 
   deleteCliente, 
-  getUsosCFDI 
+  getUsosCFDI,
+  uploadExcelClientes 
 };

@@ -17,25 +17,12 @@ export class ClientesService {
   private baseUrl = '/api/clientes';
 
   constructor(private http: HttpClient) {
-    // Datos de muestra para desarrollo - coinciden con el backend
-    const seeds = [
-      { nombre: 'Imprenta Central', telefono: '55-1010-2020', segundoTelefono: '55-1010-2021', email: 'contacto@imprentacentral.com', direccion: 'Calle 10 #100', rfc: 'IMP123456T1', razon: 'Imprenta Central S.A. de C.V.', regimen: 'General de Ley', cp: '06700', cfdi: 'G01 - Adquisición de mercancías' },
-      { nombre: 'Copias Express', telefono: '55-2020-3030', segundoTelefono: '55-2020-3031', email: 'ventas@copiasexpress.mx', direccion: 'Av. Reforma 200', rfc: 'COP987654A2', razon: 'Copias Express S.A.', regimen: 'General de Ley', cp: '11000', cfdi: 'G03 - Gastos en general' },
-      { nombre: 'Oficina & Más', telefono: '55-3030-4040', segundoTelefono: '55-3030-4041', email: 'info@oficinaymas.com', direccion: 'Boulevard Central 45', rfc: 'OFI564738B3', razon: 'Oficina & Más S.C.', regimen: 'Simplificado de Confianza', cp: '03100', cfdi: 'G01 - Adquisición de mercancías' },
-      { nombre: 'Gráficos Rápidos', telefono: '55-4040-5050', segundoTelefono: '55-4040-5051', email: 'contacto@graficosrapidos.com', direccion: 'Calle 7 #77', rfc: 'GRA112233C4', razon: 'Gráficos Rápidos S.A. de C.V.', regimen: 'General de Ley', cp: '07300', cfdi: 'G02 - Devoluciones, descuentos o bonificaciones' },
-      { nombre: 'Servicios Imprime', telefono: '55-5050-6060', segundoTelefono: '55-5050-6061', email: 'hola@serviciosimprime.mx', direccion: 'Av. Libertad 88', rfc: 'SER445566D5', razon: 'Servicios Imprime S.A.', regimen: 'General de Ley', cp: '01000', cfdi: 'G01 - Adquisición de mercancías' },
-      { nombre: 'Documentos YA', telefono: '55-6060-7070', segundoTelefono: '55-6060-7071', email: 'soporte@documentosya.com', direccion: 'Plaza Central Local 3', rfc: 'DOC778899E6', razon: 'Documentos YA S.C.', regimen: 'Simplificado de Confianza', cp: '08100', cfdi: 'G03 - Gastos en general' },
-      { nombre: 'Papelería El Siglo', telefono: '55-7070-8080', segundoTelefono: '55-7070-8081', email: 'ventas@papsiglo.com', direccion: 'Calle Independencia 12', rfc: 'PAP334455F7', razon: 'Papelería El Siglo S.A. de C.V.', regimen: 'General de Ley', cp: '06000', cfdi: 'G01 - Adquisición de mercancías' },
-      { nombre: 'Copy & Print', telefono: '55-8080-9090', segundoTelefono: '55-8080-9091', email: 'contacto@copyandprint.mx', direccion: 'Av. Reforma 900', rfc: 'COP556677G8', razon: 'Copy & Print S.A.', regimen: 'General de Ley', cp: '11550', cfdi: 'G02 - Devoluciones, descuentos o bonificaciones' },
-      { nombre: 'Rápido Impreso', telefono: '55-9090-0000', segundoTelefono: '55-9090-0001', email: 'rapido@impreso.com', direccion: 'Calle 3 #5', rfc: 'RAP990011H9', razon: 'Rápido Impreso S.C.', regimen: 'Simplificado de Confianza', cp: '09000', cfdi: 'G01 - Adquisición de mercancías' },
-      { nombre: 'Servicios de Copiado S.A.', telefono: '55-0000-1111', segundoTelefono: '55-0000-1112', email: 'contacto@serviciosdecopiado.mx', direccion: 'Av. Industrial 10', rfc: 'SER223344I0', razon: 'Servicios de Copiado S.A. de C.V.', regimen: 'General de Ley', cp: '02000', cfdi: 'G03 - Gastos en general' }
-    ];
-    seeds.forEach(s => this.create(s).subscribe());
+    // Constructor limpio - ya no crea datos mock automáticamente
   }
 
   /**
    * Obtener lista de clientes con búsqueda y paginación
-   * Usar datos mock para desarrollo
+   * Intenta obtener del backend, si falla usa datos mock
    * 
    * @param q - Término de búsqueda
    * @param page - Número de página
@@ -43,30 +30,45 @@ export class ClientesService {
    * @returns Observable con datos paginados
    */
   list(q = '', page = 1, limit = 10): Observable<any> {
-    const normalize = (s: string) => s ? s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase() : s.toLowerCase() : '';
-    const qnorm = normalize(q || '');
-    
-    const filtered = this.store.filter(c => {
-      if (!qnorm) return true;
-      return Object.values(c).some(v => normalize((v || '').toString()).includes(qnorm)) || String(c.id) === q;
-    });
-    
-    const start = (page - 1) * limit;
-    const data = filtered.slice(start, start + limit);
-    return of({ data, total: filtered.length });
+    const params = new URLSearchParams();
+    if (q) params.append('q', q);
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+
+    return this.http.get<any>(`${this.baseUrl}?${params.toString()}`).pipe(
+      catchError(() => {
+        // Fallback a datos mock si el backend no está disponible
+        const normalize = (s: string) => s ? s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase() : s.toLowerCase() : '';
+        const qnorm = normalize(q || '');
+        
+        const filtered = this.store.filter(c => {
+          if (!qnorm) return true;
+          return Object.values(c).some(v => normalize((v || '').toString()).includes(qnorm)) || String(c.id) === q;
+        });
+        
+        const start = (page - 1) * limit;
+        const data = filtered.slice(start, start + limit);
+        return of({ data, total: filtered.length });
+      })
+    );
   }
 
   /**
    * Crear un nuevo cliente
-   * Usa datos mock para desarrollo
+   * Intenta crear en el backend, si falla usa datos mock
    * 
    * @param data - Datos del cliente
    * @returns Observable con el cliente creado
    */
   create(data: any): Observable<any> {
-    const item = { id: this.idSeq++, ...data };
-    this.store.push(item);
-    return of(item);
+    return this.http.post<any>(this.baseUrl, data).pipe(
+      catchError(() => {
+        // Fallback a datos mock si el backend no está disponible
+        const item = { id: this.idSeq++, ...data };
+        this.store.push(item);
+        return of(item);
+      })
+    );
   }
 
   /**
@@ -84,40 +86,58 @@ export class ClientesService {
 
   /**
    * Obtener un cliente por ID
+   * Intenta obtener del backend, si falla usa datos mock
    * 
    * @param id - ID del cliente
    * @returns Observable con el cliente o null
    */
   getById(id: string | number): Observable<any> {
-    const cliente = this.store.find(c => c.id == id);
-    return cliente ? of(cliente) : of(null);
+    return this.http.get<any>(`${this.baseUrl}/${id}`).pipe(
+      catchError(() => {
+        // Fallback a datos mock si el backend no está disponible
+        const cliente = this.store.find(c => c.id == id);
+        return cliente ? of(cliente) : of(null);
+      })
+    );
   }
 
   /**
    * Actualizar un cliente existente
+   * Intenta actualizar en el backend, si falla usa datos mock
    * 
    * @param id - ID del cliente
    * @param data - Datos a actualizar
    * @returns Observable con el cliente actualizado o null
    */
   update(id: string | number, data: any): Observable<any> {
-    const index = this.store.findIndex(c => c.id == id);
-    if (index === -1) return of(null);
-    this.store[index] = { ...this.store[index], ...data };
-    return of(this.store[index]);
+    return this.http.put<any>(`${this.baseUrl}/${id}`, data).pipe(
+      catchError(() => {
+        // Fallback a datos mock si el backend no está disponible
+        const index = this.store.findIndex(c => c.id == id);
+        if (index === -1) return of(null);
+        this.store[index] = { ...this.store[index], ...data };
+        return of(this.store[index]);
+      })
+    );
   }
 
   /**
    * Eliminar un cliente
+   * Intenta eliminar del backend, si falla usa datos mock
    * 
    * @param id - ID del cliente
    * @returns Observable con resultado booleano
    */
   delete(id: string | number): Observable<any> {
-    const index = this.store.findIndex(c => c.id == id);
-    if (index === -1) return of(false);
-    this.store.splice(index, 1);
-    return of(true);
+    return this.http.delete<any>(`${this.baseUrl}/${id}`).pipe(
+      catchError(() => {
+        // Fallback a datos mock si el backend no está disponible
+        const index = this.store.findIndex(c => c.id == id);
+        if (index === -1) return of(false);
+        this.store.splice(index, 1);
+        return of(true);
+      })
+    );
   }
 
   /**
@@ -160,6 +180,25 @@ export class ClientesService {
         ];
         
         return of(usosCFDI);
+      })
+    );
+  }
+
+  /**
+   * Subir archivo Excel para carga masiva de clientes
+   * Envía el archivo al backend para procesamiento y validación
+   * 
+   * @param file - Archivo Excel (.xlsx o .xls)
+   * @returns Observable con el resultado del procesamiento
+   */
+  uploadExcel(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('excel', file);
+    
+    return this.http.post(`${this.baseUrl}/upload-excel`, formData).pipe(
+      catchError((error) => {
+        console.error('Error uploading Excel:', error);
+        throw error;
       })
     );
   }

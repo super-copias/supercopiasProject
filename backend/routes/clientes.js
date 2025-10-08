@@ -6,6 +6,8 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const auth = require('../middlewares/auth');
 const { 
   listClientes, 
@@ -13,8 +15,41 @@ const {
   createCliente, 
   updateCliente, 
   deleteCliente, 
-  getUsosCFDI 
+  getUsosCFDI,
+  uploadExcelClientes 
 } = require('../controllers/clientesController');
+
+/**
+ * Configuración de multer para carga de archivos Excel
+ * Solo acepta archivos .xlsx y .xls
+ * Máximo 5MB de tamaño
+ */
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'clientes-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB límite
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedExtensions.includes(fileExtension)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos Excel (.xlsx, .xls) o CSV (.csv)'));
+    }
+  }
+});
 
 /**
  * GET /api/clientes
@@ -54,5 +89,14 @@ router.put('/:id', auth, updateCliente);
  * Eliminar un cliente
  */
 router.delete('/:id', auth, deleteCliente);
+
+/**
+ * POST /api/clientes/upload-excel
+ * Carga masiva de clientes desde archivo Excel
+ * Acepta: archivos .xlsx y .xls
+ * Headers requeridos: nombre, telefono, segundo telefono, correo, direccion, 
+ *                    razon social, rfc, regimen fiscal, codigo postal, uso cfdi
+ */
+router.post('/upload-excel', auth, upload.single('excel'), uploadExcelClientes);
 
 module.exports = router;

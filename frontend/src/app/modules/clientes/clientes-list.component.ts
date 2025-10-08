@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, finalize } from 'rxjs/operators';
+import { debounceTime, finalize, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
 
@@ -52,22 +52,78 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   q = '';
   loading = false;
   search$ = new Subject<string>();
+  pageChange$ = new Subject<number>();
   private searchSub: Subscription | null = null;
+  private pageSub: Subscription | null = null;
   page = 1;
   limit = 10;
   total = 0;
   pages = 1;
+  
   constructor(private svc: ClientesService, private router: Router) { }
+  
   ngOnInit() {
     this.load();
-    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(q => { this.q = q; this.load(); });
+    
+    // Búsqueda con debounce
+    this.searchSub = this.search$.pipe(
+      debounceTime(300),
+      switchMap(q => {
+        this.q = q;
+        this.page = 1;
+        return this.loadData();
+      })
+    ).subscribe();
+
+    // Paginación con debounce para evitar clicks rápidos
+    this.pageSub = this.pageChange$.pipe(
+      debounceTime(150), // Menos tiempo que la búsqueda
+      switchMap(page => {
+        this.page = page;
+        return this.loadData();
+      })
+    ).subscribe();
   }
-  ngOnDestroy() { if (this.searchSub) this.searchSub.unsubscribe(); }
-  load() {
+  
+  ngOnDestroy() { 
+    if (this.searchSub) this.searchSub.unsubscribe();
+    if (this.pageSub) this.pageSub.unsubscribe();
+  }
+  
+  private loadData() {
     this.loading = true;
-    this.svc.list(this.q, this.page, this.limit).pipe(finalize(() => this.loading = false)).subscribe((r: any) => { this.clientes = r.data; this.total = r.total; this.pages = Math.max(1, Math.ceil(this.total / this.limit)); });
+    return this.svc.list(this.q, this.page, this.limit).pipe(
+      finalize(() => this.loading = false)
+    );
   }
-  go(p: number) { if (p<1 || p>this.pages) return; this.page = p; this.load(); }
+  
+  load() {
+    this.loadData().subscribe({
+      next: (r: any) => { 
+        this.clientes = r.data || []; 
+        this.total = r.total || 0; 
+        this.pages = Math.max(1, Math.ceil(this.total / this.limit));
+        
+        // Si estamos en una página que no existe, ir a la última página válida
+        if (this.page > this.pages && this.pages > 0) {
+          this.page = this.pages;
+          this.load(); // Recargar con la página corregida
+        }
+      },
+      error: (error) => {
+        console.error('Error loading clients:', error);
+        this.clientes = [];
+        this.total = 0;
+        this.pages = 1;
+        this.page = 1;
+      }
+    });
+  }
+  
+  go(p: number) { 
+    if (p < 1 || p > this.pages || p === this.page) return;
+    this.pageChange$.next(p);
+  }
 
   onEditar(cliente: any) {
     // Por ahora redirigir al formulario de nuevo cliente

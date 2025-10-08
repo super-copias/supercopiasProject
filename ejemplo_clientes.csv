@@ -1,0 +1,6 @@
+nombre,telefono,segundo telefono,correo,direccion,razon social,rfc,regimen fiscal,codigo postal,uso cfdi
+Juan Pérez,5551234567,5559876543,juan@email.com,Av. Principal 123,Juan Pérez SA,PERJ800101ABC,Régimen General,01000,G01
+María García,5552345678,5551111111,maria@email.com,Calle Secundaria 456,María García SC,GARM850215DEF,Persona Física,02000,G03
+Carlos López,5553456789,5552222222,carlos@email.com,Boulevard Norte 789,Carlos López SRL,LOPC900312GHI,Régimen Simplificado,03000,D01
+Ana Martínez,5554567890,5553333333,ana@email.com,Avenida Sur 321,Ana Martínez SA,MARA750420JKL,Régimen General,04000,G01
+Roberto Silva,5555678901,5554444444,roberto@email.com,Calle Oriente 654,Roberto Silva SC,SILR820518MNO,Persona Física,05000,G02
