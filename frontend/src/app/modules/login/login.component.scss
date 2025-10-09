@@ -22,6 +22,33 @@
     }
 }
 
+/* Estilos para el logo en login */
+.login-logo {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    transition: transform 0.3s ease;
+    z-index: 3;
+    position: relative;
+    width: 180px;
+    height: auto;
+    
+    &:hover {
+        transform: scale(1.03);
+    }
+    
+    /* Responsive para el logo del login dentro del formulario */
+    @media (max-width: 768px) {
+        width: 140px;
+    }
+    
+    @media (max-width: 576px) {
+        width: 120px;
+    }
+    
+    @media (max-width: 480px) {
+        width: 100px;
+    }
+}
+
 @keyframes backgroundMove {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
     25% { transform: translate(-5%, -2%) rotate(1deg); }

@@ -24,13 +24,21 @@ export class AdminComponent {
   ngOnInit(): void {
     this.updateForWidth(window.innerWidth);
     
-    // Cancelar requests al navegar entre módulos
+    // Cancelación más selectiva - solo al cambiar entre módulos principales
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
-      // Cancelar todos los requests pendientes al cambiar de ruta
-      this.cancellationService.cancelAllRequests();
+      // Solo cancelar en cambios significativos de módulo
+      const currentUrl = event.url;
+      if (this.isModuleChange(currentUrl)) {
+        this.cancellationService.cancelAllRequests();
+      }
     });
+  }
+
+  private isModuleChange(url: string): boolean {
+    // Solo cancelar al cambiar entre módulos principales, no en sub-rutas
+    return url.match(/\/admin\/(dashboard|empleados|clientes|inventarios|equipos|reportes|proveedores)$/) !== null;
   }
 
   @HostListener('window:resize', ['$event'])

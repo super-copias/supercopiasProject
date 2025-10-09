@@ -15,7 +15,7 @@ export class SideNavComponent implements OnChanges {
     {
       text: 'Principal',
       items: [
-        { icon: 'fas fa-tachometer-alt', text: 'Dashboard', link: '/admin' },
+        { icon: 'fas fa-tachometer-alt', text: 'Dashboard', link: '/admin/dashboard' },
         { icon: 'fas fa-users', text: 'Empleados', link: '/admin/empleados' },
         { icon: 'fas fa-user-friends', text: 'Clientes', link: '/admin/clientes' },
         // espacio vacío para Colaboradores (placeholder)

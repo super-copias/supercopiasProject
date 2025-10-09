@@ -24,10 +24,11 @@ import { ClientesService } from '../../services/clientes.service';
           <li><strong>telefono</strong> - Teléfono principal (requerido)</li>
           <li><strong>segundo telefono</strong> - Teléfono secundario</li>
           <li><strong>correo</strong> - Email del cliente</li>
-          <li><strong>direccion</strong> - Dirección completa</li>
+          <li><strong>direccion de entrega</strong> - Dirección de entrega completa</li>
           <li><strong>razon social</strong> - Razón social para facturación</li>
           <li><strong>rfc</strong> - RFC para facturación</li>
           <li><strong>regimen fiscal</strong> - Régimen fiscal</li>
+          <li><strong>direccion</strong> - Dirección para facturación</li>
           <li><strong>codigo postal</strong> - Código postal</li>
           <li><strong>uso cfdi</strong> - Uso CFDI (código como G01, D01, etc.)</li>
         </ul>

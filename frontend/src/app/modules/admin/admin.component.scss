@@ -28,6 +28,26 @@ html, body, app-root, .admin-layout {
     background: linear-gradient(90deg, #fff 0%, var(--color-bg) 100%);
     border-bottom: 2px solid var(--color-cyber-yellow);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    
+    /* Estilos para el logo en el header */
+    img {
+        transition: transform 0.2s ease;
+        
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+    
+    /* Responsive para el logo */
+    @media (max-width: 576px) {
+        .navbar-brand {
+            font-size: 1rem;
+        }
+        
+        img {
+            height: 28px !important;
+        }
+    }
 }
 
 .content-body {

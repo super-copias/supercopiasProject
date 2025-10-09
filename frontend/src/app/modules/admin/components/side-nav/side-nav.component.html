@@ -1,5 +1,15 @@
 <div class="sidenav-wrapper" [class.collapsed]="collapsed" [class.mobile-open]="mobileOpen">
     <nav class="sidenav shadow-right" (click)="$event.stopPropagation()">
+        <!-- Header simplificado -->
+        <div class="sidenav-header text-center py-3 border-bottom">
+            <div *ngIf="!collapsed || mobileOpen" class="text-white fw-bold">
+                ADMINISTRACIÓN
+            </div>
+            <div *ngIf="collapsed && !mobileOpen" class="text-white fw-bold small">
+                ADMIN
+            </div>
+        </div>
+        
         <div class="sidenav-menu">
             <div class="nav">
                 <ng-container *ngFor="let section of menuItems">

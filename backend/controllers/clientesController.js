@@ -215,8 +215,8 @@ function uploadExcelClientes(req, res) {
 
     // Validar encabezados esperados
     const encabezadosEsperados = [
-      'nombre', 'telefono', 'segundo telefono', 'correo', 'direccion',
-      'razon social', 'rfc', 'regimen fiscal', 'codigo postal', 'uso cfdi'
+      'nombre', 'telefono', 'segundo telefono', 'correo', 'direccion de entrega',
+      'razon social', 'rfc', 'regimen fiscal', 'direccion', 'codigo postal', 'uso cfdi'
     ];
     
     const encabezados = data[0].map(h => (h || '').toString().toLowerCase().trim());
@@ -253,10 +253,11 @@ function uploadExcelClientes(req, res) {
           telefono: (fila[encabezados.indexOf('telefono')] || '').toString().trim(),
           segundoTelefono: (fila[encabezados.indexOf('segundo telefono')] || '').toString().trim(),
           email: (fila[encabezados.indexOf('correo')] || '').toString().trim(),
-          direccion: (fila[encabezados.indexOf('direccion')] || '').toString().trim(),
+          direccionEntrega: (fila[encabezados.indexOf('direccion de entrega')] || '').toString().trim(),
           razon: (fila[encabezados.indexOf('razon social')] || '').toString().trim(),
           rfc: (fila[encabezados.indexOf('rfc')] || '').toString().trim(),
           regimen: (fila[encabezados.indexOf('regimen fiscal')] || '').toString().trim(),
+          direccion: (fila[encabezados.indexOf('direccion')] || '').toString().trim(),
           cp: (fila[encabezados.indexOf('codigo postal')] || '').toString().trim(),
           cfdi: (fila[encabezados.indexOf('uso cfdi')] || '').toString().trim()
         };

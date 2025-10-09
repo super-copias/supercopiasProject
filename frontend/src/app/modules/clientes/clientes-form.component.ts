@@ -19,11 +19,11 @@ import { ClientesService } from '../../services/clientes.service';
       <div class="mb-2"><label>Segundo teléfono</label><input class="form-control" [(ngModel)]="model.segundoTelefono" name="segundoTelefono" /></div>
       <div class="mb-2"><label>Correo</label><input class="form-control" [(ngModel)]="model.email" name="email" type="email" /></div>
       
-      <!-- Campo de dirección con selector de Google Maps -->
+      <!-- Campo de dirección de entrega con selector de Google Maps -->
       <div class="mb-2">
-        <label>Dirección</label>
+        <label>Dirección de entrega</label>
         <div class="input-group">
-          <input class="form-control" [(ngModel)]="model.direccion" name="direccion" placeholder="Escriba la dirección o seleccione en el mapa" />
+          <input class="form-control" [(ngModel)]="model.direccionEntrega" name="direccionEntrega" placeholder="Escriba la dirección de entrega o seleccione en el mapa" />
           <button class="btn btn-outline-primary" type="button" (click)="toggleSelectorMapa()" title="Seleccionar en mapa">
             <i class="fas fa-map-marked-alt"></i>
           </button>
@@ -68,6 +68,7 @@ import { ClientesService } from '../../services/clientes.service';
       <div class="mb-2"><label>Razón social</label><input class="form-control" [(ngModel)]="model.razon" name="razon" /></div>
       <div class="mb-2"><label>RFC</label><input class="form-control" [(ngModel)]="model.rfc" name="rfc" /></div>
       <div class="mb-2"><label>Régimen Fiscal</label><input class="form-control" [(ngModel)]="model.regimen" name="regimen" /></div>
+      <div class="mb-2"><label>Dirección</label><input class="form-control" [(ngModel)]="model.direccion" name="direccion" placeholder="Dirección para facturación" /></div>
       <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.cp" name="cp" /></div>
       <div class="mb-2">
         <label>Uso CFDI</label>
@@ -91,6 +92,7 @@ export class ClientesFormComponent implements OnInit {
   model: any = {};
   isEdit = false;
   clienteId: string | null = null;
+  loading = false;
   
   // Catálogo de Usos CFDI de México
   usosCFDI: any[] = [];
@@ -105,7 +107,7 @@ export class ClientesFormComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   /**
    * Inicialización del componente
@@ -128,7 +130,7 @@ export class ClientesFormComponent implements OnInit {
    */
   loadUsosCFDI() {
     this.svc.getUsosCFDI().subscribe(usos => {
-      this.usosCFDI = usos;
+      if (usos) this.usosCFDI = usos;
     });
   }
 
@@ -138,9 +140,16 @@ export class ClientesFormComponent implements OnInit {
    */
   loadCliente() {
     if (this.clienteId) {
-      this.svc.getById(this.clienteId).subscribe(cliente => {
-        if (cliente) {
-          this.model = { ...cliente };
+      this.loading = true;
+      this.svc.getById(this.clienteId).subscribe({
+        next: (cliente) => {
+          if (cliente) {
+            this.model = { ...cliente };
+          }
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
         }
       });
     }
@@ -151,17 +160,19 @@ export class ClientesFormComponent implements OnInit {
    * Usa el servicio mock para desarrollo
    */
   save() {
-    if (this.isEdit && this.clienteId) {
-      // Actualizar cliente existente
-      this.svc.update(this.clienteId, this.model).subscribe(() => {
+    this.loading = true;
+    const request$ = this.isEdit && this.clienteId
+      ? this.svc.update(this.clienteId, this.model)
+      : this.svc.create(this.model);
+      
+    request$.subscribe({
+      next: () => {
         this.router.navigate(['/admin/clientes']);
-      });
-    } else {
-      // Crear nuevo cliente
-      this.svc.create(this.model).subscribe(() => {
-        this.router.navigate(['/admin/clientes']);
-      });
-    }
+      },
+      error: () => {
+        this.loading = false;
+      }
+    });
   }
   
   /**
@@ -180,7 +191,7 @@ export class ClientesFormComponent implements OnInit {
   toggleSelectorMapa() {
     this.showMapSelector = !this.showMapSelector;
     if (this.showMapSelector) {
-      this.busquedaDireccion = this.model.direccion || '';
+      this.busquedaDireccion = this.model.direccionEntrega || '';
       this.direccionCopiada = '';
     }
   }
@@ -210,7 +221,7 @@ export class ClientesFormComponent implements OnInit {
    */
   aplicarDireccion() {
     if (this.direccionCopiada?.trim()) {
-      this.model.direccion = this.direccionCopiada.trim();
+      this.model.direccionEntrega = this.direccionCopiada.trim();
       this.showMapSelector = false;
     }
   }

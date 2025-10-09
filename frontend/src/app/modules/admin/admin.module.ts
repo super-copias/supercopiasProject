@@ -27,7 +27,8 @@ import { SharedModule } from '../../shared/shared.module';
         component: AdminComponent,
         canActivate: [AuthGuard],
         children: [
-          { path: '', component: DashboardComponent },
+          { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+          { path: 'dashboard', component: DashboardComponent },
           { path: 'empleados', loadChildren: () => import('../empleados/empleados.module').then(m => m.EmpleadosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
           { path: 'clientes', loadChildren: () => import('../clientes/clientes.module').then(m => m.ClientesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] }
           ,{ path: 'inventarios', loadChildren: () => import('./inventarios/inventarios.module').then(m => m.InventariosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },

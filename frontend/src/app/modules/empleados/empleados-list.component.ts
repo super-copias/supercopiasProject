@@ -3,7 +3,6 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, switchMap, takeUntil, finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { EmpleadosService } from '../../services/empleados.service';
-import { RequestCancellationService } from '../../services/request-cancellation.service';
 
 @Component({
   selector: 'app-empleados-list',
@@ -53,37 +52,53 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
   
   constructor(
     private svc: EmpleadosService, 
-    private router: Router,
-    private cancellationService: RequestCancellationService
+    private router: Router
   ) { }
+  
   ngOnInit() { 
+    console.log('EmpleadosListComponent iniciado');
     this.load();
     
-    // Búsqueda optimizada con cancelación automática
+    // Búsqueda simple con debounce
     this.searchSub = this.search$.pipe(
-      debounceTime(300),
+      debounceTime(500), // Más tiempo para evitar requests excesivos
       switchMap(q => {
+        console.log('Buscando:', q);
         this.q = q; 
         this.page = 1;
-        return this.loadData();
+        this.loading = true;
+        return this.svc.list(this.q, this.page, this.limit);
       }),
-      takeUntil(this.destroy$)
-    ).subscribe();
-  }
-  
-  private loadData() {
-    this.loading = true;
-    return this.svc.list(this.q, this.page, this.limit).pipe(
       takeUntil(this.destroy$),
       finalize(() => this.loading = false)
-    );
+    ).subscribe({
+      next: (r: any) => { 
+        console.log('Resultados búsqueda:', r);
+        this.empleados = r?.data || []; 
+        this.total = r?.total || 0; 
+        this.pages = Math.max(1, Math.ceil(this.total / this.limit)); 
+      },
+      error: (error) => {
+        console.error('Error en búsqueda:', error);
+        this.empleados = [];
+        this.total = 0;
+        this.pages = 1;
+      }
+    });
   }
   
   load() {
-    this.loadData().subscribe({
+    console.log('Cargando empleados...');
+    this.loading = true;
+    
+    this.svc.list(this.q, this.page, this.limit).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.loading = false)
+    ).subscribe({
       next: (r: any) => { 
-        this.empleados = r.data || []; 
-        this.total = r.total || 0; 
+        console.log('Datos cargados:', r);
+        this.empleados = r?.data || []; 
+        this.total = r?.total || 0; 
         this.pages = Math.max(1, Math.ceil(this.total / this.limit)); 
       },
       error: (error) => {
@@ -94,36 +109,35 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
       }
     });
   }
-  
+
   ngOnDestroy() { 
     this.destroy$.next();
     this.destroy$.complete();
     if (this.searchSub) this.searchSub.unsubscribe(); 
   }
+  
   go(p: number) { 
     if (p < 1 || p > this.pages || p === this.page) return; 
     this.page = p; 
     this.load(); 
   }
   
-    verDetalles(empleado: any) {
-        // placeholder: abrir modal o navegar a vista detalle
-        console.log('Ver detalles empleado:', empleado);
-    }
+  verDetalles(empleado: any) {
+      console.log('Ver detalles empleado:', empleado);
+  }
 
-    editar(empleado: any) {
-        // navegar al formulario de edición usando Router
-        this.router.navigate(['/admin/empleados', empleado.id, 'editar']);
-    }
+  editar(empleado: any) {
+      this.router.navigate(['/admin/empleados', empleado.id, 'editar']);
+  }
 
-    nuevo() {
-        this.router.navigate(['/admin/empleados/nuevo']);
-    }
+  nuevo() {
+      this.router.navigate(['/admin/empleados/nuevo']);
+  }
 
-    eliminar(empleado: any) {
-        if (!confirm(`Eliminar empleado ${empleado.nombre || empleado.id}?`)) return;
-        this.svc.delete(String(empleado.id)).pipe(
-          takeUntil(this.destroy$)
-        ).subscribe(() => this.load());
-    }
+  eliminar(empleado: any) {
+      if (!confirm(`Eliminar empleado ${empleado.nombre || empleado.id}?`)) return;
+      this.svc.delete(String(empleado.id)).pipe(
+        takeUntil(this.destroy$)
+      ).subscribe(() => this.load());
+  }
 }

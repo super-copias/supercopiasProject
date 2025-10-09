@@ -3,6 +3,13 @@
     position: relative;
 }
 
+/* Header simplificado */
+.sidenav-header {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    transition: all 150ms ease-out;
+}
+
 .sidenav {
     box-sizing: border-box;
     display: flex;
@@ -15,7 +22,7 @@
     top: 0;
     background: linear-gradient(180deg, var(--color-deep-blue) 0%, var(--color-dark-blue) 100%);
     color: rgba(255, 255, 255, 0.95);
-    transition: width 200ms ease, transform 200ms ease, left 200ms ease;
+    transition: width 150ms ease-out, transform 150ms ease-out, left 150ms ease-out;
     z-index: 1060;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }

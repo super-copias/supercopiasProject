@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, finalize, switchMap } from 'rxjs/operators';
+import { debounceTime, finalize, switchMap, takeUntil } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
 
@@ -53,6 +53,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   loading = false;
   search$ = new Subject<string>();
   pageChange$ = new Subject<number>();
+  private destroy$ = new Subject<void>();
   private searchSub: Subscription | null = null;
   private pageSub: Subscription | null = null;
   page = 1;
@@ -60,7 +61,10 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   total = 0;
   pages = 1;
   
-  constructor(private svc: ClientesService, private router: Router) { }
+  constructor(
+    private svc: ClientesService, 
+    private router: Router
+  ) { }
   
   ngOnInit() {
     this.load();
@@ -72,7 +76,8 @@ export class ClientesListComponent implements OnInit, OnDestroy {
         this.q = q;
         this.page = 1;
         return this.loadData();
-      })
+      }),
+      takeUntil(this.destroy$)
     ).subscribe();
 
     // Paginación con debounce para evitar clicks rápidos
@@ -81,11 +86,14 @@ export class ClientesListComponent implements OnInit, OnDestroy {
       switchMap(page => {
         this.page = page;
         return this.loadData();
-      })
+      }),
+      takeUntil(this.destroy$)
     ).subscribe();
   }
   
   ngOnDestroy() { 
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.searchSub) this.searchSub.unsubscribe();
     if (this.pageSub) this.pageSub.unsubscribe();
   }
@@ -93,6 +101,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   private loadData() {
     this.loading = true;
     return this.svc.list(this.q, this.page, this.limit).pipe(
+      takeUntil(this.destroy$),
       finalize(() => this.loading = false)
     );
   }
@@ -132,7 +141,9 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   }
 
   onEliminar(cliente: any) {
-    this.svc.delete(cliente.id).subscribe((success) => {
+    this.svc.delete(cliente.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe((success) => {
       if (success) {
         this.load(); // Recargar la lista
       }

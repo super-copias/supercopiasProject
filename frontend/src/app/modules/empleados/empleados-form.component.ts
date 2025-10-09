@@ -64,26 +64,44 @@ export class EmpleadosFormComponent implements OnInit {
   id: string | null = null;
   loading = false;
   error: string | null = null;
-  constructor(private route: ActivatedRoute, private router: Router, private svc: EmpleadosService) {}
+  
+  constructor(
+    private route: ActivatedRoute, 
+    private router: Router, 
+    private svc: EmpleadosService
+  ) {}
 
   ngOnInit() {
     this.id = this.route.snapshot.paramMap.get('id');
     if (this.id) {
       this.loading = true;
       this.svc.get(this.id).subscribe({
-        next: (r: any) => { this.empleado = r; this.loading = false; },
-        error: (err: any) => { this.error = 'No se pudo cargar el empleado'; this.loading = false; console.error(err); }
+        next: (r: any) => { 
+          this.empleado = r; 
+          this.loading = false; 
+        },
+        error: (err: any) => { 
+          this.error = 'No se pudo cargar el empleado'; 
+          this.loading = false; 
+          console.error(err); 
+        }
       });
     }
   }
 
   save() {
     this.loading = true;
-    if (this.id) {
-      this.svc.update(this.id, this.empleado).subscribe({ next: () => this.router.navigate(['/admin/empleados']), error: (e) => { this.error = 'Error al guardar'; this.loading = false; } });
-    } else {
-      this.svc.create(this.empleado).subscribe({ next: () => this.router.navigate(['/admin/empleados']), error: (e) => { this.error = 'Error al crear'; this.loading = false; } });
-    }
+    const request$ = this.id 
+      ? this.svc.update(this.id, this.empleado)
+      : this.svc.create(this.empleado);
+      
+    request$.subscribe({
+      next: () => this.router.navigate(['/admin/empleados']),
+      error: (e) => { 
+        this.error = 'Error al guardar'; 
+        this.loading = false; 
+      }
+    });
   }
 
   cancel() { this.router.navigate(['/admin/empleados']); }

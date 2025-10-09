@@ -34,7 +34,7 @@ export class LoginComponent implements OnInit {
         if (res && res.token) {
           localStorage.setItem('token', res.token);
           localStorage.setItem('user', JSON.stringify(res.user || {}));
-          this.router.navigate(['/admin'], { replaceUrl: true });
+          this.router.navigate(['/admin/dashboard'], { replaceUrl: true });
         } else {
           alert('No se recibió token');
         }

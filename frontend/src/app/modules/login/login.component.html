@@ -1,9 +1,15 @@
 <div class="auth-layout">
   <div class="container-xl px-4">
     <div class="row gx-4 justify-content-center">
-      <div class="col-lg-5">
+      <div class="col-lg-5">        
         <div class="card shadow-lg border-0 rounded-lg mt-5">
-          <div class="card-header justify-content-center"><h3 class="fw-light my-4">Iniciar sesión</h3></div>
+          <div class="card-header justify-content-center">
+            <!-- Logo de la empresa dentro del formulario -->
+            <div class="text-center mb-3 mt-2">
+              <img src="assets/img/logo completo.png" alt="SuperCopias" class="img-fluid login-logo" style="max-height: 140px; width: auto;">
+            </div>
+            <h3 class="fw-light my-4">Iniciar sesión</h3>
+          </div>
           <div class="card-body">
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
               <div class="mb-3">

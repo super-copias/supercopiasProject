@@ -35,13 +35,13 @@ export class ClientesTableComponent {
   }
 
   verUbicacion(cliente: any) {
-    if (!cliente.direccion || cliente.direccion.trim() === '') {
-      alert('Este cliente no tiene una dirección registrada.');
+    if (!cliente.direccionEntrega || cliente.direccionEntrega.trim() === '') {
+      alert('Este cliente no tiene una dirección de entrega registrada.');
       return;
     }
 
     // Codificar la dirección para URL
-    const direccionCodificada = encodeURIComponent(cliente.direccion.trim());
+    const direccionCodificada = encodeURIComponent(cliente.direccionEntrega.trim());
     
     // Crear URL de Google Maps
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${direccionCodificada}`;
@@ -210,8 +210,8 @@ export class ClientesTableComponent {
               <div class="info-value">${cliente.email}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Dirección:</div>
-              <div class="info-value">${cliente.direccion}</div>
+              <div class="info-label">Dirección de entrega:</div>
+              <div class="info-value">${cliente.direccionEntrega}</div>
             </div>
           </div>
 
@@ -231,6 +231,10 @@ export class ClientesTableComponent {
             <div class="info-row">
               <div class="info-label">Régimen:</div>
               <div class="info-value">${cliente.regimen || 'No especificado'}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Dirección:</div>
+              <div class="info-value">${cliente.direccion || 'No especificada'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Código Postal:</div>

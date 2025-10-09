@@ -10,16 +10,28 @@ export class AuthInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = localStorage.getItem('token');
-    const cloned = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+    
+    // Solo agregar el token si existe
+    let cloned = req;
+    if (token) {
+      cloned = req.clone({ 
+        setHeaders: { 
+          Authorization: `Bearer ${token}` 
+        } 
+      });
+    }
+    
     return next.handle(cloned).pipe(
       catchError((err: HttpErrorResponse) => {
+        console.log('HTTP Error:', err.status, err.message);
+        
         if (err.status === 401) {
-          // If unauthorized, clear storage and redirect to login
+          // Si no autorizado, limpiar storage y redirigir a login
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          // Use replaceState to avoid back navigation to protected pages
           this.router.navigate(['/login'], { replaceUrl: true });
         }
+        
         return throwError(() => err);
       })
     );
