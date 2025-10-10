@@ -31,14 +31,17 @@ export class LoginComponent implements OnInit {
     const v = this.loginForm.value;
     this.auth.login(v.identifier, v.password).subscribe({
       next: (res: any) => {
-        if (res && res.token) {
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('user', JSON.stringify(res.user || {}));
+        console.log('Respuesta completa del login:', res); // Para debugging
+        if (res && res.success && res.data && res.data.token) {
+          localStorage.setItem('token', res.data.token);
+          localStorage.setItem('user', JSON.stringify(res.data.user || {}));
           this.router.navigate(['/admin/dashboard'], { replaceUrl: true });
         } else {
-          alert('No se recibió token');
+          alert('No se recibió token válido');
+          console.error('Respuesta inválida:', res);
         }
       }, error: err => {
+        console.error('Error completo:', err);
         const msg = (err && err.error && err.error.message) ? err.error.message : (err.statusText || err.message || JSON.stringify(err));
         alert('Error: ' + msg);
       }
