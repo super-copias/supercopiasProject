@@ -1,33 +1,34 @@
-/**
- * Componente de Formulario de Empleados
- * Permite crear y editar empleados del sistema SuperCopias
- * Incluye validaciones y gestión de puestos
- */
-
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EmpleadosService } from '../../services/empleados.service';
+
+const MODULOS = [
+  { id: 'dashboard', nombre: 'Dashboard', icono: 'fas fa-tachometer-alt' },
+  { id: 'empleados', nombre: 'Empleados', icono: 'fas fa-users' },
+  { id: 'clientes', nombre: 'Clientes', icono: 'fas fa-user-friends' },
+  { id: 'proveedores', nombre: 'Proveedores', icono: 'fas fa-truck' },
+  { id: 'inventarios', nombre: 'Inventarios', icono: 'fas fa-boxes' },
+  { id: 'equipos', nombre: 'Equipos', icono: 'fas fa-tools' },
+  { id: 'reportes', nombre: 'Reportes', icono: 'fas fa-chart-bar' },
+  { id: 'puntoventa', nombre: 'Punto de Venta', icono: 'fas fa-cash-register' }
+];
 
 @Component({
   selector: 'app-empleados-form',
   template: `
-    <div class="p-4">
+    <div class="container-fluid p-4">
       <h3 class="mb-4">
         <i class="fas fa-user-tie me-2"></i>
-        {{isEdit ? 'Editar Empleado' : 'Nuevo Empleado'}}
+        Nuevo Empleado
       </h3>
       
-      <form [formGroup]="empleadoForm" (ngSubmit)="save()">
+      <form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()">
         <div class="row">
-          <!-- Información Personal -->
           <div class="col-md-6">
-            <div class="card mb-3">
+            <div class="card mb-4">
               <div class="card-header">
-                <h6 class="mb-0">
-                  <i class="fas fa-user me-1"></i>
-                  Información Personal
-                </h6>
+                <h5 class="mb-0">Información Personal</h5>
               </div>
               <div class="card-body">
                 <div class="mb-3">
@@ -36,9 +37,9 @@ import { EmpleadosService } from '../../services/empleados.service';
                     type="text" 
                     class="form-control" 
                     formControlName="nombre"
-                    [class.is-invalid]="isFieldInvalid('nombre')"
-                    placeholder="Ej: Juan Pérez García" />
-                  <div class="invalid-feedback" *ngIf="isFieldInvalid('nombre')">
+                    [class.is-invalid]="isInvalid('nombre')"
+                    placeholder="Ej: Juan Pérez García">
+                  <div class="invalid-feedback" *ngIf="isInvalid('nombre')">
                     El nombre es requerido (mínimo 3 caracteres)
                   </div>
                 </div>
@@ -49,9 +50,9 @@ import { EmpleadosService } from '../../services/empleados.service';
                     type="tel" 
                     class="form-control" 
                     formControlName="telefono"
-                    [class.is-invalid]="isFieldInvalid('telefono')"
-                    placeholder="Ej: 555-123-4567" />
-                  <div class="invalid-feedback" *ngIf="isFieldInvalid('telefono')">
+                    [class.is-invalid]="isInvalid('telefono')"
+                    placeholder="Ej: 555-123-4567">
+                  <div class="invalid-feedback" *ngIf="isInvalid('telefono')">
                     El teléfono es requerido
                   </div>
                 </div>
@@ -62,11 +63,7 @@ import { EmpleadosService } from '../../services/empleados.service';
                     type="email" 
                     class="form-control" 
                     formControlName="email"
-                    [class.is-invalid]="isFieldInvalid('email')"
-                    placeholder="empleado@supercopias.com" />
-                  <div class="invalid-feedback" *ngIf="isFieldInvalid('email')">
-                    Ingrese un email válido
-                  </div>
+                    placeholder="empleado@supercopias.com">
                 </div>
 
                 <div class="mb-3">
@@ -80,24 +77,19 @@ import { EmpleadosService } from '../../services/empleados.service';
             </div>
           </div>
 
-          <!-- Información Laboral -->
           <div class="col-md-6">
-            <div class="card mb-3">
+            <div class="card mb-4">
               <div class="card-header">
-                <h6 class="mb-0">
-                  <i class="fas fa-briefcase me-1"></i>
-                  Información Laboral
-                </h6>
+                <h5 class="mb-0">Información Laboral</h5>
               </div>
               <div class="card-body">
                 <div class="mb-3">
                   <label class="form-label">Puesto</label>
-                  <select class="form-select" formControlName="puesto">
-                    <option value="">Seleccione un puesto...</option>
-                    <option *ngFor="let puesto of puestos" [value]="puesto.id">
-                      {{puesto.nombre}}
-                    </option>
-                  </select>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    formControlName="puesto"
+                    placeholder="Ej: Gerente, Cajero, Operador">
                 </div>
 
                 <div class="mb-3">
@@ -106,7 +98,7 @@ import { EmpleadosService } from '../../services/empleados.service';
                     type="text" 
                     class="form-control" 
                     formControlName="departamento"
-                    placeholder="Ej: Administración, Ventas, Producción" />
+                    placeholder="Ej: Administración, Ventas">
                 </div>
 
                 <div class="mb-3">
@@ -119,7 +111,7 @@ import { EmpleadosService } from '../../services/empleados.service';
                       formControlName="salario"
                       placeholder="0.00"
                       step="0.01"
-                      min="0" />
+                      min="0">
                     <span class="input-group-text">MXN</span>
                   </div>
                 </div>
@@ -129,40 +121,131 @@ import { EmpleadosService } from '../../services/empleados.service';
                   <input 
                     type="date" 
                     class="form-control" 
-                    formControlName="fechaIngreso" />
-                </div>
-
-                <div class="mb-3" *ngIf="isEdit">
-                  <label class="form-label">Rol del Sistema</label>
-                  <select class="form-select" formControlName="role">
-                    <option value="">Sin rol asignado</option>
-                    <option value="admin">Administrador</option>
-                    <option value="supervisor">Supervisor</option>
-                    <option value="operador">Operador</option>
-                    <option value="cajero">Cajero</option>
-                  </select>
-                  <small class="form-text text-muted">
-                    El rol determina los permisos del empleado en el sistema
-                  </small>
+                    formControlName="fechaIngreso">
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Botones de acción -->
-        <div class="d-flex gap-2 mt-4">
+        <div class="row">
+          <div class="col-12">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-shield-alt me-2"></i>
+                  Permisos de Módulos
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label class="form-label">Tipo de Acceso *</label>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="form-check">
+                        <input 
+                          class="form-check-input" 
+                          type="radio" 
+                          formControlName="tipoPermiso" 
+                          value="operador" 
+                          id="tipoOperador">
+                        <label class="form-check-label" for="tipoOperador">
+                          <i class="fas fa-user me-1 text-primary"></i>
+                          <strong>Operador</strong>
+                          <br>
+                          <small class="text-muted">Acceso limitado a módulos específicos</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-check">
+                        <input 
+                          class="form-check-input" 
+                          type="radio" 
+                          formControlName="tipoPermiso" 
+                          value="administrador" 
+                          id="tipoAdmin">
+                        <label class="form-check-label" for="tipoAdmin">
+                          <i class="fas fa-crown me-1 text-warning"></i>
+                          <strong>Administrador</strong>
+                          <br>
+                          <small class="text-muted">Acceso completo a todos los módulos</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-check">
+                        <input 
+                          class="form-check-input" 
+                          type="radio" 
+                          formControlName="tipoPermiso" 
+                          value="personalizado" 
+                          id="tipoPersonalizado">
+                        <label class="form-check-label" for="tipoPersonalizado">
+                          <i class="fas fa-cogs me-1 text-success"></i>
+                          <strong>Personalizado</strong>
+                          <br>
+                          <small class="text-muted">Configuración manual por módulo</small>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="tipoPermiso && tipoPermiso !== 'administrador'">
+                  <label class="form-label">Módulos Permitidos</label>
+                  <div class="row">
+                    <div class="col-md-6 col-lg-3 mb-3" *ngFor="let modulo of modulos">
+                      <div class="card h-100" [class.border-primary]="isSelected(modulo.id)">
+                        <div class="card-body p-3">
+                          <div class="form-check">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              [id]="'mod_' + modulo.id"
+                              [checked]="isSelected(modulo.id)"
+                              (change)="toggle(modulo.id)">
+                            <label class="form-check-label" [for]="'mod_' + modulo.id">
+                              <i [class]="modulo.icono + ' me-2 text-primary'"></i>
+                              <strong>{{modulo.nombre}}</strong>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="alert alert-warning" *ngIf="tipoPermiso === 'administrador'">
+                  <i class="fas fa-crown me-2"></i>
+                  <strong>Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema.
+                </div>
+
+                <div class="mt-3" *ngIf="seleccionados.length > 0 && tipoPermiso !== 'administrador'">
+                  <label class="form-label">Módulos Seleccionados ({{seleccionados.length}}):</label>
+                  <div class="d-flex flex-wrap gap-1">
+                    <span class="badge bg-primary" *ngFor="let moduloId of seleccionados">
+                      {{getNombre(moduloId)}}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
           <button 
             type="submit" 
             class="btn btn-primary"
-            [disabled]="loading || empleadoForm.invalid">
+            [disabled]="loading || !isFormValid()">
             <span *ngIf="loading">
               <i class="fas fa-spinner fa-spin me-1"></i>
               Guardando...
             </span>
             <span *ngIf="!loading">
               <i class="fas fa-save me-1"></i>
-              {{isEdit ? 'Actualizar' : 'Guardar'}}
+              Guardar
             </span>
           </button>
           
@@ -174,180 +257,116 @@ import { EmpleadosService } from '../../services/empleados.service';
             <i class="fas fa-times me-1"></i>
             Cancelar
           </button>
-
-          <button 
-            type="button" 
-            class="btn btn-outline-info"
-            *ngIf="isEdit && empleadoForm.value.id"
-            (click)="verDetalles()"
-            [disabled]="loading">
-            <i class="fas fa-eye me-1"></i>
-            Ver Detalles
-          </button>
         </div>
       </form>
-
-      <!-- Información adicional para empleado existente -->
-      <div class="card mt-4" *ngIf="isEdit && empleadoForm.value.fechaRegistro">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-info-circle me-1"></i>
-            Información del Sistema
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <strong>Fecha de Registro:</strong>
-              <div>{{empleadoForm.value.fechaRegistro | date:'dd/MM/yyyy HH:mm'}}</div>
-            </div>
-            <div class="col-md-6">
-              <strong>Última Modificación:</strong>
-              <div>{{empleadoForm.value.fechaModificacion | date:'dd/MM/yyyy HH:mm' || 'No modificado'}}</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  `
+  `,
+  styleUrls: ['./empleados-form.component.css']
 })
 export class EmpleadosFormComponent implements OnInit {
   empleadoForm: FormGroup;
-  isEdit = false;
-  empleadoId: string | null = null;
   loading = false;
-  puestos: any[] = [];
+  modulos = MODULOS;
+  tipoPermiso = '';
+  seleccionados: string[] = [];
 
   constructor(
     private fb: FormBuilder,
     private empleadosService: EmpleadosService,
-    private router: Router,
-    private route: ActivatedRoute
+    private router: Router
   ) {
     this.empleadoForm = this.createForm();
   }
 
   ngOnInit() {
-    // Cargar catálogo de puestos
-    this.loadPuestos();
-    
-    // Verificar si es edición
-    this.empleadoId = this.route.snapshot.paramMap.get('id');
-    this.isEdit = !!this.empleadoId;
-    
-    if (this.isEdit && this.empleadoId) {
-      this.loadEmpleado(this.empleadoId);
-    }
+    this.empleadoForm.get('tipoPermiso')?.valueChanges.subscribe(tipo => {
+      this.tipoPermiso = tipo;
+      if (tipo === 'administrador') {
+        this.seleccionados = this.modulos.map(m => m.id);
+      } else {
+        this.seleccionados = [];
+      }
+    });
   }
 
   private createForm(): FormGroup {
     return this.fb.group({
-      id: [''],
       nombre: ['', [Validators.required, Validators.minLength(3)]],
       telefono: ['', Validators.required],
-      email: ['', [Validators.email]],
+      email: [''],
       puesto: [''],
       departamento: [''],
-      salario: [0, [Validators.min(0)]],
+      salario: [0],
       fechaIngreso: [''],
       activo: [true],
-      role: [''],
-      fechaRegistro: [''],
-      fechaModificacion: ['']
+      tipoPermiso: ['', Validators.required]
     });
   }
 
-  private loadPuestos() {
-    this.empleadosService.getPuestos().subscribe({
-      next: (response) => {
-        this.puestos = response.data;
-      },
-      error: (error) => {
-        console.error('Error loading puestos:', error);
-      }
-    });
+  isInvalid(field: string): boolean {
+    const control = this.empleadoForm.get(field);
+    return !!(control && control.invalid && (control.dirty || control.touched));
   }
 
-  private loadEmpleado(id: string) {
-    this.loading = true;
-    this.empleadosService.getById(id).subscribe({
-      next: (empleado) => {
-        if (empleado) {
-          this.empleadoForm.patchValue(empleado);
-        } else {
-          console.error('Empleado no encontrado');
-          this.router.navigate(['/admin/empleados']);
-        }
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading empleado:', error);
-        this.loading = false;
-        this.router.navigate(['/admin/empleados']);
-      }
-    });
+  isSelected(moduloId: string): boolean {
+    return this.seleccionados.includes(moduloId);
   }
 
-  isFieldInvalid(fieldName: string): boolean {
-    const field = this.empleadoForm.get(fieldName);
-    return !!(field && field.invalid && (field.dirty || field.touched));
+  toggle(moduloId: string) {
+    if (this.isSelected(moduloId)) {
+      this.seleccionados = this.seleccionados.filter(id => id !== moduloId);
+    } else {
+      this.seleccionados = [...this.seleccionados, moduloId];
+    }
   }
 
-  save() {
-    if (this.empleadoForm.invalid) {
-      this.markFormGroupTouched();
+  getNombre(moduloId: string): string {
+    const modulo = this.modulos.find(m => m.id === moduloId);
+    return modulo ? modulo.nombre : moduloId;
+  }
+
+  isFormValid(): boolean {
+    if (this.empleadoForm.invalid) return false;
+    if (!this.tipoPermiso) return false;
+    if ((this.tipoPermiso === 'operador' || this.tipoPermiso === 'personalizado') && this.seleccionados.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  onSubmit() {
+    if (!this.isFormValid()) {
+      alert('Por favor completa todos los campos requeridos');
       return;
     }
 
     this.loading = true;
-    const empleadoData = this.empleadoForm.value;
+    
+    const datos = {
+      ...this.empleadoForm.value,
+      tipoPermiso: this.tipoPermiso,
+      modulosPermitidos: this.tipoPermiso === 'administrador' 
+        ? this.modulos.map(m => m.id) 
+        : this.seleccionados
+    };
 
-    if (this.isEdit) {
-      // Actualizar empleado existente
-      this.empleadosService.update(this.empleadoId!, empleadoData).subscribe({
-        next: (result) => {
-          console.log('Empleado actualizado:', result);
-          this.loading = false;
-          this.router.navigate(['/admin/empleados']);
-        },
-        error: (error) => {
-          console.error('Error updating empleado:', error);
-          this.loading = false;
-          alert('Error al actualizar el empleado');
-        }
-      });
-    } else {
-      // Crear nuevo empleado
-      this.empleadosService.create(empleadoData).subscribe({
-        next: (result) => {
-          console.log('Empleado creado:', result);
-          this.loading = false;
-          this.router.navigate(['/admin/empleados']);
-        },
-        error: (error) => {
-          console.error('Error creating empleado:', error);
-          this.loading = false;
-          alert('Error al crear el empleado');
-        }
-      });
-    }
+    console.log('Datos a enviar:', datos);
+
+    this.empleadosService.create(datos).subscribe({
+      next: () => {
+        this.loading = false;
+        alert('Empleado creado exitosamente');
+        this.router.navigate(['/admin/empleados']);
+      },
+      error: (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+        alert('Error al crear el empleado');
+      }
+    });
   }
 
   cancel() {
     this.router.navigate(['/admin/empleados']);
-  }
-
-  verDetalles() {
-    // Implementar vista de detalles o navegar a lista
-    this.router.navigate(['/admin/empleados']);
-  }
-
-  private markFormGroupTouched() {
-    Object.keys(this.empleadoForm.controls).forEach(key => {
-      const control = this.empleadoForm.get(key);
-      if (control) {
-        control.markAsTouched();
-      }
-    });
   }
 }

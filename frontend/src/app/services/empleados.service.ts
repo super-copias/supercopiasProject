@@ -111,6 +111,26 @@ export class EmpleadosService {
       );
   }
 
+  /**
+   * Obtener catálogo de módulos del sistema
+   */
+  getModulos(): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/modulos`)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
+   * Actualizar permisos de módulos de un empleado
+   */
+  updatePermisos(id: string, permisos: any): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.baseUrl}/${id}/permisos`, permisos)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
   // ============================================================================
   // MÉTODOS DE COMPATIBILIDAD PARA COMPONENTES EXISTENTES
   // ============================================================================

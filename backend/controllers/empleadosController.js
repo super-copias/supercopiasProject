@@ -167,15 +167,46 @@ async function createEmpleado(req, res) {
       fechaIngreso,
       numeroEmpleado,
       roles = [],
-      crearUsuario = false
+      crearUsuario = false,
+      // Nuevos campos para sistema de permisos
+      tipoPermiso,
+      modulosPermitidos = [],
+      permisos = []
     } = req.body;
     
     // Validaciones requeridas
-    if (!nombre || !apellidos) {
+    if (!nombre) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
-          'Nombre y apellidos son requeridos'
+          'El nombre es requerido'
+        )
+      );
+    }
+
+    // Validar tipo de permiso
+    if (!tipoPermiso || !['operador', 'administrador', 'personalizado'].includes(tipoPermiso)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'Tipo de permiso inválido. Debe ser: operador, administrador o personalizado'
+        )
+      );
+    }
+
+    // Validar módulos según tipo de permiso
+    if (tipoPermiso === 'administrador') {
+      // Para administradores, asignar todos los módulos automáticamente
+      const todosLosModulos = [
+        'dashboard', 'empleados', 'clientes', 'proveedores',
+        'inventarios', 'equipos', 'reportes', 'puntoventa'
+      ];
+      modulosPermitidos.splice(0, modulosPermitidos.length, ...todosLosModulos);
+    } else if ((tipoPermiso === 'operador' || tipoPermiso === 'personalizado') && modulosPermitidos.length === 0) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'Los empleados operadores y personalizados deben tener al menos un módulo asignado'
         )
       );
     }
@@ -226,7 +257,7 @@ async function createEmpleado(req, res) {
     const nuevoEmpleado = {
       id: `EMP_${nanoid(10)}`,
       nombre: nombre.trim(),
-      apellidos: apellidos.trim(),
+      apellidos: apellidos ? apellidos.trim() : '',
       email: email ? email.toLowerCase() : null,
       telefono: telefono || null,
       puesto: puesto || null,
@@ -238,7 +269,12 @@ async function createEmpleado(req, res) {
       tieneUsuario: crearUsuario,
       activo: true,
       fechaRegistro: new Date().toISOString(),
-      fechaModificacion: null
+      fechaModificacion: null,
+      // Nuevo: Sistema de permisos de módulos
+      tipoPermiso: tipoPermiso,
+      modulosPermitidos: modulosPermitidos || [],
+      permisos: permisos || [],
+      fechaAsignacionPermisos: new Date().toISOString()
     };
     
     let usuarioCreado = null;
@@ -770,6 +806,171 @@ function getPuestos(req, res) {
   }
 }
 
+/**
+ * Obtener catálogo de módulos del sistema
+ * Endpoint: GET /api/empleados/modulos
+ * 
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @returns {Object} JSON con array de módulos disponibles
+ */
+function getModulos(req, res) {
+  try {
+    const modulos = [
+      {
+        id: 'dashboard',
+        nombre: 'Dashboard',
+        descripcion: 'Panel principal con métricas y resúmenes',
+        icono: 'fas fa-tachometer-alt',
+        activo: true
+      },
+      {
+        id: 'empleados',
+        nombre: 'Empleados',
+        descripcion: 'Gestión de empleados y recursos humanos',
+        icono: 'fas fa-users',
+        activo: true
+      },
+      {
+        id: 'clientes',
+        nombre: 'Clientes',
+        descripcion: 'Gestión de clientes y base de datos',
+        icono: 'fas fa-user-friends',
+        activo: true
+      },
+      {
+        id: 'proveedores',
+        nombre: 'Proveedores',
+        descripcion: 'Gestión de proveedores y contactos',
+        icono: 'fas fa-truck',
+        activo: true
+      },
+      {
+        id: 'inventarios',
+        nombre: 'Inventarios',
+        descripcion: 'Control de stock y productos',
+        icono: 'fas fa-boxes',
+        activo: true
+      },
+      {
+        id: 'equipos',
+        nombre: 'Equipos',
+        descripcion: 'Gestión de equipos y herramientas',
+        icono: 'fas fa-tools',
+        activo: true
+      },
+      {
+        id: 'reportes',
+        nombre: 'Reportes',
+        descripcion: 'Generación de reportes y análisis',
+        icono: 'fas fa-chart-bar',
+        activo: true
+      },
+      {
+        id: 'puntoventa',
+        nombre: 'Punto de Venta',
+        descripcion: 'Sistema de ventas y facturación',
+        icono: 'fas fa-cash-register',
+        activo: true
+      }
+    ];
+
+    res.status(200).json(
+      createResponse(
+        modulos,
+        'Catálogo de módulos obtenido exitosamente'
+      )
+    );
+  } catch (error) {
+    console.error('Error getting modulos:', error);
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
+  }
+}
+
+/**
+ * Actualizar permisos de módulos de un empleado
+ * Endpoint: PUT /api/empleados/:id/permisos
+ * 
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @returns {Object} JSON con empleado actualizado
+ */
+function updatePermisos(req, res) {
+  try {
+    init();
+    
+    const { id } = req.params;
+    const { tipoPermiso, modulosPermitidos, permisos } = req.body;
+    
+    // Validar tipo de permiso
+    if (!tipoPermiso || !['operador', 'administrador', 'personalizado'].includes(tipoPermiso)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'Tipo de permiso inválido'
+        )
+      );
+    }
+    
+    // Buscar empleado
+    const empleado = db.get('empleados').find({ id }).value();
+    
+    if (!empleado) {
+      return res.status(404).json(
+        createErrorResponse(
+          CODIGOS_ERROR.NOT_FOUND,
+          'Empleado no encontrado'
+        )
+      );
+    }
+    
+    // Preparar módulos según tipo de permiso
+    let modulosFinales = modulosPermitidos || [];
+    if (tipoPermiso === 'administrador') {
+      modulosFinales = [
+        'dashboard', 'empleados', 'clientes', 'proveedores',
+        'inventarios', 'equipos', 'reportes', 'puntoventa'
+      ];
+    }
+    
+    // Actualizar empleado
+    const empleadoActualizado = {
+      ...empleado,
+      tipoPermiso: tipoPermiso,
+      modulosPermitidos: modulosFinales,
+      permisos: permisos || [],
+      fechaModificacion: new Date().toISOString(),
+      fechaAsignacionPermisos: new Date().toISOString()
+    };
+    
+    db.get('empleados')
+      .find({ id })
+      .assign(empleadoActualizado)
+      .write();
+    
+    res.status(200).json(
+      createResponse(
+        empleadoActualizado,
+        'Permisos actualizados exitosamente'
+      )
+    );
+    
+  } catch (error) {
+    console.error('Error updating permisos:', error);
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
+  }
+}
+
 module.exports = {
   listEmpleados,
   getEmpleado,
@@ -778,5 +979,7 @@ module.exports = {
   deleteEmpleado,
   getRoles,
   assignRoles,
-  getPuestos
+  getPuestos,
+  getModulos,
+  updatePermisos
 };

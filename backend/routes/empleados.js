@@ -16,7 +16,9 @@ const {
   deleteEmpleado, 
   getRoles,
   assignRoles,
-  getPuestos
+  getPuestos,
+  getModulos,
+  updatePermisos
 } = require('../controllers/empleadosController');
 
 /**
@@ -31,6 +33,12 @@ router.get('/', auth, listEmpleados);
  * Obtener catálogo de puestos disponibles
  */
 router.get('/puestos', auth, getPuestos);
+
+/**
+ * GET /api/empleados/modulos
+ * Obtener catálogo de módulos del sistema
+ */
+router.get('/modulos', auth, getModulos);
 
 /**
  * GET /api/empleados/:id
@@ -70,5 +78,12 @@ router.get('/roles', auth, getRoles);
  * Body: { roles: string[], crearUsuario?: boolean }
  */
 router.post('/:id/assign-roles', auth, roles(['admin']), assignRoles);
+
+/**
+ * PUT /api/empleados/:id/permisos
+ * Actualizar permisos de módulos de un empleado - Solo admin
+ * Body: { tipoPermiso: string, modulosPermitidos: string[], permisos?: object[] }
+ */
+router.put('/:id/permisos', auth, roles(['admin']), updatePermisos);
 
 module.exports = router;
