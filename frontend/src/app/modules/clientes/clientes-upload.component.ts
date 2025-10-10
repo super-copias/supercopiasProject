@@ -10,10 +10,38 @@ import { ClientesService } from '../../services/clientes.service';
   selector: 'app-clientes-upload',
   template: `
     <div class="p-4">
-      <h3 class="mb-3">
-        <i class="fas fa-file-excel text-success me-2"></i>
-        Alta Masiva de Clientes
-      </h3>
+      <!-- Breadcrumb navigation -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="javascript:void(0)" (click)="regresarAClientes()" class="text-decoration-none">
+              <i class="fas fa-users me-1"></i>
+              Clientes
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">
+            <i class="fas fa-file-excel me-1"></i>
+            Alta Masiva
+          </li>
+        </ol>
+      </nav>
+      
+      <!-- Header con navegación -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <h3 class="mb-2 mb-md-0">
+          <i class="fas fa-file-excel text-success me-2"></i>
+          Alta Masiva de Clientes
+        </h3>
+        <div class="d-flex gap-2">
+          <button 
+            class="btn btn-outline-secondary btn-sm"
+            (click)="regresarAClientes()"
+            [disabled]="uploading">
+            <i class="fas fa-arrow-left me-1"></i>
+            <span class="d-none d-sm-inline">Regresar a </span>Clientes
+          </button>
+        </div>
+      </div>
       
       <!-- Instrucciones -->
       <div class="alert alert-info">
@@ -191,6 +219,16 @@ import { ClientesService } from '../../services/clientes.service';
         <div *ngIf="!result.success && result.message" class="alert alert-danger">
           <h6><i class="fas fa-times-circle me-1"></i> Error en el procesamiento</h6>
           <p class="mb-0">{{result.message}}</p>
+          
+          <!-- Botón de regreso en caso de error -->
+          <div class="mt-3">
+            <button 
+              class="btn btn-outline-primary btn-sm"
+              (click)="regresarAClientes()">
+              <i class="fas fa-arrow-left me-1"></i>
+              Regresar a Clientes
+            </button>
+          </div>
         </div>
       </div>
     </div>

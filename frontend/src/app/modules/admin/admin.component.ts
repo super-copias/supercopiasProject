@@ -46,6 +46,13 @@ export class AdminComponent {
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
     this.updateForWidth(event.target.innerWidth);
+    
+    // Reposicionar dropdown si está abierto
+    if (this.showUserMenu) {
+      setTimeout(() => {
+        this.positionDropdown();
+      }, 0);
+    }
   }
 
   updateForWidth(width: number) {
@@ -83,6 +90,32 @@ export class AdminComponent {
    */
   toggleUserMenu() {
     this.showUserMenu = !this.showUserMenu;
+    
+    if (this.showUserMenu) {
+      // Pequeño delay para asegurar el DOM está actualizado
+      setTimeout(() => {
+        this.positionDropdown();
+      }, 0);
+    }
+  }
+
+  /**
+   * Position dropdown correctly in mobile
+   */
+  private positionDropdown() {
+    const dropdown = document.querySelector('.dropdown-menu-responsive') as HTMLElement;
+    const button = document.querySelector('#userMenu') as HTMLElement;
+    
+    if (dropdown && button) {
+      const buttonRect = button.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      
+      // Posicionamiento dinámico basado en el botón
+      if (viewportWidth <= 768) {
+        dropdown.style.top = `${buttonRect.bottom + 5}px`;
+        dropdown.style.right = `${viewportWidth - buttonRect.right}px`;
+      }
+    }
   }
 
   /**

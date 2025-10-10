@@ -2,8 +2,9 @@
     <app-side-nav [collapsed]="collapsed" [mobileOpen]="mobileOpen" (requestClose)="closeMobile()"></app-side-nav>
     <main class="content" [class.shifted]="!collapsed && !mobileOpen">
         <nav class="navbar bg-white shadow-sm">
-            <div class="container-fluid">
-                <div class="d-flex align-items-center">
+            <div class="container-fluid d-flex justify-content-between align-items-center">
+                <!-- Lado izquierdo: Hamburguesa + Logo -->
+                <div class="d-flex align-items-center navbar-left">
                     <!-- Botón hamburguesa para desktop -->
                     <button class="btn btn-link me-3 sidebar-toggle desktop-only" (click)="toggleSidebar()" aria-label="Toggle navigation">
                         <i class="fas fa-bars fa-lg"></i>
@@ -11,25 +12,26 @@
                     <!-- Logo y nombre de la aplicación -->
                     <div class="d-flex align-items-center">
                         <img src="assets/img/logo azul.png" alt="SuperCopias" class="me-2" style="height: 36px;">
-                        <span class="navbar-brand mb-0 h1">SuperCopias Admin</span>
+                        <span class="navbar-brand mb-0 h1 d-none d-sm-block">SuperCopias Admin</span>
+                        <span class="navbar-brand mb-0 h1 d-sm-none">SuperCopias</span>
                     </div>
                 </div>
-                <div class="d-flex align-items-center">
-                    <!-- Botón hamburguesa para móvil (a la derecha) -->
-                    <button class="btn btn-link sidebar-toggle mobile-only me-2" (click)="toggleSidebar(true)" aria-label="Toggle navigation">
-                        <i class="fas fa-bars fa-lg"></i>
-                    </button>
+                
+                <!-- Lado derecho: Usuario + Menú móvil -->
+                <div class="d-flex align-items-center navbar-right">
                     <!-- Información del usuario -->
-                    <div class="d-flex align-items-center me-3">
-                        <i class="fas fa-user-circle me-2 text-primary"></i>
-                        <span class="fw-medium">{{(auth.user$ | async)?.username || 'Usuario'}}</span>
+                    <div class="d-flex align-items-center me-2 user-info">
+                        <i class="fas fa-user-circle me-1 text-primary d-none d-sm-inline"></i>
+                        <span class="fw-medium d-none d-md-inline">{{(auth.user$ | async)?.username || 'Usuario'}}</span>
                     </div>
-                    <div class="dropdown" [class.show]="showUserMenu">
-                        <button class="btn btn-outline-primary dropdown-toggle" type="button" id="userMenu" 
+                    
+                    <!-- Dropdown del usuario -->
+                    <div class="dropdown user-dropdown me-2" [class.show]="showUserMenu">
+                        <button class="btn btn-outline-primary dropdown-toggle btn-sm" type="button" id="userMenu" 
                                 (click)="toggleUserMenu()" aria-expanded="false">
                             <i class="fas fa-cog"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end" [class.show]="showUserMenu" aria-labelledby="userMenu">
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-responsive" [class.show]="showUserMenu" aria-labelledby="userMenu">
                             <li><a class="dropdown-item" routerLink="/admin/profile/view" (click)="closeUserMenu()">
                                 <i class="fas fa-user me-2"></i> Ver Perfil</a></li>
                             <li><a class="dropdown-item" routerLink="/admin/profile/edit" (click)="closeUserMenu()">
@@ -42,6 +44,11 @@
                             </button></li>
                         </ul>
                     </div>
+                    
+                    <!-- Botón hamburguesa para móvil (a la derecha) -->
+                    <button class="btn btn-link sidebar-toggle mobile-only" (click)="toggleSidebar(true)" aria-label="Toggle navigation">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
                 </div>
             </div>
         </nav>

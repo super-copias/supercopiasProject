@@ -9,10 +9,10 @@ import { ClientesService } from '../../services/clientes.service';
   template: `
   <div class="card mb-4">
     <div class="card-header">
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-        <h5 class="mb-2 mb-md-0">Clientes</h5>
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <h5 class="mb-0">Clientes</h5>
         <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
-          <div class="input-group" style="min-width: 250px;">
+          <div class="input-group" style="min-width: 250px; max-width: 400px;">
             <input #searchInput
                    class="form-control" 
                    placeholder="Buscar cliente..." 
@@ -35,12 +35,12 @@ import { ClientesService } from '../../services/clientes.service';
               <i class="fas fa-times"></i>
             </button>
           </div>
-          <div class="d-flex gap-2 flex-nowrap">
-            <a class="btn btn-primary btn-sm d-inline-flex align-items-center flex-nowrap" [routerLink]="['/admin/clientes/nuevo']">
+          <div class="d-flex gap-2">
+            <a class="btn btn-primary btn-sm d-flex align-items-center" [routerLink]="['/admin/clientes/nuevo']">
               <i class="fas fa-plus d-none d-sm-inline"></i>
               <span class="ms-0 ms-sm-1">Nuevo</span>
             </a>
-            <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center flex-nowrap text-nowrap" [routerLink]="['/admin/clientes/upload']">
+            <a class="btn btn-outline-primary btn-sm d-flex align-items-center" [routerLink]="['/admin/clientes/upload']">
               <i class="fas fa-upload d-none d-sm-inline"></i>
               <span class="ms-0 ms-sm-1 d-none d-sm-inline">Alta masiva</span>
               <span class="d-sm-none">Import</span>
