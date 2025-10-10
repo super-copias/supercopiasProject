@@ -1,0 +1,235 @@
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th>Nombre</th>
+        <th>Puesto</th>
+        <th>Departamento</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let empleado of empleados" [class.table-secondary]="!empleado.activo">
+        <td>
+          <div class="d-flex align-items-center">
+            <div class="avatar-circle me-2">
+              {{ empleado.nombre?.charAt(0)?.toUpperCase() || 'E' }}
+            </div>
+            <div>
+              <div class="fw-semibold">{{ empleado.nombre }}</div>
+              <small class="text-muted">ID: {{ empleado.id }}</small>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="badge bg-primary">{{ empleado.puesto || 'Sin puesto' }}</span>
+        </td>
+        <td>{{ empleado.departamento || 'Sin departamento' }}</td>
+        <td>
+          <i class="fas fa-phone text-success me-1"></i>
+          {{ empleado.telefono }}
+        </td>
+        <td>
+          <span *ngIf="empleado.email">
+            <i class="fas fa-envelope text-info me-1"></i>
+            <a [href]="'mailto:' + empleado.email" class="text-decoration-none">
+              {{ empleado.email }}
+            </a>
+          </span>
+          <span *ngIf="!empleado.email" class="text-muted">Sin email</span>
+        </td>
+        <td>
+          <span class="badge" [class.bg-success]="empleado.activo" [class.bg-secondary]="!empleado.activo">
+            {{ empleado.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td>
+          <div class="btn-group btn-group-sm" role="group">
+            <button 
+              type="button" 
+              class="btn btn-outline-info"
+              (click)="verDetalles(empleado)"
+              title="Ver detalles">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-outline-primary"
+              (click)="editarEmpleado(empleado)"
+              title="Editar empleado">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-outline-warning"
+              (click)="asignarRoleEmpleado(empleado)"
+              title="Asignar rol">
+              <i class="fas fa-user-tag"></i>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-outline-danger"
+              (click)="eliminarEmpleado(empleado)"
+              title="Eliminar empleado">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Mensaje cuando no hay empleados -->
+  <div *ngIf="empleados.length === 0" class="text-center p-4">
+    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">No hay empleados registrados</h5>
+    <p class="text-muted">Los empleados aparecerán aquí una vez que sean agregados al sistema.</p>
+  </div>
+</div>
+
+<!-- Modal de detalles -->
+<div class="modal" [class.show]="showDetalles" [style.display]="showDetalles ? 'block' : 'none'" *ngIf="selectedEmpleado">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-user me-2"></i>
+          Detalles del Empleado
+        </h5>
+        <button type="button" class="btn-close" (click)="cerrarDetalles()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-user me-1"></i>
+                  Información Personal
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-2">
+                  <strong>Nombre:</strong>
+                  <div>{{ selectedEmpleado.nombre }}</div>
+                </div>
+                <div class="mb-2">
+                  <strong>ID Empleado:</strong>
+                  <div><code>{{ selectedEmpleado.id }}</code></div>
+                </div>
+                <div class="mb-2">
+                  <strong>Teléfono:</strong>
+                  <div>
+                    <i class="fas fa-phone text-success me-1"></i>
+                    {{ selectedEmpleado.telefono }}
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <strong>Email:</strong>
+                  <div *ngIf="selectedEmpleado.email">
+                    <i class="fas fa-envelope text-info me-1"></i>
+                    <a [href]="'mailto:' + selectedEmpleado.email">{{ selectedEmpleado.email }}</a>
+                  </div>
+                  <div *ngIf="!selectedEmpleado.email" class="text-muted">Sin email</div>
+                </div>
+                <div class="mb-2">
+                  <strong>Estado:</strong>
+                  <div>
+                    <span class="badge" [class.bg-success]="selectedEmpleado.activo" [class.bg-secondary]="!selectedEmpleado.activo">
+                      {{ selectedEmpleado.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-briefcase me-1"></i>
+                  Información Laboral
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-2">
+                  <strong>Puesto:</strong>
+                  <div>
+                    <span class="badge bg-primary">{{ selectedEmpleado.puesto || 'Sin puesto' }}</span>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <strong>Departamento:</strong>
+                  <div>{{ selectedEmpleado.departamento || 'Sin departamento' }}</div>
+                </div>
+                <div class="mb-2">
+                  <strong>Salario:</strong>
+                  <div>{{ formatearSalario(selectedEmpleado.salario) }}</div>
+                </div>
+                <div class="mb-2">
+                  <strong>Fecha de Ingreso:</strong>
+                  <div>{{ selectedEmpleado.fechaIngreso ? (selectedEmpleado.fechaIngreso | date:'dd/MM/yyyy') : 'No especificada' }}</div>
+                </div>
+                <div class="mb-2">
+                  <strong>Antigüedad:</strong>
+                  <div>{{ calcularAntiguedad(selectedEmpleado.fechaIngreso) }}</div>
+                </div>
+                <div class="mb-2">
+                  <strong>Rol del Sistema:</strong>
+                  <div>
+                    <span *ngIf="selectedEmpleado.role" class="badge bg-secondary">{{ selectedEmpleado.role }}</span>
+                    <span *ngIf="!selectedEmpleado.role" class="text-muted">Sin rol asignado</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card mt-3">
+          <div class="card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-info-circle me-1"></i>
+              Información del Sistema
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-2">
+                  <strong>Fecha de Registro:</strong>
+                  <div>{{ selectedEmpleado.fechaRegistro ? (selectedEmpleado.fechaRegistro | date:'dd/MM/yyyy HH:mm') : 'No disponible' }}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-2">
+                  <strong>Última Modificación:</strong>
+                  <div>{{ selectedEmpleado.fechaModificacion ? (selectedEmpleado.fechaModificacion | date:'dd/MM/yyyy HH:mm') : 'No modificado' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" (click)="imprimirEmpleado()">
+          <i class="fas fa-print me-1"></i>
+          Imprimir
+        </button>
+        <button type="button" class="btn btn-outline-warning" (click)="editarEmpleado(selectedEmpleado)">
+          <i class="fas fa-edit me-1"></i>
+          Editar
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cerrarDetalles()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Backdrop del modal -->
+<div class="modal-backdrop" [class.show]="showDetalles" *ngIf="showDetalles" (click)="cerrarDetalles()"></div>

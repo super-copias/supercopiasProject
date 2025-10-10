@@ -9,16 +9,14 @@ import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { EmpleadosListComponent } from './empleados-list.component';
 import { EmpleadosFormComponent } from './empleados-form.component';
-import { EmpleadosUploadComponent } from './empleados-upload.component';
-// import { EmpleadosTableComponent } from './empleados-table/empleados-table.component';
+import { EmpleadosTableComponent } from './empleados-table/empleados-table.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
     EmpleadosListComponent, 
     EmpleadosFormComponent, 
-    EmpleadosUploadComponent
-    // EmpleadosTableComponent
+    EmpleadosTableComponent
   ],
   imports: [
     CommonModule, 
@@ -28,8 +26,7 @@ import { SharedModule } from '../../shared/shared.module';
     RouterModule.forChild([
       { path: '', component: EmpleadosListComponent },
       { path: 'nuevo', component: EmpleadosFormComponent },
-      { path: 'editar/:id', component: EmpleadosFormComponent },
-      { path: 'upload', component: EmpleadosUploadComponent }
+      { path: 'editar/:id', component: EmpleadosFormComponent }
     ])
   ]
 })

@@ -6,8 +6,6 @@
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 const auth = require('../middlewares/auth');
 const roles = require('../middlewares/roles');
 const { 
@@ -16,43 +14,10 @@ const {
   createEmpleado, 
   updateEmpleado, 
   deleteEmpleado, 
-  uploadExcelEmpleados,
   getRoles,
   assignRoles,
   getPuestos
 } = require('../controllers/empleadosController');
-
-/**
- * Configuración de multer para carga de archivos Excel
- * Solo acepta archivos .xlsx y .xls
- * Máximo 5MB de tamaño
- */
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'empleados-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB límite
-  },
-  fileFilter: function (req, file, cb) {
-    const allowedExtensions = ['.xlsx', '.xls', '.csv'];
-    const fileExtension = path.extname(file.originalname).toLowerCase();
-    
-    if (allowedExtensions.includes(fileExtension)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten archivos Excel (.xlsx, .xls) o CSV (.csv)'));
-    }
-  }
-});
 
 /**
  * GET /api/empleados
@@ -92,14 +57,6 @@ router.put('/:id', auth, updateEmpleado);
  * Eliminar un empleado
  */
 router.delete('/:id', auth, deleteEmpleado);
-
-/**
- * POST /api/empleados/upload-excel
- * Carga masiva de empleados desde archivo Excel - Solo admin
- * Acepta: archivos .xlsx y .xls
- * Headers requeridos: nombre, apellidos, telefono, email, puesto, departamento, salario, fechaIngreso, roles
- */
-router.post('/upload-excel', auth, roles(['admin']), upload.single('excel'), uploadExcelEmpleados);
 
 /**
  * GET /api/empleados/roles

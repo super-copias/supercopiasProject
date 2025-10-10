@@ -111,19 +111,6 @@ export class EmpleadosService {
       );
   }
 
-  /**
-   * Subir archivo Excel con empleados
-   */
-  uploadExcel(file: File): Observable<ApiResponse<any>> {
-    const formData = new FormData();
-    formData.append('excel', file);
-
-    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/upload-excel`, formData)
-      .pipe(
-        catchError(this.handleError.bind(this))
-      );
-  }
-
   // ============================================================================
   // MÉTODOS DE COMPATIBILIDAD PARA COMPONENTES EXISTENTES
   // ============================================================================
