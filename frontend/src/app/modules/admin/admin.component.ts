@@ -14,6 +14,8 @@ export class AdminComponent {
   collapsed = false;
   // mobileOpen: overlay visible on small screens
   mobileOpen = false;
+  // showUserMenu: control user dropdown menu
+  showUserMenu = false;
 
   constructor(
     public auth: AuthService,
@@ -74,5 +76,40 @@ export class AdminComponent {
 
   closeMobile() {
     this.mobileOpen = false;
+  }
+
+  /**
+   * Toggle user dropdown menu
+   */
+  toggleUserMenu() {
+    this.showUserMenu = !this.showUserMenu;
+  }
+
+  /**
+   * Close user dropdown menu
+   */
+  closeUserMenu() {
+    this.showUserMenu = false;
+  }
+
+  /**
+   * Handle logout with menu close
+   */
+  logout() {
+    this.closeUserMenu();
+    this.auth.logout();
+  }
+
+  /**
+   * Close user menu when clicking outside
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: any) {
+    const userMenuButton = event.target.closest('#userMenu');
+    const userMenuDropdown = event.target.closest('.dropdown-menu');
+    
+    if (!userMenuButton && !userMenuDropdown) {
+      this.showUserMenu = false;
+    }
   }
 }

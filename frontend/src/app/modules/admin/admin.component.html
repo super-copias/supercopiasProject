@@ -24,15 +24,20 @@
                         <i class="fas fa-user-circle me-2 text-primary"></i>
                         <span class="fw-medium">{{(auth.user$ | async)?.username || 'Usuario'}}</span>
                     </div>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-primary dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="dropdown" [class.show]="showUserMenu">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" id="userMenu" 
+                                (click)="toggleUserMenu()" aria-expanded="false">
                             <i class="fas fa-cog"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-2"></i> Mi cuenta</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end" [class.show]="showUserMenu" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" routerLink="/admin/profile/view" (click)="closeUserMenu()">
+                                <i class="fas fa-user me-2"></i> Ver Perfil</a></li>
+                            <li><a class="dropdown-item" routerLink="/admin/profile/edit" (click)="closeUserMenu()">
+                                <i class="fas fa-user-cog me-2"></i> Editar Perfil</a></li>
+                            <li><a class="dropdown-item" routerLink="/admin/profile/change-password" (click)="closeUserMenu()">
+                                <i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><button class="dropdown-item text-danger" (click)="auth.logout()">
+                            <li><button class="dropdown-item text-danger" (click)="logout()">
                                 <i class="fas fa-sign-out-alt me-2"></i> Cerrar sesión
                             </button></li>
                         </ul>

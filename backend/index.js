@@ -4,6 +4,7 @@
  * 
  * Endpoints disponibles:
  * - /api/auth/* - Autenticación y autorización
+ * - /api/profile/* - Gestión de perfil de usuario
  * - /api/clientes/* - Gestión de clientes
  * - /api/empleados/* - Gestión de empleados
  */
@@ -14,6 +15,7 @@ const bodyParser = require('body-parser');
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profile');
 const clientesRoutes = require('./routes/clientes');
 const empleadosRoutes = require('./routes/empleados');
 
@@ -24,8 +26,12 @@ const app = express();
 app.use(cors()); // Permitir requests desde frontend
 app.use(bodyParser.json()); // Parsear JSON en requests
 
+// Servir archivos estáticos (imágenes de perfil, etc.)
+app.use('/uploads', express.static('uploads'));
+
 // Configuración de rutas
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/empleados', empleadosRoutes);
 
@@ -37,7 +43,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'SuperCopias API',
     version: '1.0.0',
-    endpoints: ['/api/auth', '/api/clientes', '/api/empleados']
+    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados']
   });
 });
 

@@ -129,3 +129,90 @@ html, body, app-root, .admin-layout {
         order: 1;
     }
 }
+
+/* Estilos para el dropdown del usuario */
+.dropdown {
+    position: relative;
+    
+    .dropdown-toggle {
+        border: none;
+        background: transparent;
+        color: inherit;
+        
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        &:focus {
+            box-shadow: none;
+        }
+    }
+    
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 1000;
+        display: none;
+        min-width: 200px;
+        padding: 0.5rem 0;
+        margin: 0.125rem 0 0;
+        font-size: 0.875rem;
+        color: #212529;
+        text-align: left;
+        list-style: none;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        
+        &.show {
+            display: block !important;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            clear: both;
+            font-weight: 400;
+            color: #212529;
+            text-decoration: none;
+            white-space: nowrap;
+            background-color: transparent;
+            border: 0;
+            cursor: pointer;
+            
+            i {
+                width: 16px;
+                text-align: center;
+            }
+            
+            &:hover,
+            &:focus {
+                background-color: #f8f9fa;
+                color: #1e2125;
+                text-decoration: none;
+            }
+            
+            &.text-danger {
+                color: #dc3545;
+                
+                &:hover,
+                &:focus {
+                    background-color: #f5c2c7;
+                    color: #842029;
+                }
+            }
+        }
+        
+        .dropdown-divider {
+            height: 0;
+            margin: 0.5rem 0;
+            overflow: hidden;
+            border-top: 1px solid rgba(0, 0, 0, 0.15);
+        }
+    }
+}
