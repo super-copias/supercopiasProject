@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ProfileService } from '../services/profile.service';
+import { CambiarPassword } from '../../../shared/interfaces';
 
 /**
  * Componente para cambiar la contraseña del usuario
@@ -379,9 +380,9 @@ export class ChangePasswordComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const { currentPassword, newPassword } = this.passwordForm.value;
+    const { currentPassword, newPassword, confirmPassword } = this.passwordForm.value;
     
-    this.profileService.changePassword({ currentPassword, newPassword }).subscribe({
+    this.profileService.changePassword({ currentPassword, newPassword, confirmPassword }).subscribe({
       next: () => {
         this.successMessage = 'Contraseña cambiada correctamente. Serás redirigido al dashboard.';
         this.changing = false;

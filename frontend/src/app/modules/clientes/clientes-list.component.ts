@@ -12,8 +12,27 @@ import { ClientesService } from '../../services/clientes.service';
       <h5 class="mb-0">Clientes</h5>
       <div class="d-flex gap-2">
         <div class="input-group">
-          <input class="form-control" placeholder="Buscar cliente..." [(ngModel)]="q" (input)="search$.next(q)" [disabled]="loading" />
-          <button class="btn btn-outline-secondary" type="button" (click)="load()" [disabled]="loading"><i class="fas fa-search"></i></button>
+          <input #searchInput
+                 class="form-control" 
+                 placeholder="Buscar cliente..." 
+                 [(ngModel)]="searchTerm" 
+                 (keyup.enter)="onSearch()"
+                 [disabled]="loading" />
+          <button class="btn btn-outline-secondary" 
+                  type="button" 
+                  (click)="onSearch()"
+                  [disabled]="loading"
+                  title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
+          <button class="btn btn-outline-secondary" 
+                  type="button" 
+                  (click)="onClearSearch()"
+                  [disabled]="loading"
+                  *ngIf="searchTerm"
+                  title="Limpiar búsqueda">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
         <a class="btn btn-primary btn-sm d-inline-flex align-items-center" [routerLink]="['/admin/clientes/nuevo']">
           <i class="fas fa-plus"></i>
@@ -48,13 +67,13 @@ import { ClientesService } from '../../services/clientes.service';
   `
 })
 export class ClientesListComponent implements OnInit, OnDestroy {
+  // Propiedades simples
   clientes: any[] = [];
   q = '';
+  searchTerm = '';  // Campo separado para el input de búsqueda
   loading = false;
-  search$ = new Subject<string>();
   pageChange$ = new Subject<number>();
   private destroy$ = new Subject<void>();
-  private searchSub: Subscription | null = null;
   private pageSub: Subscription | null = null;
   page = 1;
   limit = 10;
@@ -67,34 +86,30 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   ) { }
   
   ngOnInit() {
-    this.load();
-    
-    // Búsqueda con debounce
-    this.searchSub = this.search$.pipe(
-      debounceTime(300),
-      switchMap(q => {
-        this.q = q;
-        this.page = 1;
-        return this.loadData();
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe();
-
     // Paginación con debounce para evitar clicks rápidos
     this.pageSub = this.pageChange$.pipe(
-      debounceTime(150), // Menos tiempo que la búsqueda
+      debounceTime(150),
       switchMap(page => {
         this.page = page;
         return this.loadData();
       }),
       takeUntil(this.destroy$)
-    ).subscribe();
+    ).subscribe({
+      next: (r: any) => { 
+        this.handleResponse(r);
+      },
+      error: (error) => {
+        this.handleError(error);
+      }
+    });
+
+    // Cargar datos iniciales
+    this.load();
   }
   
   ngOnDestroy() { 
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.searchSub) this.searchSub.unsubscribe();
     if (this.pageSub) this.pageSub.unsubscribe();
   }
   
@@ -106,31 +121,62 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     );
   }
   
+  private handleResponse(r: any) {
+    // Manejar tanto formato nuevo como legacy
+    if (r.success) {
+      // Formato nuevo (estándar API)
+      this.clientes = r.data || []; 
+      this.total = r.pagination?.total || 0; 
+      this.pages = r.pagination?.pages || Math.max(1, Math.ceil(this.total / this.limit));
+    } else {
+      // Formato legacy
+      this.clientes = r.data || []; 
+      this.total = r.total || 0; 
+      this.pages = Math.max(1, Math.ceil(this.total / this.limit));
+    }
+    
+    // Si estamos en una página que no existe, ir a la última página válida
+    if (this.page > this.pages && this.pages > 0) {
+      this.page = this.pages;
+      this.load(); // Recargar con la página corregida
+    }
+  }
+
+  private handleError(error: any) {
+    console.error('Error loading clients:', error);
+    this.clientes = [];
+    this.total = 0;
+    this.pages = 1;
+    this.page = 1;
+  }
+  
   load() {
     this.loadData().subscribe({
       next: (r: any) => { 
-        this.clientes = r.data || []; 
-        this.total = r.total || 0; 
-        this.pages = Math.max(1, Math.ceil(this.total / this.limit));
-        
-        // Si estamos en una página que no existe, ir a la última página válida
-        if (this.page > this.pages && this.pages > 0) {
-          this.page = this.pages;
-          this.load(); // Recargar con la página corregida
-        }
+        this.handleResponse(r);
       },
       error: (error) => {
-        console.error('Error loading clients:', error);
-        this.clientes = [];
-        this.total = 0;
-        this.pages = 1;
-        this.page = 1;
+        this.handleError(error);
       }
     });
   }
   
+  onSearch() {
+    this.q = this.searchTerm.trim(); // Copiar del campo de búsqueda al campo de query, eliminando espacios
+    this.page = 1; // Resetear a la primera página
+    this.load(); // Ejecutar búsqueda
+  }
+  
+  onClearSearch() {
+    this.searchTerm = '';
+    this.q = '';
+    this.page = 1;
+    this.load();
+  }
+  
   go(p: number) { 
     if (p < 1 || p > this.pages || p === this.page) return;
+    this.page = p; // Esto dispara automáticamente la búsqueda
     this.pageChange$.next(p);
   }
 
@@ -143,9 +189,12 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   onEliminar(cliente: any) {
     this.svc.delete(cliente.id).pipe(
       takeUntil(this.destroy$)
-    ).subscribe((success) => {
-      if (success) {
+    ).subscribe((response) => {
+      // El backend siempre devuelve ApiResponse<{id: string, activo: boolean}>
+      if (response?.success) {
         this.load(); // Recargar la lista
+      } else {
+        alert('Error al eliminar el cliente');
       }
     });
   }

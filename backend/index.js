@@ -13,11 +13,16 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
+// Importar utilidades
+const { initAllMockData } = require('./utils/initMockData');
+
 // Importar rutas
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const clientesRoutes = require('./routes/clientes');
 const empleadosRoutes = require('./routes/empleados');
+const catalogosRoutes = require('./routes/catalogos');
+const proveedoresRoutes = require('./routes/proveedores');
 
 // Configuración del servidor Express
 const app = express();
@@ -34,6 +39,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/empleados', empleadosRoutes);
+app.use('/api/catalogos', catalogosRoutes);
+app.use('/api/proveedores', proveedoresRoutes);
 
 /**
  * Endpoint raíz - Información del API
@@ -43,7 +50,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'SuperCopias API',
     version: '1.0.0',
-    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados']
+    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores']
   });
 });
 
@@ -52,4 +59,13 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 SuperCopias Server running on port ${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}`);
+  
+  // Inicializar datos mock solo si es necesario
+  console.log('\n📚 Inicializando datos mock...');
+  try {
+    initAllMockData();
+    console.log('✅ Datos mock listos para uso\n');
+  } catch (error) {
+    console.error('❌ Error inicializando datos mock:', error);
+  }
 });

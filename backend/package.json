@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "dev:clean": "nodemon --exec \"node index.js\" --ignore db.json --ignore uploads/",
+    "reset": "node utils/initMockData.js && npm start"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

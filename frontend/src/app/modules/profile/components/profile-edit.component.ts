@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../services/profile.service';
+import { Usuario, PerfilUsuario, ActualizarPerfil } from '../../../shared/interfaces';
 
 /**
  * Componente para editar el perfil del usuario
@@ -267,15 +268,18 @@ export class ProfileEditComponent implements OnInit {
 
     // Cargar datos completos del backend
     this.profileService.getProfile().subscribe({
-      next: (profile) => {
-        this.profileForm.patchValue({
-          username: profile.username || '',
-          fullName: profile.fullName || '',
-          email: profile.email || '',
-          phone: profile.phone || '',
-          bio: profile.bio || ''
-        });
-        this.profileImageUrl = profile.profileImage || '';
+      next: (response) => {
+        if (response.success && response.data) {
+          const profile = response.data;
+          this.profileForm.patchValue({
+            username: profile.username || '',
+            fullName: profile.fullName || '',
+            email: profile.email || '',
+            phone: profile.phone || '',
+            bio: profile.bio || ''
+          });
+          this.profileImageUrl = profile.profileImage || '';
+        }
       },
       error: (error) => {
         console.error('Error loading profile:', error);
@@ -314,15 +318,17 @@ export class ProfileEditComponent implements OnInit {
 
     this.profileService.uploadProfileImage(file).subscribe({
       next: (response) => {
-        this.profileImageUrl = response.imageUrl;
-        this.successMessage = 'Imagen actualizada correctamente.';
-        this.imageUploading = false;
-        
-        // Actualizar el usuario en el AuthService
-        const currentUser = this.authService.getCurrentUser();
-        if (currentUser) {
-          currentUser.profileImage = response.imageUrl;
-          this.authService.updateUser(currentUser);
+        if (response.success && response.data) {
+          this.profileImageUrl = response.data.imageUrl || '';
+          this.successMessage = response.message || 'Imagen actualizada correctamente.';
+          this.imageUploading = false;
+          
+          // Actualizar el usuario en el AuthService
+          const currentUser = this.authService.getCurrentUser();
+          if (currentUser) {
+            currentUser.profileImage = response.data.imageUrl || '';
+            this.authService.updateUser(currentUser);
+          }
         }
       },
       error: (error) => {
@@ -342,16 +348,18 @@ export class ProfileEditComponent implements OnInit {
 
     this.imageUploading = true;
     this.profileService.removeProfileImage().subscribe({
-      next: () => {
-        this.profileImageUrl = '';
-        this.successMessage = 'Imagen eliminada correctamente.';
-        this.imageUploading = false;
-        
-        // Actualizar el usuario en el AuthService
-        const currentUser = this.authService.getCurrentUser();
-        if (currentUser) {
-          currentUser.profileImage = '';
-          this.authService.updateUser(currentUser);
+      next: (response) => {
+        if (response.success) {
+          this.profileImageUrl = '';
+          this.successMessage = response.message || 'Imagen eliminada correctamente.';
+          this.imageUploading = false;
+          
+          // Actualizar el usuario en el AuthService
+          const currentUser = this.authService.getCurrentUser();
+          if (currentUser) {
+            currentUser.profileImage = '';
+            this.authService.updateUser(currentUser);
+          }
         }
       },
       error: (error) => {
@@ -374,21 +382,26 @@ export class ProfileEditComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const formData = this.profileForm.value;
+    const formData: ActualizarPerfil = this.profileForm.value;
     
     this.profileService.updateProfile(formData).subscribe({
       next: (response) => {
-        this.successMessage = 'Perfil actualizado correctamente.';
-        this.saving = false;
-        
-        // Actualizar el usuario en el AuthService
-        const updatedUser = { ...this.authService.getCurrentUser(), ...formData };
-        this.authService.updateUser(updatedUser);
-        
-        // Redirigir al dashboard después de 2 segundos
-        setTimeout(() => {
-          this.router.navigate(['/admin/dashboard']);
-        }, 2000);
+        if (response.success) {
+          this.successMessage = response.message || 'Perfil actualizado correctamente.';
+          this.saving = false;
+          
+          // Actualizar el usuario en el AuthService
+          const currentUser = this.authService.getCurrentUser();
+          if (currentUser && response.data) {
+            const updatedUser = { ...currentUser, ...response.data };
+            this.authService.updateUser(updatedUser);
+          }
+          
+          // Redirigir al dashboard después de 2 segundos
+          setTimeout(() => {
+            this.router.navigate(['/admin/dashboard']);
+          }, 2000);
+        }
       },
       error: (error) => {
         this.errorMessage = error.error?.message || 'Error al actualizar el perfil.';

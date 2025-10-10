@@ -16,7 +16,8 @@ const {
   updateCliente, 
   deleteCliente, 
   getUsosCFDI,
-  uploadExcelClientes 
+  uploadExcelClientes,
+  descargarPlantillaExcel
 } = require('../controllers/clientesController');
 
 /**
@@ -63,6 +64,12 @@ router.get('/', auth, listClientes);
  * Obtener catálogo de Usos CFDI de México
  */
 router.get('/usos-cfdi', auth, getUsosCFDI);
+
+/**
+ * GET /api/clientes/plantilla-excel
+ * Descargar plantilla Excel para carga masiva de clientes
+ */
+router.get('/plantilla-excel', auth, descargarPlantillaExcel);
 
 /**
  * GET /api/clientes/:id

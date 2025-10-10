@@ -1,33 +1,25 @@
 /**
- * Servicio de Empleados - SuperCopias
- * Gestiona todas las operaciones CRUD para empleados con sistema de roles
- * Version simplificada que depende completamente del backend
+ * Servicio de Proveedores - SuperCopias
+ * Gestiona todas las operaciones CRUD para proveedores
+ * Version que depende completamente del backend
  */
 
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError } from 'rxjs/operators';
-import { 
-  ApiResponse, 
-  Empleado, 
-  CrearEmpleado, 
-  AsignarRoles, 
-  EmpleadoConUsuario,
-  RolSistema,
-  PaginationParams 
-} from '../shared/interfaces';
+import { catchError, map } from 'rxjs/operators';
+import { ApiResponse, PaginationParams, Proveedor } from '../shared/interfaces';
 
 @Injectable({ providedIn: 'root' })
-export class EmpleadosService {
-  private baseUrl = '/api/empleados';
+export class ProveedoresService {
+  private baseUrl = '/api/proveedores';
   
   constructor(private http: HttpClient) {}
 
   /**
-   * Obtener lista de empleados con búsqueda y paginación
+   * Obtener lista de proveedores con búsqueda y paginación
    */
-  getList(params: PaginationParams = {}): Observable<ApiResponse<Empleado[]>> {
+  getList(params: PaginationParams = {}): Observable<ApiResponse<Proveedor[]>> {
     const queryParams = new URLSearchParams();
     Object.keys(params).forEach(key => {
       if (params[key] !== undefined && params[key] !== null) {
@@ -35,44 +27,44 @@ export class EmpleadosService {
       }
     });
 
-    return this.http.get<ApiResponse<Empleado[]>>(`${this.baseUrl}?${queryParams}`)
+    return this.http.get<ApiResponse<Proveedor[]>>(`${this.baseUrl}?${queryParams}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );
   }
 
   /**
-   * Obtener empleado por ID
+   * Obtener proveedor por ID
    */
-  getById(id: string): Observable<ApiResponse<Empleado>> {
-    return this.http.get<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`)
+  getById(id: string): Observable<ApiResponse<Proveedor>> {
+    return this.http.get<ApiResponse<Proveedor>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );
   }
 
   /**
-   * Crear nuevo empleado
+   * Crear nuevo proveedor
    */
-  create(empleado: CrearEmpleado): Observable<ApiResponse<EmpleadoConUsuario>> {
-    return this.http.post<ApiResponse<EmpleadoConUsuario>>(`${this.baseUrl}`, empleado)
+  create(proveedor: Partial<Proveedor>): Observable<ApiResponse<Proveedor>> {
+    return this.http.post<ApiResponse<Proveedor>>(`${this.baseUrl}`, proveedor)
       .pipe(
         catchError(this.handleError.bind(this))
       );
   }
 
   /**
-   * Actualizar empleado existente
+   * Actualizar proveedor existente
    */
-  update(id: string, empleado: Partial<Empleado>): Observable<ApiResponse<Empleado>> {
-    return this.http.put<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`, empleado)
+  update(id: string, proveedor: Partial<Proveedor>): Observable<ApiResponse<Proveedor>> {
+    return this.http.put<ApiResponse<Proveedor>>(`${this.baseUrl}/${id}`, proveedor)
       .pipe(
         catchError(this.handleError.bind(this))
       );
   }
 
   /**
-   * Eliminar empleado (desactivar)
+   * Eliminar proveedor (desactivar)
    */
   delete(id: string): Observable<ApiResponse<{ id: string; activo: boolean }>> {
     return this.http.delete<ApiResponse<{ id: string; activo: boolean }>>(`${this.baseUrl}/${id}`)
@@ -82,44 +74,23 @@ export class EmpleadosService {
   }
 
   /**
-   * Obtener catálogo de roles disponibles
+   * Obtener catálogo de tipos de proveedor
    */
-  getRoles(): Observable<ApiResponse<RolSistema[]>> {
-    return this.http.get<ApiResponse<RolSistema[]>>(`${this.baseUrl}/roles`)
+  getTipos(): Observable<string[]> {
+    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/tipos`)
       .pipe(
+        map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))
       );
   }
 
   /**
-   * Asignar roles a un empleado
+   * Obtener catálogo de condiciones de pago
    */
-  assignRoles(id: string, data: AsignarRoles): Observable<ApiResponse<EmpleadoConUsuario>> {
-    return this.http.post<ApiResponse<EmpleadoConUsuario>>(`${this.baseUrl}/${id}/assign-roles`, data)
+  getCondicionesPago(): Observable<string[]> {
+    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/condiciones-pago`)
       .pipe(
-        catchError(this.handleError.bind(this))
-      );
-  }
-
-  /**
-   * Obtener catálogo de puestos
-   */
-  getPuestos(): Observable<ApiResponse<string[]>> {
-    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/puestos`)
-      .pipe(
-        catchError(this.handleError.bind(this))
-      );
-  }
-
-  /**
-   * Subir archivo Excel con empleados
-   */
-  uploadExcel(file: File): Observable<ApiResponse<any>> {
-    const formData = new FormData();
-    formData.append('excel', file);
-
-    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/upload-excel`, formData)
-      .pipe(
+        map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))
       );
   }
@@ -131,22 +102,33 @@ export class EmpleadosService {
   /**
    * Método de compatibilidad para list() - redirige a getList()
    */
-  list(q?: string, page?: number, limit?: number): Observable<ApiResponse<Empleado[]>> {
+  list(q?: string, page?: number, limit?: number): Observable<ApiResponse<Proveedor[]>> {
     return this.getList({ q, page, limit });
   }
 
   /**
-   * Método de compatibilidad para assignRole() - redirige a assignRoles()
+   * Método de compatibilidad para findById() - redirige a getById()
    */
-  assignRole(id: string, role: string): Observable<ApiResponse<EmpleadoConUsuario>> {
-    return this.assignRoles(id, { roles: [role], crearUsuario: false });
+  findById(id: string): Observable<ApiResponse<Proveedor>> {
+    return this.getById(id);
+  }
+
+  /**
+   * Método de compatibilidad para save() - decide entre create/update
+   */
+  save(proveedor: Proveedor): Observable<ApiResponse<Proveedor>> {
+    if (proveedor.id) {
+      return this.update(proveedor.id, proveedor);
+    } else {
+      return this.create(proveedor);
+    }
   }
 
   /**
    * Método de compatibilidad para initMockData()
    */
   initMockData(): void {
-    console.log('EmpleadosService: Usando datos del backend, no hay datos mock locales');
+    console.log('ProveedoresService: Usando datos del backend, no hay datos mock locales');
   }
 
   // ============================================================================
@@ -186,7 +168,7 @@ export class EmpleadosService {
             errorCode = 'FORBIDDEN';
             break;
           case 404:
-            errorMessage = 'Recurso no encontrado';
+            errorMessage = 'Proveedor no encontrado';
             errorCode = 'NOT_FOUND';
             break;
           case 422:
@@ -208,7 +190,7 @@ export class EmpleadosService {
       }
     }
 
-    console.error('EmpleadosService Error:', {
+    console.error('ProveedoresService Error:', {
       code: errorCode,
       message: errorMessage,
       status: error.status,

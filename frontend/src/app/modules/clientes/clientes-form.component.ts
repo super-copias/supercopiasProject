@@ -7,6 +7,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
+import { CatalogosService } from '../../services/catalogos.service';
 
 @Component({
   selector: 'app-clientes-form',
@@ -14,10 +15,22 @@ import { ClientesService } from '../../services/clientes.service';
   <div class="p-4">
     <h3>{{isEdit ? 'Editar Cliente' : 'Nuevo Cliente'}}</h3>
     <form (ngSubmit)="save()">
-      <div class="mb-2"><label>Nombre completo</label><input class="form-control" [(ngModel)]="model.nombre" name="nombre" required /></div>
-      <div class="mb-2"><label>Teléfono</label><input class="form-control" [(ngModel)]="model.telefono" name="telefono" /></div>
-      <div class="mb-2"><label>Segundo teléfono</label><input class="form-control" [(ngModel)]="model.segundoTelefono" name="segundoTelefono" /></div>
-      <div class="mb-2"><label>Correo</label><input class="form-control" [(ngModel)]="model.email" name="email" type="email" /></div>
+      <div class="mb-2">
+        <label>Nombre completo <span class="text-danger">*</span></label>
+        <input class="form-control" [(ngModel)]="model.nombre" name="nombre" required />
+      </div>
+      <div class="mb-2">
+        <label>Teléfono <span class="text-danger">*</span></label>
+        <input class="form-control" [(ngModel)]="model.telefono" name="telefono" required />
+      </div>
+      <div class="mb-2">
+        <label>Segundo teléfono</label>
+        <input class="form-control" [(ngModel)]="model.segundoTelefono" name="segundoTelefono" />
+      </div>
+      <div class="mb-2">
+        <label>Correo <span class="text-danger">*</span></label>
+        <input class="form-control" [(ngModel)]="model.email" name="email" type="email" required />
+      </div>
       
       <!-- Campo de dirección de entrega con selector de Google Maps -->
       <div class="mb-2">
@@ -89,7 +102,19 @@ import { ClientesService } from '../../services/clientes.service';
 })
 export class ClientesFormComponent implements OnInit {
   // Modelo de datos del cliente
-  model: any = {};
+  model: any = {
+    nombre: '',
+    telefono: '',
+    segundoTelefono: '',
+    email: '',
+    direccionEntrega: '',
+    razon: '',
+    rfc: '',
+    regimen: '',
+    direccion: '',
+    cp: '',
+    cfdi: ''
+  };
   isEdit = false;
   clienteId: string | null = null;
   loading = false;
@@ -104,6 +129,7 @@ export class ClientesFormComponent implements OnInit {
 
   constructor(
     private svc: ClientesService, 
+    private catalogosService: CatalogosService,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
@@ -125,30 +151,34 @@ export class ClientesFormComponent implements OnInit {
   }
 
   /**
-   * Cargar catálogo de Usos CFDI
-   * Endpoint: GET /api/clientes/usos-cfdi
+   * Cargar catálogo de Usos CFDI desde el backend
    */
   loadUsosCFDI() {
-    this.svc.getUsosCFDI().subscribe(usos => {
-      if (usos) this.usosCFDI = usos;
+    this.catalogosService.getUsosCFDI().subscribe({
+      next: (usos) => {
+        if (usos) this.usosCFDI = usos;
+      },
+      error: (error) => {
+        console.error('Error cargando usos CFDI:', error);
+      }
     });
   }
 
   /**
    * Cargar datos del cliente para edición
-   * Usa el servicio mock para desarrollo
    */
   loadCliente() {
     if (this.clienteId) {
       this.loading = true;
       this.svc.getById(this.clienteId).subscribe({
-        next: (cliente) => {
-          if (cliente) {
-            this.model = { ...cliente };
+        next: (response) => {
+          if (response && response.success && response.data) {
+            this.model = { ...response.data };
           }
           this.loading = false;
         },
-        error: () => {
+        error: (error) => {
+          console.error('Error cargando cliente:', error);
           this.loading = false;
         }
       });
@@ -157,19 +187,66 @@ export class ClientesFormComponent implements OnInit {
 
   /**
    * Guardar cliente (crear o actualizar)
-   * Usa el servicio mock para desarrollo
    */
   save() {
+    // Validaciones del lado del cliente
+    if (!this.model.nombre || this.model.nombre.trim().length === 0) {
+      alert('El nombre es requerido');
+      return;
+    }
+
+    if (!this.model.telefono || this.model.telefono.trim().length === 0) {
+      alert('El teléfono es requerido');
+      return;
+    }
+
+    if (!this.model.email || this.model.email.trim().length === 0) {
+      alert('El correo electrónico es requerido');
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.model.email)) {
+      alert('El formato del correo electrónico es inválido');
+      return;
+    }
+
+    // Validar formato de teléfono
+    const telefonoRegex = /^[\d\-\+\(\)\s]+$/;
+    if (!telefonoRegex.test(this.model.telefono)) {
+      alert('El formato del teléfono es inválido');
+      return;
+    }
+
+    // Validar RFC si se proporciona
+    if (this.model.rfc && this.model.rfc.trim().length > 0) {
+      const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
+      if (!rfcRegex.test(this.model.rfc.toUpperCase())) {
+        alert('El formato del RFC es inválido');
+        return;
+      }
+    }
+
     this.loading = true;
     const request$ = this.isEdit && this.clienteId
       ? this.svc.update(this.clienteId, this.model)
       : this.svc.create(this.model);
       
     request$.subscribe({
-      next: () => {
-        this.router.navigate(['/admin/clientes']);
+      next: (response) => {
+        if (response && response.success) {
+          this.router.navigate(['/admin/clientes']);
+        } else {
+          console.error('Error en la respuesta:', response);
+          alert('Error guardando cliente: ' + (response.message || 'Error desconocido'));
+        }
+        this.loading = false;
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error guardando cliente:', error);
+        const errorMsg = error.error?.message || error.message || 'Error desconocido';
+        alert('Error guardando cliente: ' + errorMsg);
         this.loading = false;
       }
     });

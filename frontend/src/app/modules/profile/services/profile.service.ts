@@ -2,6 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
+import { 
+  ApiResponse, 
+  PerfilUsuario, 
+  ActualizarPerfil, 
+  CambiarPassword,
+  UploadResponse 
+} from '../../../shared/interfaces';
 
 /**
  * Servicio para gestión del perfil de usuario
@@ -22,8 +29,8 @@ export class ProfileService {
    * Obtener el perfil completo del usuario actual
    * @returns Observable con los datos del perfil
    */
-  getProfile(): Observable<any> {
-    return this.http.get(`${this.baseUrl}`);
+  getProfile(): Observable<ApiResponse<PerfilUsuario>> {
+    return this.http.get<ApiResponse<PerfilUsuario>>(`${this.baseUrl}`);
   }
 
   /**
@@ -31,8 +38,8 @@ export class ProfileService {
    * @param profileData - Datos del perfil a actualizar
    * @returns Observable con la respuesta del servidor
    */
-  updateProfile(profileData: any): Observable<any> {
-    return this.http.put(`${this.baseUrl}`, profileData);
+  updateProfile(profileData: ActualizarPerfil): Observable<ApiResponse<PerfilUsuario>> {
+    return this.http.put<ApiResponse<PerfilUsuario>>(`${this.baseUrl}`, profileData);
   }
 
   /**
@@ -40,8 +47,8 @@ export class ProfileService {
    * @param passwordData - Datos de cambio de contraseña
    * @returns Observable con la respuesta del servidor
    */
-  changePassword(passwordData: { currentPassword: string, newPassword: string }): Observable<any> {
-    return this.http.post(`${this.baseUrl}/change-password`, passwordData);
+  changePassword(passwordData: CambiarPassword): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/change-password`, passwordData);
   }
 
   /**
@@ -49,17 +56,17 @@ export class ProfileService {
    * @param file - Archivo de imagen
    * @returns Observable con la respuesta del servidor
    */
-  uploadProfileImage(file: File): Observable<any> {
+  uploadProfileImage(file: File): Observable<ApiResponse<UploadResponse>> {
     const formData = new FormData();
     formData.append('profileImage', file);
-    return this.http.post(`${this.baseUrl}/upload-image`, formData);
+    return this.http.post<ApiResponse<UploadResponse>>(`${this.baseUrl}/upload-image`, formData);
   }
 
   /**
    * Eliminar la foto de perfil
    * @returns Observable con la respuesta del servidor
    */
-  removeProfileImage(): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/remove-image`);
+  removeProfileImage(): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${this.baseUrl}/remove-image`);
   }
 }

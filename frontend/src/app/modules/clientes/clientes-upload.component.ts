@@ -19,11 +19,11 @@ import { ClientesService } from '../../services/clientes.service';
       <div class="alert alert-info">
         <h6><i class="fas fa-info-circle me-1"></i> Instrucciones:</h6>
         <p class="mb-2">El archivo Excel debe contener las siguientes columnas exactas:</p>
-        <ul class="mb-0">
-          <li><strong>nombre</strong> - Nombre del cliente (requerido)</li>
-          <li><strong>telefono</strong> - Teléfono principal (requerido)</li>
+        <ul class="mb-2">
+          <li><strong>nombre</strong> - Nombre del cliente <span class="text-danger">(requerido)</span></li>
+          <li><strong>telefono</strong> - Teléfono principal <span class="text-danger">(requerido)</span></li>
+          <li><strong>correo</strong> - Email del cliente <span class="text-danger">(requerido)</span></li>
           <li><strong>segundo telefono</strong> - Teléfono secundario</li>
-          <li><strong>correo</strong> - Email del cliente</li>
           <li><strong>direccion de entrega</strong> - Dirección de entrega completa</li>
           <li><strong>razon social</strong> - Razón social para facturación</li>
           <li><strong>rfc</strong> - RFC para facturación</li>
@@ -32,6 +32,23 @@ import { ClientesService } from '../../services/clientes.service';
           <li><strong>codigo postal</strong> - Código postal</li>
           <li><strong>uso cfdi</strong> - Uso CFDI (código como G01, D01, etc.)</li>
         </ul>
+        
+        <!-- Botón de descarga de plantilla -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <button 
+            class="btn btn-success btn-sm"
+            (click)="descargarPlantilla()"
+            [disabled]="descargandoPlantilla">
+            <span *ngIf="!descargandoPlantilla">
+              <i class="fas fa-download me-1"></i>
+              Descargar plantilla Excel
+            </span>
+            <span *ngIf="descargandoPlantilla">
+              <i class="fas fa-spinner fa-spin me-1"></i>
+              Generando...
+            </span>
+          </button>
+        </div>
       </div>
 
       <!-- Selector de archivo -->
@@ -141,14 +158,33 @@ import { ClientesService } from '../../services/clientes.service';
         <!-- Errores de validación -->
         <div *ngIf="result.errores && result.errores.length > 0" class="alert alert-warning mt-2">
           <h6><i class="fas fa-exclamation-triangle me-1"></i> Errores de validación encontrados:</h6>
-          <p class="mb-2">
+          <p class="mb-3">
             <strong>{{result.errores.length}}</strong> registros con errores no fueron procesados:
           </p>
-          <ul class="mb-0">
-            <li *ngFor="let error of result.errores">
-              <strong>Fila {{error.fila}}:</strong> {{error.mensaje}}
-            </li>
-          </ul>
+          
+          <!-- Lista de errores agrupados por tipo -->
+          <div class="error-list" style="max-height: 300px; overflow-y: auto;">
+            <div *ngFor="let error of result.errores; let i = index" class="error-item mb-2">
+              <div class="d-flex align-items-start">
+                <span class="badge bg-danger me-2 mt-1">{{i + 1}}</span>
+                <div class="flex-grow-1">
+                  <div class="fw-bold text-danger">{{getErrorTitle(error)}}</div>
+                  <div class="text-muted small">{{getErrorDescription(error)}}</div>
+                </div>
+              </div>
+              <hr class="my-2" *ngIf="i < result.errores.length - 1">
+            </div>
+          </div>
+          
+          <!-- Resumen de tipos de errores -->
+          <div class="mt-3 p-2 bg-light rounded">
+            <small class="text-muted">
+              <strong>Tipos de errores encontrados:</strong>
+              <span *ngFor="let tipo of getErrorTypes(); let last = last">
+                {{tipo}}<span *ngIf="!last">, </span>
+              </span>
+            </small>
+          </div>
         </div>
 
         <!-- Error general -->
@@ -163,6 +199,7 @@ import { ClientesService } from '../../services/clientes.service';
 export class ClientesUploadComponent {
   selectedFile: File | null = null;
   uploading = false;
+  descargandoPlantilla = false;
   result: any = null;
 
   constructor(
@@ -223,7 +260,15 @@ export class ClientesUploadComponent {
       next: (response) => {
         console.log('✅ Respuesta del servidor:', response);
         this.uploading = false;
-        this.result = response;
+        
+        // Adaptar la respuesta para el template
+        this.result = {
+          success: response.success,
+          insertados: response.data?.importados || 0,
+          total: response.data?.creados?.length || 0,
+          errores: response.data?.errores || [],
+          message: response.message
+        };
         
         // Si fue exitoso, limpiar la selección
         if (response.success) {
@@ -277,5 +322,67 @@ export class ClientesUploadComponent {
   regresarAClientes(): void {
     // Navegar de vuelta al listado de clientes (ruta relativa)
     this.router.navigate(['../'], { relativeTo: this.route });
+  }
+
+  /**
+   * Descarga la plantilla Excel de ejemplo
+   */
+  descargarPlantilla(): void {
+    this.descargandoPlantilla = true;
+    
+    // Crear enlace para descarga
+    const url = '/api/clientes/plantilla-excel';
+    
+    // Crear elemento <a> temporal para descarga
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'plantilla_clientes.xlsx';
+    link.style.display = 'none';
+    
+    // Agregar al DOM, hacer clic y remover
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Simular delay para UX
+    setTimeout(() => {
+      this.descargandoPlantilla = false;
+    }, 1000);
+  }
+
+  /**
+   * Obtiene el título del error
+   */
+  getErrorTitle(error: string): string {
+    if (error.includes('Nombre es requerido')) return 'Nombre faltante';
+    if (error.includes('Teléfono es requerido')) return 'Teléfono faltante';
+    if (error.includes('Correo electrónico es requerido')) return 'Email faltante';
+    if (error.includes('Formato de correo electrónico inválido')) return 'Email inválido';
+    if (error.includes('Formato de teléfono inválido')) return 'Teléfono inválido';
+    if (error.includes('Formato de RFC inválido')) return 'RFC inválido';
+    if (error.includes('RFC') && error.includes('ya existe')) return 'RFC duplicado';
+    if (error.includes('Email') && error.includes('ya existe')) return 'Email duplicado';
+    return 'Error de validación';
+  }
+
+  /**
+   * Obtiene la descripción del error
+   */
+  getErrorDescription(error: string): string {
+    return error;
+  }
+
+  /**
+   * Obtiene los tipos únicos de errores
+   */
+  getErrorTypes(): string[] {
+    if (!this.result?.errores) return [];
+    
+    const tipos = new Set<string>();
+    this.result.errores.forEach((error: string) => {
+      tipos.add(this.getErrorTitle(error));
+    });
+    
+    return Array.from(tipos);
   }
 }
