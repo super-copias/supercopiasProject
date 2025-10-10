@@ -1,37 +1,50 @@
-<div class="table-responsive">
-    <table class="table table-hover">
+<!-- Vista de tabla para pantallas grandes -->
+<div class="table-responsive d-none d-lg-block">
+    <table class="table table-hover table-sm">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Teléfono</th>
-                <th>Segundo Teléfono</th>
-                <th>Correo</th>
-                <th>Dirección de entrega</th>
-                <th>Acciones</th>
+                <th style="width: 8%;">ID</th>
+                <th style="width: 20%;">Nombre</th>
+                <th style="width: 12%;">Teléfono</th>
+                <th style="width: 12%;">Segundo Tel.</th>
+                <th style="width: 18%;">Correo</th>
+                <th style="width: 20%;">Dirección</th>
+                <th style="width: 10%;">Acciones</th>
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let c of clientes">
-                <td>{{c.id}}</td>
-                <td>{{c.nombre}}</td>
-                <td>{{c.telefono}}</td>
-                <td>{{c.segundoTelefono}}</td>
-                <td>{{c.email}}</td>
-                <td>{{c.direccionEntrega}}</td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="c.id">{{c.id}}</span>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="c.nombre">{{c.nombre}}</span>
+                </td>
+                <td class="text-nowrap">
+                    <small>{{c.telefono}}</small>
+                </td>
+                <td class="text-nowrap">
+                    <small>{{c.segundoTelefono || '-'}}</small>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="c.email">{{c.email}}</span>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="c.direccionEntrega">{{c.direccionEntrega}}</span>
+                </td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-outline-primary" (click)="verDetalles(c)" title="Ver detalles">
+                        <button class="btn btn-outline-primary btn-sm" (click)="verDetalles(c)" title="Ver detalles">
                             <i class="fas fa-info-circle"></i>
                         </button>
-                        <button class="btn btn-outline-success" (click)="verUbicacion(c)" title="Ver ubicación en Google Maps" 
+                        <button class="btn btn-outline-success btn-sm" (click)="verUbicacion(c)" title="Ver ubicación" 
                                 [disabled]="!c.direccionEntrega">
                             <i class="fas fa-map-marker-alt"></i>
                         </button>
-                        <button class="btn btn-outline-warning" (click)="editarCliente(c)" title="Editar">
+                        <button class="btn btn-outline-warning btn-sm" (click)="editarCliente(c)" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-outline-danger" (click)="eliminarCliente(c)" title="Eliminar">
+                        <button class="btn btn-outline-danger btn-sm" (click)="eliminarCliente(c)" title="Eliminar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -41,8 +54,57 @@
     </table>
 </div>
 
+<!-- Vista de cards para pantallas pequeñas -->
+<div class="d-lg-none">
+    <div class="row g-3" *ngFor="let c of clientes">
+        <div class="col-12">
+            <div class="card border-left-primary shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-primary fw-bold mb-1">{{c.nombre}}</div>
+                            <div class="text-muted small mb-1">
+                                <i class="fas fa-id-badge me-1"></i>{{c.id}}
+                            </div>
+                            <div class="text-muted small mb-1">
+                                <i class="fas fa-phone me-1"></i>{{c.telefono}}
+                                <span *ngIf="c.segundoTelefono" class="ms-2">
+                                    <i class="fas fa-phone me-1"></i>{{c.segundoTelefono}}
+                                </span>
+                            </div>
+                            <div class="text-muted small mb-1" *ngIf="c.email">
+                                <i class="fas fa-envelope me-1"></i>{{c.email}}
+                            </div>
+                            <div class="text-muted small" *ngIf="c.direccionEntrega">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{c.direccionEntrega}}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="btn-group-vertical btn-group-sm" role="group">
+                                <button class="btn btn-outline-primary btn-sm mb-1" (click)="verDetalles(c)" title="Ver detalles">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm mb-1" (click)="verUbicacion(c)" title="Ver ubicación" 
+                                        [disabled]="!c.direccionEntrega">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm mb-1" (click)="editarCliente(c)" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" (click)="eliminarCliente(c)" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal de Detalles -->
-<div class="modal fade" [class.show]="showDetalles" [style.display]="showDetalles ? 'block' : 'none'" 
+<div class="modal fade modal-high-z" [class.show]="showDetalles" [style.display]="showDetalles ? 'block' : 'none'" 
      *ngIf="showDetalles" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
@@ -51,7 +113,8 @@
           <i class="fas fa-user-circle me-2"></i>
           Detalles del Cliente
         </h5>
-        <button type="button" class="btn-close btn-close-white" (click)="cerrarDetalles()"></button>
+        <button type="button" class="btn-close btn-close-white modal-close-btn" (click)="cerrarDetalles()" 
+                aria-label="Cerrar modal"></button>
       </div>
       <div class="modal-body" *ngIf="selectedCliente">
         <div class="row">
@@ -150,6 +213,6 @@
 </div>
 
 <!-- Backdrop del modal -->
-<div class="modal-backdrop fade" [class.show]="showDetalles" *ngIf="showDetalles" (click)="cerrarDetalles()"></div>
+<div class="modal-backdrop fade modal-backdrop-high-z" [class.show]="showDetalles" *ngIf="showDetalles" (click)="cerrarDetalles()"></div>
 
 <!-- pagination and summary moved to the parent list component -->

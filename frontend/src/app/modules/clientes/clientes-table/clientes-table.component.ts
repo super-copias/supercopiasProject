@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
 
 @Component({
   selector: 'app-clientes-table',
@@ -14,14 +14,26 @@ export class ClientesTableComponent {
   selectedCliente: any = null;
   showDetalles = false;
 
+  // Cerrar modal con tecla Escape
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent) {
+    if (this.showDetalles) {
+      this.cerrarDetalles();
+    }
+  }
+
   verDetalles(cliente: any) {
     this.selectedCliente = cliente;
     this.showDetalles = true;
+    // Prevenir scroll del body cuando el modal está abierto
+    document.body.style.overflow = 'hidden';
   }
 
   cerrarDetalles() {
     this.showDetalles = false;
     this.selectedCliente = null;
+    // Restaurar scroll del body
+    document.body.style.overflow = 'auto';
   }
 
   editarCliente(cliente: any) {

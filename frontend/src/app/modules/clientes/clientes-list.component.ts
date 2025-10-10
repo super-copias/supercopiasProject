@@ -8,40 +8,45 @@ import { ClientesService } from '../../services/clientes.service';
   selector: 'app-clientes-list',
   template: `
   <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Clientes</h5>
-      <div class="d-flex gap-2">
-        <div class="input-group">
-          <input #searchInput
-                 class="form-control" 
-                 placeholder="Buscar cliente..." 
-                 [(ngModel)]="searchTerm" 
-                 (keyup.enter)="onSearch()"
-                 [disabled]="loading" />
-          <button class="btn btn-outline-secondary" 
-                  type="button" 
-                  (click)="onSearch()"
-                  [disabled]="loading"
-                  title="Buscar">
-            <i class="fas fa-search"></i>
-          </button>
-          <button class="btn btn-outline-secondary" 
-                  type="button" 
-                  (click)="onClearSearch()"
-                  [disabled]="loading"
-                  *ngIf="searchTerm"
-                  title="Limpiar búsqueda">
-            <i class="fas fa-times"></i>
-          </button>
+    <div class="card-header">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+        <h5 class="mb-2 mb-md-0">Clientes</h5>
+        <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+          <div class="input-group" style="min-width: 250px;">
+            <input #searchInput
+                   class="form-control" 
+                   placeholder="Buscar cliente..." 
+                   [(ngModel)]="searchTerm" 
+                   (keyup.enter)="onSearch()"
+                   [disabled]="loading" />
+            <button class="btn btn-outline-secondary" 
+                    type="button" 
+                    (click)="onSearch()"
+                    [disabled]="loading"
+                    title="Buscar">
+              <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-outline-secondary" 
+                    type="button" 
+                    (click)="onClearSearch()"
+                    [disabled]="loading"
+                    *ngIf="searchTerm"
+                    title="Limpiar búsqueda">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="d-flex gap-2 flex-nowrap">
+            <a class="btn btn-primary btn-sm d-inline-flex align-items-center flex-nowrap" [routerLink]="['/admin/clientes/nuevo']">
+              <i class="fas fa-plus d-none d-sm-inline"></i>
+              <span class="ms-0 ms-sm-1">Nuevo</span>
+            </a>
+            <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center flex-nowrap text-nowrap" [routerLink]="['/admin/clientes/upload']">
+              <i class="fas fa-upload d-none d-sm-inline"></i>
+              <span class="ms-0 ms-sm-1 d-none d-sm-inline">Alta masiva</span>
+              <span class="d-sm-none">Import</span>
+            </a>
+          </div>
         </div>
-        <a class="btn btn-primary btn-sm d-inline-flex align-items-center" [routerLink]="['/admin/clientes/nuevo']">
-          <i class="fas fa-plus"></i>
-          <span class="ms-1">Nuevo</span>
-        </a>
-        <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center flex-nowrap text-nowrap" [routerLink]="['/admin/clientes/upload']">
-          <i class="fas fa-upload"></i>
-          <span class="ms-1">Alta&nbsp;masiva</span>
-        </a>
       </div>
     </div>
     <div class="card-body">
@@ -52,13 +57,28 @@ import { ClientesService } from '../../services/clientes.service';
         <small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</small>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mt-3">
-        <div class="small text-muted">Mostrando {{total}} clientes</div>
-        <nav aria-label="paginacion">
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item" [class.disabled]="page===1"><a class="page-link" (click)="go(page-1)">Anterior</a></li>
-            <li class="page-item disabled"><span class="page-link">Página {{page}} / {{pages}}</span></li>
-            <li class="page-item" [class.disabled]="page===pages"><a class="page-link" (click)="go(page+1)">Siguiente</a></li>
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3 gap-2">
+        <div class="small text-muted order-2 order-sm-1">Mostrando {{total}} clientes</div>
+        <nav aria-label="paginacion" class="order-1 order-sm-2">
+          <ul class="pagination pagination-sm mb-0 justify-content-center">
+            <li class="page-item" [class.disabled]="page===1">
+              <a class="page-link" (click)="go(page-1)">
+                <span class="d-none d-sm-inline">Anterior</span>
+                <i class="fas fa-chevron-left d-sm-none"></i>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <span class="page-link">
+                <span class="d-none d-sm-inline">Página {{page}} / {{pages}}</span>
+                <span class="d-sm-none">{{page}}/{{pages}}</span>
+              </span>
+            </li>
+            <li class="page-item" [class.disabled]="page===pages">
+              <a class="page-link" (click)="go(page+1)">
+                <span class="d-none d-sm-inline">Siguiente</span>
+                <i class="fas fa-chevron-right d-sm-none"></i>
+              </a>
+            </li>
           </ul>
         </nav>
       </div>
