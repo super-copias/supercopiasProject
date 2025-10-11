@@ -275,21 +275,8 @@ async function createEmpleado(req, res) {
     if (debeCrearUsuario) {
       credentials = generateUserCredentials(nuevoEmpleado);
       
-      // Verificar que el username no exista
-      const usuarioExistente = db.get('usuarios')
-        .find({ username: credentials.username })
-        .value();
-      
-      if (usuarioExistente) {
-        // Añadir número al final si ya existe
-        let counter = 1;
-        let newUsername = credentials.username;
-        while (db.get('usuarios').find({ username: newUsername }).value()) {
-          newUsername = `${credentials.username}${counter}`;
-          counter++;
-        }
-        credentials.username = newUsername;
-      }
+      // La función generateUserCredentials ya maneja los consecutivos únicos
+      // No necesitamos verificar duplicados manualmente
       
       // Asignar roles del sistema basados en el tipo de acceso
       let role = 'empleado';

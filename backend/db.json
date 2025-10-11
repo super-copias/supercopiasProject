@@ -13,8 +13,8 @@
       "empleadoId": null,
       "activo": true,
       "fechaRegistro": "2025-10-11T16:10:57.690Z",
-      "fechaModificacion": "2025-10-11T16:50:11.289Z",
-      "ultimoAcceso": "2025-10-11T16:50:11.289Z",
+      "fechaModificacion": "2025-10-11T17:45:41.947Z",
+      "ultimoAcceso": "2025-10-11T17:45:41.947Z",
       "fullName": "Administrador SuperCopias",
       "phone": "+52 961 100 0000",
       "bio": "Administrador principal del sistema SuperCopias",
@@ -79,9 +79,71 @@
       "phone": "961-100-0003",
       "bio": "Auxiliar Administrativo - Acceso limitado",
       "profileImage": ""
+    },
+    {
+      "id": "USR_sWfHDcSHCQ",
+      "username": "001.Erick",
+      "nombre": "Erick prensado",
+      "email": "fdfsf@gmail.com",
+      "password": "$2a$10$vyzSikNlCmEqvl3s5JPRGuCRhiNj.yUCFvfAA7o8PS2TWGFqy0Ge6",
+      "role": "empleado",
+      "roles": [
+        "empleado"
+      ],
+      "empleadoId": "EMP_tVlsZdmEFl",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T17:46:51.399Z",
+      "fechaModificacion": "2025-10-11T17:47:33.841Z",
+      "ultimoAcceso": "2025-10-11T17:47:33.841Z",
+      "fullName": "Erick prensado",
+      "phone": "1232131212",
+      "bio": "Empleado - Gerente de Sucursal",
+      "profileImage": ""
     }
   ],
   "empleados": [
+    {
+      "id": "EMP_tVlsZdmEFl",
+      "nombre": "Erick prensado",
+      "email": "fdfsf@gmail.com",
+      "telefono": "1232131212",
+      "puesto": "Gerente de Sucursal",
+      "sucursal": "Sucursal Centro",
+      "salario": 435345,
+      "fechaIngreso": "2025-10-11",
+      "activo": true,
+      "fechaBaja": null,
+      "fechaRegistro": "2025-10-11T17:46:51.338Z",
+      "fechaModificacion": null,
+      "tipoAcceso": "personalizado",
+      "modulos": {
+        "dashboard": {
+          "acceso": false
+        },
+        "empleados": {
+          "acceso": true
+        },
+        "clientes": {
+          "acceso": false
+        },
+        "proveedores": {
+          "acceso": false
+        },
+        "inventarios": {
+          "acceso": false
+        },
+        "equipos": {
+          "acceso": false
+        },
+        "reportes": {
+          "acceso": false
+        },
+        "configuracion": {
+          "acceso": false
+        }
+      },
+      "usuarioId": "USR_sWfHDcSHCQ"
+    },
     {
       "id": "EMP_001",
       "nombre": "María Gómez Hernández",
@@ -542,6 +604,104 @@
         "salarioMaximo": 16000,
         "activo": true,
         "fechaCreacion": "2025-10-11T16:10:57.691Z"
+      }
+    ],
+    "usosCFDI": [
+      {
+        "codigo": "G01",
+        "descripcion": "Adquisición de mercancías"
+      },
+      {
+        "codigo": "G02",
+        "descripcion": "Devoluciones, descuentos o bonificaciones"
+      },
+      {
+        "codigo": "G03",
+        "descripcion": "Gastos en general"
+      },
+      {
+        "codigo": "I01",
+        "descripcion": "Construcciones"
+      },
+      {
+        "codigo": "I02",
+        "descripcion": "Mobiliario y equipo de oficina por inversiones"
+      },
+      {
+        "codigo": "I03",
+        "descripcion": "Equipo de transporte"
+      },
+      {
+        "codigo": "I04",
+        "descripcion": "Equipo de cómputo y accesorios"
+      },
+      {
+        "codigo": "I05",
+        "descripcion": "Dados, troqueles, moldes, matrices y herramental"
+      },
+      {
+        "codigo": "I06",
+        "descripcion": "Comunicaciones telefónicas"
+      },
+      {
+        "codigo": "I07",
+        "descripcion": "Comunicaciones satelitales"
+      },
+      {
+        "codigo": "I08",
+        "descripcion": "Otra maquinaria y equipo"
+      },
+      {
+        "codigo": "D01",
+        "descripcion": "Honorarios médicos, dentales y gastos hospitalarios"
+      },
+      {
+        "codigo": "D02",
+        "descripcion": "Gastos médicos por incapacidad o discapacidad"
+      },
+      {
+        "codigo": "D03",
+        "descripcion": "Gastos funerales"
+      },
+      {
+        "codigo": "D04",
+        "descripcion": "Donativos"
+      },
+      {
+        "codigo": "D05",
+        "descripcion": "Intereses reales efectivamente pagados por créditos hipotecarios"
+      },
+      {
+        "codigo": "D06",
+        "descripcion": "Aportaciones voluntarias al SAR"
+      },
+      {
+        "codigo": "D07",
+        "descripcion": "Primas por seguros de gastos médicos"
+      },
+      {
+        "codigo": "D08",
+        "descripcion": "Gastos de transportación escolar obligatoria"
+      },
+      {
+        "codigo": "D09",
+        "descripcion": "Depósitos en cuentas para el ahorro, primas que tengan como base planes de pensiones"
+      },
+      {
+        "codigo": "D10",
+        "descripcion": "Pagos por servicios educativos (colegiaturas)"
+      },
+      {
+        "codigo": "S01",
+        "descripcion": "Sin efectos fiscales"
+      },
+      {
+        "codigo": "CP01",
+        "descripcion": "Pagos"
+      },
+      {
+        "codigo": "CN01",
+        "descripcion": "Nómina"
       }
     ]
   }

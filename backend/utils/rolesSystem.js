@@ -210,24 +210,77 @@ function generateUserCredentials(empleado) {
     throw new Error('El empleado debe tener un nombre para generar credenciales');
   }
 
-  // Generar username basado en nombre completo
-  const nombreCompleto = empleado.nombre.toLowerCase().split(' ');
+  const { db, init } = require('../db');
+  init();
+
+  // Obtener el siguiente consecutivo
+  const usuarios = db.get('usuarios').value() || [];
   
-  let username = '';
-  if (nombreCompleto.length >= 2) {
-    // Si tiene al menos 2 palabras, usar primera letra del primer nombre + primer apellido
-    username = nombreCompleto[0].charAt(0) + nombreCompleto[nombreCompleto.length - 1];
+  // Filtrar usuarios que siguen el patrón de consecutivo (ej: 001.Nombre, 0001.Ana, A0001.Pedro, etc.)
+  const usuariosConsecutivos = usuarios.filter(u => 
+    u.username && /^([A-Z]?\d{3,4})\.[A-Za-z]+/.test(u.username)
+  );
+  
+  // Encontrar el número más alto
+  let maxConsecutivo = 0;
+  usuariosConsecutivos.forEach(u => {
+    const match = u.username.match(/^([A-Z]?\d{3,4})\./);
+    if (match) {
+      const consecutivoParte = match[1];
+      let num;
+      
+      if (/^[A-Z]/.test(consecutivoParte)) {
+        // Formato con letra (ej: A0001)
+        const letra = consecutivoParte.charAt(0);
+        const numero = parseInt(consecutivoParte.substring(1));
+        // Convertir a número global: A0001 = 10001, B0001 = 20000, etc.
+        num = 10000 + (letra.charCodeAt(0) - 65) * 9999 + numero - 1;
+      } else {
+        // Formato numérico simple (ej: 001, 0001)
+        num = parseInt(consecutivoParte);
+      }
+      
+      if (num > maxConsecutivo) {
+        maxConsecutivo = num;
+      }
+    }
+  });
+  
+  // El siguiente consecutivo
+  const siguienteConsecutivo = maxConsecutivo + 1;
+  
+  // Determinar si usar 3 o 4 dígitos
+  let consecutivoStr;
+  if (siguienteConsecutivo <= 999) {
+    // Usar 3 dígitos para números del 1 al 999
+    consecutivoStr = siguienteConsecutivo.toString().padStart(3, '0');
+  } else if (siguienteConsecutivo <= 9999) {
+    // Expandir a 4 dígitos para números del 1000 al 9999
+    consecutivoStr = siguienteConsecutivo.toString().padStart(4, '0');
   } else {
-    // Si solo tiene una palabra, usar las primeras 6 letras
-    username = nombreCompleto[0].substring(0, 6);
+    // Si se agotan los 4 dígitos, usar formato con prefijo
+    // Ejemplo: A0001.Nombre, B0001.Nombre, etc.
+    const letra = String.fromCharCode(65 + Math.floor((siguienteConsecutivo - 10000) / 9999)); // A, B, C...
+    const numero = ((siguienteConsecutivo - 10000) % 9999) + 1;
+    consecutivoStr = `${letra}${numero.toString().padStart(4, '0')}`;
   }
   
-  // Limpiar caracteres especiales
-  username = username
+  // Detectar primer nombre
+  const nombreCompleto = empleado.nombre.trim();
+  const partesNombre = nombreCompleto.split(/\s+/);
+  let primerNombre = partesNombre[0];
+  
+  // Capitalizar solo la primera letra del nombre
+  primerNombre = primerNombre.charAt(0).toUpperCase() + primerNombre.slice(1).toLowerCase();
+  
+  // Limpiar caracteres especiales del nombre
+  primerNombre = primerNombre
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-    .replace(/[^a-z0-9]/g, '') // Solo letras y números
-    .substring(0, 15); // Máximo 15 caracteres
+    .replace(/[^A-Za-z]/g, ''); // Solo letras
+  
+  // Generar username con formato adaptable
+  const username = `${consecutivoStr}.${primerNombre}`;
   
   // Generar contraseña temporal
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
