@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EmpleadosService } from '../../services/empleados.service';
 import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.service';
@@ -21,7 +21,10 @@ const MODULOS = [
     <div class="container-fluid p-4">
       <h3 class="mb-4">
         <i class="fas fa-user-tie me-2"></i>
-        Nuevo Empleado
+        {{isEditing ? 'Editar Empleado' : 'Nuevo Empleado'}}
+        <small class="text-muted ms-2" *ngIf="isEditing && empleadoActual">
+          ({{empleadoActual.nombre}} - {{empleadoActual.id}})
+        </small>
       </h3>
       
       <form [formGroup]="empleadoForm" (ngSubmit)="onSubmit()">
@@ -260,9 +263,12 @@ const MODULOS = [
                   </div>
                 </div>
 
-                <div class="alert alert-warning" *ngIf="tipoPermiso === 'admin'">
-                  <i class="fas fa-crown me-2"></i>
-                  <strong>Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema.
+                <!-- Mensaje para Administrador -->
+                <div *ngIf="tipoPermiso === 'administrador'" class="mt-3">
+                  <div class="alert alert-warning border-warning">
+                    <i class="fas fa-crown me-2"></i>
+                    <strong>👑 Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema con permisos de administrador. Podrá gestionar empleados, clientes, proveedores, inventarios, equipos, reportes y configuraciones.
+                  </div>
                 </div>
 
                 <div class="mt-3" *ngIf="seleccionados.length > 0 && tipoPermiso !== 'administrador'">
@@ -282,14 +288,14 @@ const MODULOS = [
           <button 
             type="submit" 
             class="btn btn-primary"
-            [disabled]="loading || !isFormValid()">
+            [disabled]="!empleadoForm.valid || loading">
             <span *ngIf="loading">
               <i class="fas fa-spinner fa-spin me-1"></i>
-              Guardando...
+              {{isEditing ? 'Actualizando...' : 'Guardando...'}}
             </span>
             <span *ngIf="!loading">
               <i class="fas fa-save me-1"></i>
-              Guardar
+              {{isEditing ? 'Actualizar' : 'Guardar'}}
             </span>
           </button>
           
@@ -316,17 +322,32 @@ export class EmpleadosFormComponent implements OnInit {
   sucursales: Sucursal[] = [];
   puestos: Puesto[] = [];
   roles: any[] = [];
+  
+  // Variables para edición
+  isEditing = false;
+  empleadoId: string | null = null;
+  empleadoActual: any = null;
 
   constructor(
     private fb: FormBuilder,
     private empleadosService: EmpleadosService,
     private catalogosService: CatalogosService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.empleadoForm = this.createForm();
   }
 
   ngOnInit() {
+    // Detectar si estamos en modo edición
+    this.route.params.subscribe(params => {
+      if (params['id']) {
+        this.isEditing = true;
+        this.empleadoId = params['id'];
+        this.loadEmpleado(this.empleadoId);
+      }
+    });
+    
     this.loadCatalogos();
     
     this.empleadoForm.get('tipoPermiso')?.valueChanges.subscribe(tipo => {
@@ -389,6 +410,52 @@ export class EmpleadosFormComponent implements OnInit {
         this.roles = [];
       }
     });
+  }
+
+  /**
+   * Cargar datos de empleado para edición
+   */
+  private loadEmpleado(id: string) {
+    this.loading = true;
+    this.empleadosService.getEmpleado(id).subscribe({
+      next: (response) => {
+        if (response && response.success && response.data) {
+          this.empleadoActual = response.data;
+          this.populateForm(this.empleadoActual);
+        } else {
+          console.error('Error: No se pudo cargar el empleado');
+          this.router.navigate(['/admin/empleados']);
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error cargando empleado:', error);
+        this.router.navigate(['/admin/empleados']);
+        this.loading = false;
+      }
+    });
+  }
+
+  /**
+   * Llenar el formulario con datos del empleado
+   */
+  private populateForm(empleado: any) {
+    this.empleadoForm.patchValue({
+      nombre: empleado.nombre,
+      telefono: empleado.telefono,
+      email: empleado.email,
+      puesto: empleado.puesto,
+      sucursal: empleado.sucursal,
+      salario: empleado.salario,
+      fechaIngreso: empleado.fechaIngreso,
+      activo: empleado.activo,
+      tipoPermiso: empleado.tipoPermiso || 'sin_permisos'
+    });
+
+    // Configurar módulos seleccionados
+    if (empleado.modulosPermitidos) {
+      this.seleccionados = empleado.modulosPermitidos;
+    }
   }
 
   private createForm(): FormGroup {
@@ -472,6 +539,14 @@ export class EmpleadosFormComponent implements OnInit {
 
     console.log('Datos a enviar:', datos);
 
+    if (this.isEditing && this.empleadoId) {
+      this.updateEmpleado(datos);
+    } else {
+      this.createEmpleado(datos);
+    }
+  }
+
+  private createEmpleado(datos: any) {
     this.empleadosService.create(datos).subscribe({
       next: () => {
         this.loading = false;
@@ -482,6 +557,21 @@ export class EmpleadosFormComponent implements OnInit {
         console.error('Error:', error);
         this.loading = false;
         alert('Error al crear el empleado');
+      }
+    });
+  }
+
+  private updateEmpleado(datos: any) {
+    this.empleadosService.update(this.empleadoId!, datos).subscribe({
+      next: () => {
+        this.loading = false;
+        alert('Empleado actualizado exitosamente');
+        this.router.navigate(['/admin/empleados']);
+      },
+      error: (error) => {
+        console.error('Error:', error);
+        this.loading = false;
+        alert('Error al actualizar el empleado');
       }
     });
   }

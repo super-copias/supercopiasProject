@@ -54,8 +54,18 @@ export class EmpleadosService {
   /**
    * Crear nuevo empleado
    */
-  create(empleado: CrearEmpleado): Observable<ApiResponse<EmpleadoConUsuario>> {
-    return this.http.post<ApiResponse<EmpleadoConUsuario>>(`${this.baseUrl}`, empleado)
+  create(empleado: Partial<Empleado>): Observable<ApiResponse<Empleado>> {
+    return this.http.post<ApiResponse<Empleado>>(this.baseUrl, empleado)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
+   * Obtener empleado por ID
+   */
+  getEmpleado(id: string): Observable<ApiResponse<Empleado>> {
+    return this.http.get<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );
