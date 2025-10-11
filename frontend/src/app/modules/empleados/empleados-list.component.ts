@@ -150,7 +150,7 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
       q: this.q,
       page: this.page,
       limit: this.limit,
-      includeInactive: true  // ✅ INCLUIR EMPLEADOS INACTIVOS
+      includeInactive: true
     }).pipe(
       finalize(() => this.loading = false)
     );
@@ -162,25 +162,20 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
   load(): void {
     this.loading = true;
     
-    console.log('🔍 DEBUG: Cargando empleados con parámetros:', { q: this.q, page: this.page, limit: this.limit });
-    
     this.empleadosService.getList({
       q: this.q,
       page: this.page,
       limit: this.limit,
-      includeInactive: true  // ✅ INCLUIR EMPLEADOS INACTIVOS
+      includeInactive: true
     }).pipe(
       finalize(() => this.loading = false)
     ).subscribe({
       next: (response) => {
-        console.log('📊 DEBUG: Respuesta recibida:', response);
         if (response.success) {
           this.empleados = response.data || [];
-          // ✅ Leer correctamente desde pagination
           this.total = response.pagination?.total || 0;
           this.pages = response.pagination?.pages || 1;
           this.page = response.pagination?.page || 1;
-          console.log('📋 DEBUG: Datos asignados - empleados:', this.empleados.length, 'total:', this.total, 'pages:', this.pages);
         }
       },
       error: (error) => {
@@ -225,21 +220,20 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
    * Eliminar empleado
    */
   onEliminar(empleado: any): void {
-    if (confirm(`¿Está seguro de eliminar al empleado "${empleado.nombre}"?`)) {
-      this.loading = true;
-      this.empleadosService.delete(empleado.id).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.load(); // Recargar lista
-          }
-        },
-        error: (error) => {
-          console.error('Error eliminando empleado:', error);
-        },
-        complete: () => {
-          this.loading = false;
+    this.empleadosService.delete(empleado.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        if (response?.success) {
+          this.load(); // Recargar la lista
+        } else {
+          alert('Error al eliminar el empleado');
         }
-      });
-    }
+      },
+      error: (error) => {
+        console.error('Error eliminando empleado:', error);
+        alert('Error al eliminar el empleado. Por favor intente nuevamente.');
+      }
+    });
   }
 }

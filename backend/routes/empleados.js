@@ -68,7 +68,7 @@ router.put('/:id', auth, updateEmpleado);
 
 /**
  * DELETE /api/empleados/:id
- * Eliminar un empleado
+ * Eliminar un empleado (desactivar)
  */
 router.delete('/:id', auth, deleteEmpleado);
 

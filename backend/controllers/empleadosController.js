@@ -72,12 +72,7 @@ function listEmpleados(req, res) {
     const start = (page - 1) * limit;
     const paged = items.slice(start, start + limit);
     
-    console.log('🔍 DEBUG: Paginación backend - total items:', items.length, 'page:', page, 'limit:', limit, 'start:', start, 'paged:', paged.length);
-    
-    const response = createPaginatedResponse(paged, page, limit, items.length);
-    console.log('📊 DEBUG: Respuesta paginada:', JSON.stringify(response, null, 2));
-    
-    res.json(response);
+    res.json(createPaginatedResponse(paged, page, limit, items.length));
     
   } catch (error) {
     console.error('Error listando empleados:', error);
@@ -573,8 +568,8 @@ function deleteEmpleado(req, res) {
         )
       );
     }
-    
-    // Desactivar empleado
+
+    // Desactivar empleado en lugar de eliminar
     db.get('empleados')
       .find({ id })
       .assign({ 
@@ -593,7 +588,7 @@ function deleteEmpleado(req, res) {
         })
         .write();
     }
-    
+
     res.json(
       createResponse(
         true,
@@ -611,9 +606,7 @@ function deleteEmpleado(req, res) {
       )
     );
   }
-}
-
-/**
+}/**
  * Obtener catálogo de roles disponibles
  * Endpoint: GET /api/empleados/roles
  * 

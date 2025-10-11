@@ -158,11 +158,15 @@
                                 <div class="mb-3">
                                     <strong>Email:</strong> {{selectedEmpleado.email || 'No especificado'}}
                                 </div>
-                                <div class="mb-0">
+                                <div class="mb-3">
                                     <strong>Estado:</strong>
                                     <span class="badge ms-1" [class.bg-success]="selectedEmpleado.activo" [class.bg-secondary]="!selectedEmpleado.activo">
                                         {{selectedEmpleado.activo ? 'Activo' : 'Inactivo'}}
                                     </span>
+                                </div>
+                                <div class="mb-0" *ngIf="!selectedEmpleado.activo && selectedEmpleado.fechaBaja">
+                                    <strong>Fecha de Baja:</strong> 
+                                    <span class="text-danger">{{selectedEmpleado.fechaBaja | date:'dd/MM/yyyy'}}</span>
                                 </div>
                             </div>
                         </div>
@@ -188,13 +192,25 @@
                                 <div class="mb-3">
                                     <strong>Salario:</strong> {{selectedEmpleado.salario | currency:'MXN':'symbol':'1.2-2' || 'No especificado'}}
                                 </div>
-                                <div class="mb-0" *ngIf="selectedEmpleado.roles && selectedEmpleado.roles.length > 0">
-                                    <strong>Roles:</strong>
+                                <div class="mb-3">
+                                    <strong>Tipo de Permisos:</strong> 
+                                    <span class="badge ms-1" 
+                                          [class.bg-danger]="selectedEmpleado.tipoPermiso === 'sin_permisos'"
+                                          [class.bg-warning]="selectedEmpleado.tipoPermiso === 'administrador'"
+                                          [class.bg-info]="selectedEmpleado.tipoPermiso === 'personalizado'">
+                                        {{getTipoPermisoLabel(selectedEmpleado.tipoPermiso)}}
+                                    </span>
+                                </div>
+                                <div class="mb-3" *ngIf="selectedEmpleado.modulosPermitidos && selectedEmpleado.modulosPermitidos.length > 0">
+                                    <strong>Módulos Permitidos:</strong>
                                     <div class="mt-1">
-                                        <span *ngFor="let rol of selectedEmpleado.roles" class="badge bg-secondary me-1">
-                                            {{rol}}
+                                        <span *ngFor="let modulo of selectedEmpleado.modulosPermitidos" class="badge bg-primary me-1 mb-1">
+                                            {{getModuloLabel(modulo)}}
                                         </span>
                                     </div>
+                                </div>
+                                <div class="mb-0">
+                                    <strong>Antigüedad:</strong> {{calcularAntiguedad(selectedEmpleado.fechaIngreso)}}
                                 </div>
                             </div>
                         </div>
@@ -202,13 +218,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-primary" (click)="imprimirEmpleado()">
+                <button type="button" class="btn btn-outline-primary btn-print" (click)="imprimirEmpleado(); $event.target.blur()">
                     <i class="fas fa-print me-1"></i>
                     Imprimir
-                </button>
-                <button type="button" class="btn btn-outline-warning" (click)="editarEmpleado(selectedEmpleado)">
-                    <i class="fas fa-edit me-1"></i>
-                    Editar
                 </button>
                 <button type="button" class="btn btn-secondary" (click)="cerrarDetalles()">
                     Cerrar

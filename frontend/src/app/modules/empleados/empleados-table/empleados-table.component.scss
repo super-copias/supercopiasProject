@@ -18,6 +18,38 @@
         padding: 0.75rem 0.5rem; /* Padding más compacto */
         position: sticky;
         top: 0;
+
+/* Estilos para el botón de imprimir */
+.btn-print {
+    color: #0d6efd !important;
+    background-color: transparent !important;
+    border-color: #0d6efd !important;
+    
+    &:hover {
+        color: white !important;
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+    }
+    
+    &:focus,
+    &:active,
+    &.active,
+    &:focus-visible {
+        color: #0d6efd !important;
+        background-color: transparent !important;
+        border-color: #0d6efd !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    &:not(:disabled):not(.disabled):active,
+    &:not(:disabled):not(.disabled).active {
+        color: #0d6efd !important;
+        background-color: transparent !important;
+        border-color: #0d6efd !important;
+        box-shadow: none !important;
+    }
+}
         z-index: 1;
         white-space: nowrap; /* Evita saltos de línea en headers */
     }
