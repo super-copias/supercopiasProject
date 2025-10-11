@@ -32,7 +32,7 @@ export class AuthService {
 
   /**
    * Inicializar el servicio
-   * Recupera el usuario y token del localStorage si existen
+   * Recupera el usuario y token del localStorage si existen y los valida
    */
   private init() {
     const user = localStorage.getItem('user');
@@ -40,8 +40,20 @@ export class AuthService {
     
     if (user && token) {
       try {
-        this.userSubject.next(JSON.parse(user));
+        const parsedUser = JSON.parse(user);
+        this.userSubject.next(parsedUser);
         this.tokenSubject.next(token);
+        
+        // Verificar token automáticamente en segundo plano
+        this.verifyToken().subscribe({
+          next: (response) => {
+            console.log('Token verificado exitosamente');
+          },
+          error: (error) => {
+            console.warn('Token inválido o expirado, limpiando sesión');
+            this.clearSession();
+          }
+        });
       } catch (error) {
         console.error('Error parseando datos de usuario:', error);
         this.clearSession();
@@ -148,13 +160,27 @@ export class AuthService {
 
   /**
    * Verificar si el usuario está autenticado
+   * Verifica tanto la existencia del token como su validez
    * 
    * @returns true si existe un token válido en localStorage
    */
   isLoggedIn(): boolean {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    return !!(token && user);
+    
+    if (!token || !user) {
+      return false;
+    }
+    
+    try {
+      // Verificar que el usuario es válido JSON
+      JSON.parse(user);
+      return true;
+    } catch (error) {
+      console.error('Token o usuario inválido en localStorage:', error);
+      this.clearSession();
+      return false;
+    }
   }
 
   /**

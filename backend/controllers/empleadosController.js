@@ -626,7 +626,7 @@ function updateEmpleado(req, res) {
 }
 
 /**
- * Eliminar un empleado (desactivar)
+ * Eliminar un empleado (eliminación completa)
  * Endpoint: DELETE /api/empleados/:id
  * 
  * @param {Object} req - Request object con param id
@@ -659,31 +659,27 @@ function deleteEmpleado(req, res) {
       );
     }
 
-    // Desactivar empleado en lugar de eliminar
-    db.get('empleados')
-      .find({ id })
-      .assign({ 
-        activo: false,
-        fechaModificacion: new Date().toISOString()
-      })
-      .write();
-    
-    // Desactivar usuario asociado si existe
+    // Eliminar usuario asociado si existe
     if (empleado.usuarioId) {
       db.get('usuarios')
-        .find({ id: empleado.usuarioId })
-        .assign({ 
-          activo: false,
-          fechaModificacion: new Date().toISOString()
-        })
+        .remove({ id: empleado.usuarioId })
         .write();
+        
+      console.log(`Usuario asociado ${empleado.usuarioId} eliminado completamente`);
     }
+
+    // Eliminar empleado completamente de la base de datos
+    db.get('empleados')
+      .remove({ id })
+      .write();
+      
+    console.log(`Empleado ${id} eliminado completamente de la base de datos`);
 
     res.json(
       createResponse(
         true,
-        { id, activo: false },
-        'Empleado desactivado exitosamente'
+        { id, eliminado: true },
+        'Empleado eliminado completamente exitosamente'
       )
     );
     

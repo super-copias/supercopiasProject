@@ -82,10 +82,10 @@ export class EmpleadosService {
   }
 
   /**
-   * Eliminar empleado (desactivar)
+   * Eliminar empleado (eliminación completa)
    */
-  delete(id: string): Observable<ApiResponse<{ id: string; activo: boolean }>> {
-    return this.http.delete<ApiResponse<{ id: string; activo: boolean }>>(`${this.baseUrl}/${id}`)
+  delete(id: string): Observable<ApiResponse<{ id: string; eliminado: boolean }>> {
+    return this.http.delete<ApiResponse<{ id: string; eliminado: boolean }>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );

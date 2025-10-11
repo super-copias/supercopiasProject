@@ -12,9 +12,9 @@
       "profileImage": "/uploads/profiles/profile-H9_D5a5-sJgRE6bsvOvmk-o8O4_ZGQbxGktiy4LipQL.jpg",
       "activo": true,
       "fechaRegistro": "2024-01-01T00:00:00.000Z",
-      "fechaModificacion": "2025-10-11T14:06:33.403Z",
+      "fechaModificacion": "2025-10-11T15:38:54.095Z",
       "lastLogin": null,
-      "ultimoAcceso": "2025-10-11T14:06:33.403Z"
+      "ultimoAcceso": "2025-10-11T15:38:54.094Z"
     },
     {
       "id": "USR_ADMIN_001",
@@ -26,9 +26,9 @@
         "admin"
       ],
       "empleadoId": "EMP_ADMINISTRADOR",
-      "activo": true,
+      "activo": false,
       "fechaRegistro": "2023-06-01T08:00:00.000Z",
-      "fechaModificacion": null,
+      "fechaModificacion": "2025-10-11T15:22:59.935Z",
       "ultimoAcceso": null,
       "fullName": "María Elena García Rodríguez",
       "phone": "961-100-0002",
@@ -112,22 +112,22 @@
       "profileImage": ""
     },
     {
-      "id": "USR_lGrW2RKjJg",
-      "username": "jhonat",
-      "nombre": "jhonatan",
-      "email": "red@gmail.com",
-      "password": "$2a$10$nCIyza82dm60rPSr26yl7eos7wmsPhWvzlVOiODzkPfe81bTdpwES",
+      "id": "USR_WFrntW2UCC",
+      "username": "perz",
+      "nombre": "perz",
+      "email": "perz@gmail.com",
+      "password": "$2a$10$BuyI0aoKNo72yT.gvi7TBuOO.dmHNfpUIKNV2HnMDp6U9V2JyyPk6",
       "roles": [
-        "admin"
+        "empleado"
       ],
-      "empleadoId": "EMP_b1SFphjUHg",
-      "activo": false,
-      "fechaRegistro": "2025-10-11T13:57:12.825Z",
-      "fechaModificacion": "2025-10-11T14:06:58.518Z",
-      "ultimoAcceso": "2025-10-11T13:58:16.823Z",
-      "fullName": "jhonatan",
-      "phone": "435353434",
-      "bio": "Gerente General - Administrador del sistema",
+      "empleadoId": "EMP_6W8pXeiqyr",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T15:39:41.469Z",
+      "fechaModificacion": "2025-10-11T15:40:13.912Z",
+      "ultimoAcceso": "2025-10-11T15:40:13.912Z",
+      "fullName": "perz",
+      "phone": "43534534",
+      "bio": "Empleado - Gerente General",
       "profileImage": ""
     }
   ],
@@ -220,36 +220,29 @@
   ],
   "empleados": [
     {
-      "id": "EMP_b1SFphjUHg",
-      "nombre": "jhonatan",
+      "id": "EMP_6W8pXeiqyr",
+      "nombre": "perz",
       "apellidos": "",
-      "email": "red@gmail.com",
-      "telefono": "435353434",
+      "email": "perz@gmail.com",
+      "telefono": "43534534",
       "puesto": "Gerente General",
       "sucursal": "Sucursal Centro",
-      "salario": 44353,
+      "salario": 1000,
       "fechaIngreso": "2025-10-11",
       "numeroEmpleado": null,
       "roles": [],
       "tieneUsuario": true,
-      "activo": false,
+      "activo": true,
       "fechaBaja": null,
-      "fechaRegistro": "2025-10-11T13:56:51.436Z",
-      "fechaModificacion": "2025-10-11T14:06:58.518Z",
-      "tipoPermiso": "administrador",
+      "fechaRegistro": "2025-10-11T15:39:41.408Z",
+      "fechaModificacion": null,
+      "tipoPermiso": "personalizado",
       "modulosPermitidos": [
-        "dashboard",
-        "empleados",
-        "clientes",
-        "proveedores",
-        "inventarios",
-        "equipos",
-        "reportes",
-        "puntoventa"
+        "clientes"
       ],
       "permisos": [],
-      "fechaAsignacionPermisos": "2025-10-11T13:56:51.436Z",
-      "usuarioId": "USR_lGrW2RKjJg"
+      "fechaAsignacionPermisos": "2025-10-11T15:39:41.408Z",
+      "usuarioId": "USR_WFrntW2UCC"
     },
     {
       "id": "EMP_PERSONALIZADO",
@@ -313,7 +306,7 @@
       "salario": 45000,
       "fechaIngreso": "2023-06-01",
       "numeroEmpleado": "E002",
-      "activo": true,
+      "activo": false,
       "fechaBaja": null,
       "roles": [
         "admin"
@@ -334,7 +327,7 @@
       "permisos": [],
       "fechaAsignacionPermisos": "2023-06-01T08:00:00.000Z",
       "fechaRegistro": "2023-06-01T08:00:00.000Z",
-      "fechaModificacion": null
+      "fechaModificacion": "2025-10-11T15:22:59.934Z"
     }
   ],
   "proveedores": [
