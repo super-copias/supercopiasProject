@@ -8,6 +8,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 export class EmpleadosTableComponent {
   @Input() empleados: any[] = [];
   @Output() detalles = new EventEmitter<any>();
+  @Output() verDetalle = new EventEmitter<any>();
   @Output() editar = new EventEmitter<any>();
   @Output() eliminar = new EventEmitter<any>();
   @Output() asignarRole = new EventEmitter<any>();
@@ -16,8 +17,8 @@ export class EmpleadosTableComponent {
   showDetalles = false;
 
   verDetalles(empleado: any) {
-    this.selectedEmpleado = empleado;
-    this.showDetalles = true;
+    // Emitir para el modal de detalle
+    this.verDetalle.emit(empleado);
   }
 
   cerrarDetalles() {

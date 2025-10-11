@@ -13,8 +13,8 @@
       "empleadoId": null,
       "activo": true,
       "fechaRegistro": "2025-10-11T16:10:57.690Z",
-      "fechaModificacion": "2025-10-11T16:29:02.056Z",
-      "ultimoAcceso": "2025-10-11T16:29:02.056Z",
+      "fechaModificacion": "2025-10-11T16:50:11.289Z",
+      "ultimoAcceso": "2025-10-11T16:50:11.289Z",
       "fullName": "Administrador SuperCopias",
       "phone": "+52 961 100 0000",
       "bio": "Administrador principal del sistema SuperCopias",
@@ -78,26 +78,6 @@
       "fullName": "Ana López Silva",
       "phone": "961-100-0003",
       "bio": "Auxiliar Administrativo - Acceso limitado",
-      "profileImage": ""
-    },
-    {
-      "id": "USR_oW8DF6EkEM",
-      "username": "jhona",
-      "nombre": "jhona",
-      "email": "gm@gmail.com",
-      "password": "$2a$10$HdJO2C.4MywKRpmmGK1yxepQ9MxpphMAy57MJM9.qLqi2z8gH0JWe",
-      "role": "empleado",
-      "roles": [
-        "empleado"
-      ],
-      "empleadoId": "EMP_cB-9_nJ-eq",
-      "activo": true,
-      "fechaRegistro": "2025-10-11T16:29:42.057Z",
-      "fechaModificacion": null,
-      "ultimoAcceso": null,
-      "fullName": "jhona",
-      "phone": "55555",
-      "bio": "Empleado - Gerente de Sucursal",
       "profileImage": ""
     }
   ],
@@ -225,48 +205,6 @@
       "fechaRegistro": "2025-10-11T16:10:57.691Z",
       "fechaModificacion": "2025-10-11T16:27:32.707Z",
       "fechaBaja": null
-    },
-    {
-      "id": "EMP_cB-9_nJ-eq",
-      "nombre": "jhona",
-      "email": "gm@gmail.com",
-      "telefono": "55555",
-      "puesto": "Gerente de Sucursal",
-      "sucursal": "Sucursal Centro",
-      "salario": 23432,
-      "fechaIngreso": "2025-10-11",
-      "activo": true,
-      "fechaBaja": null,
-      "fechaRegistro": "2025-10-11T16:29:41.997Z",
-      "fechaModificacion": null,
-      "tipoAcceso": "personalizado",
-      "modulos": {
-        "dashboard": {
-          "acceso": true
-        },
-        "empleados": {
-          "acceso": false
-        },
-        "clientes": {
-          "acceso": false
-        },
-        "proveedores": {
-          "acceso": false
-        },
-        "inventarios": {
-          "acceso": false
-        },
-        "equipos": {
-          "acceso": false
-        },
-        "reportes": {
-          "acceso": false
-        },
-        "configuracion": {
-          "acceso": false
-        }
-      },
-      "usuarioId": "USR_oW8DF6EkEM"
     }
   ],
   "clientes": [

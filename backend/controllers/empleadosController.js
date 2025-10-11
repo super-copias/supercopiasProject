@@ -119,21 +119,32 @@ function getEmpleado(req, res) {
       );
     }
     
-    // Enriquecer con información de roles
+    // Enriquecer con información de roles y convertir formato para frontend
     const empleadoConRoles = {
       ...empleado,
       rolesInfo: empleado.roles ? empleado.roles.map(roleId => getRoleById(roleId)).filter(Boolean) : []
     };
-    
+
+    // Convertir formato de la DB al formato del frontend
+    const empleadoParaFrontend = {
+      ...empleadoConRoles,
+      // Convertir tipoAcceso a tipoPermiso para el frontend
+      tipoPermiso: empleado.tipoAcceso === 'administrador' ? 'administrador' : 
+                  empleado.tipoAcceso === 'personalizado' ? 'personalizado' : 
+                  'sin_permisos',
+      // Convertir módulos objeto a array de módulos permitidos
+      modulosPermitidos: empleado.modulos ? 
+        Object.keys(empleado.modulos).filter(modulo => empleado.modulos[modulo]?.acceso === true) : 
+        []
+    };
+
     res.json(
       createResponse(
         true,
-        empleadoConRoles,
+        empleadoParaFrontend,
         'Empleado encontrado'
       )
-    );
-    
-  } catch (error) {
+    );  } catch (error) {
     console.error('Error obteniendo empleado:', error);
     res.status(500).json(
       createErrorResponse(
@@ -256,12 +267,13 @@ async function createEmpleado(req, res) {
     };
     
     let usuarioCreado = null;
+    let credentials = null;
     
     // Crear usuario del sistema si tiene permisos
     const debeCrearUsuario = tipoAcceso === 'administrador' || tipoAcceso === 'personalizado';
     
     if (debeCrearUsuario) {
-      const credentials = generateUserCredentials(nuevoEmpleado);
+      credentials = generateUserCredentials(nuevoEmpleado);
       
       // Verificar que el username no exista
       const usuarioExistente = db.get('usuarios')

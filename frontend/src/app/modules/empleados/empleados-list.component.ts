@@ -3,6 +3,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, switchMap, takeUntil, finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { EmpleadosService } from '../../services/empleados.service';
+import { CatalogosService } from '../../services/catalogos.service';
 
 @Component({
   selector: 'app-empleados-list',
@@ -46,6 +47,7 @@ import { EmpleadosService } from '../../services/empleados.service';
     </div>
     <div class="card-body">
       <app-empleados-table [empleados]="empleados" 
+                          (verDetalle)="onVerDetalle($event)"
                           (editar)="onEditar($event)" 
                           (eliminar)="onEliminar($event)"></app-empleados-table>
       <div *ngIf="loading" class="my-2">
@@ -79,6 +81,14 @@ import { EmpleadosService } from '../../services/empleados.service';
       </div>
     </div>
   </div>
+
+  <!-- Modal de detalle del empleado -->
+  <app-empleado-detail-modal
+    [visible]="mostrarModalDetalle"
+    [empleado]="empleadoSeleccionado"
+    [sucursales]="sucursales"
+    (cerrarModal)="onCerrarModalDetalle()">
+  </app-empleado-detail-modal>
   `
 })
 export class EmpleadosListComponent implements OnInit, OnDestroy {
@@ -97,10 +107,16 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
 
   // Subject para búsqueda con debounce
   search$ = new Subject<void>();
+  
+  // Modal de detalle
+  mostrarModalDetalle = false;
+  empleadoSeleccionado: any = null;
+  sucursales: any[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(
     private empleadosService: EmpleadosService,
+    private catalogosService: CatalogosService,
     private router: Router
   ) {}
 
@@ -112,7 +128,8 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe();
 
-    // Carga inicial
+    // Cargar datos iniciales
+    this.loadCatalogos();
     this.load();
   }
 
@@ -243,5 +260,39 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
         alert('Error al eliminar el empleado. Por favor intente nuevamente.');
       }
     });
+  }
+
+  /**
+   * Cargar catálogos necesarios
+   */
+  private loadCatalogos(): void {
+    this.catalogosService.getSucursales().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        if (response?.success && response.data) {
+          this.sucursales = response.data;
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando sucursales:', error);
+      }
+    });
+  }
+
+  /**
+   * Mostrar detalle del empleado
+   */
+  onVerDetalle(empleado: any): void {
+    this.empleadoSeleccionado = empleado;
+    this.mostrarModalDetalle = true;
+  }
+
+  /**
+   * Cerrar modal de detalle
+   */
+  onCerrarModalDetalle(): void {
+    this.mostrarModalDetalle = false;
+    this.empleadoSeleccionado = null;
   }
 }
