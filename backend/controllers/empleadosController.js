@@ -168,6 +168,8 @@ async function createEmpleado(req, res) {
       numeroEmpleado,
       roles = [],
       crearUsuario = false,
+      activo = true,
+      fechaBaja = null,
       // Nuevos campos para sistema de permisos
       tipoPermiso,
       modulosPermitidos = [],
@@ -267,7 +269,8 @@ async function createEmpleado(req, res) {
       numeroEmpleado: numeroEmpleado || null,
       roles: roles || [],
       tieneUsuario: crearUsuario,
-      activo: true,
+      activo: activo !== undefined ? activo : true,
+      fechaBaja: (!activo && fechaBaja) ? fechaBaja : null,
       fechaRegistro: new Date().toISOString(),
       fechaModificacion: null,
       // Nuevo: Sistema de permisos de módulos
@@ -441,6 +444,26 @@ function updateEmpleado(req, res) {
       ...updateData,
       fechaModificacion: new Date().toISOString()
     };
+    
+    // Manejar fechaBaja según el estado activo
+    if (datosActualizacion.activo !== undefined) {
+      if (datosActualizacion.activo === false || datosActualizacion.activo === 'false') {
+        // Si se marca como inactivo, debe tener fechaBaja
+        if (!datosActualizacion.fechaBaja) {
+          return res.status(400).json(
+            createErrorResponse(
+              CODIGOS_ERROR.VALIDATION_ERROR,
+              'La fecha de baja es requerida cuando el empleado se marca como inactivo'
+            )
+          );
+        }
+        datosActualizacion.activo = false;
+      } else {
+        // Si se reactiva, limpiar fechaBaja
+        datosActualizacion.activo = true;
+        datosActualizacion.fechaBaja = null;
+      }
+    }
     
     // Limpiar y normalizar datos
     if (datosActualizacion.nombre) {

@@ -79,10 +79,26 @@ const MODULOS = [
 
                 <div class="mb-3">
                   <label class="form-label">Estado</label>
-                  <select class="form-select" formControlName="activo">
-                    <option [value]="true">Activo</option>
-                    <option [value]="false">Inactivo</option>
+                  <select class="form-select" formControlName="activo" (change)="onEstadoChange($event)">
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
                   </select>
+                </div>
+
+                <!-- Campo Fecha de Baja - Solo visible cuando estado es Inactivo -->
+                <div class="mb-3" *ngIf="empleadoForm.get('activo')?.value === false">
+                  <label class="form-label">Fecha de Baja *</label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    formControlName="fechaBaja"
+                    [class.is-invalid]="isInvalid('fechaBaja')">
+                  <div class="invalid-feedback" *ngIf="isInvalid('fechaBaja')">
+                    La fecha de baja es requerida cuando el empleado está inactivo
+                  </div>
+                  <small class="form-text text-muted">
+                    Fecha en que el empleado causó baja de la empresa
+                  </small>
                 </div>
               </div>
             </div>
@@ -360,6 +376,12 @@ export class EmpleadosFormComponent implements OnInit {
         this.seleccionados = [];
       }
     });
+
+    // Log inicial para debug
+    setTimeout(() => {
+      console.log('🔍 DEBUG: Valor inicial activo:', this.empleadoForm.get('activo')?.value, typeof this.empleadoForm.get('activo')?.value);
+      console.log('🔍 DEBUG: Form completo:', this.empleadoForm.value);
+    }, 100);
   }
 
   private loadCatalogos() {
@@ -449,6 +471,7 @@ export class EmpleadosFormComponent implements OnInit {
       salario: empleado.salario,
       fechaIngreso: empleado.fechaIngreso,
       activo: empleado.activo,
+      fechaBaja: empleado.fechaBaja || '',
       tipoPermiso: empleado.tipoPermiso || 'sin_permisos'
     });
 
@@ -468,6 +491,7 @@ export class EmpleadosFormComponent implements OnInit {
       salario: [0, [Validators.required, Validators.min(1)]],
       fechaIngreso: [this.getCurrentDate(), Validators.required],
       activo: [true],
+      fechaBaja: [''], // Se validará dinámicamente cuando activo sea false
       tipoPermiso: ['', Validators.required]
     });
   }
@@ -484,6 +508,27 @@ export class EmpleadosFormComponent implements OnInit {
     if (tipo === 'admin') {
       this.seleccionados = this.modulos.map(m => m.id);
     }
+  }
+
+  onEstadoChange(event: any) {
+    const value = event.target.value;
+    const booleanValue = value === 'true';
+    console.log('🔄 DEBUG: Estado seleccionado:', value, '-> convertido a boolean:', booleanValue);
+    
+    // Actualizar el FormControl con valor boolean
+    this.empleadoForm.get('activo')?.setValue(booleanValue, { emitEvent: false });
+    
+    // Manejar validación de fechaBaja
+    const fechaBajaControl = this.empleadoForm.get('fechaBaja');
+    if (!booleanValue) { // Si está inactivo
+      console.log('📅 Activando validación de fechaBaja (inactivo)');
+      fechaBajaControl?.setValidators([Validators.required]);
+    } else { // Si está activo
+      console.log('🗑️ Desactivando validación de fechaBaja (activo)');
+      fechaBajaControl?.clearValidators();
+      fechaBajaControl?.setValue('');
+    }
+    fechaBajaControl?.updateValueAndValidity();
   }
 
   getCurrentDate(): string {
