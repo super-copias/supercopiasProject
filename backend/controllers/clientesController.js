@@ -1,6 +1,6 @@
 /**
  * Controlador de Clientes - SuperCopias
- * Gestiona todas las operaciones CRUD para clientes con estándar API
+ * Gestiona todas las operaciones CRUD para clientes con estándar API 
  */
 
 const { db, init } = require('../db');
