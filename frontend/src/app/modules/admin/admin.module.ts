@@ -6,15 +6,18 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AdminComponent } from './admin.component';
 import { SideNavComponent } from './components/side-nav/side-nav.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { SinAccesoComponent } from './components/sin-acceso/sin-acceso.component';
 // ColaboradoresTableComponent ahora está en SharedModule
 import { AuthGuard } from '../../services/auth.guard';
+import { ModuleGuard } from '../../services/module.guard';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
     AdminComponent,
     SideNavComponent,
-    DashboardComponent
+    DashboardComponent,
+    SinAccesoComponent
   ],
   imports: [
     CommonModule,
@@ -28,15 +31,16 @@ import { SharedModule } from '../../shared/shared.module';
         canActivate: [AuthGuard],
         children: [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-          { path: 'dashboard', component: DashboardComponent },
+          { path: 'sin-acceso', component: SinAccesoComponent, canActivate: [AuthGuard] },
+          { path: 'dashboard', component: DashboardComponent, canActivate: [ModuleGuard], data: { module: 'dashboard' } },
           { path: 'profile', loadChildren: () => import('../profile/profile.module').then(m => m.ProfileModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'empleados', loadChildren: () => import('../empleados/empleados.module').then(m => m.EmpleadosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'clientes', loadChildren: () => import('../clientes/clientes.module').then(m => m.ClientesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] }
-          ,{ path: 'inventarios', loadChildren: () => import('./inventarios/inventarios.module').then(m => m.InventariosModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'equipos', loadChildren: () => import('./equipos/equipos.module').then(m => m.EquiposModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'reportes', loadChildren: () => import('./reportes/reportes.module').then(m => m.ReportesModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'punto-venta', loadChildren: () => import('./punto-venta/punto-venta.module').then(m => m.PuntoVentaModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] },
-          { path: 'proveedores', loadChildren: () => import('../proveedores/proveedores.module').then(m => m.ProveedoresModule), canLoad: [AuthGuard], canActivateChild: [AuthGuard] }
+          { path: 'empleados', loadChildren: () => import('../empleados/empleados.module').then(m => m.EmpleadosModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'empleados' } },
+          { path: 'clientes', loadChildren: () => import('../clientes/clientes.module').then(m => m.ClientesModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'clientes' } }
+          ,{ path: 'inventarios', loadChildren: () => import('./inventarios/inventarios.module').then(m => m.InventariosModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'inventarios' } },
+          { path: 'equipos', loadChildren: () => import('./equipos/equipos.module').then(m => m.EquiposModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'equipos' } },
+          { path: 'reportes', loadChildren: () => import('./reportes/reportes.module').then(m => m.ReportesModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'reportes' } },
+          { path: 'punto-venta', loadChildren: () => import('./punto-venta/punto-venta.module').then(m => m.PuntoVentaModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'puntoventa' } },
+          { path: 'proveedores', loadChildren: () => import('../proveedores/proveedores.module').then(m => m.ProveedoresModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'proveedores' } }
         ],
         canActivateChild: [AuthGuard]
       }

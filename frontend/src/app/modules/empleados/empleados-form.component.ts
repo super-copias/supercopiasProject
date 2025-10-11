@@ -202,7 +202,7 @@ const MODULOS = [
                           <i class="fas fa-times-circle me-1 text-secondary"></i>
                           <strong>Sin Permisos</strong>
                           <br>
-                          <small class="text-muted">Solo acceso al dashboard básico</small>
+                          <small class="text-muted">Sin acceso a ningún módulo del sistema</small>
                         </label>
                       </div>
                     </div>
@@ -275,7 +275,7 @@ const MODULOS = [
                 <div *ngIf="tipoPermiso === 'sin_permisos'" class="mt-3">
                   <div class="alert alert-secondary">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Sin Permisos:</strong> Este empleado tendrá acceso únicamente al dashboard básico. No podrá acceder a ningún módulo del sistema.
+                    <strong>Sin Permisos:</strong> Este empleado no tendrá acceso a ningún módulo del sistema. No se creará usuario de acceso.
                   </div>
                 </div>
 
@@ -325,6 +325,17 @@ const MODULOS = [
           </button>
         </div>
       </form>
+      
+      <!-- Modal de credenciales -->
+      <app-credenciales-modal
+        [visible]="mostrarModalCredenciales"
+        [empleadoNombre]="credencialesGeneradas.empleadoNombre"
+        [empleadoEmail]="credencialesGeneradas.empleadoEmail"
+        [username]="credencialesGeneradas.username"
+        [password]="credencialesGeneradas.password"
+        [tipoPermiso]="credencialesGeneradas.tipoPermiso"
+        (cerrarModal)="onCerrarModalCredenciales()">
+      </app-credenciales-modal>
     </div>
   `,
   styleUrls: ['./empleados-form.component.css']
@@ -338,6 +349,16 @@ export class EmpleadosFormComponent implements OnInit {
   sucursales: Sucursal[] = [];
   puestos: Puesto[] = [];
   roles: any[] = [];
+  
+  // Modal de credenciales
+  mostrarModalCredenciales = false;
+  credencialesGeneradas = {
+    empleadoNombre: '',
+    empleadoEmail: '',
+    username: '',
+    password: '',
+    tipoPermiso: ''
+  };
   
   // Variables para edición
   isEditing = false;
@@ -371,7 +392,7 @@ export class EmpleadosFormComponent implements OnInit {
       if (tipo === 'administrador') {
         this.seleccionados = this.modulos.map(m => m.id);
       } else if (tipo === 'sin_permisos') {
-        this.seleccionados = ['dashboard']; // Solo dashboard
+        this.seleccionados = []; // Sin módulos
       } else {
         this.seleccionados = [];
       }
@@ -586,25 +607,76 @@ export class EmpleadosFormComponent implements OnInit {
 
   private createEmpleado(datos: any) {
     this.empleadosService.create(datos).subscribe({
-      next: () => {
+      next: (response: any) => {
         this.loading = false;
-        alert('Empleado creado exitosamente');
-        this.router.navigate(['/admin/empleados']);
+        
+        // Verificar si se crearon credenciales de usuario
+        if (response.data?.usuario) {
+          const usuario = response.data.usuario;
+          const empleado = response.data.empleado;
+          
+          // Configurar datos para el modal de credenciales
+          this.credencialesGeneradas = {
+            empleadoNombre: empleado.nombre,
+            empleadoEmail: empleado.email,
+            username: usuario.username,
+            password: usuario.password,
+            tipoPermiso: usuario.tipoPermiso
+          };
+          
+          // Mostrar modal con las credenciales
+          this.mostrarModalCredenciales = true;
+        } else {
+          // Si no se crearon credenciales, mostrar mensaje normal y redirigir
+          alert('Empleado creado exitosamente');
+          this.router.navigate(['/admin/empleados']);
+        }
       },
       error: (error) => {
         console.error('Error:', error);
         this.loading = false;
-        alert('Error al crear el empleado');
+        
+        // Manejo de errores más específico
+        if (error.status === 400 && error.error?.error?.message) {
+          alert(`Error de validación: ${error.error.error.message}`);
+        } else if (error.status === 409) {
+          alert('Error: Ya existe un empleado con ese email o número de empleado');
+        } else if (error.status === 500) {
+          alert('Error interno del servidor. Por favor intente nuevamente');
+        } else {
+          alert('Error al crear el empleado. Por favor verifique los datos e intente nuevamente');
+        }
       }
     });
   }
 
   private updateEmpleado(datos: any) {
     this.empleadosService.update(this.empleadoId!, datos).subscribe({
-      next: () => {
+      next: (response) => {
         this.loading = false;
-        alert('Empleado actualizado exitosamente');
-        this.router.navigate(['/admin/empleados']);
+        
+        // Verificar si se devolvieron credenciales de usuario
+        const responseData = response as any;
+        if (responseData && responseData.data && responseData.data.usuario) {
+          // Se creó un usuario nuevo durante la actualización
+          const empleado = responseData.data.empleado;
+          const usuario = responseData.data.usuario;
+          
+          this.credencialesGeneradas = {
+            empleadoNombre: empleado.nombre,
+            empleadoEmail: empleado.email,
+            username: usuario.username,
+            password: usuario.password,
+            tipoPermiso: empleado.tipoPermiso
+          };
+          
+          // Mostrar modal con las credenciales
+          this.mostrarModalCredenciales = true;
+        } else {
+          // Si no se crearon credenciales, mostrar mensaje normal y redirigir
+          alert('Empleado actualizado exitosamente');
+          this.router.navigate(['/admin/empleados']);
+        }
       },
       error: (error) => {
         console.error('Error:', error);
@@ -615,6 +687,12 @@ export class EmpleadosFormComponent implements OnInit {
   }
 
   cancel() {
+    this.router.navigate(['/admin/empleados']);
+  }
+
+  onCerrarModalCredenciales() {
+    this.mostrarModalCredenciales = false;
+    // Redirigir a la lista de empleados después de cerrar el modal
     this.router.navigate(['/admin/empleados']);
   }
 

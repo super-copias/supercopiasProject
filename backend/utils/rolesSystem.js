@@ -205,20 +205,29 @@ function validateRoles(roles) {
  * Generar usuario y contraseña para empleado
  */
 function generateUserCredentials(empleado) {
-  // Generar username basado en nombre y apellido
-  const nombres = empleado.nombre.toLowerCase().split(' ');
-  const apellidos = empleado.apellidos.toLowerCase().split(' ');
+  // Validar que el empleado tenga nombre
+  if (!empleado || !empleado.nombre) {
+    throw new Error('El empleado debe tener un nombre para generar credenciales');
+  }
+
+  // Generar username basado en nombre completo
+  const nombreCompleto = empleado.nombre.toLowerCase().split(' ');
   
   let username = '';
-  if (nombres.length > 0) username += nombres[0];
-  if (apellidos.length > 0) username += '.' + apellidos[0];
+  if (nombreCompleto.length >= 2) {
+    // Si tiene al menos 2 palabras, usar primera letra del primer nombre + primer apellido
+    username = nombreCompleto[0].charAt(0) + nombreCompleto[nombreCompleto.length - 1];
+  } else {
+    // Si solo tiene una palabra, usar las primeras 6 letras
+    username = nombreCompleto[0].substring(0, 6);
+  }
   
   // Limpiar caracteres especiales
   username = username
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-    .replace(/[^a-z0-9.]/g, '') // Solo letras, números y punto
-    .substring(0, 20); // Máximo 20 caracteres
+    .replace(/[^a-z0-9]/g, '') // Solo letras y números
+    .substring(0, 15); // Máximo 15 caracteres
   
   // Generar contraseña temporal
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -226,8 +235,16 @@ function generateUserCredentials(empleado) {
   for (let i = 0; i < 8; i++) {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+
+  // Generar hash de la contraseña
+  const bcrypt = require('bcryptjs');
+  const hashedPassword = bcrypt.hashSync(password, 10);
   
-  return { username, password };
+  return { 
+    username, 
+    password,
+    hashedPassword 
+  };
 }
 
 module.exports = {

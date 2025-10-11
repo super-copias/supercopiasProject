@@ -38,6 +38,9 @@ export interface Usuario extends BaseEntity {
   role: string; // Para compatibilidad con código existente
   roles?: string[]; // Nuevo campo para múltiples roles
   ultimoAcceso?: string;
+  tipoPermiso?: string; // Tipo de permiso del empleado asociado
+  empleadoId?: string; // ID del empleado asociado
+  modulosPermitidos?: string[]; // Módulos a los que tiene acceso
   // Campos adicionales para perfil
   fullName?: string;
   phone?: string;

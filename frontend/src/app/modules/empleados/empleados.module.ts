@@ -10,13 +10,15 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { EmpleadosListComponent } from './empleados-list.component';
 import { EmpleadosFormComponent } from './empleados-form.component';
 import { EmpleadosTableComponent } from './empleados-table/empleados-table.component';
+import { CredencialesModalComponent } from './credenciales-modal.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
     EmpleadosListComponent, 
     EmpleadosFormComponent, 
-    EmpleadosTableComponent
+    EmpleadosTableComponent,
+    CredencialesModalComponent
   ],
   imports: [
     CommonModule, 

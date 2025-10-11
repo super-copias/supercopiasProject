@@ -89,6 +89,14 @@ function login(req, res) {
         fechaModificacion: new Date().toISOString()
       })
       .write();
+
+    // Obtener información adicional del empleado si existe
+    let empleadoInfo = null;
+    if (user.empleadoId) {
+      empleadoInfo = db.get('empleados')
+        .find({ id: user.empleadoId })
+        .value();
+    }
     
     // Responder con token y datos del usuario (sin contraseña)
     res.json(
@@ -102,9 +110,13 @@ function login(req, res) {
             nombre: user.nombre,
             email: user.email,
             role: user.role,
+            roles: user.roles,
             activo: user.activo,
             fechaRegistro: user.fechaRegistro,
-            ultimoAcceso: user.ultimoAcceso
+            ultimoAcceso: user.ultimoAcceso,
+            empleadoId: user.empleadoId,
+            tipoPermiso: empleadoInfo?.tipoPermiso,
+            modulosPermitidos: empleadoInfo?.modulosPermitidos || []
           }
         },
         'Login exitoso'
@@ -163,6 +175,14 @@ function verifyToken(req, res) {
         )
       );
     }
+
+    // Obtener información adicional del empleado si existe
+    let empleadoInfo = null;
+    if (user.empleadoId) {
+      empleadoInfo = db.get('empleados')
+        .find({ id: user.empleadoId })
+        .value();
+    }
     
     // Responder con datos del usuario válidos
     res.json(
@@ -176,9 +196,13 @@ function verifyToken(req, res) {
             nombre: user.nombre,
             email: user.email,
             role: user.role,
+            roles: user.roles,
             activo: user.activo,
             fechaRegistro: user.fechaRegistro,
-            ultimoAcceso: user.ultimoAcceso
+            ultimoAcceso: user.ultimoAcceso,
+            empleadoId: user.empleadoId,
+            tipoPermiso: empleadoInfo?.tipoPermiso,
+            modulosPermitidos: empleadoInfo?.modulosPermitidos || []
           }
         },
         'Token válido'

@@ -46,7 +46,7 @@
                         <button class="btn btn-outline-warning btn-sm" (click)="editarEmpleado(e)" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-outline-danger btn-sm" (click)="eliminarEmpleado(e)" title="Eliminar">
+                        <button class="btn btn-outline-danger btn-sm" (click)="eliminarEmpleado(e, $event)" title="Eliminar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -110,7 +110,7 @@
                                     <i class="fas fa-edit me-1"></i>
                                     <span class="d-none d-sm-inline">Editar</span>
                                 </button>
-                                <button class="btn btn-outline-danger btn-sm flex-fill" (click)="eliminarEmpleado(e)">
+                                <button class="btn btn-outline-danger btn-sm flex-fill" (click)="eliminarEmpleado(e, $event)">
                                     <i class="fas fa-trash me-1"></i>
                                     <span class="d-none d-sm-inline">Eliminar</span>
                                 </button>

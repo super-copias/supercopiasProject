@@ -295,8 +295,10 @@ async function createEmpleado(req, res) {
     
     let usuarioCreado = null;
     
-    // Crear usuario del sistema si se solicita
-    if (crearUsuario && roles.length > 0) {
+    // Crear usuario del sistema automáticamente si se asignan permisos de módulos
+    const debeCrearUsuario = tipoPermiso && tipoPermiso !== 'sin_permisos';
+    
+    if (debeCrearUsuario) {
       const credentials = generateUserCredentials(nuevoEmpleado);
       
       // Verificar que el username no exista
@@ -315,26 +317,33 @@ async function createEmpleado(req, res) {
         credentials.username = newUsername;
       }
       
-      // Encriptar contraseña
-      const hashedPassword = await bcrypt.hash(credentials.password, 10);
+      // Asignar roles del sistema basados en el tipo de permiso
+      let rolesSistema = [];
+      if (tipoPermiso === 'administrador') {
+        rolesSistema = ['admin'];
+      } else if (tipoPermiso === 'personalizado') {
+        rolesSistema = ['empleado'];
+      }
       
       usuarioCreado = {
         id: `USR_${nanoid(10)}`,
         username: credentials.username,
-        nombre: `${nuevoEmpleado.nombre} ${nuevoEmpleado.apellidos}`,
+        nombre: nuevoEmpleado.nombre,
         email: nuevoEmpleado.email,
-        password: hashedPassword,
-        roles: nuevoEmpleado.roles,
+        password: credentials.hashedPassword, // Usar el hash generado
+        roles: rolesSistema,
         empleadoId: nuevoEmpleado.id,
         activo: true,
         fechaRegistro: new Date().toISOString(),
         fechaModificacion: null,
         ultimoAcceso: null,
         // Campos adicionales para perfil
-        fullName: `${nuevoEmpleado.nombre} ${nuevoEmpleado.apellidos}`,
+        fullName: nuevoEmpleado.nombre,
         phone: nuevoEmpleado.telefono,
         bio: `Empleado - ${nuevoEmpleado.puesto || 'Sin puesto definido'}`,
-        profileImage: ''
+        profileImage: '',
+        // Guardar credenciales temporalmente para mostrar al admin
+        tempPassword: credentials.password
       };
       
       // Guardar usuario en la base de datos
@@ -342,6 +351,7 @@ async function createEmpleado(req, res) {
       
       // Actualizar empleado con ID de usuario
       nuevoEmpleado.usuarioId = usuarioCreado.id;
+      nuevoEmpleado.tieneUsuario = true;
     }
     
     // Guardar empleado en la base de datos
@@ -359,11 +369,20 @@ async function createEmpleado(req, res) {
         usuario: {
           id: usuarioCreado.id,
           username: usuarioCreado.username,
-          password: req.body.crearUsuario ? credentials.password : undefined, // Solo devolver contraseña temporal
-          roles: usuarioCreado.roles
+          password: usuarioCreado.tempPassword, // Contraseña temporal para mostrar al admin
+          roles: usuarioCreado.roles,
+          tipoPermiso: tipoPermiso
         }
       })
     };
+    
+    // Limpiar contraseña temporal del usuario guardado (no debe persistir)
+    if (usuarioCreado) {
+      db.get('usuarios')
+        .find({ id: usuarioCreado.id })
+        .unset('tempPassword')
+        .write();
+    }
     
     res.status(201).json(
       createResponse(
@@ -497,7 +516,62 @@ function updateEmpleado(req, res) {
       .find({ id })
       .assign(datosActualizacion)
       .write();
-    
+
+    // Variable para almacenar credenciales del usuario si se crea
+    let credencialesUsuario = null;
+
+    // Verificar si necesita crear usuario (cambió de sin_permisos a admin/personalizado)
+    const necesitaUsuario = (
+      (datosActualizacion.tipoPermiso === 'administrador' || datosActualizacion.tipoPermiso === 'personalizado') &&
+      !empleadoActualizado.tieneUsuario &&
+      !empleadoActualizado.usuarioId
+    );
+
+    if (necesitaUsuario) {
+      // Crear usuario para el empleado
+      const { username, password, hashedPassword } = generateUserCredentials(empleadoActualizado);
+      
+      const nuevoUsuario = {
+        id: `USR_${nanoid(10)}`,
+        username,
+        nombre: empleadoActualizado.nombre,
+        email: empleadoActualizado.email || `${username}@supercopias.com`,
+        password: hashedPassword,
+        roles: datosActualizacion.tipoPermiso === 'administrador' ? ['admin'] : ['empleado'],
+        empleadoId: empleadoActualizado.id,
+        activo: true,
+        fechaRegistro: new Date().toISOString(),
+        fechaModificacion: null,
+        ultimoAcceso: null,
+        fullName: empleadoActualizado.nombre,
+        phone: empleadoActualizado.telefono || '',
+        bio: `${empleadoActualizado.puesto || 'Empleado'} - ${datosActualizacion.tipoPermiso === 'administrador' ? 'Administrador del sistema' : 'Acceso limitado'}`,
+        profileImage: ''
+      };
+
+      // Agregar usuario a la base de datos
+      db.get('usuarios').push(nuevoUsuario).write();
+
+      // Actualizar empleado con información del usuario
+      db.get('empleados')
+        .find({ id })
+        .assign({
+          tieneUsuario: true,
+          usuarioId: nuevoUsuario.id,
+          fechaModificacion: new Date().toISOString()
+        })
+        .write();
+
+      // Refrescar datos del empleado
+      const empleadoFinal = db.get('empleados').find({ id }).value();
+
+      credencialesUsuario = {
+        username,
+        password,
+        empleado: empleadoFinal
+      };
+    }
+
     // Actualizar usuario asociado si existe y se modifican roles
     if (empleadoActualizado.usuarioId && updateData.roles) {
       db.get('usuarios')
@@ -509,18 +583,34 @@ function updateEmpleado(req, res) {
         .write();
     }
     
+    // Obtener empleado actualizado final
+    const empleadoFinal = db.get('empleados').find({ id }).value();
+    
     // Enriquecer con información de roles
     const empleadoConRoles = {
-      ...empleadoActualizado,
-      rolesInfo: empleadoActualizado.roles ? 
-        empleadoActualizado.roles.map(roleId => getRoleById(roleId)).filter(Boolean) : []
+      ...empleadoFinal,
+      rolesInfo: empleadoFinal.roles ? 
+        empleadoFinal.roles.map(roleId => getRoleById(roleId)).filter(Boolean) : []
     };
-    
+
+    // Crear respuesta con credenciales si se creó usuario
+    const responseData = credencialesUsuario ? {
+      empleado: empleadoConRoles,
+      usuario: {
+        username: credencialesUsuario.username,
+        password: credencialesUsuario.password
+      }
+    } : empleadoConRoles;
+
+    const message = credencialesUsuario ? 
+      'Empleado actualizado y usuario creado exitosamente' : 
+      'Empleado actualizado exitosamente';
+
     res.json(
       createResponse(
         true,
-        empleadoConRoles,
-        'Empleado actualizado exitosamente'
+        responseData,
+        message
       )
     );
     
