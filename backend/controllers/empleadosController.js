@@ -162,7 +162,7 @@ async function createEmpleado(req, res) {
       email,
       telefono,
       puesto,
-      departamento,
+      sucursal,
       salario,
       fechaIngreso,
       numeroEmpleado,
@@ -261,7 +261,7 @@ async function createEmpleado(req, res) {
       email: email ? email.toLowerCase() : null,
       telefono: telefono || null,
       puesto: puesto || null,
-      departamento: departamento || null,
+      sucursal: sucursal || null,
       salario: salario ? parseFloat(salario) : null,
       fechaIngreso: fechaIngreso || new Date().toISOString().split('T')[0],
       numeroEmpleado: numeroEmpleado || null,
@@ -584,13 +584,14 @@ function getRoles(req, res) {
   try {
     const roles = getAllRoles();
     
-    res.json(
-      createResponse(
-        true,
-        roles,
-        'Catálogo de roles obtenido exitosamente'
-      )
+    const response = createResponse(
+      true,           // success
+      roles,          // data  
+      'Catálogo de roles obtenido exitosamente', // message
+      null            // error
     );
+    
+    res.json(response);
     
   } catch (error) {
     console.error('Error obteniendo roles:', error);

@@ -66,18 +66,14 @@ const ROLES_SISTEMA = {
     }
   },
 
-  // Operador - Acceso básico a módulos operativos
-  OPERADOR: {
-    id: 'operador',
-    nombre: 'Operador',
-    descripcion: 'Acceso básico a módulos operativos diarios',
-    color: '#198754',
+  // Sin permisos - Usuario sin acceso a módulos (solo dashboard básico)
+  SIN_PERMISOS: {
+    id: 'sin_permisos',
+    nombre: 'Sin Permisos',
+    descripcion: 'Usuario sin acceso a módulos del sistema',
+    color: '#6c757d',
     permisos: {
-      [MODULOS.DASHBOARD]: [PERMISOS.LEER],
-      [MODULOS.CLIENTES]: [PERMISOS.LEER, PERMISOS.CREAR],
-      [MODULOS.PUNTO_VENTA]: [PERMISOS.LEER, PERMISOS.CREAR],
-      [MODULOS.EQUIPOS]: [PERMISOS.LEER],
-      [MODULOS.INVENTARIOS]: [PERMISOS.LEER]
+      [MODULOS.DASHBOARD]: [PERMISOS.LEER]
     }
   },
 

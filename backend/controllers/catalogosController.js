@@ -1,9 +1,15 @@
 /**
  * Controlador de Catálogos - SuperCopias Backend
- * Gestiona todos los catálogos del sistema (estados, regímenes fiscales, etc.)
+ * Gestiona todos los catálogos del sistema (estados, regímenes fiscales, sucursales, puestos, etc.)
  */
 
-const { db } = require('../db');
+const { db, init } = require('../db');
+const { nanoid } = require('nanoid');
+const { 
+  createResponse, 
+  createErrorResponse, 
+  CODIGOS_ERROR 
+} = require('../utils/apiStandard');
 
 /**
  * Obtener catálogo de estados de México
@@ -308,10 +314,264 @@ function initMetodosPago() {
     ];
 }
 
+/**
+ * Obtener catálogo de sucursales
+ * GET /api/catalogos/sucursales
+ */
+async function getSucursales(req, res) {
+  try {
+    init(); // Inicializar BD
+    
+    let sucursales = db.get('catalogos.sucursales').value();
+    
+    if (!sucursales || sucursales.length === 0) {
+      sucursales = initSucursales();
+      db.set('catalogos.sucursales', sucursales).write();
+    }
+
+    res.json(createResponse(true, sucursales, 'Sucursales obtenidas correctamente'));
+  } catch (error) {
+    console.error('Error obteniendo sucursales:', error);
+    res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.INTERNAL_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
+/**
+ * Crear nueva sucursal
+ * POST /api/catalogos/sucursales
+ */
+async function createSucursal(req, res) {
+  try {
+    init(); // Inicializar BD
+    
+    const { nombre, direccion, telefono, gerente, activa = true } = req.body;
+    
+    if (!nombre) {
+      return res.status(400).json(
+        createErrorResponse(CODIGOS_ERROR.VALIDATION_ERROR, 'El nombre de la sucursal es requerido')
+      );
+    }
+
+    const nuevaSucursal = {
+      id: `SUC_${nanoid()}`,
+      nombre: nombre.trim(),
+      direccion: direccion?.trim() || '',
+      telefono: telefono?.trim() || '',
+      gerente: gerente?.trim() || '',
+      activa,
+      fechaCreacion: new Date().toISOString()
+    };
+
+    let sucursales = db.get('catalogos.sucursales').value() || [];
+    sucursales.push(nuevaSucursal);
+    db.set('catalogos.sucursales', sucursales).write();
+
+    res.status(201).json(createResponse(nuevaSucursal, 'Sucursal creada correctamente'));
+  } catch (error) {
+    console.error('Error creando sucursal:', error);
+    res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.INTERNAL_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
+/**
+ * Obtener catálogo de puestos
+ * GET /api/catalogos/puestos
+ */
+async function getPuestos(req, res) {
+  try {
+    init(); // Inicializar BD
+    
+    let puestos = db.get('catalogos.puestos').value();
+    
+    if (!puestos || puestos.length === 0) {
+      puestos = initPuestos();
+      db.set('catalogos.puestos', puestos).write();
+    }
+
+    res.json(createResponse(true, puestos, 'Puestos obtenidos correctamente'));
+  } catch (error) {
+    console.error('Error obteniendo puestos:', error);
+    res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.INTERNAL_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
+/**
+ * Crear nuevo puesto
+ * POST /api/catalogos/puestos
+ */
+async function createPuesto(req, res) {
+  try {
+    init(); // Inicializar BD
+    
+    const { nombre, descripcion, salarioMinimo, salarioMaximo, activo = true } = req.body;
+    
+    if (!nombre) {
+      return res.status(400).json(
+        createErrorResponse(CODIGOS_ERROR.VALIDATION_ERROR, 'El nombre del puesto es requerido')
+      );
+    }
+
+    const nuevoPuesto = {
+      id: `PUE_${nanoid()}`,
+      nombre: nombre.trim(),
+      descripcion: descripcion?.trim() || '',
+      salarioMinimo: salarioMinimo || 0,
+      salarioMaximo: salarioMaximo || 0,
+      activo,
+      fechaCreacion: new Date().toISOString()
+    };
+
+    let puestos = db.get('catalogos.puestos').value() || [];
+    puestos.push(nuevoPuesto);
+    db.set('catalogos.puestos', puestos).write();
+
+    res.status(201).json(createResponse(nuevoPuesto, 'Puesto creado correctamente'));
+  } catch (error) {
+    console.error('Error creando puesto:', error);
+    res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.INTERNAL_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
+/**
+ * Inicializar catálogo de sucursales
+ */
+function initSucursales() {
+  return [
+    {
+      id: 'SUC_001',
+      nombre: 'Sucursal Centro',
+      direccion: 'Av. Principal 123, Centro',
+      telefono: '555-1001',
+      gerente: 'Ana García',
+      activa: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'SUC_002', 
+      nombre: 'Sucursal Norte',
+      direccion: 'Calle Norte 456, Zona Norte',
+      telefono: '555-1002',
+      gerente: 'Carlos López',
+      activa: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'SUC_003',
+      nombre: 'Sucursal Sur',
+      direccion: 'Av. Sur 789, Zona Sur', 
+      telefono: '555-1003',
+      gerente: 'María Rodríguez',
+      activa: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'SUC_004',
+      nombre: 'Sucursal Este',
+      direccion: 'Blvd. Este 321, Zona Este',
+      telefono: '555-1004', 
+      gerente: 'José Martínez',
+      activa: true,
+      fechaCreacion: new Date().toISOString()
+    }
+  ];
+}
+
+/**
+ * Inicializar catálogo de puestos
+ */
+function initPuestos() {
+  return [
+    {
+      id: 'PUE_001',
+      nombre: 'Gerente General',
+      descripcion: 'Responsable general de la sucursal y supervisión del personal',
+      salarioMinimo: 25000,
+      salarioMaximo: 35000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_002',
+      nombre: 'Gerente de Ventas',
+      descripcion: 'Encargado del área de ventas y atención al cliente',
+      salarioMinimo: 20000,
+      salarioMaximo: 28000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_003',
+      nombre: 'Cajero',
+      descripcion: 'Responsable del punto de venta y cobros',
+      salarioMinimo: 12000,
+      salarioMaximo: 15000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_004',
+      nombre: 'Operador de Equipos',
+      descripcion: 'Manejo de máquinas fotocopiadoras e impresoras',
+      salarioMinimo: 14000,
+      salarioMaximo: 18000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_005',
+      nombre: 'Diseñador Gráfico',
+      descripcion: 'Creación de diseños y material publicitario',
+      salarioMinimo: 16000,
+      salarioMaximo: 22000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_006',
+      nombre: 'Gestora de Clientes',
+      descripcion: 'Atención especializada y seguimiento de clientes',
+      salarioMinimo: 15000,
+      salarioMaximo: 20000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_007',
+      nombre: 'Técnico de Mantenimiento',
+      descripcion: 'Mantenimiento y reparación de equipos',
+      salarioMinimo: 15000,
+      salarioMaximo: 19000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    },
+    {
+      id: 'PUE_008',
+      nombre: 'Asistente Administrativo',
+      descripcion: 'Apoyo en tareas administrativas y documentación',
+      salarioMinimo: 10000,
+      salarioMaximo: 14000,
+      activo: true,
+      fechaCreacion: new Date().toISOString()
+    }
+  ];
+}
+
 module.exports = {
   getEstados,
   getRegimenesFiscales,
   getUsosCFDI,
   getFormasPago,
-  getMetodosPago
+  getMetodosPago,
+  getSucursales,
+  createSucursal,
+  getPuestos,
+  createPuesto
 };

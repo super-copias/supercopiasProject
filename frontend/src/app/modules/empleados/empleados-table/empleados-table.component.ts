@@ -226,8 +226,8 @@ export class EmpleadosTableComponent {
             <div class="info-value">${empleado.puesto || 'No especificado'}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">Departamento:</div>
-            <div class="info-value">${empleado.departamento || 'No especificado'}</div>
+            <div class="info-label">Sucursal:</div>
+            <div class="info-value">${empleado.sucursal || 'No especificado'}</div>
           </div>
           <div class="info-row">
             <div class="info-label">Salario:</div>

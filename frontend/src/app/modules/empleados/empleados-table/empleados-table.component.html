@@ -8,7 +8,7 @@
                 <th style="width: 12%;">Teléfono</th>
                 <th style="width: 15%;">Email</th>
                 <th style="width: 15%;">Puesto</th>
-                <th style="width: 15%;">Departamento</th>
+                <th style="width: 15%;">Sucursal</th>
                 <th style="width: 8%;">Estado</th>
                 <th style="width: 7%;">Acciones</th>
             </tr>
@@ -31,7 +31,7 @@
                     <span [title]="e.puesto">{{e.puesto || '-'}}</span>
                 </td>
                 <td class="text-truncate" style="max-width: 0;">
-                    <span [title]="e.departamento">{{e.departamento || '-'}}</span>
+                    <span [title]="e.sucursal">{{e.sucursal || '-'}}</span>
                 </td>
                 <td>
                     <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo">
@@ -96,8 +96,8 @@
                                     <span class="fw-medium">{{e.puesto || 'N/A'}}</span>
                                 </div>
                                 <div class="col-6">
-                                    <small class="text-muted d-block">Departamento</small>
-                                    <span class="fw-medium">{{e.departamento || 'N/A'}}</span>
+                                    <small class="text-muted d-block">Sucursal</small>
+                                    <span class="fw-medium">{{e.sucursal || 'N/A'}}</span>
                                 </div>
                             </div>
                             
@@ -180,7 +180,7 @@
                                     <strong>Puesto:</strong> {{selectedEmpleado.puesto || 'No especificado'}}
                                 </div>
                                 <div class="mb-3">
-                                    <strong>Departamento:</strong> {{selectedEmpleado.departamento || 'No especificado'}}
+                                    <strong>Sucursal:</strong> {{selectedEmpleado.sucursal || 'No especificado'}}
                                 </div>
                                 <div class="mb-3">
                                     <strong>Fecha de Ingreso:</strong> {{selectedEmpleado.fechaIngreso | date:'dd/MM/yyyy' || 'No especificada'}}

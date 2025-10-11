@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EmpleadosService } from '../../services/empleados.service';
+import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.service';
 
 const MODULOS = [
   { id: 'dashboard', nombre: 'Dashboard', icono: 'fas fa-tachometer-alt' },
@@ -40,7 +41,9 @@ const MODULOS = [
                     [class.is-invalid]="isInvalid('nombre')"
                     placeholder="Ej: Juan Pérez García">
                   <div class="invalid-feedback" *ngIf="isInvalid('nombre')">
-                    El nombre es requerido (mínimo 3 caracteres)
+                    <span *ngIf="empleadoForm.get('nombre')?.errors?.['required']">El nombre es requerido</span>
+                    <span *ngIf="empleadoForm.get('nombre')?.errors?.['minlength']">El nombre debe tener al menos 3 caracteres</span>
+                    <span *ngIf="empleadoForm.get('nombre')?.errors?.['maxlength']">El nombre no puede exceder 100 caracteres</span>
                   </div>
                 </div>
 
@@ -53,7 +56,8 @@ const MODULOS = [
                     [class.is-invalid]="isInvalid('telefono')"
                     placeholder="Ej: 555-123-4567">
                   <div class="invalid-feedback" *ngIf="isInvalid('telefono')">
-                    El teléfono es requerido
+                    <span *ngIf="empleadoForm.get('telefono')?.errors?.['required']">El teléfono es requerido</span>
+                    <span *ngIf="empleadoForm.get('telefono')?.errors?.['pattern']">Formato de teléfono inválido</span>
                   </div>
                 </div>
 
@@ -63,7 +67,11 @@ const MODULOS = [
                     type="email" 
                     class="form-control" 
                     formControlName="email"
+                    [class.is-invalid]="isInvalid('email')"
                     placeholder="empleado@supercopias.com">
+                  <div class="invalid-feedback" *ngIf="isInvalid('email')">
+                    <span *ngIf="empleadoForm.get('email')?.errors?.['email']">Formato de email inválido</span>
+                  </div>
                 </div>
 
                 <div class="mb-3">
@@ -84,25 +92,39 @@ const MODULOS = [
               </div>
               <div class="card-body">
                 <div class="mb-3">
-                  <label class="form-label">Puesto</label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
+                  <label class="form-label">Puesto *</label>
+                  <select 
+                    class="form-select" 
                     formControlName="puesto"
-                    placeholder="Ej: Gerente, Cajero, Operador">
+                    [class.is-invalid]="isInvalid('puesto')">
+                    <option value="">Seleccione un puesto</option>
+                    <option *ngFor="let puesto of puestos" [value]="puesto.nombre">
+                      {{puesto.nombre}}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="isInvalid('puesto')">
+                    Debe seleccionar un puesto
+                  </div>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Departamento</label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    formControlName="departamento"
-                    placeholder="Ej: Administración, Ventas">
+                  <label class="form-label">Sucursal *</label>
+                  <select 
+                    class="form-select" 
+                    formControlName="sucursal"
+                    [class.is-invalid]="isInvalid('sucursal')">
+                    <option value="">Seleccione una sucursal</option>
+                    <option *ngFor="let sucursal of sucursales" [value]="sucursal.nombre">
+                      {{sucursal.nombre}}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="isInvalid('sucursal')">
+                    Debe seleccionar una sucursal
+                  </div>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Salario Mensual</label>
+                  <label class="form-label">Salario Mensual *</label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
                     <input 
@@ -111,17 +133,25 @@ const MODULOS = [
                       formControlName="salario"
                       placeholder="0.00"
                       step="0.01"
-                      min="0">
+                      min="0"
+                      [class.is-invalid]="isInvalid('salario')">
                     <span class="input-group-text">MXN</span>
+                  </div>
+                  <div class="invalid-feedback" *ngIf="isInvalid('salario')">
+                    El salario es requerido y debe ser mayor a 0
                   </div>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Fecha de Ingreso</label>
+                  <label class="form-label">Fecha de Ingreso *</label>
                   <input 
                     type="date" 
                     class="form-control" 
-                    formControlName="fechaIngreso">
+                    formControlName="fechaIngreso"
+                    [class.is-invalid]="isInvalid('fechaIngreso')">
+                  <div class="invalid-feedback" *ngIf="isInvalid('fechaIngreso')">
+                    La fecha de ingreso es requerida
+                  </div>
                 </div>
               </div>
             </div>
@@ -147,13 +177,13 @@ const MODULOS = [
                           class="form-check-input" 
                           type="radio" 
                           formControlName="tipoPermiso" 
-                          value="operador" 
-                          id="tipoOperador">
-                        <label class="form-check-label" for="tipoOperador">
-                          <i class="fas fa-user me-1 text-primary"></i>
-                          <strong>Operador</strong>
+                          value="sin_permisos" 
+                          id="tipoSinPermisos">
+                        <label class="form-check-label" for="tipoSinPermisos">
+                          <i class="fas fa-times-circle me-1 text-secondary"></i>
+                          <strong>Sin Permisos</strong>
                           <br>
-                          <small class="text-muted">Acceso limitado a módulos específicos</small>
+                          <small class="text-muted">Solo acceso al dashboard básico</small>
                         </label>
                       </div>
                     </div>
@@ -192,7 +222,13 @@ const MODULOS = [
                   </div>
                 </div>
 
-                <div *ngIf="tipoPermiso && tipoPermiso !== 'administrador'">
+                <div *ngIf="tipoPermiso === 'personalizado'">
+                  <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Asignación de Módulos:</strong> Seleccione los módulos a los que este empleado tendrá acceso. 
+                    Esta configuración es independiente del puesto asignado - el administrador decide los permisos.
+                  </div>
+                  
                   <label class="form-label">Módulos Permitidos</label>
                   <div class="row">
                     <div class="col-md-6 col-lg-3 mb-3" *ngFor="let modulo of modulos">
@@ -216,7 +252,15 @@ const MODULOS = [
                   </div>
                 </div>
 
-                <div class="alert alert-warning" *ngIf="tipoPermiso === 'administrador'">
+                <!-- Mensaje para Sin Permisos -->
+                <div *ngIf="tipoPermiso === 'sin_permisos'" class="mt-3">
+                  <div class="alert alert-secondary">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Sin Permisos:</strong> Este empleado tendrá acceso únicamente al dashboard básico. No podrá acceder a ningún módulo del sistema.
+                  </div>
+                </div>
+
+                <div class="alert alert-warning" *ngIf="tipoPermiso === 'admin'">
                   <i class="fas fa-crown me-2"></i>
                   <strong>Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema.
                 </div>
@@ -269,38 +313,114 @@ export class EmpleadosFormComponent implements OnInit {
   modulos = MODULOS;
   tipoPermiso = '';
   seleccionados: string[] = [];
+  sucursales: Sucursal[] = [];
+  puestos: Puesto[] = [];
+  roles: any[] = [];
 
   constructor(
     private fb: FormBuilder,
     private empleadosService: EmpleadosService,
+    private catalogosService: CatalogosService,
     private router: Router
   ) {
     this.empleadoForm = this.createForm();
   }
 
   ngOnInit() {
+    this.loadCatalogos();
+    
     this.empleadoForm.get('tipoPermiso')?.valueChanges.subscribe(tipo => {
       this.tipoPermiso = tipo;
       if (tipo === 'administrador') {
         this.seleccionados = this.modulos.map(m => m.id);
+      } else if (tipo === 'sin_permisos') {
+        this.seleccionados = ['dashboard']; // Solo dashboard
       } else {
         this.seleccionados = [];
       }
     });
   }
 
+  private loadCatalogos() {
+    // Cargar sucursales
+    this.catalogosService.getSucursales().subscribe({
+      next: (response) => {
+        if (response && response.success && Array.isArray(response.data)) {
+          this.sucursales = response.data.filter(s => s.activa);
+        } else {
+          console.error('Error: Estructura de respuesta inválida para sucursales');
+          this.sucursales = [];
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando sucursales:', error.status, error.message);
+        this.sucursales = [];
+      }
+    });
+
+    // Cargar puestos
+    this.catalogosService.getPuestos().subscribe({
+      next: (response) => {
+        if (response && response.success && Array.isArray(response.data)) {
+          this.puestos = response.data.filter(p => p.activo);
+        } else {
+          console.error('Error: Estructura de respuesta inválida para puestos');
+          this.puestos = [];
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando puestos:', error.status, error.message);
+        this.puestos = [];
+      }
+    });
+
+    // Cargar roles
+    this.empleadosService.getRoles().subscribe({
+      next: (response) => {
+        if (response && response.success && Array.isArray(response.data)) {
+          this.roles = response.data;
+        } else {
+          console.error('Error: Estructura de respuesta inválida para roles');
+          this.roles = [];
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando roles:', error.status, error.message);
+        this.roles = [];
+      }
+    });
+  }
+
   private createForm(): FormGroup {
     return this.fb.group({
-      nombre: ['', [Validators.required, Validators.minLength(3)]],
-      telefono: ['', Validators.required],
-      email: [''],
-      puesto: [''],
-      departamento: [''],
-      salario: [0],
-      fechaIngreso: [''],
+      nombre: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      telefono: ['', [Validators.required, Validators.pattern(/^[\d\s\-\(\)\+]+$/)]],
+      email: ['', [Validators.email]],
+      puesto: ['', Validators.required],
+      sucursal: ['', Validators.required],
+      salario: [0, [Validators.required, Validators.min(1)]],
+      fechaIngreso: [this.getCurrentDate(), Validators.required],
       activo: [true],
       tipoPermiso: ['', Validators.required]
     });
+  }
+
+  onTipoPermisoChange(tipo: string) {
+    this.tipoPermiso = tipo;
+    
+    // Si selecciona "Sin Permisos", limpiar módulos seleccionados
+    if (tipo === 'sin_permisos') {
+      this.seleccionados = [];
+    }
+    
+    // Si selecciona "Administrador", seleccionar todos los módulos automáticamente
+    if (tipo === 'admin') {
+      this.seleccionados = this.modulos.map(m => m.id);
+    }
+  }
+
+  getCurrentDate(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
   isInvalid(field: string): boolean {
@@ -328,7 +448,7 @@ export class EmpleadosFormComponent implements OnInit {
   isFormValid(): boolean {
     if (this.empleadoForm.invalid) return false;
     if (!this.tipoPermiso) return false;
-    if ((this.tipoPermiso === 'operador' || this.tipoPermiso === 'personalizado') && this.seleccionados.length === 0) {
+    if (this.tipoPermiso === 'personalizado' && this.seleccionados.length === 0) {
       return false;
     }
     return true;
@@ -369,4 +489,5 @@ export class EmpleadosFormComponent implements OnInit {
   cancel() {
     this.router.navigate(['/admin/empleados']);
   }
+
 }

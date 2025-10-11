@@ -12,9 +12,9 @@
       "profileImage": "/uploads/profiles/profile-H9_D5a5-sJgRE6bsvOvmk-o8O4_ZGQbxGktiy4LipQL.jpg",
       "activo": true,
       "fechaRegistro": "2024-01-01T00:00:00.000Z",
-      "fechaModificacion": "2025-10-10T10:04:44.334Z",
+      "fechaModificacion": "2025-10-11T10:17:38.109Z",
       "lastLogin": null,
-      "ultimoAcceso": "2025-10-10T10:04:44.334Z"
+      "ultimoAcceso": "2025-10-11T10:17:38.109Z"
     }
   ],
   "clientes": [
@@ -435,6 +435,118 @@
       {
         "codigo": "CN01",
         "descripcion": "Nómina"
+      }
+    ],
+    "sucursales": [
+      {
+        "id": "SUC_001",
+        "nombre": "Sucursal Centro",
+        "direccion": "Av. Principal 123, Centro",
+        "telefono": "555-1001",
+        "gerente": "Ana García",
+        "activa": true,
+        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+      },
+      {
+        "id": "SUC_002",
+        "nombre": "Sucursal Norte",
+        "direccion": "Calle Norte 456, Zona Norte",
+        "telefono": "555-1002",
+        "gerente": "Carlos López",
+        "activa": true,
+        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+      },
+      {
+        "id": "SUC_003",
+        "nombre": "Sucursal Sur",
+        "direccion": "Av. Sur 789, Zona Sur",
+        "telefono": "555-1003",
+        "gerente": "María Rodríguez",
+        "activa": true,
+        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+      },
+      {
+        "id": "SUC_004",
+        "nombre": "Sucursal Este",
+        "direccion": "Blvd. Este 321, Zona Este",
+        "telefono": "555-1004",
+        "gerente": "José Martínez",
+        "activa": true,
+        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+      }
+    ],
+    "puestos": [
+      {
+        "id": "PUE_001",
+        "nombre": "Gerente General",
+        "descripcion": "Responsable general de la sucursal y supervisión del personal",
+        "salarioMinimo": 25000,
+        "salarioMaximo": 35000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_002",
+        "nombre": "Gerente de Ventas",
+        "descripcion": "Encargado del área de ventas y atención al cliente",
+        "salarioMinimo": 20000,
+        "salarioMaximo": 28000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_003",
+        "nombre": "Cajero",
+        "descripcion": "Responsable del punto de venta y cobros",
+        "salarioMinimo": 12000,
+        "salarioMaximo": 15000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_004",
+        "nombre": "Operador de Equipos",
+        "descripcion": "Manejo de máquinas fotocopiadoras e impresoras",
+        "salarioMinimo": 14000,
+        "salarioMaximo": 18000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_005",
+        "nombre": "Diseñador Gráfico",
+        "descripcion": "Creación de diseños y material publicitario",
+        "salarioMinimo": 16000,
+        "salarioMaximo": 22000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_006",
+        "nombre": "Gestora de Clientes",
+        "descripcion": "Atención especializada y seguimiento de clientes",
+        "salarioMinimo": 15000,
+        "salarioMaximo": 20000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_007",
+        "nombre": "Técnico de Mantenimiento",
+        "descripcion": "Mantenimiento y reparación de equipos",
+        "salarioMinimo": 15000,
+        "salarioMaximo": 19000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+      },
+      {
+        "id": "PUE_008",
+        "nombre": "Asistente Administrativo",
+        "descripcion": "Apoyo en tareas administrativas y documentación",
+        "salarioMinimo": 10000,
+        "salarioMaximo": 14000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T09:39:14.510Z"
       }
     ]
   }

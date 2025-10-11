@@ -28,7 +28,12 @@ const proveedoresRoutes = require('./routes/proveedores');
 const app = express();
 
 // Middlewares globales
-app.use(cors()); // Permitir requests desde frontend
+app.use(cors({
+  origin: ['http://localhost:4200', 'http://127.0.0.1:4200'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+})); // Permitir requests desde frontend
 app.use(bodyParser.json()); // Parsear JSON en requests
 
 // Servir archivos estáticos (imágenes de perfil, etc.)

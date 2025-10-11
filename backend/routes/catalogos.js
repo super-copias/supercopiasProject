@@ -22,4 +22,12 @@ router.get('/formas-pago', catalogosController.getFormasPago);
 // Métodos de pago SAT
 router.get('/metodos-pago', catalogosController.getMetodosPago);
 
+// Sucursales
+router.get('/sucursales', catalogosController.getSucursales);
+router.post('/sucursales', catalogosController.createSucursal);
+
+// Puestos de trabajo
+router.get('/puestos', catalogosController.getPuestos);
+router.post('/puestos', catalogosController.createPuesto);
+
 module.exports = router;

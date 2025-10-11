@@ -23,8 +23,6 @@ export class AuthInterceptor implements HttpInterceptor {
     
     return next.handle(cloned).pipe(
       catchError((err: HttpErrorResponse) => {
-        console.log('HTTP Error:', err.status, err.message);
-        
         if (err.status === 401) {
           // Si no autorizado, limpiar storage y redirigir a login
           localStorage.removeItem('token');

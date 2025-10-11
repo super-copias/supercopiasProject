@@ -36,11 +36,31 @@ export interface MetodoPago {
   nombre: string;
 }
 
+export interface Sucursal {
+  id: string;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  gerente: string;
+  activa: boolean;
+  fechaCreacion: string;
+}
+
+export interface Puesto {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  salarioMinimo: number;
+  salarioMaximo: number;
+  activo: boolean;
+  fechaCreacion: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CatalogosService {
   private baseUrl = '/api/catalogos';
   
-  // Cache local para evitar llamadas repetidas
+  // Cache local para evitar llamadas repetidas solo para catálogos estáticos
   private estadosCache$ = new BehaviorSubject<Estado[] | null>(null);
   private regimenesCache$ = new BehaviorSubject<RegimenFiscal[] | null>(null);
   private usosCFDICache$ = new BehaviorSubject<UsoCFDI[] | null>(null);
@@ -195,6 +215,46 @@ export class CatalogosService {
     return this.getUsosCFDI().pipe(
       map(usos => usos.find(u => u.codigo === codigo))
     );
+  }
+
+  /**
+   * Obtener catálogo de sucursales
+   */
+  getSucursales(): Observable<ApiResponse<Sucursal[]>> {
+    return this.http.get<ApiResponse<Sucursal[]>>(`${this.baseUrl}/sucursales`)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
+   * Crear nueva sucursal
+   */
+  createSucursal(sucursal: Partial<Sucursal>): Observable<ApiResponse<Sucursal>> {
+    return this.http.post<ApiResponse<Sucursal>>(`${this.baseUrl}/sucursales`, sucursal)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
+   * Obtener catálogo de puestos
+   */
+  getPuestos(): Observable<ApiResponse<Puesto[]>> {
+    return this.http.get<ApiResponse<Puesto[]>>(`${this.baseUrl}/puestos`)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
+   * Crear nuevo puesto
+   */
+  createPuesto(puesto: Partial<Puesto>): Observable<ApiResponse<Puesto>> {
+    return this.http.post<ApiResponse<Puesto>>(`${this.baseUrl}/puestos`, puesto)
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
   }
 
   // ============================================================================

@@ -41,6 +41,12 @@ router.get('/puestos', auth, getPuestos);
 router.get('/modulos', auth, getModulos);
 
 /**
+ * GET /api/empleados/roles
+ * Obtener catálogo de roles disponibles
+ */
+router.get('/roles', getRoles);
+
+/**
  * GET /api/empleados/:id
  * Obtener un empleado específico por ID
  */
@@ -65,12 +71,6 @@ router.put('/:id', auth, updateEmpleado);
  * Eliminar un empleado
  */
 router.delete('/:id', auth, deleteEmpleado);
-
-/**
- * GET /api/empleados/roles
- * Obtener catálogo de roles disponibles
- */
-router.get('/roles', auth, getRoles);
 
 /**
  * POST /api/empleados/:id/assign-roles

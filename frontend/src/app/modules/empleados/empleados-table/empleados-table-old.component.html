@@ -4,7 +4,7 @@
       <tr>
         <th>Nombre</th>
         <th>Puesto</th>
-        <th>Departamento</th>
+        <th>Sucursal</th>
         <th>Teléfono</th>
         <th>Email</th>
         <th>Estado</th>
@@ -27,7 +27,7 @@
         <td>
           <span class="badge bg-primary">{{ empleado.puesto || 'Sin puesto' }}</span>
         </td>
-        <td>{{ empleado.departamento || 'Sin departamento' }}</td>
+        <td>{{ empleado.sucursal || 'Sin sucursal' }}</td>
         <td>
           <i class="fas fa-phone text-success me-1"></i>
           {{ empleado.telefono }}
@@ -162,8 +162,8 @@
                   </div>
                 </div>
                 <div class="mb-2">
-                  <strong>Departamento:</strong>
-                  <div>{{ selectedEmpleado.departamento || 'Sin departamento' }}</div>
+                  <strong>Sucursal:</strong>
+                  <div>{{ selectedEmpleado.sucursal || 'Sin sucursal' }}</div>
                 </div>
                 <div class="mb-2">
                   <strong>Salario:</strong>
