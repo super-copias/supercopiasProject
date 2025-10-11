@@ -377,11 +377,7 @@ export class EmpleadosFormComponent implements OnInit {
       }
     });
 
-    // Log inicial para debug
-    setTimeout(() => {
-      console.log('🔍 DEBUG: Valor inicial activo:', this.empleadoForm.get('activo')?.value, typeof this.empleadoForm.get('activo')?.value);
-      console.log('🔍 DEBUG: Form completo:', this.empleadoForm.value);
-    }, 100);
+    // Valor inicial para depuración removido
   }
 
   private loadCatalogos() {
@@ -513,7 +509,6 @@ export class EmpleadosFormComponent implements OnInit {
   onEstadoChange(event: any) {
     const value = event.target.value;
     const booleanValue = value === 'true';
-    console.log('🔄 DEBUG: Estado seleccionado:', value, '-> convertido a boolean:', booleanValue);
     
     // Actualizar el FormControl con valor boolean
     this.empleadoForm.get('activo')?.setValue(booleanValue, { emitEvent: false });
@@ -521,10 +516,8 @@ export class EmpleadosFormComponent implements OnInit {
     // Manejar validación de fechaBaja
     const fechaBajaControl = this.empleadoForm.get('fechaBaja');
     if (!booleanValue) { // Si está inactivo
-      console.log('📅 Activando validación de fechaBaja (inactivo)');
       fechaBajaControl?.setValidators([Validators.required]);
     } else { // Si está activo
-      console.log('🗑️ Desactivando validación de fechaBaja (activo)');
       fechaBajaControl?.clearValidators();
       fechaBajaControl?.setValue('');
     }

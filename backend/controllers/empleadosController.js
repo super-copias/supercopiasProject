@@ -72,7 +72,12 @@ function listEmpleados(req, res) {
     const start = (page - 1) * limit;
     const paged = items.slice(start, start + limit);
     
-    res.json(createPaginatedResponse(paged, page, limit, items.length));
+    console.log('🔍 DEBUG: Paginación backend - total items:', items.length, 'page:', page, 'limit:', limit, 'start:', start, 'paged:', paged.length);
+    
+    const response = createPaginatedResponse(paged, page, limit, items.length);
+    console.log('📊 DEBUG: Respuesta paginada:', JSON.stringify(response, null, 2));
+    
+    res.json(response);
     
   } catch (error) {
     console.error('Error listando empleados:', error);
@@ -186,12 +191,22 @@ async function createEmpleado(req, res) {
       );
     }
 
-    // Validar tipo de permiso
-    if (!tipoPermiso || !['operador', 'administrador', 'personalizado'].includes(tipoPermiso)) {
+    // Validar fechaBaja si el empleado está inactivo
+    if (activo === false && !fechaBaja) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.VALIDATION_ERROR,
-          'Tipo de permiso inválido. Debe ser: operador, administrador o personalizado'
+          'La fecha de baja es requerida cuando el empleado está inactivo'
+        )
+      );
+    }
+
+    // Validar tipo de permiso
+    if (!tipoPermiso || !['sin_permisos', 'administrador', 'personalizado'].includes(tipoPermiso)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'Tipo de permiso inválido. Debe ser: sin_permisos, administrador o personalizado'
         )
       );
     }
@@ -204,13 +219,16 @@ async function createEmpleado(req, res) {
         'inventarios', 'equipos', 'reportes', 'puntoventa'
       ];
       modulosPermitidos.splice(0, modulosPermitidos.length, ...todosLosModulos);
-    } else if ((tipoPermiso === 'operador' || tipoPermiso === 'personalizado') && modulosPermitidos.length === 0) {
+    } else if (tipoPermiso === 'personalizado' && modulosPermitidos.length === 0) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.VALIDATION_ERROR,
-          'Los empleados operadores y personalizados deben tener al menos un módulo asignado'
+          'Los empleados con permisos personalizados deben tener al menos un módulo asignado'
         )
       );
+    } else if (tipoPermiso === 'sin_permisos') {
+      // Para empleados sin permisos, solo dashboard
+      modulosPermitidos.splice(0, modulosPermitidos.length, 'dashboard');
     }
     
     // Validar roles si se proporcionan
@@ -932,7 +950,7 @@ function updatePermisos(req, res) {
     const { tipoPermiso, modulosPermitidos, permisos } = req.body;
     
     // Validar tipo de permiso
-    if (!tipoPermiso || !['operador', 'administrador', 'personalizado'].includes(tipoPermiso)) {
+    if (!tipoPermiso || !['sin_permisos', 'administrador', 'personalizado'].includes(tipoPermiso)) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.VALIDATION_ERROR,

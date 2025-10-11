@@ -106,30 +106,23 @@
   ],
   "empleados": [
     {
-      "id": "EMP_001",
-      "nombre": "Ana Patricia García López",
-      "telefono": "961-101-0001",
-      "email": "ana.garcia@supercopias.com",
-      "puesto": "gerente",
-      "departamento": "Administración",
-      "salario": 25000,
-      "fechaIngreso": "2023-01-15",
-      "activo": true,
-      "role": "admin",
-      "fechaRegistro": "2023-01-15T08:00:00.000Z",
-      "fechaModificacion": "2024-12-01T10:30:00.000Z"
-    },
-    {
-      "id": "EMP_h0pTyoFm",
-      "nombre": "Ana Patricia García López",
-      "telefono": "961-101-0001",
-      "email": "ana.garcia@supercopias.com",
-      "puesto": "Gerente General",
+      "id": "EMP_sLJvVJYt_H",
+      "nombre": "luis",
+      "apellidos": "",
+      "email": "gfdfgs@mail.com",
+      "telefono": "345345354",
+      "puesto": "Gerente de Ventas",
       "sucursal": "Sucursal Centro",
-      "salario": 35000,
-      "fechaIngreso": "2023-01-15",
+      "salario": 555555,
+      "fechaIngreso": "2025-10-11",
+      "numeroEmpleado": null,
+      "roles": [],
+      "tieneUsuario": false,
       "activo": true,
-      "tipoPermiso": "admin",
+      "fechaBaja": null,
+      "fechaRegistro": "2025-10-11T11:45:33.957Z",
+      "fechaModificacion": null,
+      "tipoPermiso": "administrador",
       "modulosPermitidos": [
         "dashboard",
         "empleados",
@@ -140,8 +133,32 @@
         "reportes",
         "puntoventa"
       ],
-      "fechaRegistro": "2025-10-11T11:02:11.542Z",
-      "fechaModificacion": null
+      "permisos": [],
+      "fechaAsignacionPermisos": "2025-10-11T11:45:33.957Z"
+    },
+    {
+      "id": "EMP_DNxeFnz6gA",
+      "nombre": "jhonatan",
+      "apellidos": "",
+      "email": "asdasdas@empleados",
+      "telefono": "252423423",
+      "puesto": "Gerente General",
+      "sucursal": "Sucursal Centro",
+      "salario": 23423432,
+      "fechaIngreso": "2025-10-11",
+      "numeroEmpleado": null,
+      "roles": [],
+      "tieneUsuario": false,
+      "activo": false,
+      "fechaBaja": "2025-10-11",
+      "fechaRegistro": "2025-10-11T11:37:40.466Z",
+      "fechaModificacion": null,
+      "tipoPermiso": "sin_permisos",
+      "modulosPermitidos": [
+        "dashboard"
+      ],
+      "permisos": [],
+      "fechaAsignacionPermisos": "2025-10-11T11:37:40.466Z"
     },
     {
       "id": "EMP_MQ4AqAYN",
@@ -310,6 +327,44 @@
       ],
       "fechaRegistro": "2025-10-11T11:02:11.543Z",
       "fechaModificacion": null
+    },
+    {
+      "id": "EMP_h0pTyoFm",
+      "nombre": "Ana Patricia García López",
+      "telefono": "961-101-0001",
+      "email": "ana.garcia@supercopias.com",
+      "puesto": "Gerente General",
+      "sucursal": "Sucursal Centro",
+      "salario": 35000,
+      "fechaIngreso": "2023-01-15",
+      "activo": true,
+      "tipoPermiso": "admin",
+      "modulosPermitidos": [
+        "dashboard",
+        "empleados",
+        "clientes",
+        "proveedores",
+        "inventarios",
+        "equipos",
+        "reportes",
+        "puntoventa"
+      ],
+      "fechaRegistro": "2025-10-11T11:02:11.542Z",
+      "fechaModificacion": null
+    },
+    {
+      "id": "EMP_001",
+      "nombre": "Ana Patricia García López",
+      "telefono": "961-101-0001",
+      "email": "ana.garcia@supercopias.com",
+      "puesto": "gerente",
+      "departamento": "Administración",
+      "salario": 25000,
+      "fechaIngreso": "2023-01-15",
+      "activo": true,
+      "role": "admin",
+      "fechaRegistro": "2023-01-15T08:00:00.000Z",
+      "fechaModificacion": "2024-12-01T10:30:00.000Z"
     }
   ],
   "proveedores": [

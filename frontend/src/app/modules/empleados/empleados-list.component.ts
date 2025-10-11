@@ -149,7 +149,8 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
     return this.empleadosService.getList({
       q: this.q,
       page: this.page,
-      limit: this.limit
+      limit: this.limit,
+      includeInactive: true  // ✅ INCLUIR EMPLEADOS INACTIVOS
     }).pipe(
       finalize(() => this.loading = false)
     );
@@ -161,19 +162,25 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
   load(): void {
     this.loading = true;
     
+    console.log('🔍 DEBUG: Cargando empleados con parámetros:', { q: this.q, page: this.page, limit: this.limit });
+    
     this.empleadosService.getList({
       q: this.q,
       page: this.page,
-      limit: this.limit
+      limit: this.limit,
+      includeInactive: true  // ✅ INCLUIR EMPLEADOS INACTIVOS
     }).pipe(
       finalize(() => this.loading = false)
     ).subscribe({
       next: (response) => {
+        console.log('📊 DEBUG: Respuesta recibida:', response);
         if (response.success) {
           this.empleados = response.data || [];
-          this.total = (response as any).total || 0;
-          this.pages = (response as any).pages || 1;
-          this.page = (response as any).page || 1;
+          // ✅ Leer correctamente desde pagination
+          this.total = response.pagination?.total || 0;
+          this.pages = response.pagination?.pages || 1;
+          this.page = response.pagination?.page || 1;
+          console.log('📋 DEBUG: Datos asignados - empleados:', this.empleados.length, 'total:', this.total, 'pages:', this.pages);
         }
       },
       error: (error) => {
