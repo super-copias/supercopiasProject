@@ -47,10 +47,10 @@ export class AuthService {
         // Verificar token automáticamente en segundo plano
         this.verifyToken().subscribe({
           next: (response) => {
-            console.log('Token verificado exitosamente');
+            // Token verificado exitosamente
           },
           error: (error) => {
-            console.warn('Token inválido o expirado, limpiando sesión');
+            // Token inválido o expirado, limpiando sesión
             this.clearSession();
           }
         });

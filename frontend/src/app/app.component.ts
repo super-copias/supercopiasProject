@@ -12,6 +12,5 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     // El servicio se inicializa automáticamente en el constructor
     // Esto asegura que la verificación de token se ejecute al cargar la app
-    console.log('App inicializada - AuthService cargado');
   }
 }

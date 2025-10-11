@@ -158,22 +158,17 @@ async function createEmpleado(req, res) {
     
     const {
       nombre,
-      apellidos,
       email,
       telefono,
       puesto,
       sucursal,
       salario,
       fechaIngreso,
-      numeroEmpleado,
-      roles = [],
-      crearUsuario = false,
       activo = true,
       fechaBaja = null,
-      // Nuevos campos para sistema de permisos
+      // Campos del frontend
       tipoPermiso,
-      modulosPermitidos = [],
-      permisos = []
+      modulosPermitidos = []
     } = req.body;
     
     // Validaciones requeridas
@@ -196,44 +191,33 @@ async function createEmpleado(req, res) {
       );
     }
 
-    // Validar tipo de permiso
-    if (!tipoPermiso || !['sin_permisos', 'administrador', 'personalizado'].includes(tipoPermiso)) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.VALIDATION_ERROR,
-          'Tipo de permiso inválido. Debe ser: sin_permisos, administrador o personalizado'
-        )
-      );
-    }
-
-    // Validar módulos según tipo de permiso
-    if (tipoPermiso === 'administrador') {
-      // Para administradores, asignar todos los módulos automáticamente
-      const todosLosModulos = [
-        'dashboard', 'empleados', 'clientes', 'proveedores',
-        'inventarios', 'equipos', 'reportes', 'puntoventa'
-      ];
-      modulosPermitidos.splice(0, modulosPermitidos.length, ...todosLosModulos);
-    } else if (tipoPermiso === 'personalizado' && modulosPermitidos.length === 0) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.VALIDATION_ERROR,
-          'Los empleados con permisos personalizados deben tener al menos un módulo asignado'
-        )
-      );
-    } else if (tipoPermiso === 'sin_permisos') {
-      // Para empleados sin permisos, solo dashboard
-      modulosPermitidos.splice(0, modulosPermitidos.length, 'dashboard');
-    }
+    // Convertir tipoPermiso del frontend a tipoAcceso de la DB
+    let tipoAcceso = 'inactivo';
+    let modulos = {};
     
-    // Validar roles si se proporcionan
-    if (roles.length > 0 && !validateRoles(roles)) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.VALIDATION_ERROR,
-          'Uno o más roles proporcionados no son válidos'
-        )
-      );
+    if (tipoPermiso === 'sin_permisos') {
+      tipoAcceso = 'inactivo';
+      modulos = {};
+    } else if (tipoPermiso === 'administrador') {
+      tipoAcceso = 'administrador';
+      modulos = {
+        dashboard: { acceso: true },
+        empleados: { acceso: true },
+        clientes: { acceso: true },
+        proveedores: { acceso: true },
+        inventarios: { acceso: true },
+        equipos: { acceso: true },
+        reportes: { acceso: true },
+        configuracion: { acceso: true }
+      };
+    } else if (tipoPermiso === 'personalizado') {
+      tipoAcceso = 'personalizado';
+      modulos = {};
+      // Convertir array de módulos permitidos a formato de objeto
+      const todosLosModulos = ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'equipos', 'reportes', 'configuracion'];
+      todosLosModulos.forEach(mod => {
+        modulos[mod] = { acceso: modulosPermitidos.includes(mod) };
+      });
     }
     
     // Verificar si el email ya existe (si se proporciona)
@@ -252,51 +236,29 @@ async function createEmpleado(req, res) {
       }
     }
     
-    // Verificar número de empleado único (si se proporciona)
-    if (numeroEmpleado) {
-      const numeroExistente = db.get('empleados')
-        .find({ numeroEmpleado, activo: true })
-        .value();
-      
-      if (numeroExistente) {
-        return res.status(400).json(
-          createErrorResponse(
-            CODIGOS_ERROR.ALREADY_EXISTS,
-            'Ya existe un empleado con este número'
-          )
-        );
-      }
-    }
-    
     // Crear nuevo empleado
     const nuevoEmpleado = {
       id: `EMP_${nanoid(10)}`,
       nombre: nombre.trim(),
-      apellidos: apellidos ? apellidos.trim() : '',
       email: email ? email.toLowerCase() : null,
       telefono: telefono || null,
       puesto: puesto || null,
       sucursal: sucursal || null,
       salario: salario ? parseFloat(salario) : null,
       fechaIngreso: fechaIngreso || new Date().toISOString().split('T')[0],
-      numeroEmpleado: numeroEmpleado || null,
-      roles: roles || [],
-      tieneUsuario: crearUsuario,
       activo: activo !== undefined ? activo : true,
       fechaBaja: (!activo && fechaBaja) ? fechaBaja : null,
       fechaRegistro: new Date().toISOString(),
       fechaModificacion: null,
-      // Nuevo: Sistema de permisos de módulos
-      tipoPermiso: tipoPermiso,
-      modulosPermitidos: modulosPermitidos || [],
-      permisos: permisos || [],
-      fechaAsignacionPermisos: new Date().toISOString()
+      tipoAcceso: tipoAcceso,
+      modulos: modulos,
+      usuarioId: null
     };
     
     let usuarioCreado = null;
     
-    // Crear usuario del sistema automáticamente si se asignan permisos de módulos
-    const debeCrearUsuario = tipoPermiso && tipoPermiso !== 'sin_permisos';
+    // Crear usuario del sistema si tiene permisos
+    const debeCrearUsuario = tipoAcceso === 'administrador' || tipoAcceso === 'personalizado';
     
     if (debeCrearUsuario) {
       const credentials = generateUserCredentials(nuevoEmpleado);
@@ -317,12 +279,12 @@ async function createEmpleado(req, res) {
         credentials.username = newUsername;
       }
       
-      // Asignar roles del sistema basados en el tipo de permiso
-      let rolesSistema = [];
-      if (tipoPermiso === 'administrador') {
-        rolesSistema = ['admin'];
-      } else if (tipoPermiso === 'personalizado') {
-        rolesSistema = ['empleado'];
+      // Asignar roles del sistema basados en el tipo de acceso
+      let role = 'empleado';
+      let roles = ['empleado'];
+      if (tipoAcceso === 'administrador') {
+        role = 'admin';
+        roles = ['admin'];
       }
       
       usuarioCreado = {
@@ -330,20 +292,18 @@ async function createEmpleado(req, res) {
         username: credentials.username,
         nombre: nuevoEmpleado.nombre,
         email: nuevoEmpleado.email,
-        password: credentials.hashedPassword, // Usar el hash generado
-        roles: rolesSistema,
+        password: credentials.hashedPassword,
+        role: role,
+        roles: roles,
         empleadoId: nuevoEmpleado.id,
         activo: true,
         fechaRegistro: new Date().toISOString(),
         fechaModificacion: null,
         ultimoAcceso: null,
-        // Campos adicionales para perfil
         fullName: nuevoEmpleado.nombre,
         phone: nuevoEmpleado.telefono,
         bio: `Empleado - ${nuevoEmpleado.puesto || 'Sin puesto definido'}`,
-        profileImage: '',
-        // Guardar credenciales temporalmente para mostrar al admin
-        tempPassword: credentials.password
+        profileImage: ''
       };
       
       // Guardar usuario en la base de datos
@@ -351,44 +311,29 @@ async function createEmpleado(req, res) {
       
       // Actualizar empleado con ID de usuario
       nuevoEmpleado.usuarioId = usuarioCreado.id;
-      nuevoEmpleado.tieneUsuario = true;
     }
     
     // Guardar empleado en la base de datos
     db.get('empleados').push(nuevoEmpleado).write();
     
-    // Enriquecer respuesta con información de roles
-    const empleadoConRoles = {
-      ...nuevoEmpleado,
-      rolesInfo: nuevoEmpleado.roles.map(roleId => getRoleById(roleId)).filter(Boolean)
-    };
-    
     const respuesta = {
-      empleado: empleadoConRoles,
+      empleado: nuevoEmpleado,
       ...(usuarioCreado && {
         usuario: {
           id: usuarioCreado.id,
           username: usuarioCreado.username,
-          password: usuarioCreado.tempPassword, // Contraseña temporal para mostrar al admin
+          password: credentials.password, // Contraseña sin hash para mostrar al admin
           roles: usuarioCreado.roles,
           tipoPermiso: tipoPermiso
         }
       })
     };
     
-    // Limpiar contraseña temporal del usuario guardado (no debe persistir)
-    if (usuarioCreado) {
-      db.get('usuarios')
-        .find({ id: usuarioCreado.id })
-        .unset('tempPassword')
-        .write();
-    }
-    
     res.status(201).json(
       createResponse(
         true,
         respuesta,
-        crearUsuario ? 
+        debeCrearUsuario ? 
           'Empleado y usuario creados exitosamente' : 
           'Empleado creado exitosamente'
       )
@@ -441,16 +386,6 @@ function updateEmpleado(req, res) {
       );
     }
     
-    // Validar roles si se proporcionan
-    if (updateData.roles && !validateRoles(updateData.roles)) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.VALIDATION_ERROR,
-          'Uno o más roles proporcionados no son válidos'
-        )
-      );
-    }
-    
     // Verificar email único (si se actualiza)
     if (updateData.email && updateData.email !== empleadoExistente.email) {
       const emailDuplicado = db.get('empleados')
@@ -471,9 +406,53 @@ function updateEmpleado(req, res) {
       }
     }
     
+    // Convertir tipoPermiso del frontend a formato de la DB
+    let datosConvertidos = { ...updateData };
+    
+    if (updateData.tipoPermiso) {
+      const { tipoPermiso, modulosPermitidos = [] } = updateData;
+      
+      // Convertir tipoPermiso a tipoAcceso
+      let tipoAcceso = 'inactivo';
+      let modulos = {};
+      
+      if (tipoPermiso === 'sin_permisos') {
+        tipoAcceso = 'inactivo';
+        modulos = {};
+      } else if (tipoPermiso === 'administrador') {
+        tipoAcceso = 'administrador';
+        modulos = {
+          dashboard: { acceso: true },
+          empleados: { acceso: true },
+          clientes: { acceso: true },
+          proveedores: { acceso: true },
+          inventarios: { acceso: true },
+          equipos: { acceso: true },
+          reportes: { acceso: true },
+          configuracion: { acceso: true }
+        };
+      } else if (tipoPermiso === 'personalizado') {
+        tipoAcceso = 'personalizado';
+        modulos = {};
+        // Convertir array de módulos permitidos a formato de objeto
+        const todosLosModulos = ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'equipos', 'reportes', 'configuracion'];
+        todosLosModulos.forEach(mod => {
+          modulos[mod] = { acceso: modulosPermitidos.includes(mod) };
+        });
+      }
+      
+      // Reemplazar con formato de la DB
+      datosConvertidos.tipoAcceso = tipoAcceso;
+      datosConvertidos.modulos = modulos;
+      
+      // Eliminar campos del frontend
+      delete datosConvertidos.tipoPermiso;
+      delete datosConvertidos.modulosPermitidos;
+    }
+    
     // Preparar datos de actualización
     const datosActualizacion = {
-      ...updateData,
+      ...datosConvertidos,
       fechaModificacion: new Date().toISOString()
     };
     
@@ -501,9 +480,6 @@ function updateEmpleado(req, res) {
     if (datosActualizacion.nombre) {
       datosActualizacion.nombre = datosActualizacion.nombre.trim();
     }
-    if (datosActualizacion.apellidos) {
-      datosActualizacion.apellidos = datosActualizacion.apellidos.trim();
-    }
     if (datosActualizacion.email) {
       datosActualizacion.email = datosActualizacion.email.toLowerCase();
     }
@@ -520,10 +496,10 @@ function updateEmpleado(req, res) {
     // Variable para almacenar credenciales del usuario si se crea
     let credencialesUsuario = null;
 
-    // Verificar si necesita crear usuario (cambió de sin_permisos a admin/personalizado)
+    // Verificar si necesita crear usuario (cambió de inactivo a admin/personalizado)
+    const tipoAccesoNuevo = datosActualizacion.tipoAcceso || empleadoActualizado.tipoAcceso;
     const necesitaUsuario = (
-      (datosActualizacion.tipoPermiso === 'administrador' || datosActualizacion.tipoPermiso === 'personalizado') &&
-      !empleadoActualizado.tieneUsuario &&
+      (tipoAccesoNuevo === 'administrador' || tipoAccesoNuevo === 'personalizado') &&
       !empleadoActualizado.usuarioId
     );
 
@@ -537,7 +513,8 @@ function updateEmpleado(req, res) {
         nombre: empleadoActualizado.nombre,
         email: empleadoActualizado.email || `${username}@supercopias.com`,
         password: hashedPassword,
-        roles: datosActualizacion.tipoPermiso === 'administrador' ? ['admin'] : ['empleado'],
+        role: tipoAccesoNuevo === 'administrador' ? 'admin' : 'empleado',
+        roles: tipoAccesoNuevo === 'administrador' ? ['admin'] : ['empleado'],
         empleadoId: empleadoActualizado.id,
         activo: true,
         fechaRegistro: new Date().toISOString(),
@@ -545,7 +522,7 @@ function updateEmpleado(req, res) {
         ultimoAcceso: null,
         fullName: empleadoActualizado.nombre,
         phone: empleadoActualizado.telefono || '',
-        bio: `${empleadoActualizado.puesto || 'Empleado'} - ${datosActualizacion.tipoPermiso === 'administrador' ? 'Administrador del sistema' : 'Acceso limitado'}`,
+        bio: `${empleadoActualizado.puesto || 'Empleado'} - ${tipoAccesoNuevo === 'administrador' ? 'Administrador del sistema' : 'Acceso limitado'}`,
         profileImage: ''
       };
 
@@ -556,7 +533,6 @@ function updateEmpleado(req, res) {
       db.get('empleados')
         .find({ id })
         .assign({
-          tieneUsuario: true,
           usuarioId: nuevoUsuario.id,
           fechaModificacion: new Date().toISOString()
         })
@@ -664,16 +640,12 @@ function deleteEmpleado(req, res) {
       db.get('usuarios')
         .remove({ id: empleado.usuarioId })
         .write();
-        
-      console.log(`Usuario asociado ${empleado.usuarioId} eliminado completamente`);
     }
 
     // Eliminar empleado completamente de la base de datos
     db.get('empleados')
       .remove({ id })
       .write();
-      
-    console.log(`Empleado ${id} eliminado completamente de la base de datos`);
 
     res.json(
       createResponse(

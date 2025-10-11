@@ -1,338 +1,384 @@
 {
   "usuarios": [
     {
-      "id": "H9_D5a5-sJgRE6bsvOvmk",
-      "username": "admin",
-      "password": "$2a$08$Ujg8b4ZIa2l6PxAUNFMjYuP7PzyX8TILqqmegEBFlftkhqOSO6Sd6",
-      "role": "admin",
-      "fullName": "Administrador SuperCopias",
-      "email": "admin@supercopias.com",
-      "phone": "+52 961 123 4567",
-      "bio": "Administrador principal del sistema SuperCopias",
-      "profileImage": "/uploads/profiles/profile-H9_D5a5-sJgRE6bsvOvmk-o8O4_ZGQbxGktiy4LipQL.jpg",
-      "activo": true,
-      "fechaRegistro": "2024-01-01T00:00:00.000Z",
-      "fechaModificacion": "2025-10-11T15:38:54.095Z",
-      "lastLogin": null,
-      "ultimoAcceso": "2025-10-11T15:38:54.094Z"
-    },
-    {
       "id": "USR_ADMIN_001",
-      "username": "mgarciar",
-      "nombre": "María Elena García Rodríguez",
-      "email": "maria.garcia@supercopias.com",
-      "password": "$2a$10$example.hash.for.demo.password123",
+      "username": "admin",
+      "password": "$2a$10$T1AaTiFCWAt.ubexs.QkreJSTQRKRjPy2VeyQXCslX82feThi9tuW",
+      "nombre": "Administrador SuperCopias",
+      "email": "admin@supercopias.com",
+      "role": "admin",
       "roles": [
         "admin"
       ],
-      "empleadoId": "EMP_ADMINISTRADOR",
-      "activo": false,
-      "fechaRegistro": "2023-06-01T08:00:00.000Z",
-      "fechaModificacion": "2025-10-11T15:22:59.935Z",
-      "ultimoAcceso": null,
-      "fullName": "María Elena García Rodríguez",
-      "phone": "961-100-0002",
-      "bio": "Gerente General - Administrador del sistema",
+      "empleadoId": null,
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.690Z",
+      "fechaModificacion": "2025-10-11T16:29:02.056Z",
+      "ultimoAcceso": "2025-10-11T16:29:02.056Z",
+      "fullName": "Administrador SuperCopias",
+      "phone": "+52 961 100 0000",
+      "bio": "Administrador principal del sistema SuperCopias",
       "profileImage": ""
     },
     {
-      "id": "USR_EMPLEADO_001",
-      "username": "chernandez",
-      "nombre": "Carlos Roberto Hernández López",
-      "email": "carlos.hernandez@supercopias.com",
-      "password": "$2a$10$example.hash.for.demo.password456",
+      "id": "USR_EMP_001",
+      "username": "mgomez",
+      "password": "$2a$10$3o9Wd11nQqaZfchLs3Wzx.anJKp/KUAAc1mxHwjet2RDzQ/x43opW",
+      "nombre": "María Gómez Hernández",
+      "email": "maria.gomez@supercopias.com",
+      "role": "empleado",
       "roles": [
         "empleado"
       ],
-      "empleadoId": "EMP_PERSONALIZADO",
+      "empleadoId": "EMP_001",
       "activo": true,
-      "fechaRegistro": "2024-03-10T08:00:00.000Z",
+      "fechaRegistro": "2025-10-11T16:10:57.690Z",
+      "fechaModificacion": "2025-10-11T16:28:49.112Z",
+      "ultimoAcceso": "2025-10-11T16:28:49.112Z",
+      "fullName": "María Gómez Hernández",
+      "phone": "961-100-0001",
+      "bio": "Gerente de Sucursal",
+      "profileImage": ""
+    },
+    {
+      "id": "USR_EMP_002",
+      "username": "jperez",
+      "password": "$2a$10$3o9Wd11nQqaZfchLs3Wzx.anJKp/KUAAc1mxHwjet2RDzQ/x43opW",
+      "nombre": "Juan Pérez Martínez",
+      "email": "juan.perez@supercopias.com",
+      "role": "empleado",
+      "roles": [
+        "empleado"
+      ],
+      "empleadoId": "EMP_002",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": "2025-10-11T16:28:29.616Z",
+      "ultimoAcceso": "2025-10-11T16:28:29.616Z",
+      "fullName": "Juan Pérez Martínez",
+      "phone": "961-100-0002",
+      "bio": "Asistente de Ventas",
+      "profileImage": ""
+    },
+    {
+      "id": "USR_Ni-x7KxEGi",
+      "username": "asilva",
+      "nombre": "Ana López Silva",
+      "email": "ana.lopez@supercopias.com",
+      "password": "$2a$10$kP1tbTnCRoFZyZS1vizgGOCtuiExciCEK6IXJusvdtG.I7H0jqrfa",
+      "role": "empleado",
+      "roles": [
+        "empleado"
+      ],
+      "empleadoId": "EMP_003",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:27:32.706Z",
+      "fechaModificacion": "2025-10-11T16:28:10.527Z",
+      "ultimoAcceso": "2025-10-11T16:28:10.527Z",
+      "fullName": "Ana López Silva",
+      "phone": "961-100-0003",
+      "bio": "Auxiliar Administrativo - Acceso limitado",
+      "profileImage": ""
+    },
+    {
+      "id": "USR_oW8DF6EkEM",
+      "username": "jhona",
+      "nombre": "jhona",
+      "email": "gm@gmail.com",
+      "password": "$2a$10$HdJO2C.4MywKRpmmGK1yxepQ9MxpphMAy57MJM9.qLqi2z8gH0JWe",
+      "role": "empleado",
+      "roles": [
+        "empleado"
+      ],
+      "empleadoId": "EMP_cB-9_nJ-eq",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:29:42.057Z",
       "fechaModificacion": null,
       "ultimoAcceso": null,
-      "fullName": "Carlos Roberto Hernández López",
-      "phone": "961-100-0003",
-      "bio": "Asesor de Ventas - Acceso a Dashboard y Clientes",
+      "fullName": "jhona",
+      "phone": "55555",
+      "bio": "Empleado - Gerente de Sucursal",
       "profileImage": ""
-    },
-    {
-      "id": "USR_HNkJifzCWT",
-      "username": "jhonatan.",
-      "nombre": "Jhonatan Grajales",
-      "email": "jh@gmail.com",
-      "password": "$2a$10$VWDjX7zjrCJ2YiRHQFnxHeERqeZmZXe1kk9N0nM2q.hytbG/55o3O",
-      "roles": [
-        "empleado"
-      ],
-      "empleadoId": "EMP_EvUy7CC1NP",
-      "activo": true,
-      "fechaRegistro": "2025-10-11T13:06:04.066Z",
-      "fechaModificacion": "2025-10-11T13:07:00.341Z",
-      "ultimoAcceso": "2025-10-11T13:07:00.341Z",
-      "fullName": "Jhonatan Grajales",
-      "phone": "5555446678",
-      "bio": "Empleado - Gerente General",
-      "profileImage": ""
-    },
-    {
-      "id": "USR_NxB68inhmR",
-      "username": "jhonatan.1",
-      "nombre": "Jhonatan Grajales",
-      "email": "asd@gmail.com",
-      "password": "$2a$10$2GN7EdhZPHEyLGsFHgripeVwpgyAVDN5/fkdiSmPFOaORUWYUUVsi",
-      "roles": [
-        "empleado"
-      ],
-      "empleadoId": "EMP_8h-4UKYv8u",
-      "activo": true,
-      "fechaRegistro": "2025-10-11T13:29:25.500Z",
-      "fechaModificacion": "2025-10-11T13:30:25.495Z",
-      "ultimoAcceso": "2025-10-11T13:30:25.495Z",
-      "fullName": "Jhonatan Grajales",
-      "phone": "42342424234",
-      "bio": "Empleado - Gerente General",
-      "profileImage": ""
-    },
-    {
-      "id": "USR_hVJRnQ6Z8r",
-      "username": "jmendoza",
-      "nombre": "Juan Carlos Pérez Mendoza",
-      "email": "juan.perez@supercopias.com",
-      "password": "$2a$10$Vcqn4Dz5lA1ejbM8GjLNwOJqZ5Uyhnod2L1VRt5TY6Kpfyd4I2Nbu",
-      "roles": [
-        "empleado"
-      ],
-      "empleadoId": "EMP_SIN_PERMISOS",
-      "activo": false,
-      "fechaRegistro": "2025-10-11T13:55:05.969Z",
-      "fechaModificacion": "2025-10-11T14:03:54.986Z",
-      "ultimoAcceso": "2025-10-11T13:55:52.822Z",
-      "fullName": "Juan Carlos Pérez Mendoza",
-      "phone": "961-100-0001",
-      "bio": "Operador de Equipos - Acceso limitado",
-      "profileImage": ""
-    },
-    {
-      "id": "USR_WFrntW2UCC",
-      "username": "perz",
-      "nombre": "perz",
-      "email": "perz@gmail.com",
-      "password": "$2a$10$BuyI0aoKNo72yT.gvi7TBuOO.dmHNfpUIKNV2HnMDp6U9V2JyyPk6",
-      "roles": [
-        "empleado"
-      ],
-      "empleadoId": "EMP_6W8pXeiqyr",
-      "activo": true,
-      "fechaRegistro": "2025-10-11T15:39:41.469Z",
-      "fechaModificacion": "2025-10-11T15:40:13.912Z",
-      "ultimoAcceso": "2025-10-11T15:40:13.912Z",
-      "fullName": "perz",
-      "phone": "43534534",
-      "bio": "Empleado - Gerente General",
-      "profileImage": ""
-    }
-  ],
-  "clientes": [
-    {
-      "id": "CLI_TEST_001",
-      "nombre": "Cliente Test 1",
-      "telefono": "961-111-1111",
-      "segundoTelefono": "",
-      "email": "test1@ejemplo.com",
-      "direccionEntrega": "Av. Test 123, Tuxtla Gutiérrez, Chiapas",
-      "razon": "Cliente Test 1 S.A. de C.V.",
-      "rfc": "CTE850315T01",
-      "regimen": "601 - General de Ley Personas Morales",
-      "direccion": "Av. Test 123, Tuxtla Gutiérrez, Chiapas",
-      "cp": "29000",
-      "cfdi": "G01 - Adquisición de mercancías",
-      "activo": false,
-      "fechaRegistro": "2025-10-10T07:32:42.434Z",
-      "fechaModificacion": "2025-10-11T13:59:55.368Z"
-    },
-    {
-      "id": "CLI_TEST_002",
-      "nombre": "Cliente Test 2",
-      "telefono": "961-222-2222",
-      "segundoTelefono": "961-222-2223",
-      "email": "test2@ejemplo.com",
-      "direccionEntrega": "Blvd. Test 456, Tuxtla Gutiérrez, Chiapas",
-      "razon": "María Test González",
-      "rfc": "TEGM750425T02",
-      "regimen": "612 - Personas Físicas con Actividades Empresariales",
-      "direccion": "Blvd. Test 456, Tuxtla Gutiérrez, Chiapas",
-      "cp": "29030",
-      "cfdi": "G03 - Gastos en general",
-      "activo": false,
-      "fechaRegistro": "2025-10-10T07:32:42.435Z",
-      "fechaModificacion": "2025-10-10T07:33:51.435Z"
-    },
-    {
-      "id": "CLI_5gNrH6ONUo",
-      "nombre": "Juan Pérez García",
-      "telefono": "961-123-4567",
-      "segundoTelefono": "961-123-4568",
-      "email": "juan.perez@email.com",
-      "direccionEntrega": "Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas",
-      "razon": "Juan Pérez García",
-      "rfc": "PEGJ850315ABC",
-      "regimen": "612 - Personas Físicas con Actividades Empresariales",
-      "direccion": "Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas",
-      "cp": "29000",
-      "cfdi": "G03 - Gastos en general",
-      "activo": true,
-      "fechaRegistro": "2025-10-10T07:34:07.235Z",
-      "fechaModificacion": null
-    },
-    {
-      "id": "CLI_jtHX6pG5YJ",
-      "nombre": "Comercializadora López S.A. de C.V.",
-      "telefono": "961-234-5678",
-      "segundoTelefono": null,
-      "email": "contacto@lopez.com.mx",
-      "direccionEntrega": "Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas",
-      "razon": "Comercializadora López S.A. de C.V.",
-      "rfc": "CLS920810XYZ",
-      "regimen": "601 - General de Ley Personas Morales",
-      "direccion": "Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas",
-      "cp": "29030",
-      "cfdi": "G01 - Adquisición de mercancías",
-      "activo": true,
-      "fechaRegistro": "2025-10-10T07:34:07.235Z",
-      "fechaModificacion": null
-    },
-    {
-      "id": "CLI_aeP3XNNAqM",
-      "nombre": "María González Hernández",
-      "telefono": "967-345-6789",
-      "segundoTelefono": "967-345-6790",
-      "email": "maria.gonzalez@email.com",
-      "direccionEntrega": "Real de Guadalupe 789, Centro, San Cristóbal de las Casas, Chiapas",
-      "razon": "María González Hernández",
-      "rfc": "GOHM750425DEF",
-      "regimen": "612 - Personas Físicas con Actividades Empresariales",
-      "direccion": "Real de Guadalupe 789, Centro, San Cristóbal de las Casas, Chiapas",
-      "cp": "29200",
-      "cfdi": "G03 - Gastos en general",
-      "activo": true,
-      "fechaRegistro": "2025-10-10T07:34:07.236Z",
-      "fechaModificacion": null
     }
   ],
   "empleados": [
     {
-      "id": "EMP_6W8pXeiqyr",
-      "nombre": "perz",
-      "apellidos": "",
-      "email": "perz@gmail.com",
-      "telefono": "43534534",
-      "puesto": "Gerente General",
+      "id": "EMP_001",
+      "nombre": "María Gómez Hernández",
+      "email": "maria.gomez@supercopias.com",
+      "telefono": "961-100-0001",
+      "puesto": "Gerente de Sucursal",
       "sucursal": "Sucursal Centro",
-      "salario": 1000,
-      "fechaIngreso": "2025-10-11",
-      "numeroEmpleado": null,
-      "roles": [],
-      "tieneUsuario": true,
+      "salario": 25000,
+      "fechaIngreso": "2024-01-15",
       "activo": true,
-      "fechaBaja": null,
-      "fechaRegistro": "2025-10-11T15:39:41.408Z",
-      "fechaModificacion": null,
-      "tipoPermiso": "personalizado",
-      "modulosPermitidos": [
-        "clientes"
-      ],
-      "permisos": [],
-      "fechaAsignacionPermisos": "2025-10-11T15:39:41.408Z",
-      "usuarioId": "USR_WFrntW2UCC"
-    },
-    {
-      "id": "EMP_PERSONALIZADO",
-      "nombre": "Carlos Roberto Hernández López",
-      "telefono": "961-100-0003",
-      "email": "carlos.hernandez@supercopias.com",
-      "puesto": "Asesor de Ventas",
-      "sucursal": "Sucursal Norte",
-      "salario": 22000,
-      "fechaIngreso": "2024-03-10",
-      "numeroEmpleado": "E003",
-      "activo": true,
-      "fechaBaja": null,
-      "roles": [
-        "empleado"
-      ],
-      "tieneUsuario": true,
-      "usuarioId": "USR_EMPLEADO_001",
-      "tipoPermiso": "personalizado",
-      "modulosPermitidos": [
-        "dashboard",
-        "clientes"
-      ],
-      "permisos": [],
-      "fechaAsignacionPermisos": "2024-03-10T08:00:00.000Z",
-      "fechaRegistro": "2024-03-10T08:00:00.000Z",
+      "usuarioId": "USR_EMP_001",
+      "tipoAcceso": "administrador",
+      "modulos": {
+        "dashboard": {
+          "acceso": true
+        },
+        "empleados": {
+          "acceso": true
+        },
+        "clientes": {
+          "acceso": true
+        },
+        "proveedores": {
+          "acceso": true
+        },
+        "inventarios": {
+          "acceso": true
+        },
+        "equipos": {
+          "acceso": true
+        },
+        "reportes": {
+          "acceso": true
+        },
+        "configuracion": {
+          "acceso": true
+        }
+      },
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
       "fechaModificacion": null
     },
     {
-      "id": "EMP_SIN_PERMISOS",
-      "nombre": "Juan Carlos Pérez Mendoza",
-      "telefono": "961-100-0001",
+      "id": "EMP_002",
+      "nombre": "Juan Pérez Martínez",
       "email": "juan.perez@supercopias.com",
-      "puesto": "Operador de Equipos",
-      "sucursal": "Sucursal Centro",
+      "telefono": "961-100-0002",
+      "puesto": "Asistente de Ventas",
+      "sucursal": "Sucursal Norte",
       "salario": 15000,
-      "fechaIngreso": "2024-01-15",
-      "numeroEmpleado": "E001",
-      "activo": false,
-      "fechaBaja": null,
-      "roles": [],
-      "tieneUsuario": true,
-      "usuarioId": "USR_hVJRnQ6Z8r",
-      "tipoPermiso": "personalizado",
-      "modulosPermitidos": [
-        "dashboard",
-        "clientes"
-      ],
-      "permisos": [],
-      "fechaAsignacionPermisos": "2024-01-15T08:00:00.000Z",
-      "fechaRegistro": "2024-01-15T08:00:00.000Z",
-      "fechaModificacion": "2025-10-11T14:03:54.986Z"
+      "fechaIngreso": "2024-01-20",
+      "activo": true,
+      "usuarioId": "USR_EMP_002",
+      "tipoAcceso": "personalizado",
+      "modulos": {
+        "dashboard": {
+          "acceso": true
+        },
+        "empleados": {
+          "acceso": false
+        },
+        "clientes": {
+          "acceso": true
+        },
+        "proveedores": {
+          "acceso": false
+        },
+        "inventarios": {
+          "acceso": false
+        },
+        "equipos": {
+          "acceso": false
+        },
+        "reportes": {
+          "acceso": false
+        },
+        "configuracion": {
+          "acceso": false
+        }
+      },
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": null
     },
     {
-      "id": "EMP_ADMINISTRADOR",
-      "nombre": "María Elena García Rodríguez",
-      "telefono": "961-100-0002",
-      "email": "maria.garcia@supercopias.com",
-      "puesto": "Gerente General",
+      "id": "EMP_003",
+      "nombre": "Ana López Silva",
+      "email": "ana.lopez@supercopias.com",
+      "telefono": "961-100-0003",
+      "puesto": "Auxiliar Administrativo",
+      "sucursal": "Sucursal Sur",
+      "salario": 12000,
+      "fechaIngreso": "2024-02-01",
+      "activo": true,
+      "usuarioId": "USR_Ni-x7KxEGi",
+      "tipoAcceso": "personalizado",
+      "modulos": {
+        "dashboard": {
+          "acceso": false
+        },
+        "empleados": {
+          "acceso": false
+        },
+        "clientes": {
+          "acceso": true
+        },
+        "proveedores": {
+          "acceso": false
+        },
+        "inventarios": {
+          "acceso": false
+        },
+        "equipos": {
+          "acceso": false
+        },
+        "reportes": {
+          "acceso": false
+        },
+        "configuracion": {
+          "acceso": false
+        }
+      },
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": "2025-10-11T16:27:32.707Z",
+      "fechaBaja": null
+    },
+    {
+      "id": "EMP_cB-9_nJ-eq",
+      "nombre": "jhona",
+      "email": "gm@gmail.com",
+      "telefono": "55555",
+      "puesto": "Gerente de Sucursal",
       "sucursal": "Sucursal Centro",
-      "salario": 45000,
-      "fechaIngreso": "2023-06-01",
-      "numeroEmpleado": "E002",
-      "activo": false,
+      "salario": 23432,
+      "fechaIngreso": "2025-10-11",
+      "activo": true,
       "fechaBaja": null,
-      "roles": [
-        "admin"
-      ],
-      "tieneUsuario": true,
-      "usuarioId": "USR_ADMIN_001",
-      "tipoPermiso": "administrador",
-      "modulosPermitidos": [
-        "dashboard",
-        "empleados",
-        "clientes",
-        "proveedores",
-        "inventarios",
-        "equipos",
-        "reportes",
-        "puntoventa"
-      ],
-      "permisos": [],
-      "fechaAsignacionPermisos": "2023-06-01T08:00:00.000Z",
-      "fechaRegistro": "2023-06-01T08:00:00.000Z",
-      "fechaModificacion": "2025-10-11T15:22:59.934Z"
+      "fechaRegistro": "2025-10-11T16:29:41.997Z",
+      "fechaModificacion": null,
+      "tipoAcceso": "personalizado",
+      "modulos": {
+        "dashboard": {
+          "acceso": true
+        },
+        "empleados": {
+          "acceso": false
+        },
+        "clientes": {
+          "acceso": false
+        },
+        "proveedores": {
+          "acceso": false
+        },
+        "inventarios": {
+          "acceso": false
+        },
+        "equipos": {
+          "acceso": false
+        },
+        "reportes": {
+          "acceso": false
+        },
+        "configuracion": {
+          "acceso": false
+        }
+      },
+      "usuarioId": "USR_oW8DF6EkEM"
+    }
+  ],
+  "clientes": [
+    {
+      "id": "CLI_001",
+      "rfc": "XAXX010101000",
+      "razonSocial": "Servicios Empresariales del Sureste S.A. de C.V.",
+      "nombreComercial": "Servicios SES",
+      "email": "contacto@serviciosses.com",
+      "telefono": "961-200-0001",
+      "direccion": {
+        "calle": "Av. Central",
+        "numero": "123",
+        "colonia": "Centro",
+        "codigoPostal": "29000",
+        "ciudad": "Tuxtla Gutiérrez",
+        "estado": "Chiapas"
+      },
+      "regimenFiscal": "601",
+      "usoCfdi": "G03",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": null
+    },
+    {
+      "id": "CLI_002",
+      "rfc": "XBXX010101001",
+      "razonSocial": "Comercializadora de Papelería La Mundial S.A.",
+      "nombreComercial": "Papelería La Mundial",
+      "email": "ventas@papeleriamundial.com",
+      "telefono": "961-200-0002",
+      "direccion": {
+        "calle": "Calle 5 de Mayo",
+        "numero": "456",
+        "colonia": "Las Flores",
+        "codigoPostal": "29040",
+        "ciudad": "Tuxtla Gutiérrez",
+        "estado": "Chiapas"
+      },
+      "regimenFiscal": "601",
+      "usoCfdi": "G03",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": null
+    },
+    {
+      "id": "CLI_003",
+      "rfc": "XCXX010101002",
+      "razonSocial": "Distribuidora de Oficinas Chiapas S.C.",
+      "nombreComercial": "Oficinas Chiapas",
+      "email": "info@oficinaschiapas.com",
+      "telefono": "961-200-0003",
+      "direccion": {
+        "calle": "Blvd. Belisario Domínguez",
+        "numero": "789",
+        "colonia": "Xamaipak",
+        "codigoPostal": "29060",
+        "ciudad": "Tuxtla Gutiérrez",
+        "estado": "Chiapas"
+      },
+      "regimenFiscal": "601",
+      "usoCfdi": "G01",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": null
+    },
+    {
+      "id": "CLI_004",
+      "rfc": "XDXX010101003",
+      "razonSocial": "Impresiones y Copias del Istmo S.A. de C.V.",
+      "nombreComercial": "Copias del Istmo",
+      "email": "gerencia@copiasistmo.com",
+      "telefono": "961-200-0004",
+      "direccion": {
+        "calle": "Av. Universidad",
+        "numero": "321",
+        "colonia": "Universitaria",
+        "codigoPostal": "29050",
+        "ciudad": "Tuxtla Gutiérrez",
+        "estado": "Chiapas"
+      },
+      "regimenFiscal": "601",
+      "usoCfdi": "G03",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": null
+    },
+    {
+      "id": "CLI_005",
+      "rfc": "XEXX010101004",
+      "razonSocial": "Consultoría y Servicios Profesionales Maya S.C.",
+      "nombreComercial": "Consultores Maya",
+      "email": "contacto@consultoresmaya.com",
+      "telefono": "961-200-0005",
+      "direccion": {
+        "calle": "Calle Primera Norte",
+        "numero": "654",
+        "colonia": "San Roque",
+        "codigoPostal": "29070",
+        "ciudad": "Tuxtla Gutiérrez",
+        "estado": "Chiapas"
+      },
+      "regimenFiscal": "612",
+      "usoCfdi": "G01",
+      "activo": true,
+      "fechaRegistro": "2025-10-11T16:10:57.691Z",
+      "fechaModificacion": null
     }
   ],
   "proveedores": [
     {
-      "id": "xLd-2XKVuddkEk5b0o-Uo",
+      "id": "k3tPnzjZgnxJ3jEAsyghr",
       "nombre": "Papelería El Estudiante",
       "rfc": "PES910315ABC",
       "email": "ventas@estudiantepapeleria.com",
@@ -350,7 +396,7 @@
       "fechaModificacion": null
     },
     {
-      "id": "cIJ7s9uBPFMi1WmNLVgDW",
+      "id": "5UIu8fNQSTRX2E9PW7Bd4",
       "nombre": "Tecnología y Sistemas SA",
       "rfc": "TYS850420DEF",
       "email": "soporte@tecnologiasistemas.com",
@@ -368,7 +414,7 @@
       "fechaModificacion": null
     },
     {
-      "id": "zfSk9VS_NgEn53XK6p4B9",
+      "id": "dxmD8yr7WmHX4XqWjnj9T",
       "nombre": "Servicios de Limpieza Integral",
       "rfc": "SLI780630GHI",
       "email": "admin@limpiezaintegral.com",
@@ -386,7 +432,7 @@
       "fechaModificacion": null
     },
     {
-      "id": "Cbv2z7s6lVtleGd_i1-Yp",
+      "id": "4ry7YMAfje0f8l7uDIi35",
       "nombre": "Insumos y Toners Express",
       "rfc": "ITE920815JKL",
       "email": "pedidos@tonersexpress.com",
@@ -404,7 +450,7 @@
       "fechaModificacion": null
     },
     {
-      "id": "IRGY0B9hH-WIpFQ7-hhlF",
+      "id": "z82huUj3ZLX3MTOqn5m2c",
       "nombre": "Capacitación Empresarial Pro",
       "rfc": "CEP870925MNO",
       "email": "cursos@capacitacionpro.com",
@@ -423,214 +469,141 @@
     }
   ],
   "catalogos": {
-    "usosCFDI": [
+    "estados": [
+      {
+        "codigo": "CHP",
+        "nombre": "Chiapas"
+      },
+      {
+        "codigo": "CDMX",
+        "nombre": "Ciudad de México"
+      },
+      {
+        "codigo": "GTO",
+        "nombre": "Guanajuato"
+      }
+    ],
+    "regimenesFiscales": [
+      {
+        "codigo": "601",
+        "descripcion": "General de Ley Personas Morales"
+      },
+      {
+        "codigo": "612",
+        "descripcion": "Personas Físicas con Actividades Empresariales"
+      },
+      {
+        "codigo": "605",
+        "descripcion": "Sueldos y Salarios e Ingresos Asimilados a Salarios"
+      }
+    ],
+    "usosCfdi": [
       {
         "codigo": "G01",
         "descripcion": "Adquisición de mercancías"
-      },
-      {
-        "codigo": "G02",
-        "descripcion": "Devoluciones, descuentos o bonificaciones"
       },
       {
         "codigo": "G03",
         "descripcion": "Gastos en general"
       },
       {
-        "codigo": "I01",
-        "descripcion": "Construcciones"
-      },
-      {
-        "codigo": "I02",
-        "descripcion": "Mobiliario y equipo de oficina por inversiones"
-      },
-      {
-        "codigo": "I03",
-        "descripcion": "Equipo de transporte"
-      },
-      {
-        "codigo": "I04",
-        "descripcion": "Equipo de cómputo y accesorios"
-      },
-      {
-        "codigo": "I05",
-        "descripcion": "Dados, troqueles, moldes, matrices y herramental"
-      },
-      {
-        "codigo": "I06",
-        "descripcion": "Comunicaciones telefónicas"
-      },
-      {
-        "codigo": "I07",
-        "descripcion": "Comunicaciones satelitales"
-      },
-      {
-        "codigo": "I08",
-        "descripcion": "Otra maquinaria y equipo"
-      },
-      {
         "codigo": "D01",
         "descripcion": "Honorarios médicos, dentales y gastos hospitalarios"
+      }
+    ],
+    "formasPago": [
+      {
+        "codigo": "01",
+        "descripcion": "Efectivo"
       },
       {
-        "codigo": "D02",
-        "descripcion": "Gastos médicos por incapacidad o discapacidad"
+        "codigo": "02",
+        "descripcion": "Cheque nominativo"
       },
       {
-        "codigo": "D03",
-        "descripcion": "Gastos funerales"
+        "codigo": "03",
+        "descripcion": "Transferencia electrónica de fondos"
       },
       {
-        "codigo": "D04",
-        "descripcion": "Donativos"
+        "codigo": "04",
+        "descripcion": "Tarjeta de crédito"
+      }
+    ],
+    "metodosPago": [
+      {
+        "codigo": "PUE",
+        "descripcion": "Pago en una sola exhibición"
       },
       {
-        "codigo": "D05",
-        "descripcion": "Intereses reales efectivamente pagados por créditos hipotecarios"
-      },
-      {
-        "codigo": "D06",
-        "descripcion": "Aportaciones voluntarias al SAR"
-      },
-      {
-        "codigo": "D07",
-        "descripcion": "Primas por seguros de gastos médicos"
-      },
-      {
-        "codigo": "D08",
-        "descripcion": "Gastos de transportación escolar obligatoria"
-      },
-      {
-        "codigo": "D09",
-        "descripcion": "Depósitos en cuentas para el ahorro, primas que tengan como base planes de pensiones"
-      },
-      {
-        "codigo": "D10",
-        "descripcion": "Pagos por servicios educativos (colegiaturas)"
-      },
-      {
-        "codigo": "S01",
-        "descripcion": "Sin efectos fiscales"
-      },
-      {
-        "codigo": "CP01",
-        "descripcion": "Pagos"
-      },
-      {
-        "codigo": "CN01",
-        "descripcion": "Nómina"
+        "codigo": "PPD",
+        "descripcion": "Pago en parcialidades o diferido"
       }
     ],
     "sucursales": [
       {
         "id": "SUC_001",
         "nombre": "Sucursal Centro",
-        "direccion": "Av. Principal 123, Centro",
-        "telefono": "555-1001",
-        "gerente": "Ana García",
+        "direccion": "Centro de Tuxtla Gutiérrez",
+        "telefono": "961-100-1001",
+        "gerente": "María Gómez Hernández",
         "activa": true,
-        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
       },
       {
         "id": "SUC_002",
         "nombre": "Sucursal Norte",
-        "direccion": "Calle Norte 456, Zona Norte",
-        "telefono": "555-1002",
-        "gerente": "Carlos López",
+        "direccion": "Norte de Tuxtla Gutiérrez",
+        "telefono": "961-100-1002",
+        "gerente": "Juan Pérez Martínez",
         "activa": true,
-        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
       },
       {
         "id": "SUC_003",
         "nombre": "Sucursal Sur",
-        "direccion": "Av. Sur 789, Zona Sur",
-        "telefono": "555-1003",
-        "gerente": "María Rodríguez",
+        "direccion": "Sur de Tuxtla Gutiérrez",
+        "telefono": "961-100-1003",
+        "gerente": "Ana López Silva",
         "activa": true,
-        "fechaCreacion": "2025-10-11T09:39:14.504Z"
-      },
-      {
-        "id": "SUC_004",
-        "nombre": "Sucursal Este",
-        "direccion": "Blvd. Este 321, Zona Este",
-        "telefono": "555-1004",
-        "gerente": "José Martínez",
-        "activa": true,
-        "fechaCreacion": "2025-10-11T09:39:14.504Z"
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
       }
     ],
     "puestos": [
       {
-        "id": "PUE_001",
-        "nombre": "Gerente General",
-        "descripcion": "Responsable general de la sucursal y supervisión del personal",
-        "salarioMinimo": 25000,
+        "id": "PUESTO_001",
+        "nombre": "Gerente de Sucursal",
+        "descripcion": "Responsable de la administración general de la sucursal",
+        "salarioMinimo": 20000,
         "salarioMaximo": 35000,
         "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
       },
       {
-        "id": "PUE_002",
-        "nombre": "Gerente de Ventas",
-        "descripcion": "Encargado del área de ventas y atención al cliente",
-        "salarioMinimo": 20000,
-        "salarioMaximo": 28000,
-        "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
-      },
-      {
-        "id": "PUE_003",
-        "nombre": "Cajero",
-        "descripcion": "Responsable del punto de venta y cobros",
+        "id": "PUESTO_002",
+        "nombre": "Asistente de Ventas",
+        "descripcion": "Apoyo en atención al cliente y ventas",
         "salarioMinimo": 12000,
-        "salarioMaximo": 15000,
-        "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
-      },
-      {
-        "id": "PUE_004",
-        "nombre": "Operador de Equipos",
-        "descripcion": "Manejo de máquinas fotocopiadoras e impresoras",
-        "salarioMinimo": 14000,
         "salarioMaximo": 18000,
         "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
       },
       {
-        "id": "PUE_005",
-        "nombre": "Diseñador Gráfico",
-        "descripcion": "Creación de diseños y material publicitario",
-        "salarioMinimo": 16000,
-        "salarioMaximo": 22000,
-        "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
-      },
-      {
-        "id": "PUE_006",
-        "nombre": "Gestora de Clientes",
-        "descripcion": "Atención especializada y seguimiento de clientes",
-        "salarioMinimo": 15000,
-        "salarioMaximo": 20000,
-        "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
-      },
-      {
-        "id": "PUE_007",
-        "nombre": "Técnico de Mantenimiento",
-        "descripcion": "Mantenimiento y reparación de equipos",
-        "salarioMinimo": 15000,
-        "salarioMaximo": 19000,
-        "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
-      },
-      {
-        "id": "PUE_008",
-        "nombre": "Asistente Administrativo",
-        "descripcion": "Apoyo en tareas administrativas y documentación",
+        "id": "PUESTO_003",
+        "nombre": "Auxiliar Administrativo",
+        "descripcion": "Apoyo en tareas administrativas y de oficina",
         "salarioMinimo": 10000,
-        "salarioMaximo": 14000,
+        "salarioMaximo": 15000,
         "activo": true,
-        "fechaCreacion": "2025-10-11T09:39:14.510Z"
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
+      },
+      {
+        "id": "PUESTO_004",
+        "nombre": "Operador de Equipos",
+        "descripcion": "Manejo y mantenimiento de equipos de copiado e impresión",
+        "salarioMinimo": 11000,
+        "salarioMaximo": 16000,
+        "activo": true,
+        "fechaCreacion": "2025-10-11T16:10:57.691Z"
       }
     ]
   }

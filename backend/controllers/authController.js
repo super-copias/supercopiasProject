@@ -92,10 +92,18 @@ function login(req, res) {
 
     // Obtener información adicional del empleado si existe
     let empleadoInfo = null;
+    let modulosPermitidos = [];
+    
     if (user.empleadoId) {
       empleadoInfo = db.get('empleados')
         .find({ id: user.empleadoId })
         .value();
+        
+      // Extraer módulos con acceso true
+      if (empleadoInfo && empleadoInfo.modulos) {
+        modulosPermitidos = Object.keys(empleadoInfo.modulos)
+          .filter(modulo => empleadoInfo.modulos[modulo].acceso === true);
+      }
     }
     
     // Responder con token y datos del usuario (sin contraseña)
@@ -115,8 +123,8 @@ function login(req, res) {
             fechaRegistro: user.fechaRegistro,
             ultimoAcceso: user.ultimoAcceso,
             empleadoId: user.empleadoId,
-            tipoPermiso: empleadoInfo?.tipoPermiso,
-            modulosPermitidos: empleadoInfo?.modulosPermitidos || []
+            tipoPermiso: empleadoInfo?.tipoAcceso || null,
+            modulosPermitidos: modulosPermitidos
           }
         },
         'Login exitoso'
@@ -178,10 +186,18 @@ function verifyToken(req, res) {
 
     // Obtener información adicional del empleado si existe
     let empleadoInfo = null;
+    let modulosPermitidos = [];
+    
     if (user.empleadoId) {
       empleadoInfo = db.get('empleados')
         .find({ id: user.empleadoId })
         .value();
+        
+      // Extraer módulos con acceso true
+      if (empleadoInfo && empleadoInfo.modulos) {
+        modulosPermitidos = Object.keys(empleadoInfo.modulos)
+          .filter(modulo => empleadoInfo.modulos[modulo].acceso === true);
+      }
     }
     
     // Responder con datos del usuario válidos
@@ -201,8 +217,8 @@ function verifyToken(req, res) {
             fechaRegistro: user.fechaRegistro,
             ultimoAcceso: user.ultimoAcceso,
             empleadoId: user.empleadoId,
-            tipoPermiso: empleadoInfo?.tipoPermiso,
-            modulosPermitidos: empleadoInfo?.modulosPermitidos || []
+            tipoPermiso: empleadoInfo?.tipoAcceso || null,
+            modulosPermitidos: modulosPermitidos
           }
         },
         'Token válido'

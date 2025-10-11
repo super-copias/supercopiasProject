@@ -1,38 +1,72 @@
-# Scripts de Gestión de Clientes
+# Scripts del Backend - SuperCopias# Scripts de Gestión de Clientes
 
-Este directorio contiene scripts para gestionar los datos de clientes en la base de datos.
 
-## Scripts disponibles
 
-### 1. `limpiar-clientes.js` (Limpieza rápida)
-Script simple que elimina todos los clientes y crea 2 clientes de prueba.
+Este directorio contiene el script de inicialización del sistema.Este directorio contiene scripts para gestionar los datos de clientes en la base de datos.
 
-```bash
-# Desde el directorio backend
-node scripts/limpiar-clientes.js
-```
+
+
+## Script Disponible## Scripts disponibles
+
+
+
+### `init-clean-data.js`### 1. `limpiar-clientes.js` (Limpieza rápida)
+
+**Descripción:** Script maestro para inicializar el sistema con datos limpios.Script simple que elimina todos los clientes y crea 2 clientes de prueba.
+
+
+
+**Funcionalidad:**```bash
+
+- Crea 1 usuario administrador# Desde el directorio backend
+
+- Crea 3 empleados con diferentes niveles de accesonode scripts/limpiar-clientes.js
+
+- Crea 5 clientes de ejemplo  ```
+
+- Inicializa catálogos básicos del sistema
 
 ### 2. `limpiar-inconsistentes.js` (Limpiar estructura)
-Script que elimina clientes con estructura de datos inconsistente.
+
+**Uso:**Script que elimina clientes con estructura de datos inconsistente.
 
 ```bash
-# Limpiar clientes con estructura incorrecta
-node scripts/limpiar-inconsistentes.js
-```
 
-### 3. `gestionar-clientes.js` (Gestión avanzada)
+# Desde el directorio backend```bash
+
+npm run init# Limpiar clientes con estructura incorrecta
+
+node scripts/limpiar-inconsistentes.js
+
+# O directamente:```
+
+node scripts/init-clean-data.js
+
+```### 3. `gestionar-clientes.js` (Gestión avanzada)
+
 Script completo con múltiples opciones para gestionar clientes.
 
-```bash
-# Listar todos los clientes
-node scripts/gestionar-clientes.js listar
+**Credenciales creadas:**
 
-# Crear respaldo de clientes actuales
-node scripts/gestionar-clientes.js respaldar
+- **Admin:** admin / Admin123!$```bash
 
-# Restaurar desde respaldo
+- **Empleado (completo):** mgomez / empleado123# Listar todos los clientes
+
+- **Empleado (limitado):** jperez / empleado123node scripts/gestionar-clientes.js listar
+
+
+
+**Empleados configurados:**# Crear respaldo de clientes actuales
+
+- María Gómez: Acceso administrador (todos los módulos)node scripts/gestionar-clientes.js respaldar
+
+- Juan Pérez: Acceso personalizado (dashboard y clientes)
+
+- Ana López: Inactivo (sin usuario de sistema)# Restaurar desde respaldo
+
 node scripts/gestionar-clientes.js restaurar
 
+**Nota:** Este script restablece completamente la base de datos a un estado limpio. Úsalo cuando necesites volver al estado inicial del sistema.
 # Eliminar todos los clientes
 node scripts/gestionar-clientes.js limpiar
 

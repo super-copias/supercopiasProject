@@ -7,9 +7,10 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "dev:clean": "nodemon --exec \"node index.js\" --ignore db.json --ignore uploads/",
-    "reset": "node utils/initMockData.js && npm start"
+    "init": "node scripts/init-clean-data.js"
   },
   "dependencies": {
+    "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",

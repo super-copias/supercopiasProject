@@ -220,23 +220,17 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
    * Eliminar empleado
    */
   onEliminar(empleado: any): void {
-    console.log('onEliminar called with:', empleado);
-    
     // Confirmar eliminación
     const confirmar = confirm(`¿Está seguro que desea eliminar al empleado "${empleado.nombre}"?\n\nEsta acción no se puede deshacer.`);
     
     if (!confirmar) {
-      console.log('Eliminación cancelada por el usuario');
       return;
     }
 
-    console.log('Procediendo a eliminar empleado con ID:', empleado.id);
-    
     this.empleadosService.delete(empleado.id).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        console.log('Respuesta del servicio:', response);
         if (response?.success) {
           alert('Empleado eliminado exitosamente');
           this.load(); // Recargar la lista
