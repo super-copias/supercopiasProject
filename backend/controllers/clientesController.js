@@ -418,20 +418,16 @@ function deleteCliente(req, res) {
     // Verificar si tiene dependencias (facturas, pedidos, etc.)
     // Aquí podrías agregar validaciones adicionales
     
-    // Desactivar cliente en lugar de eliminar
+    // Eliminar cliente completamente de la base de datos
     db.get('clientes')
-      .find({ id })
-      .assign({ 
-        activo: false,
-        fechaModificacion: new Date().toISOString()
-      })
+      .remove({ id })
       .write();
     
     res.json(
       createResponse(
         true,
-        { id, activo: false },
-        'Cliente desactivado exitosamente'
+        { id, eliminado: true },
+        'Cliente eliminado exitosamente'
       )
     );
     

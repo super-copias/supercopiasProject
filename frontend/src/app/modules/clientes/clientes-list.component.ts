@@ -210,7 +210,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     this.svc.delete(cliente.id).pipe(
       takeUntil(this.destroy$)
     ).subscribe((response) => {
-      // El backend siempre devuelve ApiResponse<{id: string, activo: boolean}>
+      // El backend siempre devuelve ApiResponse<{id: string, eliminado: boolean}>
       if (response?.success) {
         this.load(); // Recargar la lista
       } else {

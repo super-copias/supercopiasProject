@@ -41,7 +41,7 @@ export class ClientesTableComponent {
   }
 
   eliminarCliente(cliente: any) {
-    if (confirm(`¿Está seguro de eliminar al cliente "${cliente.nombre}"?`)) {
+    if (confirm(`⚠️ ATENCIÓN: Esta acción eliminará PERMANENTEMENTE al cliente "${cliente.nombre}" de la base de datos.\n\n¿Está completamente seguro de continuar? Esta acción NO se puede deshacer.`)) {
       this.eliminar.emit(cliente);
     }
   }
