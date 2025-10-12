@@ -9,12 +9,16 @@ import { Observable, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
 import { ApiResponse, Cliente, PaginationParams } from '../shared/interfaces';
+import { CatalogosService } from './catalogos.service';
 
 @Injectable({ providedIn: 'root' })
 export class ClientesService {
   private baseUrl = '/api/clientes';
   
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private catalogosService: CatalogosService
+  ) {}
 
   /**
    * Obtener lista de clientes con búsqueda y paginación
@@ -36,7 +40,7 @@ export class ClientesService {
   /**
    * Obtener cliente por ID
    */
-  getById(id: string): Observable<ApiResponse<Cliente>> {
+  getById(id: number): Observable<ApiResponse<Cliente>> {
     return this.http.get<ApiResponse<Cliente>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -56,7 +60,7 @@ export class ClientesService {
   /**
    * Actualizar cliente existente
    */
-  update(id: string, cliente: Partial<Cliente>): Observable<ApiResponse<Cliente>> {
+  update(id: number, cliente: Partial<Cliente>): Observable<ApiResponse<Cliente>> {
     return this.http.put<ApiResponse<Cliente>>(`${this.baseUrl}/${id}`, cliente)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -66,8 +70,8 @@ export class ClientesService {
   /**
    * Eliminar cliente (eliminar permanentemente)
    */
-  delete(id: string): Observable<ApiResponse<{ id: string; eliminado: boolean }>> {
-    return this.http.delete<ApiResponse<{ id: string; eliminado: boolean }>>(`${this.baseUrl}/${id}`)
+  delete(id: number): Observable<ApiResponse<{ id: number; eliminado: boolean }>> {
+    return this.http.delete<ApiResponse<{ id: number; eliminado: boolean }>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );
@@ -91,15 +95,7 @@ export class ClientesService {
    * Obtener catálogo de Usos CFDI desde backend
    */
   getUsosCFDI(): Observable<any[]> {
-    return this.http.get<ApiResponse<any[]>>('/api/catalogos/usos-cfdi')
-      .pipe(
-        map(response => response.success ? response.data || [] : []),
-        catchError(() => {
-          // Fallback en caso de error
-          console.warn('Error obteniendo usos CFDI del backend, usando datos estáticos');
-          return this.getUsosCFDIStatic();
-        })
-      );
+    return this.catalogosService.getUsosCFDI();
   }
 
   /**
@@ -147,43 +143,6 @@ export class ClientesService {
   }
 
   /**
-   * Datos estáticos de Usos CFDI como fallback
-   */
-  private getUsosCFDIStatic(): Observable<any[]> {
-    const usosCFDI = [
-      { codigo: 'G01', descripcion: 'Adquisición de mercancías' },
-      { codigo: 'G02', descripcion: 'Devoluciones, descuentos o bonificaciones' },
-      { codigo: 'G03', descripcion: 'Gastos en general' },
-      { codigo: 'I01', descripcion: 'Construcciones' },
-      { codigo: 'I02', descripcion: 'Mobiliario y equipo de oficina por inversiones' },
-      { codigo: 'I03', descripcion: 'Equipo de transporte' },
-      { codigo: 'I04', descripcion: 'Equipo de cómputo y accesorios' },
-      { codigo: 'I05', descripcion: 'Dados, troqueles, moldes, matrices y herramental' },
-      { codigo: 'I06', descripcion: 'Comunicaciones telefónicas' },
-      { codigo: 'I07', descripcion: 'Comunicaciones satelitales' },
-      { codigo: 'I08', descripcion: 'Otra maquinaria y equipo' },
-      { codigo: 'D01', descripcion: 'Honorarios médicos, dentales y gastos hospitalarios' },
-      { codigo: 'D02', descripcion: 'Gastos médicos por incapacidad o discapacidad' },
-      { codigo: 'D03', descripcion: 'Gastos funerales' },
-      { codigo: 'D04', descripcion: 'Donativos' },
-      { codigo: 'D05', descripcion: 'Intereses reales efectivamente pagados por créditos hipotecarios' },
-      { codigo: 'D06', descripcion: 'Aportaciones voluntarias al SAR' },
-      { codigo: 'D07', descripcion: 'Primas por seguros de gastos médicos' },
-      { codigo: 'D08', descripcion: 'Gastos de transportación escolar obligatoria' },
-      { codigo: 'D09', descripcion: 'Depósitos en cuentas para el ahorro, primas que tengan como base planes de pensiones' },
-      { codigo: 'D10', descripcion: 'Pagos por servicios educativos (colegiaturas)' },
-      { codigo: 'S01', descripcion: 'Sin efectos fiscales' },
-      { codigo: 'CP01', descripcion: 'Pagos' },
-      { codigo: 'CN01', descripcion: 'Nómina' }
-    ];
-
-    return new Observable(observer => {
-      observer.next(usosCFDI);
-      observer.complete();
-    });
-  }
-
-  /**
    * Subir archivo Excel con clientes
    */
   uploadExcel(file: File): Observable<ApiResponse<any>> {
@@ -210,7 +169,7 @@ export class ClientesService {
   /**
    * Método de compatibilidad para findById() - redirige a getById()
    */
-  findById(id: string): Observable<ApiResponse<Cliente>> {
+  findById(id: number): Observable<ApiResponse<Cliente>> {
     return this.getById(id);
   }
 

@@ -10,17 +10,25 @@ import { RolSistema, ModuloPermisos } from '../interfaces';
  */
 export class PermisosUtils {
   
+  // Mapeo de roles string a ID numérico (para compatibilidad durante migración)
+  private static readonly ROLE_IDS = {
+    'admin': 1,
+    'gerente': 2,
+    'empleado': 3,
+    'invitado': 4
+  };
+  
   /**
    * Verificar si un usuario tiene permiso para una acción específica
    */
   static hasPermission(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[],
     modulo: string,
     accion: keyof ModuloPermisos
   ): boolean {
-    // Si tiene rol admin, tiene todos los permisos
-    if (userRoles.includes('admin')) {
+    // Si tiene rol admin (ID 1), tiene todos los permisos
+    if (userRoles.includes(1)) {
       return true;
     }
 
@@ -38,7 +46,7 @@ export class PermisosUtils {
    * Obtener todos los permisos combinados de un usuario
    */
   static getCombinedPermissions(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[]
   ): Record<string, ModuloPermisos> {
     const combinedPermisos: Record<string, ModuloPermisos> = {};
@@ -75,7 +83,7 @@ export class PermisosUtils {
    * Verificar si un usuario puede acceder a un módulo
    */
   static canAccessModule(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[],
     modulo: string
   ): boolean {
@@ -88,7 +96,7 @@ export class PermisosUtils {
    * Obtener módulos accesibles para un usuario
    */
   static getAccessibleModules(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[]
   ): string[] {
     const permissions = this.getCombinedPermissions(userRoles, rolesDefinition);
@@ -101,7 +109,7 @@ export class PermisosUtils {
    * Verificar múltiples permisos a la vez
    */
   static hasMultiplePermissions(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[],
     checks: Array<{ modulo: string; accion: keyof ModuloPermisos; required?: boolean }>
   ): { [key: string]: boolean } {
@@ -119,7 +127,7 @@ export class PermisosUtils {
    * Verificar si un usuario puede realizar todas las acciones requeridas
    */
   static canPerformAllActions(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[],
     requiredPermissions: Array<{ modulo: string; accion: keyof ModuloPermisos }>
   ): boolean {
@@ -132,7 +140,7 @@ export class PermisosUtils {
    * Verificar si un usuario puede realizar al menos una de las acciones
    */
   static canPerformAnyAction(
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[],
     permissions: Array<{ modulo: string; accion: keyof ModuloPermisos }>
   ): boolean {
@@ -144,21 +152,20 @@ export class PermisosUtils {
   /**
    * Obtener nivel de acceso para ordenamiento
    */
-  static getAccessLevel(userRoles: string[]): number {
-    if (userRoles.includes('admin')) return 100;
-    if (userRoles.includes('supervisor')) return 80;
-    if (userRoles.some(rol => rol.startsWith('gestor_'))) return 60;
-    if (userRoles.includes('operador')) return 40;
-    if (userRoles.includes('cajero')) return 20;
+  static getAccessLevel(userRoles: number[]): number {
+    if (userRoles.includes(1)) return 100; // admin
+    if (userRoles.includes(2)) return 80;  // gerente
+    if (userRoles.includes(3)) return 40;  // empleado
+    if (userRoles.includes(4)) return 20;  // invitado
     return 10;
   }
 
   /**
    * Filtrar datos según permisos de lectura
    */
-  static filterDataByReadPermission<T extends { id: string }>(
+  static filterDataByReadPermission<T extends { id: number }>(
     data: T[],
-    userRoles: string[],
+    userRoles: number[],
     rolesDefinition: RolSistema[],
     dataModule: string
   ): T[] {

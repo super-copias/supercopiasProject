@@ -44,7 +44,7 @@ export class EmpleadosService {
   /**
    * Obtener empleado por ID
    */
-  getById(id: string): Observable<ApiResponse<Empleado>> {
+  getById(id: number): Observable<ApiResponse<Empleado>> {
     return this.http.get<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -64,7 +64,7 @@ export class EmpleadosService {
   /**
    * Obtener empleado por ID
    */
-  getEmpleado(id: string): Observable<ApiResponse<Empleado>> {
+  getEmpleado(id: number): Observable<ApiResponse<Empleado>> {
     return this.http.get<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -74,7 +74,7 @@ export class EmpleadosService {
   /**
    * Actualizar empleado existente
    */
-  update(id: string, empleado: Partial<Empleado>): Observable<ApiResponse<Empleado>> {
+  update(id: number, empleado: Partial<Empleado>): Observable<ApiResponse<Empleado>> {
     return this.http.put<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`, empleado)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -84,8 +84,8 @@ export class EmpleadosService {
   /**
    * Eliminar empleado (eliminación completa)
    */
-  delete(id: string): Observable<ApiResponse<{ id: string; eliminado: boolean }>> {
-    return this.http.delete<ApiResponse<{ id: string; eliminado: boolean }>>(`${this.baseUrl}/${id}`)
+  delete(id: number): Observable<ApiResponse<{ id: number; eliminado: boolean }>> {
+    return this.http.delete<ApiResponse<{ id: number; eliminado: boolean }>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );
@@ -104,7 +104,7 @@ export class EmpleadosService {
   /**
    * Asignar roles a un empleado
    */
-  assignRoles(id: string, data: AsignarRoles): Observable<ApiResponse<EmpleadoConUsuario>> {
+  assignRoles(id: number, data: AsignarRoles): Observable<ApiResponse<EmpleadoConUsuario>> {
     return this.http.post<ApiResponse<EmpleadoConUsuario>>(`${this.baseUrl}/${id}/assign-roles`, data)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -134,7 +134,7 @@ export class EmpleadosService {
   /**
    * Actualizar permisos de módulos de un empleado
    */
-  updatePermisos(id: string, permisos: any): Observable<ApiResponse<any>> {
+  updatePermisos(id: number, permisos: any): Observable<ApiResponse<any>> {
     return this.http.put<ApiResponse<any>>(`${this.baseUrl}/${id}/permisos`, permisos)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -155,7 +155,7 @@ export class EmpleadosService {
   /**
    * Método de compatibilidad para assignRole() - redirige a assignRoles()
    */
-  assignRole(id: string, role: string): Observable<ApiResponse<EmpleadoConUsuario>> {
+  assignRole(id: number, role: string): Observable<ApiResponse<EmpleadoConUsuario>> {
     return this.assignRoles(id, { roles: [role], crearUsuario: false });
   }
 

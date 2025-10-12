@@ -116,7 +116,7 @@ export class ClientesFormComponent implements OnInit {
     cfdi: ''
   };
   isEdit = false;
-  clienteId: string | null = null;
+  clienteId: number | null = null;
   loading = false;
   
   // Catálogo de Usos CFDI de México

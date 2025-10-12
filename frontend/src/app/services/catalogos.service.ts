@@ -36,8 +36,15 @@ export interface MetodoPago {
   nombre: string;
 }
 
-export interface Sucursal {
+export interface Modulo {
   id: string;
+  nombre: string;
+  icono?: string;
+  activo: boolean;
+}
+
+export interface Sucursal {
+  id: number;
   nombre: string;
   direccion: string;
   telefono: string;
@@ -47,7 +54,7 @@ export interface Sucursal {
 }
 
 export interface Puesto {
-  id: string;
+  id: number;
   nombre: string;
   descripcion: string;
   salarioMinimo: number;
@@ -66,6 +73,7 @@ export class CatalogosService {
   private usosCFDICache$ = new BehaviorSubject<UsoCFDI[] | null>(null);
   private formasPagoCache$ = new BehaviorSubject<FormaPago[] | null>(null);
   private metodosPagoCache$ = new BehaviorSubject<MetodoPago[] | null>(null);
+  private modulosCache$ = new BehaviorSubject<Modulo[] | null>(null);
 
   constructor(private http: HttpClient) {}
 
@@ -165,6 +173,25 @@ export class CatalogosService {
   }
 
   /**
+   * Obtener catálogo de módulos del sistema
+   */
+  getModulos(useCache: boolean = true): Observable<Modulo[]> {
+    if (useCache && this.modulosCache$.value) {
+      return new Observable(observer => {
+        observer.next(this.modulosCache$.value!);
+        observer.complete();
+      });
+    }
+
+    return this.http.get<ApiResponse<Modulo[]>>(`${this.baseUrl}/modulos`)
+      .pipe(
+        map(response => response.success ? response.data || [] : []),
+        tap(modulos => this.modulosCache$.next(modulos)),
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
    * Limpiar cache de catálogos
    */
   clearCache(): void {
@@ -173,6 +200,7 @@ export class CatalogosService {
     this.usosCFDICache$.next(null);
     this.formasPagoCache$.next(null);
     this.metodosPagoCache$.next(null);
+    this.modulosCache$.next(null);
   }
 
   /**
@@ -184,6 +212,7 @@ export class CatalogosService {
     this.getUsosCFDI(false).subscribe();
     this.getFormasPago(false).subscribe();
     this.getMetodosPago(false).subscribe();
+    this.getModulos(false).subscribe();
   }
 
   // ============================================================================

@@ -3,7 +3,7 @@
  * Gestiona el login y autenticación de usuarios del sistema con estándar API
  */
 
-const { db, init } = require('../db');
+const { query } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createResponse, createErrorResponse, CODIGOS_ERROR } = require('../utils/apiStandard');
@@ -19,10 +19,8 @@ const SECRET = process.env.JWT_SECRET || 'supercopias_secret';
  * @param {Object} res - Response object
  * @returns {Object} JSON con token y datos del usuario o error 401
  */
-function login(req, res) {
+async function login(req, res) {
   try {
-    init();
-    
     const { identifier, password } = req.body;
     
     // Validar datos de entrada
@@ -36,11 +34,12 @@ function login(req, res) {
     }
     
     // Buscar usuario por username o email
-    const user = db.get('usuarios').find(u => 
-      u.username === identifier || (u.email && u.email === identifier)
-    ).value();
+    const result = await query(
+      'SELECT * FROM usuarios WHERE (username = $1 OR email = $1) AND activo = true',
+      [identifier]
+    );
     
-    if (!user) {
+    if (result.rows.length === 0) {
       return res.status(401).json(
         createErrorResponse(
           CODIGOS_ERROR.UNAUTHORIZED,
@@ -49,15 +48,7 @@ function login(req, res) {
       );
     }
     
-    // Verificar si el usuario está activo
-    if (!user.activo) {
-      return res.status(401).json(
-        createErrorResponse(
-          CODIGOS_ERROR.FORBIDDEN,
-          'Usuario desactivado'
-        )
-      );
-    }
+    const user = result.rows[0];
     
     // Verificar contraseña
     const match = bcrypt.compareSync(password, user.password);
@@ -82,27 +73,31 @@ function login(req, res) {
     );
     
     // Actualizar último acceso
-    db.get('usuarios')
-      .find({ id: user.id })
-      .assign({ 
-        ultimoAcceso: new Date().toISOString(),
-        fechaModificacion: new Date().toISOString()
-      })
-      .write();
+    await query(
+      'UPDATE usuarios SET ultimo_acceso = NOW(), fecha_modificacion = NOW() WHERE id = $1',
+      [user.id]
+    );
 
     // Obtener información adicional del empleado si existe
     let empleadoInfo = null;
     let modulosPermitidos = [];
     
-    if (user.empleadoId) {
-      empleadoInfo = db.get('empleados')
-        .find({ id: user.empleadoId })
-        .value();
+    if (user.empleado_id) {
+      const empleadoResult = await query(
+        'SELECT * FROM empleados WHERE id = $1',
+        [user.empleado_id]
+      );
+      
+      if (empleadoResult.rows.length > 0) {
+        empleadoInfo = empleadoResult.rows[0];
         
-      // Extraer módulos con acceso true
-      if (empleadoInfo && empleadoInfo.modulos) {
-        modulosPermitidos = Object.keys(empleadoInfo.modulos)
-          .filter(modulo => empleadoInfo.modulos[modulo].acceso === true);
+        // Obtener módulos del empleado
+        const modulosResult = await query(
+          'SELECT modulo FROM empleados_modulos WHERE empleado_id = $1 AND acceso = true',
+          [user.empleado_id]
+        );
+        
+        modulosPermitidos = modulosResult.rows.map(m => m.modulo);
       }
     }
     
@@ -118,12 +113,12 @@ function login(req, res) {
             nombre: user.nombre,
             email: user.email,
             role: user.role,
-            roles: user.roles,
+            roles: JSON.parse(user.roles || '[]'),
             activo: user.activo,
-            fechaRegistro: user.fechaRegistro,
-            ultimoAcceso: user.ultimoAcceso,
-            empleadoId: user.empleadoId,
-            tipoPermiso: empleadoInfo?.tipoAcceso || null,
+            fechaRegistro: user.fecha_registro,
+            ultimoAcceso: user.ultimo_acceso,
+            empleadoId: user.empleado_id,
+            tipoPermiso: empleadoInfo?.tipo_acceso || null,
             modulosPermitidos: modulosPermitidos
           }
         },
@@ -150,7 +145,7 @@ function login(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con datos del usuario o error 401
  */
-function verifyToken(req, res) {
+async function verifyToken(req, res) {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -167,15 +162,12 @@ function verifyToken(req, res) {
     const decoded = jwt.verify(token, SECRET);
     
     // Buscar usuario actual
-    init();
-    const user = db.get('usuarios')
-      .find({ 
-        id: decoded.id,
-        activo: true 
-      })
-      .value();
+    const result = await query(
+      'SELECT * FROM usuarios WHERE id = $1 AND activo = true',
+      [decoded.id]
+    );
     
-    if (!user) {
+    if (result.rows.length === 0) {
       return res.status(401).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -184,19 +176,28 @@ function verifyToken(req, res) {
       );
     }
 
+    const user = result.rows[0];
+
     // Obtener información adicional del empleado si existe
     let empleadoInfo = null;
     let modulosPermitidos = [];
     
-    if (user.empleadoId) {
-      empleadoInfo = db.get('empleados')
-        .find({ id: user.empleadoId })
-        .value();
+    if (user.empleado_id) {
+      const empleadoResult = await query(
+        'SELECT * FROM empleados WHERE id = $1',
+        [user.empleado_id]
+      );
+      
+      if (empleadoResult.rows.length > 0) {
+        empleadoInfo = empleadoResult.rows[0];
         
-      // Extraer módulos con acceso true
-      if (empleadoInfo && empleadoInfo.modulos) {
-        modulosPermitidos = Object.keys(empleadoInfo.modulos)
-          .filter(modulo => empleadoInfo.modulos[modulo].acceso === true);
+        // Obtener módulos del empleado
+        const modulosResult = await query(
+          'SELECT modulo FROM empleados_modulos WHERE empleado_id = $1 AND acceso = true',
+          [user.empleado_id]
+        );
+        
+        modulosPermitidos = modulosResult.rows.map(m => m.modulo);
       }
     }
     
@@ -212,12 +213,12 @@ function verifyToken(req, res) {
             nombre: user.nombre,
             email: user.email,
             role: user.role,
-            roles: user.roles,
+            roles: JSON.parse(user.roles || '[]'),
             activo: user.activo,
-            fechaRegistro: user.fechaRegistro,
-            ultimoAcceso: user.ultimoAcceso,
-            empleadoId: user.empleadoId,
-            tipoPermiso: empleadoInfo?.tipoAcceso || null,
+            fechaRegistro: user.fecha_registro,
+            ultimoAcceso: user.ultimo_acceso,
+            empleadoId: user.empleado_id,
+            tipoPermiso: empleadoInfo?.tipo_acceso || null,
             modulosPermitidos: modulosPermitidos
           }
         },

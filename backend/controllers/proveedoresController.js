@@ -3,8 +3,14 @@
  * Gestiona CRUD completo de proveedores
  */
 
-const { db, init } = require('../db');
+const { query } = require('../config/database');
 const { nanoid } = require('nanoid');
+const { 
+  createResponse, 
+  createPaginatedResponse, 
+  createErrorResponse, 
+  CODIGOS_ERROR 
+} = require('../utils/apiStandard');
 
 class ProveedoresController {
   /**
@@ -13,56 +19,67 @@ class ProveedoresController {
    */
   async getList(req, res) {
     try {
-      init();
-      
       const { page = 1, limit = 10, q = '', includeInactive = false } = req.query;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
       
-      let proveedores = db.get('proveedores').value() || [];
+      let baseQuery = `
+        SELECT * FROM proveedores
+        WHERE activo = true
+      `;
+      let countQuery = 'SELECT COUNT(*) FROM proveedores WHERE activo = true';
+      let queryParams = [];
       
-      // Filtrar por estado activo si se requiere
-      if (!includeInactive) {
-        proveedores = proveedores.filter(p => p.activo !== false);
+      // Incluir inactivos si se solicita
+      if (includeInactive) {
+        baseQuery = baseQuery.replace('WHERE activo = true', 'WHERE 1=1');
+        countQuery = countQuery.replace('WHERE activo = true', 'WHERE 1=1');
       }
       
       // Búsqueda por texto
       if (q) {
-        const query = q.toLowerCase();
-        proveedores = proveedores.filter(p => 
-          p.nombre.toLowerCase().includes(query) ||
-          p.rfc?.toLowerCase().includes(query) ||
-          p.email?.toLowerCase().includes(query)
-        );
+        const searchCondition = ` AND (
+          LOWER(nombre) LIKE $1 OR
+          LOWER(contacto) LIKE $1 OR
+          LOWER(email) LIKE $1 OR
+          LOWER(telefono) LIKE $1
+        )`;
+        baseQuery += searchCondition;
+        countQuery += searchCondition;
+        queryParams.push(`%${q.toLowerCase()}%`);
       }
       
-      // Paginación
-      const total = proveedores.length;
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + parseInt(limit);
-      const paginatedProveedores = proveedores.slice(startIndex, endIndex);
+      // Agregar ordenamiento y paginación
+      baseQuery += ` ORDER BY nombre ASC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+      queryParams.push(parseInt(limit), offset);
       
-      res.json({
-        success: true,
-        data: paginatedProveedores,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+      // Ejecutar consultas
+      const [itemsResult, countResult] = await Promise.all([
+        query(baseQuery, queryParams),
+        query(countQuery, queryParams.slice(0, -2))
+      ]);
+      
+      const proveedores = itemsResult.rows;
+      const total = parseInt(countResult.rows[0].count);
+      const totalPages = Math.ceil(total / parseInt(limit));
+      
+      return res.json(
+        createPaginatedResponse(
+          proveedores,
+          parseInt(page),
+          totalPages,
           total,
-          pages: Math.ceil(total / limit)
-        },
-        message: 'Proveedores obtenidos correctamente',
-        timestamp: new Date().toISOString()
-      });
+          'Proveedores obtenidos exitosamente'
+        )
+      );
       
     } catch (error) {
-      console.error('Error obteniendo proveedores:', error);
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Error interno del servidor'
-        },
-        timestamp: new Date().toISOString()
-      });
+      console.error('Error en getList proveedores:', error);
+      return res.status(500).json(
+        createErrorResponse(
+          CODIGOS_ERROR.DATABASE_ERROR,
+          'Error interno del servidor'
+        )
+      );
     }
   }
 
@@ -72,39 +89,42 @@ class ProveedoresController {
    */
   async getById(req, res) {
     try {
-      init();
-      
       const { id } = req.params;
-      const proveedor = db.get('proveedores').find({ id }).value();
       
-      if (!proveedor) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Proveedor no encontrado'
-          },
-          timestamp: new Date().toISOString()
-        });
+      // Convertir ID a número
+      const proveedorId = parseInt(id);
+      if (isNaN(proveedorId)) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_DATA,
+            'ID del proveedor debe ser un número válido'
+          )
+        );
       }
       
-      res.json({
-        success: true,
-        data: proveedor,
-        message: 'Proveedor obtenido correctamente',
-        timestamp: new Date().toISOString()
-      });
+      const result = await query('SELECT * FROM proveedores WHERE id = $1', [proveedorId]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json(
+          createErrorResponse(
+            CODIGOS_ERROR.NOT_FOUND,
+            'Proveedor no encontrado'
+          )
+        );
+      }
+      
+      const proveedor = result.rows[0];
+      
+      res.json(createResponse(proveedor, 'Proveedor obtenido exitosamente'));
       
     } catch (error) {
-      console.error('Error obteniendo proveedor:', error);
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Error interno del servidor'
-        },
-        timestamp: new Date().toISOString()
-      });
+      console.error('Error en getById proveedor:', error);
+      res.status(500).json(
+        createErrorResponse(
+          CODIGOS_ERROR.DATABASE_ERROR,
+          'Error interno del servidor'
+        )
+      );
     }
   }
 

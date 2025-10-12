@@ -22,6 +22,9 @@ router.get('/formas-pago', catalogosController.getFormasPago);
 // Métodos de pago SAT
 router.get('/metodos-pago', catalogosController.getMetodosPago);
 
+// Módulos del sistema
+router.get('/modulos', catalogosController.getModulos);
+
 // Sucursales
 router.get('/sucursales', catalogosController.getSucursales);
 router.post('/sucursales', catalogosController.createSucursal);

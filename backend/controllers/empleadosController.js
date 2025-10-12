@@ -3,7 +3,7 @@
  * Gestiona todas las operaciones CRUD para empleados con sistema de roles
  */
 
-const { db, init } = require('../db');
+const { query } = require('../config/database');
 const { nanoid } = require('nanoid');
 const XLSX = require('xlsx');
 const fs = require('fs');
@@ -31,54 +31,73 @@ const {
  * @param {Object} res - Response object
  * @returns {Object} JSON con array de empleados y paginación
  */
-function listEmpleados(req, res) {
+/**
+ * Obtener lista de empleados con búsqueda y paginación
+ * Endpoint: GET /api/empleados
+ * Query params: q (búsqueda), page (página), limit (límite por página)
+ * 
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @returns {Object} JSON con array de empleados y paginación
+ */
+async function listEmpleados(req, res) {
   try {
-    init();
-    
     // Parámetros de consulta
     const q = (req.query.q || '').toLowerCase();
     const page = parseInt(req.query.page || '1');
     const limit = parseInt(req.query.limit || '10');
+    const offset = (page - 1) * limit;
     
-    let items = db.get('empleados').value() || [];
+    let baseQuery = `
+      SELECT e.*, s.nombre as sucursal_nombre, p.nombre as puesto_nombre 
+      FROM empleados e
+      LEFT JOIN sucursales s ON e.sucursal_id = s.id
+      LEFT JOIN puestos p ON e.puesto_id = p.id
+      WHERE e.activo = true
+    `;
+    let countQuery = 'SELECT COUNT(*) FROM empleados e WHERE e.activo = true';
+    let queryParams = [];
     
     // Filtrar por búsqueda si se proporciona
     if (q) {
-      const qnorm = q.normalize ? q.normalize('NFD').replace(/\p{Diacritic}/gu, '') : q;
-      items = items.filter(e => {
-        return Object.values(e).some(v => {
-          const s = (v || '').toString();
-          const sn = s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '') : s;
-          return sn.toLowerCase().includes(qnorm.toLowerCase());
-        });
-      });
+      const searchCondition = ` AND (
+        LOWER(e.nombre) LIKE $1 OR 
+        LOWER(e.email) LIKE $1 OR 
+        LOWER(e.telefono) LIKE $1
+      )`;
+      baseQuery += searchCondition;
+      countQuery += searchCondition;
+      queryParams.push(`%${q}%`);
     }
     
-    // Filtrar solo empleados activos por defecto
-    if (!req.query.includeInactive) {
-      items = items.filter(e => e.activo);
-    }
+    // Agregar ordenamiento y paginación
+    baseQuery += ` ORDER BY e.fecha_contratacion DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    queryParams.push(limit, offset);
     
-    // Ordenar por fecha de registro (más recientes primero)
-    items.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+    // Ejecutar consultas
+    const [itemsResult, countResult] = await Promise.all([
+      query(baseQuery, queryParams),
+      query(countQuery, queryParams.slice(0, -2)) // Remover limit y offset para count
+    ]);
     
-    // Enriquecer con información de roles
-    items = items.map(empleado => ({
-      ...empleado,
-      rolesInfo: empleado.roles ? empleado.roles.map(roleId => getRoleById(roleId)).filter(Boolean) : []
-    }));
+    const items = itemsResult.rows;
+    const totalItems = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
     
-    // Paginación
-    const start = (page - 1) * limit;
-    const paged = items.slice(start, start + limit);
-    
-    res.json(createPaginatedResponse(paged, page, limit, items.length));
-    
+    return res.json(
+      createPaginatedResponse(
+        items, 
+        page, 
+        totalPages, 
+        totalItems, 
+        'Empleados obtenidos exitosamente'
+      )
+    );
   } catch (error) {
-    console.error('Error listando empleados:', error);
-    res.status(500).json(
+    console.error('Error en listEmpleados:', error);
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -93,10 +112,8 @@ function listEmpleados(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con datos del empleado o error 404
  */
-function getEmpleado(req, res) {
+async function getEmpleado(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     
     if (!id) {
@@ -107,10 +124,32 @@ function getEmpleado(req, res) {
         )
       );
     }
+
+    // Convertir ID a número si es necesario
+    const empleadoId = parseInt(id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del empleado debe ser un número válido'
+        )
+      );
+    }
     
-    const empleado = db.get('empleados').find({ id }).value();
+    // Buscar empleado con información de sucursal y puesto
+    const result = await query(`
+      SELECT e.*, 
+             s.nombre as sucursal_nombre,
+             p.nombre as puesto_nombre,
+             u.id as usuario_id, u.username, u.roles as usuario_roles
+      FROM empleados e
+      LEFT JOIN sucursales s ON e.sucursal_id = s.id
+      LEFT JOIN puestos p ON e.puesto_id = p.id
+      LEFT JOIN usuarios u ON u.empleado_id = e.id
+      WHERE e.id = $1
+    `, [empleadoId]);
     
-    if (!empleado) {
+    if (result.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -119,36 +158,36 @@ function getEmpleado(req, res) {
       );
     }
     
-    // Enriquecer con información de roles y convertir formato para frontend
-    const empleadoConRoles = {
+    const empleado = result.rows[0];
+    
+    // Obtener módulos del empleado
+    const modulosResult = await query(
+      'SELECT modulo, acceso FROM empleados_modulos WHERE empleado_id = $1',
+      [empleadoId]
+    );
+    
+    const modulosPermitidos = modulosResult.rows
+      .filter(m => m.acceso)
+      .map(m => m.modulo);
+
+    // Preparar respuesta
+    const empleadoCompleto = {
       ...empleado,
-      rolesInfo: empleado.roles ? empleado.roles.map(roleId => getRoleById(roleId)).filter(Boolean) : []
+      modulosPermitidos,
+      usuario: empleado.usuario_id ? {
+        id: empleado.usuario_id,
+        username: empleado.username,
+        roles: empleado.usuario_roles || []
+      } : null
     };
 
-    // Convertir formato de la DB al formato del frontend
-    const empleadoParaFrontend = {
-      ...empleadoConRoles,
-      // Convertir tipoAcceso a tipoPermiso para el frontend
-      tipoPermiso: empleado.tipoAcceso === 'administrador' ? 'administrador' : 
-                  empleado.tipoAcceso === 'personalizado' ? 'personalizado' : 
-                  'sin_permisos',
-      // Convertir módulos objeto a array de módulos permitidos
-      modulosPermitidos: empleado.modulos ? 
-        Object.keys(empleado.modulos).filter(modulo => empleado.modulos[modulo]?.acceso === true) : 
-        []
-    };
-
-    res.json(
-      createResponse(
-        true,
-        empleadoParaFrontend,
-        'Empleado encontrado'
-      )
-    );  } catch (error) {
-    console.error('Error obteniendo empleado:', error);
+    res.json(createResponse(empleadoCompleto, 'Empleado obtenido exitosamente'));
+    
+  } catch (error) {
+    console.error('Error en getEmpleado:', error);
     res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );

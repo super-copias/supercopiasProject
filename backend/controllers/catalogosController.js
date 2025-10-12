@@ -1,10 +1,10 @@
 /**
  * Controlador de Catálogos - SuperCopias Backend
  * Gestiona todos los catálogos del sistema (estados, regímenes fiscales, sucursales, puestos, etc.)
+ * MIGRADO A POSTGRESQL - IDs numéricas
  */
 
-const { db, init } = require('../db');
-const { nanoid } = require('nanoid');
+const { query, transaction } = require('../db');
 const { 
   createResponse, 
   createErrorResponse, 
@@ -17,29 +17,16 @@ const {
  */
 async function getEstados(req, res) {
   try {
-    let estados = db.get('catalogos.estados').value();
+    const result = await query('SELECT * FROM estados WHERE activo = true ORDER BY nombre');
     
-    if (!estados || estados.length === 0) {
-      estados = initEstados();
-      db.set('catalogos.estados', estados).write();
-    }
-
-    res.json({
-      success: true,
-      data: estados,
+    res.json(createResponse({
+      data: result.rows,
       message: 'Estados obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+      count: result.rows.length
+    }));
   } catch (error) {
     console.error('Error obteniendo estados:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Error interno del servidor'
-      },
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo estados'));
   }
 }
 
@@ -49,29 +36,16 @@ async function getEstados(req, res) {
  */
 async function getRegimenesFiscales(req, res) {
   try {
-    let regimenes = db.get('catalogos.regimenesFiscales').value();
+    const result = await query('SELECT * FROM regimenes_fiscales WHERE activo = true ORDER BY codigo');
     
-    if (!regimenes || regimenes.length === 0) {
-      regimenes = initRegimenesFiscales();
-      db.set('catalogos.regimenesFiscales', regimenes).write();
-    }
-
-    res.json({
-      success: true,
-      data: regimenes,
+    res.json(createResponse({
+      data: result.rows,
       message: 'Regímenes fiscales obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+      count: result.rows.length
+    }));
   } catch (error) {
     console.error('Error obteniendo regímenes fiscales:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Error interno del servidor'
-      },
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo regímenes fiscales'));
   }
 }
 
@@ -81,7 +55,79 @@ async function getRegimenesFiscales(req, res) {
  */
 async function getUsosCFDI(req, res) {
   try {
+    const result = await query('SELECT * FROM usos_cfdi WHERE activo = true ORDER BY codigo');
+    
+    res.json(createResponse({
+      data: result.rows,
+      message: 'Usos CFDI obtenidos correctamente',
+      count: result.rows.length
+    }));
+  } catch (error) {
+    console.error('Error obteniendo usos CFDI:', error);
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo usos CFDI'));
+  }
+}
+
+/**
+ * Obtener catálogo de formas de pago
+ * GET /api/catalogos/formas-pago
+ */
+async function getFormasPago(req, res) {
+  try {
+    const result = await query('SELECT * FROM formas_pago WHERE activo = true ORDER BY codigo');
+    
+    res.json(createResponse({
+      data: result.rows,
+      message: 'Formas de pago obtenidas correctamente',
+      count: result.rows.length
+    }));
+  } catch (error) {
+    console.error('Error obteniendo formas de pago:', error);
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo formas de pago'));
+  }
+}
+
+/**
+ * Obtener catálogo de métodos de pago
+ * GET /api/catalogos/metodos-pago
+ */
+async function getMetodosPago(req, res) {
+  try {
+    const result = await query('SELECT * FROM metodos_pago WHERE activo = true ORDER BY codigo');
+    
+    res.json(createResponse({
+      data: result.rows,
+      message: 'Métodos de pago obtenidos correctamente',
+      count: result.rows.length
+    }));
+  } catch (error) {
+    console.error('Error obteniendo métodos de pago:', error);
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo métodos de pago'));
+  }
+}
+
+/**
+ * Obtener catálogo de módulos del sistema
+ * GET /api/catalogos/modulos
+ */
+async function getModulos(req, res) {
+  try {
+    const result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
+    
+    res.json(createResponse({
+      data: result.rows,
+      message: 'Módulos del sistema obtenidos correctamente',
+      count: result.rows.length
+    }));
+  } catch (error) {
+    console.error('Error obteniendo módulos:', error);
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo módulos'));
+  }
+}
     let usosCFDI = db.get('catalogos.usosCFDI').value();
+    
+    if (!usosCFDI || usosCFDI.length === 0) {
+      let usosCFDI = db.get('catalogos.usosCFDI').value();
     
     if (!usosCFDI || usosCFDI.length === 0) {
       usosCFDI = initUsosCFDI();

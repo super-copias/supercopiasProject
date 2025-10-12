@@ -3,7 +3,7 @@
  * Gestiona todas las operaciones CRUD para clientes con estándar API 
  */
 
-const { db, init } = require('../db');
+const { query } = require('../config/database');
 const { nanoid } = require('nanoid');
 const XLSX = require('xlsx');
 const fs = require('fs');
@@ -23,48 +23,69 @@ const {
  * @param {Object} res - Response object
  * @returns {Object} JSON con array de clientes y paginación
  */
-function listClientes(req, res) {
+async function listClientes(req, res) {
   try {
-    init();
-    
     // Parámetros de consulta
     const q = (req.query.q || '').toLowerCase();
     const page = parseInt(req.query.page || '1');
     const limit = parseInt(req.query.limit || '10');
+    const offset = (page - 1) * limit;
     
-    let items = db.get('clientes').value() || [];
+    let baseQuery = `
+      SELECT * FROM clientes 
+      WHERE activo = true
+    `;
+    let countQuery = 'SELECT COUNT(*) FROM clientes WHERE activo = true';
+    let queryParams = [];
     
     // Filtrar por búsqueda si se proporciona
     if (q) {
-      const qnorm = q.normalize ? q.normalize('NFD').replace(/\p{Diacritic}/gu, '') : q;
-      items = items.filter(c => {
-        return Object.values(c).some(v => {
-          const s = (v || '').toString();
-          const sn = s.normalize ? s.normalize('NFD').replace(/\p{Diacritic}/gu, '') : s;
-          return sn.toLowerCase().includes(qnorm.toLowerCase());
-        });
-      });
+      const searchCondition = ` AND (
+        LOWER(nombre) LIKE $1 OR 
+        LOWER(email) LIKE $1 OR 
+        LOWER(telefono) LIKE $1 OR
+        LOWER(rfc) LIKE $1
+      )`;
+      baseQuery += searchCondition;
+      countQuery += searchCondition;
+      queryParams.push(`%${q}%`);
     }
     
-    // Filtrar solo clientes activos por defecto
-    if (!req.query.includeInactive) {
-      items = items.filter(c => c.activo);
+    // Incluir inactivos si se solicita
+    if (req.query.includeInactive) {
+      baseQuery = baseQuery.replace('WHERE activo = true', 'WHERE 1=1');
+      countQuery = countQuery.replace('WHERE activo = true', 'WHERE 1=1');
     }
     
-    // Ordenar por fecha de registro (más recientes primero)
-    items.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+    // Agregar ordenamiento y paginación
+    baseQuery += ` ORDER BY fecha_registro DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    queryParams.push(limit, offset);
     
-    // Paginación
-    const start = (page - 1) * limit;
-    const paged = items.slice(start, start + limit);
+    // Ejecutar consultas
+    const [itemsResult, countResult] = await Promise.all([
+      query(baseQuery, queryParams),
+      query(countQuery, queryParams.slice(0, -2))
+    ]);
     
-    res.json(createPaginatedResponse(paged, page, limit, items.length));
+    const items = itemsResult.rows;
+    const totalItems = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
+    
+    return res.json(
+      createPaginatedResponse(
+        items, 
+        page, 
+        totalPages, 
+        totalItems, 
+        'Clientes obtenidos exitosamente'
+      )
+    );
     
   } catch (error) {
-    console.error('Error listando clientes:', error);
-    res.status(500).json(
+    console.error('Error en listClientes:', error);
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -79,10 +100,8 @@ function listClientes(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con datos del cliente o error 404
  */
-function getCliente(req, res) {
+async function getCliente(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     
     if (!id) {
@@ -93,10 +112,21 @@ function getCliente(req, res) {
         )
       );
     }
+
+    // Convertir ID a número
+    const clienteId = parseInt(id);
+    if (isNaN(clienteId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del cliente debe ser un número válido'
+        )
+      );
+    }
     
-    const cliente = db.get('clientes').find({ id }).value();
+    const result = await query('SELECT * FROM clientes WHERE id = $1', [clienteId]);
     
-    if (!cliente) {
+    if (result.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -105,19 +135,15 @@ function getCliente(req, res) {
       );
     }
     
-    res.json(
-      createResponse(
-        true,
-        cliente,
-        'Cliente encontrado'
-      )
-    );
+    const cliente = result.rows[0];
+    
+    res.json(createResponse(cliente, 'Cliente obtenido exitosamente'));
     
   } catch (error) {
-    console.error('Error obteniendo cliente:', error);
+    console.error('Error en getCliente:', error);
     res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );

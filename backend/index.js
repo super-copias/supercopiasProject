@@ -9,9 +9,15 @@
  * - /api/empleados/* - Gestión de empleados
  */
 
+// Cargar variables de entorno
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+
+// Importar configuración de base de datos
+const { initializeDatabase } = require('./config/database');
 
 // Importar utilidades
 const { initAllMockData } = require('./utils/initMockData');
@@ -61,16 +67,45 @@ app.get('/', (req, res) => {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 SuperCopias Server running on port ${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}`);
-  
-  // Inicializar datos mock solo si es necesario
-  console.log('\n📚 Inicializando datos mock...');
+
+async function startServer() {
   try {
-    initAllMockData();
-    console.log('✅ Datos mock listos para uso\n');
+    // Inicializar conexión a la base de datos
+    console.log('🔌 Conectando a la base de datos...');
+    await initializeDatabase();
+    console.log('✅ Conexión a MySQL establecida');
+
+    // Iniciar el servidor Express
+    app.listen(PORT, () => {
+      console.log(`🚀 SuperCopias Server running on port ${PORT}`);
+      console.log(`📡 API available at http://localhost:${PORT}`);
+      console.log(`🗄️  Database: MySQL (${process.env.DB_NAME})`);
+      
+      // Nota: Los datos mock ya no son necesarios con MySQL
+      console.log('\n✅ Sistema listo para usar\n');
+    });
+
   } catch (error) {
-    console.error('❌ Error inicializando datos mock:', error);
+    console.error('💥 Error iniciando el servidor:', error);
+    console.error('📋 Posibles soluciones:');
+    console.error('  1. Verificar que MySQL esté corriendo');
+    console.error('  2. Verificar credenciales en .env');
+    console.error('  3. Verificar que la base de datos existe');
+    console.error('  4. Ejecutar: npm run setup-db');
+    process.exit(1);
   }
+}
+
+// Manejar cierre graceful del servidor
+process.on('SIGINT', () => {
+  console.log('\n🛑 Cerrando servidor...');
+  process.exit(0);
 });
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Cerrando servidor...');
+  process.exit(0);
+});
+
+// Iniciar el servidor
+startServer();

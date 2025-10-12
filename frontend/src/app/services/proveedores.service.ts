@@ -36,7 +36,7 @@ export class ProveedoresService {
   /**
    * Obtener proveedor por ID
    */
-  getById(id: string): Observable<ApiResponse<Proveedor>> {
+  getById(id: number): Observable<ApiResponse<Proveedor>> {
     return this.http.get<ApiResponse<Proveedor>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -56,7 +56,7 @@ export class ProveedoresService {
   /**
    * Actualizar proveedor existente
    */
-  update(id: string, proveedor: Partial<Proveedor>): Observable<ApiResponse<Proveedor>> {
+  update(id: number, proveedor: Partial<Proveedor>): Observable<ApiResponse<Proveedor>> {
     return this.http.put<ApiResponse<Proveedor>>(`${this.baseUrl}/${id}`, proveedor)
       .pipe(
         catchError(this.handleError.bind(this))
@@ -66,8 +66,8 @@ export class ProveedoresService {
   /**
    * Eliminar proveedor (desactivar)
    */
-  delete(id: string): Observable<ApiResponse<{ id: string; activo: boolean }>> {
-    return this.http.delete<ApiResponse<{ id: string; activo: boolean }>>(`${this.baseUrl}/${id}`)
+  delete(id: number): Observable<ApiResponse<{ id: number; activo: boolean }>> {
+    return this.http.delete<ApiResponse<{ id: number; activo: boolean }>>(`${this.baseUrl}/${id}`)
       .pipe(
         catchError(this.handleError.bind(this))
       );
@@ -109,7 +109,7 @@ export class ProveedoresService {
   /**
    * Método de compatibilidad para findById() - redirige a getById()
    */
-  findById(id: string): Observable<ApiResponse<Proveedor>> {
+  findById(id: number): Observable<ApiResponse<Proveedor>> {
     return this.getById(id);
   }
 

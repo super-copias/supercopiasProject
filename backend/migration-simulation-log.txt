@@ -1,0 +1,80 @@
+[2025-10-11T21:29:21.428Z] [INFO] 🔍 Validando esquema PostgreSQL...
+[2025-10-11T21:29:21.429Z] [INFO] ✅ Tabla usuarios encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Tabla empleados encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Tabla clientes encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Tabla proveedores encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Tabla sucursales encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Tabla puestos encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Tabla empleados_modulos encontrada en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Elemento SERIAL PRIMARY KEY encontrado en schema
+[2025-10-11T21:29:21.430Z] [INFO] ✅ Elemento FOREIGN KEY encontrado en schema
+[2025-10-11T21:29:21.431Z] [INFO] ✅ Elemento CREATE TABLE encontrado en schema
+[2025-10-11T21:29:21.431Z] [INFO] ✅ Elemento CREATE INDEX encontrado en schema
+[2025-10-11T21:29:21.431Z] [INFO] 📊 Total de IDs SERIAL encontradas: 14
+[2025-10-11T21:29:21.431Z] [SUCCESS] ✅ Validación de schema EXITOSA
+[2025-10-11T21:29:21.431Z] [INFO] 🔍 Validando datos JSON existentes...
+[2025-10-11T21:29:21.432Z] [INFO] ✅ Colección 'usuarios': 5 registros
+[2025-10-11T21:29:21.432Z] [INFO] 📋 Ejemplo ID en usuarios: 'USR_ADMIN_001' (tipo: string)
+[2025-10-11T21:29:21.432Z] [INFO] ✅ Colección 'empleados': 4 registros
+[2025-10-11T21:29:21.432Z] [INFO] 📋 Ejemplo ID en empleados: 'EMP_tVlsZdmEFl' (tipo: string)
+[2025-10-11T21:29:21.432Z] [INFO] ✅ Colección 'clientes': 5 registros
+[2025-10-11T21:29:21.432Z] [INFO] 📋 Ejemplo ID en clientes: 'CLI_001' (tipo: string)
+[2025-10-11T21:29:21.432Z] [INFO] ✅ Colección 'proveedores': 5 registros
+[2025-10-11T21:29:21.432Z] [INFO] 📋 Ejemplo ID en proveedores: 'k3tPnzjZgnxJ3jEAsyghr' (tipo: string)
+[2025-10-11T21:29:21.432Z] [INFO] ✅ Colección 'catalogos.sucursales': 3 registros
+[2025-10-11T21:29:21.432Z] [INFO] 📋 Ejemplo ID en sucursales: 'SUC_001' (tipo: string)
+[2025-10-11T21:29:21.432Z] [INFO] ✅ Colección 'catalogos.puestos': 4 registros
+[2025-10-11T21:29:21.432Z] [INFO] 📋 Ejemplo ID en puestos: 'PUESTO_001' (tipo: string)
+[2025-10-11T21:29:21.433Z] [INFO] 📊 Total de registros a migrar: 26
+[2025-10-11T21:29:21.433Z] [SUCCESS] ✅ Validación de datos JSON EXITOSA
+[2025-10-11T21:29:21.433Z] [INFO] 🔍 Validando estructura de migración...
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Función generateNumericId encontrada
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Función migrateUsuarios encontrada
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Función migrateEmpleados encontrada
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Función migrateClientes encontrada
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Función runMigration encontrada
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Característica idMapping encontrada
+[2025-10-11T21:29:21.433Z] [INFO] ✅ Característica transaction encontrada
+[2025-10-11T21:29:21.434Z] [INFO] ✅ Característica RETURNING encontrada
+[2025-10-11T21:29:21.434Z] [ERROR] ❌ Característica Foreign Key NO encontrada
+[2025-10-11T21:29:21.434Z] [SUCCESS] ✅ Validación de estructura de migración EXITOSA
+[2025-10-11T21:29:21.434Z] [INFO] 🔍 Simulando mapeo de IDs string → numeric...
+[2025-10-11T21:29:21.434Z] [INFO] 🔄 usuarios: 'USR_ADMIN_001' → 1
+[2025-10-11T21:29:21.434Z] [INFO] 🔄 usuarios: 'USR_EMP_001' → 2
+[2025-10-11T21:29:21.434Z] [INFO] 🔄 usuarios: 'USR_EMP_002' → 3
+[2025-10-11T21:29:21.434Z] [INFO] 📊 usuarios: 5 IDs mapeados
+[2025-10-11T21:29:21.434Z] [INFO] 🔄 empleados: 'EMP_tVlsZdmEFl' → 1
+[2025-10-11T21:29:21.434Z] [INFO] 🔄 empleados: 'EMP_001' → 2
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 empleados: 'EMP_002' → 3
+[2025-10-11T21:29:21.435Z] [INFO] 📊 empleados: 4 IDs mapeados
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 clientes: 'CLI_001' → 1
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 clientes: 'CLI_002' → 2
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 clientes: 'CLI_003' → 3
+[2025-10-11T21:29:21.435Z] [INFO] 📊 clientes: 5 IDs mapeados
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 proveedores: 'k3tPnzjZgnxJ3jEAsyghr' → 1
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 proveedores: '5UIu8fNQSTRX2E9PW7Bd4' → 2
+[2025-10-11T21:29:21.435Z] [INFO] 🔄 proveedores: 'dxmD8yr7WmHX4XqWjnj9T' → 3
+[2025-10-11T21:29:21.435Z] [INFO] 📊 proveedores: 5 IDs mapeados
+[2025-10-11T21:29:21.435Z] [INFO] 📊 estados: 0 IDs mapeados
+[2025-10-11T21:29:21.435Z] [INFO] 📊 regimenesFiscales: 0 IDs mapeados
+[2025-10-11T21:29:21.436Z] [INFO] 📊 usosCfdi: 0 IDs mapeados
+[2025-10-11T21:29:21.436Z] [INFO] 📊 formasPago: 0 IDs mapeados
+[2025-10-11T21:29:21.436Z] [INFO] 📊 metodosPago: 0 IDs mapeados
+[2025-10-11T21:29:21.436Z] [INFO] 🔄 sucursales: 'SUC_001' → 1
+[2025-10-11T21:29:21.436Z] [INFO] 🔄 sucursales: 'SUC_002' → 2
+[2025-10-11T21:29:21.436Z] [INFO] 🔄 sucursales: 'SUC_003' → 3
+[2025-10-11T21:29:21.436Z] [INFO] 📊 sucursales: 3 IDs mapeados
+[2025-10-11T21:29:21.436Z] [INFO] 🔄 puestos: 'PUESTO_001' → 1
+[2025-10-11T21:29:21.436Z] [INFO] 🔄 puestos: 'PUESTO_002' → 2
+[2025-10-11T21:29:21.436Z] [INFO] 🔄 puestos: 'PUESTO_003' → 3
+[2025-10-11T21:29:21.436Z] [INFO] 📊 puestos: 4 IDs mapeados
+[2025-10-11T21:29:21.436Z] [INFO] 📊 usosCFDI: 0 IDs mapeados
+[2025-10-11T21:29:21.437Z] [INFO] 🔄 modulos: 'dashboard' → 1
+[2025-10-11T21:29:21.437Z] [INFO] 🔄 modulos: 'empleados' → 2
+[2025-10-11T21:29:21.437Z] [INFO] 🔄 modulos: 'clientes' → 3
+[2025-10-11T21:29:21.437Z] [INFO] 📊 modulos: 9 IDs mapeados
+[2025-10-11T21:29:21.437Z] [INFO] 📊 Total de mapeos de ID generados: 35
+[2025-10-11T21:29:21.437Z] [INFO] 🔍 Simulando validación de Foreign Keys...
+[2025-10-11T21:29:21.437Z] [INFO] ✅ Foreign Keys válidos simulados: 4
+[2025-10-11T21:29:21.437Z] [SUCCESS] ✅ Simulación de mapeo de IDs EXITOSA
+[2025-10-11T21:29:21.437Z] [INFO] 📋 Generando reporte final...

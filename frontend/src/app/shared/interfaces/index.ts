@@ -24,7 +24,7 @@ export interface ApiResponse<T = any> {
 
 // Interfaz base para entidades con campos comunes
 export interface BaseEntity {
-  id: string;
+  id: number;
   activo: boolean;
   fechaRegistro: string;
   fechaModificacion: string | null;
@@ -36,10 +36,10 @@ export interface Usuario extends BaseEntity {
   nombre: string;
   email: string;
   role: string; // Para compatibilidad con código existente
-  roles?: string[]; // Nuevo campo para múltiples roles
+  roles?: number[]; // Nuevo campo para múltiples roles numéricos
   ultimoAcceso?: string;
   tipoPermiso?: string; // Tipo de permiso del empleado asociado
-  empleadoId?: string; // ID del empleado asociado
+  empleadoId?: number; // ID del empleado asociado
   modulosPermitidos?: string[]; // Módulos a los que tiene acceso
   // Campos adicionales para perfil
   fullName?: string;
@@ -50,7 +50,7 @@ export interface Usuario extends BaseEntity {
 
 // Interfaz específica para datos de perfil completo
 export interface PerfilUsuario {
-  id: string;
+  id: number;
   username: string;
   nombre: string;
   fullName: string;
@@ -117,7 +117,7 @@ export interface ModuloPermisos {
 }
 
 export interface RolSistema {
-  id: string;
+  id: number;
   nombre: string;
   descripcion: string;
   color: string;
@@ -137,7 +137,7 @@ export interface Empleado extends BaseEntity {
   roles?: string[];
   rolesInfo?: RolSistema[];
   tieneUsuario?: boolean;
-  usuarioId?: string;
+  usuarioId?: number;
 }
 
 export interface CrearEmpleado {
@@ -162,10 +162,10 @@ export interface AsignarRoles {
 export interface EmpleadoConUsuario {
   empleado: Empleado;
   usuario?: {
-    id: string;
+    id: number;
     username: string;
     password?: string;
-    roles: string[];
+    roles: number[];
   };
 }
 

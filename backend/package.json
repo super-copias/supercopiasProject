@@ -7,18 +7,22 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "dev:clean": "nodemon --exec \"node index.js\" --ignore db.json --ignore uploads/",
-    "init": "node scripts/init-clean-data.js"
+    "init": "node scripts/init-clean-data.js",
+    "migrate": "node scripts/migrate-to-postgres.js",
+    "setup-db": "psql -U postgres -d supercopias -f BD_SUPERCOPIAS_POSTGRES.sql"
   },
   "dependencies": {
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",
     "lowdb": "1.0.0",
     "multer": "^1.4.4",
     "nanoid": "^4.0.0",
+    "pg": "^8.11.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

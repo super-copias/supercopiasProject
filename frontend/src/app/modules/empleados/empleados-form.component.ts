@@ -4,17 +4,6 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EmpleadosService } from '../../services/empleados.service';
 import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.service';
 
-const MODULOS = [
-  { id: 'dashboard', nombre: 'Dashboard', icono: 'fas fa-tachometer-alt' },
-  { id: 'empleados', nombre: 'Empleados', icono: 'fas fa-users' },
-  { id: 'clientes', nombre: 'Clientes', icono: 'fas fa-user-friends' },
-  { id: 'proveedores', nombre: 'Proveedores', icono: 'fas fa-truck' },
-  { id: 'inventarios', nombre: 'Inventarios', icono: 'fas fa-boxes' },
-  { id: 'equipos', nombre: 'Equipos', icono: 'fas fa-tools' },
-  { id: 'reportes', nombre: 'Reportes', icono: 'fas fa-chart-bar' },
-  { id: 'puntoventa', nombre: 'Punto de Venta', icono: 'fas fa-cash-register' }
-];
-
 @Component({
   selector: 'app-empleados-form',
   template: `
@@ -343,7 +332,7 @@ const MODULOS = [
 export class EmpleadosFormComponent implements OnInit {
   empleadoForm: FormGroup;
   loading = false;
-  modulos = MODULOS;
+  modulos: any[] = [];
   tipoPermiso = '';
   seleccionados: string[] = [];
   sucursales: Sucursal[] = [];
@@ -362,7 +351,7 @@ export class EmpleadosFormComponent implements OnInit {
   
   // Variables para edición
   isEditing = false;
-  empleadoId: string | null = null;
+  empleadoId: number | null = null;
   empleadoActual: any = null;
 
   constructor(
@@ -402,6 +391,17 @@ export class EmpleadosFormComponent implements OnInit {
   }
 
   private loadCatalogos() {
+    // Cargar módulos del sistema
+    this.catalogosService.getModulos().subscribe({
+      next: (modulos) => {
+        this.modulos = modulos.filter(m => m.activo);
+      },
+      error: (error) => {
+        console.error('Error cargando módulos:', error);
+        this.modulos = [];
+      }
+    });
+
     // Cargar sucursales
     this.catalogosService.getSucursales().subscribe({
       next: (response) => {
@@ -454,7 +454,7 @@ export class EmpleadosFormComponent implements OnInit {
   /**
    * Cargar datos de empleado para edición
    */
-  private loadEmpleado(id: string) {
+  private loadEmpleado(id: number) {
     this.loading = true;
     this.empleadosService.getEmpleado(id).subscribe({
       next: (response) => {
