@@ -3,6 +3,9 @@
  * Gestión de conexiones, pools y utilidades para PostgreSQL
  */
 
+// Cargar variables de entorno
+require('dotenv').config();
+
 const { Pool } = require('pg');
 
 // Configuración del pool de conexiones PostgreSQL

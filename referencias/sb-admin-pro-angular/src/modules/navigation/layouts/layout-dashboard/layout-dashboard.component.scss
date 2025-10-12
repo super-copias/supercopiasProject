@@ -1,7 +1,0 @@
-@import 'styles/core/variables.scss';
-
-:host #layoutSidenav_content.scrollable {
-    height: calc(100vh - 58px);
-    display: block;
-    overflow-y: auto;
-}

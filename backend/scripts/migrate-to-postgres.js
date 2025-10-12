@@ -3,6 +3,9 @@
  * Transfiere todos los datos del archivo db.json a la base de datos PostgreSQL
  */
 
+// Cargar variables de entorno
+require('dotenv').config();
+
 const fs = require('fs');
 const path = require('path');
 const { query, transaction, initializeDatabase, dbUtils } = require('../config/database');

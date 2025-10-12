@@ -3,11 +3,16 @@
  * Gestiona operaciones de perfil, edición y cambio de contraseña
  */
 
-const { db, init } = require('../db');
+const { query } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const { nanoid } = require('nanoid');
+const { 
+  createResponse, 
+  createErrorResponse, 
+  CODIGOS_ERROR 
+} = require('../utils/apiStandard');
 
 /**
  * Obtener el perfil del usuario autenticado

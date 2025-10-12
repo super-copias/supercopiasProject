@@ -1,22 +1,25 @@
-# Super Copias - Backend (esqueleto)
+# 🚀 SuperCopias Backend
 
-Este es un backend minimal para desarrollo del proyecto Super Copias.
+Backend con Node.js + Express + PostgreSQL.
 
-Características:
-- Node + Express
-- Autenticación JWT
-- Persistencia simple con lowdb (archivo `db.json`)
-- Endpoints básicos para login, clientes y empleados
+## 🎯 Para Migrar a PostgreSQL
 
-Instalación (local):
+**➡️ Ve al directorio raíz y sigue: `../GUIA_COMPLETA.md`**
 
-1. cd backend
-2. npm install
-3. npm run dev
+## � Después de la Migración
 
-Credenciales por defecto:
-- usuario: admin
-- contraseña: Admin123!
+```bash
+npm start  # Iniciar servidor
+```
+
+## 📡 API Endpoints
+
+- `POST /api/auth/login` - Login
+- `GET /api/catalogos/estados` - Estados México  
+- `GET /api/empleados` - Empleados
+- `GET /api/clientes` - Clientes
+
+**¡Sigue la GUIA_COMPLETA.md para migrar!** 🎯
 
 Endpoints básicos:
 - POST /api/auth/login { username, password }

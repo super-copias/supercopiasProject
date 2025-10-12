@@ -1,539 +1,613 @@
--- ================================================================================
--- BASE DE DATOS SUPERCOPIAS - DISEÑADA ESPECÍFICAMENTE PARA EL PROYECTO
--- Versión: 1.0
--- Fecha: 11 de octubre de 2025
--- Descripción: Base de datos relacional para el sistema SuperCopias
--- ================================================================================
+-- =====================================================
+-- SuperCopias Database Schema - PostgreSQL Version
+-- Sistema de Gestión Integral para SuperCopias
+-- Fecha: 11 de Octubre de 2025
+-- =====================================================
 
--- Crear la base de datos
-CREATE DATABASE IF NOT EXISTS supercopias_db 
-CHARACTER SET utf8mb4 
-COLLATE utf8mb4_unicode_ci;
+-- Crear base de datos (ejecutar como superuser)
+-- CREATE DATABASE supercopias 
+--   WITH ENCODING 'UTF8' 
+--   LC_COLLATE = 'es_MX.UTF-8' 
+--   LC_CTYPE = 'es_MX.UTF-8';
 
-USE supercopias_db;
+-- Conectar a la base de datos supercopias
+-- \c supercopias;
 
--- ================================================================================
+-- Crear extensiones necesarias
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- =====================================================
 -- TABLA: usuarios
--- Descripción: Usuarios del sistema con credenciales de acceso
--- ================================================================================
+-- Sistema de autenticación y autorización
+-- =====================================================
 CREATE TABLE usuarios (
-    id VARCHAR(50) PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     nombre VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    role ENUM('admin', 'empleado', 'supervisor', 'cajero') DEFAULT 'empleado',
-    roles JSON,
-    empleado_id VARCHAR(50),
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    ultimo_acceso DATETIME,
-    full_name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    role VARCHAR(50) NOT NULL DEFAULT 'empleado',
+    roles JSONB DEFAULT '[]'::jsonb,
+    empleado_id INTEGER,
+    activo BOOLEAN DEFAULT true,
+    fecha_registro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    ultimo_acceso TIMESTAMP WITH TIME ZONE,
+    full_name VARCHAR(500),
     phone VARCHAR(20),
     bio TEXT,
     profile_image VARCHAR(500),
-    INDEX idx_username (username),
-    INDEX idx_empleado_id (empleado_id),
-    INDEX idx_activo (activo),
-    INDEX idx_role (role)
+    
+    -- Constrains
+    CONSTRAINT chk_usuarios_role CHECK (role IN ('admin', 'gerente', 'empleado', 'invitado')),
+    CONSTRAINT chk_usuarios_email CHECK (email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
--- ================================================================================
--- TABLA: empleados
--- Descripción: Información de empleados de la empresa
--- ================================================================================
-CREATE TABLE empleados (
-    id VARCHAR(50) PRIMARY KEY,
+-- Índices para usuarios
+CREATE INDEX idx_usuarios_username ON usuarios(username);
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_usuarios_empleado_id ON usuarios(empleado_id);
+CREATE INDEX idx_usuarios_activo ON usuarios(activo);
+CREATE INDEX idx_usuarios_role ON usuarios(role);
+
+-- =====================================================
+-- TABLA: sucursales
+-- Catálogo de sucursales de la empresa
+-- =====================================================
+CREATE TABLE sucursales (
+    id SERIAL PRIMARY KEY,
     nombre VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
+    direccion TEXT,
     telefono VARCHAR(20),
-    puesto VARCHAR(100),
-    sucursal VARCHAR(100),
+    gerente VARCHAR(255),
+    activa BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para sucursales
+CREATE INDEX idx_sucursales_activa ON sucursales(activa);
+CREATE INDEX idx_sucursales_nombre ON sucursales(nombre);
+
+-- =====================================================
+-- TABLA: puestos
+-- Catálogo de puestos de trabajo
+-- =====================================================
+CREATE TABLE puestos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    descripcion TEXT,
+    salario_minimo DECIMAL(10,2),
+    salario_maximo DECIMAL(10,2),
+    activo BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    CONSTRAINT chk_puestos_salario CHECK (salario_maximo >= salario_minimo)
+);
+
+-- Índices para puestos
+CREATE INDEX idx_puestos_activo ON puestos(activo);
+CREATE INDEX idx_puestos_nombre ON puestos(nombre);
+
+-- =====================================================
+-- TABLA: empleados
+-- Información completa de empleados
+-- =====================================================
+CREATE TABLE empleados (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    telefono VARCHAR(20),
+    puesto_id INTEGER,
+    sucursal_id INTEGER,
     salario DECIMAL(10,2),
     fecha_ingreso DATE,
-    activo BOOLEAN DEFAULT TRUE,
+    activo BOOLEAN DEFAULT true,
     fecha_baja DATE,
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    tipo_acceso ENUM('administrador', 'personalizado', 'inactivo') DEFAULT 'inactivo',
-    usuario_id VARCHAR(50),
-    INDEX idx_nombre (nombre),
-    INDEX idx_email (email),
-    INDEX idx_activo (activo),
-    INDEX idx_sucursal (sucursal),
-    INDEX idx_puesto (puesto),
-    INDEX idx_usuario_id (usuario_id)
+    fecha_registro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    tipo_acceso VARCHAR(50) DEFAULT 'limitado',
+    usuario_id INTEGER,
+    
+    -- Foreign Keys
+    CONSTRAINT fk_empleados_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id),
+    CONSTRAINT fk_empleados_puesto FOREIGN KEY (puesto_id) REFERENCES puestos(id),
+    
+    -- Constraints
+    CONSTRAINT chk_empleados_email CHECK (email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT chk_empleados_tipo_acceso CHECK (tipo_acceso IN ('completo', 'limitado', 'solo_lectura')),
+    CONSTRAINT chk_empleados_fecha_baja CHECK (fecha_baja IS NULL OR fecha_baja >= fecha_ingreso)
 );
 
--- ================================================================================
+-- Índices para empleados
+CREATE INDEX idx_empleados_nombre ON empleados(nombre);
+CREATE INDEX idx_empleados_email ON empleados(email);
+CREATE INDEX idx_empleados_activo ON empleados(activo);
+CREATE INDEX idx_empleados_puesto ON empleados(puesto);
+CREATE INDEX idx_empleados_sucursal ON empleados(sucursal);
+CREATE INDEX idx_empleados_fecha_ingreso ON empleados(fecha_ingreso);
+
+-- =====================================================
 -- TABLA: empleados_modulos
--- Descripción: Permisos de módulos para cada empleado
--- ================================================================================
+-- Permisos granulares por módulo para empleados
+-- =====================================================
 CREATE TABLE empleados_modulos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    empleado_id VARCHAR(50) NOT NULL,
-    modulo ENUM('dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'equipos', 'reportes', 'configuracion') NOT NULL,
-    acceso BOOLEAN DEFAULT FALSE,
-    fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_empleado_modulo (empleado_id, modulo),
-    INDEX idx_empleado_id (empleado_id),
-    INDEX idx_modulo (modulo),
-    FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE
+    id SERIAL PRIMARY KEY,
+    empleado_id INTEGER NOT NULL,
+    modulo VARCHAR(100) NOT NULL,
+    acceso BOOLEAN DEFAULT false,
+    fecha_asignacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign Keys
+    CONSTRAINT fk_empleados_modulos_empleado FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE,
+    
+    -- Unique constraint
+    CONSTRAINT uk_empleados_modulos UNIQUE (empleado_id, modulo)
 );
 
--- ================================================================================
+-- Índices para empleados_modulos
+CREATE INDEX idx_empleados_modulos_empleado_id ON empleados_modulos(empleado_id);
+CREATE INDEX idx_empleados_modulos_modulo ON empleados_modulos(modulo);
+CREATE INDEX idx_empleados_modulos_acceso ON empleados_modulos(acceso);
+
+-- =====================================================
 -- TABLA: clientes
--- Descripción: Información de clientes empresariales
--- ================================================================================
+-- Información completa de clientes
+-- =====================================================
 CREATE TABLE clientes (
-    id VARCHAR(50) PRIMARY KEY,
-    rfc VARCHAR(13) NOT NULL,
-    razon_social VARCHAR(255) NOT NULL,
-    nombre_comercial VARCHAR(255),
+    id SERIAL PRIMARY KEY,
+    rfc VARCHAR(13) UNIQUE,
+    razon_social VARCHAR(500) NOT NULL,
+    nombre_comercial VARCHAR(500),
     email VARCHAR(255),
     telefono VARCHAR(20),
-    direccion_calle VARCHAR(255),
-    direccion_numero VARCHAR(10),
-    direccion_colonia VARCHAR(100),
+    direccion_calle VARCHAR(500),
+    direccion_numero VARCHAR(50),
+    direccion_colonia VARCHAR(255),
     direccion_codigo_postal VARCHAR(10),
-    direccion_ciudad VARCHAR(100),
-    direccion_estado VARCHAR(100),
+    direccion_ciudad VARCHAR(255),
+    direccion_estado VARCHAR(255),
     regimen_fiscal VARCHAR(10),
     uso_cfdi VARCHAR(10),
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_rfc (rfc),
-    INDEX idx_razon_social (razon_social),
-    INDEX idx_email (email),
-    INDEX idx_activo (activo),
-    INDEX idx_ciudad (direccion_ciudad),
-    INDEX idx_estado (direccion_estado)
+    activo BOOLEAN DEFAULT true,
+    fecha_registro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    CONSTRAINT chk_clientes_email CHECK (email IS NULL OR email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT chk_clientes_rfc CHECK (rfc IS NULL OR LENGTH(rfc) IN (12, 13))
 );
 
--- ================================================================================
+-- Índices para clientes
+CREATE INDEX idx_clientes_rfc ON clientes(rfc);
+CREATE INDEX idx_clientes_razon_social ON clientes(razon_social);
+CREATE INDEX idx_clientes_email ON clientes(email);
+CREATE INDEX idx_clientes_activo ON clientes(activo);
+CREATE INDEX idx_clientes_codigo_postal ON clientes(direccion_codigo_postal);
+CREATE INDEX idx_clientes_ciudad ON clientes(direccion_ciudad);
+
+-- =====================================================
 -- TABLA: proveedores
--- Descripción: Información de proveedores de la empresa
--- ================================================================================
+-- Información de proveedores
+-- =====================================================
 CREATE TABLE proveedores (
-    id VARCHAR(50) PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(500) NOT NULL,
     rfc VARCHAR(13),
     email VARCHAR(255),
     telefono VARCHAR(20),
     direccion TEXT,
     codigo_postal VARCHAR(10),
-    ciudad VARCHAR(100),
-    estado VARCHAR(100),
+    ciudad VARCHAR(255),
+    estado VARCHAR(255),
     contacto VARCHAR(255),
     tipo_proveedor VARCHAR(100),
-    condiciones_pago VARCHAR(100),
+    condiciones_pago VARCHAR(255),
     notas TEXT,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_nombre (nombre),
-    INDEX idx_rfc (rfc),
-    INDEX idx_email (email),
-    INDEX idx_activo (activo),
-    INDEX idx_tipo_proveedor (tipo_proveedor),
-    INDEX idx_ciudad (ciudad),
-    INDEX idx_estado (estado)
+    activo BOOLEAN DEFAULT true,
+    fecha_registro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    CONSTRAINT chk_proveedores_email CHECK (email IS NULL OR email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT chk_proveedores_rfc CHECK (rfc IS NULL OR LENGTH(rfc) IN (12, 13))
 );
 
--- ================================================================================
--- TABLA: sucursales
--- Descripción: Sucursales de la empresa
--- ================================================================================
-CREATE TABLE sucursales (
-    id VARCHAR(50) PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    direccion TEXT,
-    telefono VARCHAR(20),
-    gerente VARCHAR(255),
-    activa BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_nombre (nombre),
-    INDEX idx_activa (activa),
-    INDEX idx_gerente (gerente)
-);
+-- Índices para proveedores
+CREATE INDEX idx_proveedores_nombre ON proveedores(nombre);
+CREATE INDEX idx_proveedores_rfc ON proveedores(rfc);
+CREATE INDEX idx_proveedores_email ON proveedores(email);
+CREATE INDEX idx_proveedores_activo ON proveedores(activo);
+CREATE INDEX idx_proveedores_tipo ON proveedores(tipo_proveedor);
 
--- ================================================================================
--- TABLA: puestos
--- Descripción: Catálogo de puestos de trabajo
--- ================================================================================
-CREATE TABLE puestos (
-    id VARCHAR(50) PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    descripcion TEXT,
-    salario_minimo DECIMAL(10,2),
-    salario_maximo DECIMAL(10,2),
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion DATETIME ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_nombre (nombre),
-    INDEX idx_activo (activo)
-);
-
--- ================================================================================
--- TABLA: regimenes_fiscales
--- Descripción: Catálogo de regímenes fiscales SAT
--- ================================================================================
-CREATE TABLE regimenes_fiscales (
-    codigo VARCHAR(10) PRIMARY KEY,
-    descripcion VARCHAR(500) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_descripcion (descripcion),
-    INDEX idx_activo (activo)
-);
-
--- ================================================================================
--- TABLA: usos_cfdi
--- Descripción: Catálogo de usos de CFDI según SAT
--- ================================================================================
-CREATE TABLE usos_cfdi (
-    codigo VARCHAR(10) PRIMARY KEY,
-    descripcion VARCHAR(500) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_descripcion (descripcion),
-    INDEX idx_activo (activo)
-);
-
--- ================================================================================
--- TABLA: formas_pago
--- Descripción: Catálogo de formas de pago según SAT
--- ================================================================================
-CREATE TABLE formas_pago (
-    codigo VARCHAR(10) PRIMARY KEY,
-    descripcion VARCHAR(500) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_descripcion (descripcion),
-    INDEX idx_activo (activo)
-);
-
--- ================================================================================
--- TABLA: metodos_pago
--- Descripción: Catálogo de métodos de pago según SAT
--- ================================================================================
-CREATE TABLE metodos_pago (
-    codigo VARCHAR(10) PRIMARY KEY,
-    descripcion VARCHAR(500) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_descripcion (descripcion),
-    INDEX idx_activo (activo)
-);
-
--- ================================================================================
--- TABLA: estados
--- Descripción: Catálogo de estados de México
--- ================================================================================
-CREATE TABLE estados (
-    codigo VARCHAR(10) PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_nombre (nombre),
-    INDEX idx_activo (activo)
-);
-
--- ================================================================================
--- TABLA: sesiones_usuario
--- Descripción: Control de sesiones activas de usuarios
--- ================================================================================
-CREATE TABLE sesiones_usuario (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id VARCHAR(50) NOT NULL,
-    token VARCHAR(500) NOT NULL,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_expiracion DATETIME,
-    activa BOOLEAN DEFAULT TRUE,
-    INDEX idx_usuario_id (usuario_id),
-    INDEX idx_token (token),
-    INDEX idx_activa (activa),
-    INDEX idx_fecha_expiracion (fecha_expiracion),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
--- ================================================================================
+-- =====================================================
 -- TABLA: auditoria
--- Descripción: Log de auditoría para cambios importantes
--- ================================================================================
+-- Registro de todas las operaciones importantes
+-- =====================================================
 CREATE TABLE auditoria (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tabla VARCHAR(50) NOT NULL,
-    registro_id VARCHAR(50) NOT NULL,
-    accion ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
-    usuario_id VARCHAR(50),
-    datos_anteriores JSON,
-    datos_nuevos JSON,
-    ip_address VARCHAR(45),
-    fecha_evento DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_tabla (tabla),
-    INDEX idx_registro_id (registro_id),
-    INDEX idx_accion (accion),
-    INDEX idx_usuario_id (usuario_id),
-    INDEX idx_fecha_evento (fecha_evento)
+    id SERIAL PRIMARY KEY,
+    tabla VARCHAR(100) NOT NULL,
+    operacion VARCHAR(20) NOT NULL,
+    registro_id INTEGER NOT NULL,
+    datos_anteriores JSONB,
+    datos_nuevos JSONB,
+    usuario_id INTEGER,
+    ip_address INET,
+    fecha_operacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    CONSTRAINT chk_auditoria_operacion CHECK (operacion IN ('INSERT', 'UPDATE', 'DELETE'))
 );
 
--- ================================================================================
--- RELACIONES ENTRE TABLAS (FOREIGN KEYS)
--- ================================================================================
+-- Índices para auditoria
+CREATE INDEX idx_auditoria_tabla ON auditoria(tabla);
+CREATE INDEX idx_auditoria_operacion ON auditoria(operacion);
+CREATE INDEX idx_auditoria_registro_id ON auditoria(registro_id);
+CREATE INDEX idx_auditoria_usuario_id ON auditoria(usuario_id);
+CREATE INDEX idx_auditoria_fecha ON auditoria(fecha_operacion);
 
--- Relación usuarios -> empleados
-ALTER TABLE usuarios 
-ADD CONSTRAINT fk_usuarios_empleados 
-FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE SET NULL;
+-- =====================================================
+-- TABLAS DE CATÁLOGOS SAT Y SISTEMA
+-- =====================================================
 
--- Relación empleados -> usuarios
-ALTER TABLE empleados 
-ADD CONSTRAINT fk_empleados_usuarios 
-FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL;
+-- Tabla: estados (estados de la República Mexicana)
+CREATE TABLE estados (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- ================================================================================
--- INSERTAR DATOS INICIALES
--- ================================================================================
+-- Tabla: regimenes_fiscales (catálogo SAT)
+CREATE TABLE regimenes_fiscales (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    descripcion VARCHAR(500) NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- Estados iniciales
-INSERT INTO estados (codigo, nombre) VALUES
-('CHP', 'Chiapas'),
-('CDMX', 'Ciudad de México'),
-('GTO', 'Guanajuato');
+-- Tabla: usos_cfdi (catálogo SAT)
+CREATE TABLE usos_cfdi (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    descripcion VARCHAR(500) NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- Regímenes fiscales iniciales
-INSERT INTO regimenes_fiscales (codigo, descripcion) VALUES
-('601', 'General de Ley Personas Morales'),
-('612', 'Personas Físicas con Actividades Empresariales'),
-('605', 'Sueldos y Salarios e Ingresos Asimilados a Salarios');
+-- Tabla: formas_pago (catálogo SAT)
+CREATE TABLE formas_pago (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    descripcion VARCHAR(200) NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- Usos de CFDI iniciales
-INSERT INTO usos_cfdi (codigo, descripcion) VALUES
-('G01', 'Adquisición de mercancías'),
-('G02', 'Devoluciones, descuentos o bonificaciones'),
-('G03', 'Gastos en general'),
-('I01', 'Construcciones'),
-('I02', 'Mobiliario y equipo de oficina por inversiones'),
-('I03', 'Equipo de transporte'),
-('I04', 'Equipo de cómputo y accesorios'),
-('D01', 'Honorarios médicos, dentales y gastos hospitalarios'),
-('D10', 'Pagos por servicios educativos (colegiaturas)'),
-('S01', 'Sin efectos fiscales'),
-('CP01', 'Pagos'),
-('CN01', 'Nómina');
+-- Tabla: metodos_pago (catálogo SAT)
+CREATE TABLE metodos_pago (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    descripcion VARCHAR(200) NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- Formas de pago iniciales
-INSERT INTO formas_pago (codigo, descripcion) VALUES
-('01', 'Efectivo'),
-('02', 'Cheque nominativo'),
-('03', 'Transferencia electrónica de fondos'),
-('04', 'Tarjeta de crédito');
+-- Tabla: modulos (módulos del sistema)
+CREATE TABLE modulos (
+    id SERIAL PRIMARY KEY,
+    clave VARCHAR(50) UNIQUE NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    icono VARCHAR(100),
+    activo BOOLEAN DEFAULT true,
+    orden INTEGER DEFAULT 0,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- Métodos de pago iniciales
-INSERT INTO metodos_pago (codigo, descripcion) VALUES
-('PUE', 'Pago en una sola exhibición'),
-('PPD', 'Pago en parcialidades o diferido');
+-- Índices para catálogos
+CREATE INDEX idx_estados_codigo ON estados(codigo);
+CREATE INDEX idx_regimenes_fiscales_codigo ON regimenes_fiscales(codigo);
+CREATE INDEX idx_usos_cfdi_codigo ON usos_cfdi(codigo);
+CREATE INDEX idx_formas_pago_codigo ON formas_pago(codigo);
+CREATE INDEX idx_metodos_pago_codigo ON metodos_pago(codigo);
+CREATE INDEX idx_modulos_clave ON modulos(clave);
+CREATE INDEX idx_modulos_activo ON modulos(activo);
 
--- Sucursales iniciales
-INSERT INTO sucursales (id, nombre, direccion, telefono, gerente) VALUES
-('SUC_001', 'Sucursal Centro', 'Centro de Tuxtla Gutiérrez', '961-100-1001', 'María Gómez Hernández'),
-('SUC_002', 'Sucursal Norte', 'Norte de Tuxtla Gutiérrez', '961-100-1002', 'Juan Pérez Martínez'),
-('SUC_003', 'Sucursal Sur', 'Sur de Tuxtla Gutiérrez', '961-100-1003', 'Ana López Silva');
+-- =====================================================
+-- FOREIGN KEYS ADICIONALES
+-- =====================================================
+ALTER TABLE usuarios ADD CONSTRAINT fk_usuarios_empleado 
+    FOREIGN KEY (empleado_id) REFERENCES empleados(id);
 
--- Puestos iniciales
-INSERT INTO puestos (id, nombre, descripcion, salario_minimo, salario_maximo) VALUES
-('PUESTO_001', 'Gerente de Sucursal', 'Responsable de la administración general de la sucursal', 20000.00, 35000.00),
-('PUESTO_002', 'Asistente de Ventas', 'Apoyo en atención al cliente y ventas', 12000.00, 18000.00),
-('PUESTO_003', 'Auxiliar Administrativo', 'Apoyo en tareas administrativas y de oficina', 10000.00, 15000.00),
-('PUESTO_004', 'Operador de Equipos', 'Manejo y mantenimiento de equipos de copiado e impresión', 11000.00, 16000.00);
+-- =====================================================
+-- TRIGGERS PARA AUDITORÍA
+-- =====================================================
 
--- Usuario administrador inicial
-INSERT INTO usuarios (id, username, password, nombre, email, role, roles, activo, full_name, phone, bio) VALUES
-('USR_ADMIN_001', 'admin', '$2a$10$T1AaTiFCWAt.ubexs.QkreJSTQRKRjPy2VeyQXCslX82feThi9tuW', 'Administrador SuperCopias', 'admin@supercopias.com', 'admin', '["admin"]', TRUE, 'Administrador SuperCopias', '+52 961 100 0000', 'Administrador principal del sistema SuperCopias');
+-- Función para auditoría
+CREATE OR REPLACE FUNCTION trigger_auditoria()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores)
+        VALUES (TG_TABLE_NAME, TG_OP, OLD.id, row_to_json(OLD));
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores, datos_nuevos)
+        VALUES (TG_TABLE_NAME, TG_OP, NEW.id, row_to_json(OLD), row_to_json(NEW));
+        RETURN NEW;
+    ELSIF TG_OP = 'INSERT' THEN
+        INSERT INTO auditoria (tabla, operacion, registro_id, datos_nuevos)
+        VALUES (TG_TABLE_NAME, TG_OP, NEW.id, row_to_json(NEW));
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
 
--- ================================================================================
--- VISTAS ÚTILES PARA EL SISTEMA
--- ================================================================================
+-- Aplicar triggers de auditoría
+CREATE TRIGGER trg_usuarios_auditoria
+    AFTER INSERT OR UPDATE OR DELETE ON usuarios
+    FOR EACH ROW EXECUTE FUNCTION trigger_auditoria();
 
--- Vista: Empleados con información de usuario
-CREATE VIEW v_empleados_completos AS
+CREATE TRIGGER trg_empleados_auditoria
+    AFTER INSERT OR UPDATE OR DELETE ON empleados
+    FOR EACH ROW EXECUTE FUNCTION trigger_auditoria();
+
+CREATE TRIGGER trg_clientes_auditoria
+    AFTER INSERT OR UPDATE OR DELETE ON clientes
+    FOR EACH ROW EXECUTE FUNCTION trigger_auditoria();
+
+CREATE TRIGGER trg_proveedores_auditoria
+    AFTER INSERT OR UPDATE OR DELETE ON proveedores
+    FOR EACH ROW EXECUTE FUNCTION trigger_auditoria();
+
+-- =====================================================
+-- TRIGGERS PARA TIMESTAMPS AUTOMÁTICOS
+-- =====================================================
+
+-- Función para actualizar fecha_modificacion
+CREATE OR REPLACE FUNCTION trigger_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.fecha_modificacion = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar triggers de timestamp
+CREATE TRIGGER trg_usuarios_updated_at
+    BEFORE UPDATE ON usuarios
+    FOR EACH ROW EXECUTE FUNCTION trigger_updated_at();
+
+CREATE TRIGGER trg_empleados_updated_at
+    BEFORE UPDATE ON empleados
+    FOR EACH ROW EXECUTE FUNCTION trigger_updated_at();
+
+CREATE TRIGGER trg_clientes_updated_at
+    BEFORE UPDATE ON clientes
+    FOR EACH ROW EXECUTE FUNCTION trigger_updated_at();
+
+CREATE TRIGGER trg_proveedores_updated_at
+    BEFORE UPDATE ON proveedores
+    FOR EACH ROW EXECUTE FUNCTION trigger_updated_at();
+
+CREATE TRIGGER trg_sucursales_updated_at
+    BEFORE UPDATE ON sucursales
+    FOR EACH ROW EXECUTE FUNCTION trigger_updated_at();
+
+CREATE TRIGGER trg_puestos_updated_at
+    BEFORE UPDATE ON puestos
+    FOR EACH ROW EXECUTE FUNCTION trigger_updated_at();
+
+-- =====================================================
+-- VISTAS ÚTILES
+-- =====================================================
+
+-- Vista de empleados con información completa
+CREATE VIEW vista_empleados_completa AS
 SELECT 
     e.id,
     e.nombre,
     e.email,
     e.telefono,
-    e.puesto,
-    e.sucursal,
+    p.nombre as puesto,
+    s.nombre as sucursal,
     e.salario,
     e.fecha_ingreso,
     e.activo,
     e.fecha_baja,
     e.tipo_acceso,
     u.username,
+    u.role as rol_usuario,
     u.ultimo_acceso,
-    DATEDIFF(CURDATE(), e.fecha_ingreso) as dias_antiguedad,
-    CASE 
-        WHEN e.activo = 1 THEN 'Activo'
-        ELSE 'Inactivo'
-    END as estado_texto
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'modulo', em.modulo,
+                'acceso', em.acceso
+            )
+        ) FILTER (WHERE em.modulo IS NOT NULL), 
+        '[]'::jsonb
+    ) as modulos
 FROM empleados e
-LEFT JOIN usuarios u ON e.usuario_id = u.id;
+LEFT JOIN usuarios u ON e.id = u.empleado_id
+LEFT JOIN empleados_modulos em ON e.id = em.empleado_id
+LEFT JOIN puestos p ON e.puesto_id = p.id
+LEFT JOIN sucursales s ON e.sucursal_id = s.id
+GROUP BY e.id, e.nombre, e.email, e.telefono, p.nombre, s.nombre,
+         e.salario, e.fecha_ingreso, e.activo, e.fecha_baja, e.tipo_acceso,
+         u.username, u.role, u.ultimo_acceso;
 
--- Vista: Clientes con dirección completa
-CREATE VIEW v_clientes_completos AS
+-- Vista de estadísticas de empleados
+CREATE VIEW vista_estadisticas_empleados AS
 SELECT 
-    c.id,
-    c.rfc,
-    c.razon_social,
-    c.nombre_comercial,
-    c.email,
-    c.telefono,
-    CONCAT(
-        COALESCE(c.direccion_calle, ''), ' ',
-        COALESCE(c.direccion_numero, ''), ', ',
-        COALESCE(c.direccion_colonia, ''), ', ',
-        COALESCE(c.direccion_ciudad, ''), ', ',
-        COALESCE(c.direccion_estado, ''), ' ',
-        COALESCE(c.direccion_codigo_postal, '')
-    ) as direccion_completa,
-    rf.descripcion as regimen_fiscal_desc,
-    uc.descripcion as uso_cfdi_desc,
-    c.activo,
-    c.fecha_registro,
-    c.fecha_modificacion
-FROM clientes c
-LEFT JOIN regimenes_fiscales rf ON c.regimen_fiscal = rf.codigo
-LEFT JOIN usos_cfdi uc ON c.uso_cfdi = uc.codigo;
+    COUNT(*) as total_empleados,
+    COUNT(*) FILTER (WHERE activo = true) as empleados_activos,
+    COUNT(*) FILTER (WHERE activo = false) as empleados_inactivos,
+    COUNT(DISTINCT sucursal) as sucursales_con_empleados,
+    COUNT(DISTINCT puesto) as puestos_ocupados,
+    AVG(salario) FILTER (WHERE salario IS NOT NULL) as salario_promedio,
+    MIN(fecha_ingreso) as empleado_mas_antiguo,
+    MAX(fecha_ingreso) as empleado_mas_reciente
+FROM empleados;
 
--- Vista: Proveedores completos
-CREATE VIEW v_proveedores_completos AS
+-- Vista de clientes activos con resumen
+CREATE VIEW vista_clientes_activos AS
 SELECT 
-    p.*,
-    CASE 
-        WHEN p.activo = 1 THEN 'Activo'
-        ELSE 'Inactivo'
-    END as estado_texto
-FROM proveedores p;
+    id,
+    rfc,
+    razon_social,
+    nombre_comercial,
+    email,
+    telefono,
+    CONCAT(direccion_calle, ' ', direccion_numero, ', ', direccion_colonia) as direccion_completa,
+    direccion_ciudad,
+    direccion_estado,
+    direccion_codigo_postal,
+    regimen_fiscal,
+    uso_cfdi,
+    fecha_registro,
+    fecha_modificacion
+FROM clientes 
+WHERE activo = true;
 
--- ================================================================================
--- PROCEDIMIENTOS ALMACENADOS
--- ================================================================================
+-- =====================================================
+-- FUNCIONES ÚTILES
+-- =====================================================
 
-DELIMITER //
-
--- Procedimiento: Crear empleado con usuario
-CREATE PROCEDURE sp_crear_empleado_con_usuario(
-    IN p_empleado_id VARCHAR(50),
-    IN p_nombre VARCHAR(255),
-    IN p_email VARCHAR(255),
-    IN p_telefono VARCHAR(20),
-    IN p_puesto VARCHAR(100),
-    IN p_sucursal VARCHAR(100),
-    IN p_salario DECIMAL(10,2),
-    IN p_fecha_ingreso DATE,
-    IN p_tipo_acceso ENUM('administrador', 'personalizado', 'inactivo'),
-    IN p_usuario_id VARCHAR(50),
-    IN p_username VARCHAR(50),
-    IN p_password VARCHAR(255)
-)
+-- Función para generar username consecutivo
+CREATE OR REPLACE FUNCTION generar_username(p_nombre VARCHAR)
+RETURNS VARCHAR AS $$
+DECLARE
+    base_username VARCHAR;
+    counter INTEGER := 1;
+    final_username VARCHAR;
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    -- Limpiar nombre para username
+    base_username := LOWER(REGEXP_REPLACE(p_nombre, '[^a-zA-Z]', '', 'g'));
+    base_username := LEFT(base_username, 10);
     
-    START TRANSACTION;
+    -- Buscar siguiente número disponible
+    LOOP
+        final_username := LPAD(counter::text, 3, '0') || '.' || base_username;
+        
+        IF NOT EXISTS (SELECT 1 FROM usuarios WHERE username = final_username) THEN
+            EXIT;
+        END IF;
+        
+        counter := counter + 1;
+        
+        -- Expandir a 4 dígitos si es necesario
+        IF counter > 999 THEN
+            final_username := LPAD(counter::text, 4, '0') || '.' || base_username;
+            IF NOT EXISTS (SELECT 1 FROM usuarios WHERE username = final_username) THEN
+                EXIT;
+            END IF;
+        END IF;
+        
+        -- Límite de seguridad
+        IF counter > 9999 THEN
+            RAISE EXCEPTION 'No se puede generar username único para: %', p_nombre;
+        END IF;
+    END LOOP;
     
-    -- Insertar empleado
-    INSERT INTO empleados (
-        id, nombre, email, telefono, puesto, sucursal, salario,
-        fecha_ingreso, tipo_acceso, usuario_id
-    ) VALUES (
-        p_empleado_id, p_nombre, p_email, p_telefono, p_puesto, p_sucursal,
-        p_salario, p_fecha_ingreso, p_tipo_acceso, p_usuario_id
-    );
-    
-    -- Insertar usuario si se proporcionan datos
-    IF p_usuario_id IS NOT NULL AND p_username IS NOT NULL THEN
-        INSERT INTO usuarios (
-            id, username, password, nombre, email, empleado_id,
-            full_name, phone
-        ) VALUES (
-            p_usuario_id, p_username, p_password, p_nombre, p_email,
-            p_empleado_id, p_nombre, p_telefono
-        );
-    END IF;
-    
-    COMMIT;
-END //
+    RETURN final_username;
+END;
+$$ LANGUAGE plpgsql;
 
--- Procedimiento: Eliminar empleado y usuario relacionado
-CREATE PROCEDURE sp_eliminar_empleado(
-    IN p_empleado_id VARCHAR(50)
-)
+-- Función para obtener estadísticas de la aplicación
+CREATE OR REPLACE FUNCTION obtener_estadisticas_generales()
+RETURNS JSON AS $$
+DECLARE
+    resultado JSON;
 BEGIN
-    DECLARE v_usuario_id VARCHAR(50);
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    SELECT json_build_object(
+        'usuarios', (SELECT COUNT(*) FROM usuarios WHERE activo = true),
+        'empleados', (SELECT COUNT(*) FROM empleados WHERE activo = true),
+        'clientes', (SELECT COUNT(*) FROM clientes WHERE activo = true),
+        'proveedores', (SELECT COUNT(*) FROM proveedores WHERE activo = true),
+        'sucursales', (SELECT COUNT(*) FROM sucursales WHERE activa = true),
+        'ultimo_acceso', (SELECT MAX(ultimo_acceso) FROM usuarios),
+        'empleados_nuevos_mes', (
+            SELECT COUNT(*) FROM empleados 
+            WHERE fecha_ingreso >= date_trunc('month', CURRENT_DATE)
+        ),
+        'clientes_nuevos_mes', (
+            SELECT COUNT(*) FROM clientes 
+            WHERE fecha_registro >= date_trunc('month', CURRENT_DATE)
+        )
+    ) INTO resultado;
     
-    START TRANSACTION;
-    
-    -- Obtener usuario_id antes de eliminar
-    SELECT usuario_id INTO v_usuario_id 
-    FROM empleados 
-    WHERE id = p_empleado_id;
-    
-    -- Eliminar registros relacionados
-    DELETE FROM empleados_modulos WHERE empleado_id = p_empleado_id;
-    DELETE FROM empleados WHERE id = p_empleado_id;
-    
-    -- Eliminar usuario si existe
-    IF v_usuario_id IS NOT NULL THEN
-        DELETE FROM usuarios WHERE id = v_usuario_id;
-    END IF;
-    
-    COMMIT;
-END //
+    RETURN resultado;
+END;
+$$ LANGUAGE plpgsql;
 
-DELIMITER ;
+-- =====================================================
+-- DATOS INICIALES
+-- =====================================================
 
--- ================================================================================
--- ÍNDICES ADICIONALES PARA OPTIMIZACIÓN
--- ================================================================================
+-- Insertar sucursales base
+INSERT INTO sucursales (nombre, direccion, telefono, gerente, activa) VALUES
+('Sucursal Centro', 'Av. Principal 123, Centro', '555-0001', 'María García', true),
+('Sucursal Norte', 'Blvd. Norte 456, Col. Norte', '555-0002', 'Juan Pérez', true),
+('Sucursal Sur', 'Calle Sur 789, Col. Sur', '555-0003', 'Ana López', true);
 
--- Índices compuestos para búsquedas frecuentes
-CREATE INDEX idx_empleados_activo_sucursal ON empleados(activo, sucursal);
-CREATE INDEX idx_clientes_activo_ciudad ON clientes(activo, direccion_ciudad);
-CREATE INDEX idx_proveedores_activo_tipo ON proveedores(activo, tipo_proveedor);
-CREATE INDEX idx_usuarios_activo_role ON usuarios(activo, role);
+-- Insertar puestos base
+INSERT INTO puestos (nombre, descripcion, salario_minimo, salario_maximo, activo) VALUES
+('Gerente General', 'Responsable de la operación general', 25000.00, 35000.00, true),
+('Gerente de Sucursal', 'Responsable de sucursal específica', 18000.00, 25000.00, true),
+('Supervisor', 'Supervisión de operaciones diarias', 12000.00, 18000.00, true),
+('Empleado de Mostrador', 'Atención directa al cliente', 8000.00, 12000.00, true),
+('Cajero', 'Manejo de caja y cobros', 8000.00, 10000.00, true);
 
--- Índices para auditoría y sesiones
-CREATE INDEX idx_auditoria_fecha_tabla ON auditoria(fecha_evento, tabla);
-CREATE INDEX idx_sesiones_usuario_fecha ON sesiones_usuario(usuario_id, fecha_inicio);
+-- Insertar empleado administrador
+INSERT INTO empleados (nombre, email, telefono, puesto_id, sucursal_id, salario, fecha_ingreso, activo, tipo_acceso) VALUES
+('Administrador Sistema', 'admin@supercopias.com', '555-1000', 1, 1, 30000.00, '2024-01-01', true, 'completo');
 
--- ================================================================================
--- CONFIGURACIÓN DE LA BASE DE DATOS
--- ================================================================================
+-- Insertar usuario administrador (contraseña: admin123)
+INSERT INTO usuarios (username, password, nombre, email, role, roles, empleado_id, activo) VALUES
+('admin', '$2a$10$8YJWxKYZHfLxJ1/YQsYKZ.8bK9fX7J1QZ5VeNLqBxWzFvH3Qe4YRi', 'Administrador', 'admin@supercopias.com', 'admin', '["admin", "gerente"]'::jsonb, 1, true);
 
--- Configurar zona horaria
-SET time_zone = '-06:00'; -- Hora de México
+-- Insertar módulos para el administrador
+INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES
+(1, 'empleados', true),
+(1, 'clientes', true),
+(1, 'proveedores', true),
+(1, 'reportes', true),
+(1, 'configuracion', true),
+(1, 'administracion', true);
 
--- Configurar charset por defecto
-ALTER DATABASE supercopias_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- =====================================================
+-- COMENTARIOS Y DOCUMENTACIÓN
+-- =====================================================
 
--- ================================================================================
--- FIN DEL SCRIPT DE CREACIÓN
--- Fecha: 11 de octubre de 2025
--- Base de datos lista para el sistema SuperCopias
--- ================================================================================
+COMMENT ON DATABASE supercopias IS 'Base de datos del sistema SuperCopias - Gestión integral de negocio';
+
+COMMENT ON TABLE usuarios IS 'Usuarios del sistema con autenticación y autorización';
+COMMENT ON TABLE empleados IS 'Información completa de empleados de la empresa';
+COMMENT ON TABLE clientes IS 'Base de datos de clientes con información fiscal';
+COMMENT ON TABLE proveedores IS 'Catálogo de proveedores y sus datos de contacto';
+COMMENT ON TABLE sucursales IS 'Sucursales de la empresa';
+COMMENT ON TABLE puestos IS 'Catálogo de puestos de trabajo';
+COMMENT ON TABLE empleados_modulos IS 'Permisos granulares por módulo para cada empleado';
+COMMENT ON TABLE auditoria IS 'Registro completo de operaciones para auditoría';
+
+-- =====================================================
+-- FINALIZACIÓN
+-- =====================================================
+
+-- Mensaje de confirmación
+DO $$
+BEGIN
+    RAISE NOTICE '✅ Base de datos SuperCopias creada exitosamente';
+    RAISE NOTICE '📊 Tablas: %, Vistas: %, Funciones: %', 
+        (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'),
+        (SELECT COUNT(*) FROM information_schema.views WHERE table_schema = 'public'),
+        (SELECT COUNT(*) FROM information_schema.routines WHERE routine_schema = 'public');
+    RAISE NOTICE '🚀 Sistema listo para usar con PostgreSQL';
+END $$;

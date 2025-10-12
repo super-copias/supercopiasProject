@@ -1,62 +1,120 @@
-# Scripts del Backend - SuperCopias# Scripts de Gestión de Clientes
+# 🚀 Scripts de Migración SuperCopias# Scripts del Backend - SuperCopias# Scripts de Gestión de Clientes
 
 
 
-Este directorio contiene el script de inicialización del sistema.Este directorio contiene scripts para gestionar los datos de clientes en la base de datos.
+## Scripts Esenciales
 
 
 
-## Script Disponible## Scripts disponibles
+### 1. `install-postgresql.js` Este directorio contiene el script de inicialización del sistema.Este directorio contiene scripts para gestionar los datos de clientes en la base de datos.
 
-
-
-### `init-clean-data.js`### 1. `limpiar-clientes.js` (Limpieza rápida)
-
-**Descripción:** Script maestro para inicializar el sistema con datos limpios.Script simple que elimina todos los clientes y crea 2 clientes de prueba.
-
-
-
-**Funcionalidad:**```bash
-
-- Crea 1 usuario administrador# Desde el directorio backend
-
-- Crea 3 empleados con diferentes niveles de accesonode scripts/limpiar-clientes.js
-
-- Crea 5 clientes de ejemplo  ```
-
-- Inicializa catálogos básicos del sistema
-
-### 2. `limpiar-inconsistentes.js` (Limpiar estructura)
-
-**Uso:**Script que elimina clientes con estructura de datos inconsistente.
+**Instala y configura PostgreSQL completo**
 
 ```bash
 
-# Desde el directorio backend```bash
+node scripts/install-postgresql.js
 
-npm run init# Limpiar clientes con estructura incorrecta
-
-node scripts/limpiar-inconsistentes.js
-
-# O directamente:```
-
-node scripts/init-clean-data.js
-
-```### 3. `gestionar-clientes.js` (Gestión avanzada)
-
-Script completo con múltiples opciones para gestionar clientes.
-
-**Credenciales creadas:**
-
-- **Admin:** admin / Admin123!$```bash
-
-- **Empleado (completo):** mgomez / empleado123# Listar todos los clientes
-
-- **Empleado (limitado):** jperez / empleado123node scripts/gestionar-clientes.js listar
+```## Script Disponible## Scripts disponibles
 
 
 
-**Empleados configurados:**# Crear respaldo de clientes actuales
+### 2. `migrate-to-postgres.js`
+
+**Ejecuta la migración de datos**
+
+```bash### `init-clean-data.js`### 1. `limpiar-clientes.js` (Limpieza rápida)
+
+node scripts/migrate-to-postgres.js
+
+```**Descripción:** Script maestro para inicializar el sistema con datos limpios.Script simple que elimina todos los clientes y crea 2 clientes de prueba.
+
+
+
+## Proceso de Migración - 3 Pasos Simples
+
+
+
+### PASO 1: Instalar PostgreSQL**Funcionalidad:**```bash
+
+```bash
+
+node scripts/install-postgresql.js- Crea 1 usuario administrador# Desde el directorio backend
+
+```
+
+Este script:- Crea 3 empleados con diferentes niveles de accesonode scripts/limpiar-clientes.js
+
+- Descarga PostgreSQL 15
+
+- Lo instala automáticamente- Crea 5 clientes de ejemplo  ```
+
+- Crea la base de datos 'supercopias'
+
+- Configura usuario y contraseña- Inicializa catálogos básicos del sistema
+
+
+
+### PASO 2: Ejecutar Migración### 2. `limpiar-inconsistentes.js` (Limpiar estructura)
+
+```bash
+
+node scripts/migrate-to-postgres.js**Uso:**Script que elimina clientes con estructura de datos inconsistente.
+
+```
+
+Este script:```bash
+
+- Crea todas las tablas
+
+- Migra los datos existentes# Desde el directorio backend```bash
+
+- Instala catálogos SAT oficiales
+
+- Convierte IDs a numéricasnpm run init# Limpiar clientes con estructura incorrecta
+
+
+
+### PASO 3: Verificar Resultadonode scripts/limpiar-inconsistentes.js
+
+```bash
+
+npm start# O directamente:```
+
+```
+
+El servidor iniciará con PostgreSQL.node scripts/init-clean-data.js
+
+
+
+## ¿Problemas?```### 3. `gestionar-clientes.js` (Gestión avanzada)
+
+
+
+**Error de conexión:**Script completo con múltiples opciones para gestionar clientes.
+
+```bash
+
+# Verificar PostgreSQL**Credenciales creadas:**
+
+Get-Service postgresql*
+
+```- **Admin:** admin / Admin123!$```bash
+
+
+
+**Tablas vacías:**- **Empleado (completo):** mgomez / empleado123# Listar todos los clientes
+
+```bash
+
+# Re-ejecutar migración- **Empleado (limitado):** jperez / empleado123node scripts/gestionar-clientes.js listar
+
+node scripts/migrate-to-postgres.js
+
+```
+
+
+
+**¡Eso es todo! Solo 2 scripts, 3 pasos.** 🎯**Empleados configurados:**# Crear respaldo de clientes actuales
 
 - María Gómez: Acceso administrador (todos los módulos)node scripts/gestionar-clientes.js respaldar
 

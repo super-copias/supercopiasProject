@@ -71,7 +71,7 @@ async function listEmpleados(req, res) {
     }
     
     // Agregar ordenamiento y paginación
-    baseQuery += ` ORDER BY e.fecha_contratacion DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    baseQuery += ` ORDER BY e.fecha_ingreso DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     queryParams.push(limit, offset);
     
     // Ejecutar consultas

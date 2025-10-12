@@ -19,9 +19,6 @@ const bodyParser = require('body-parser');
 // Importar configuración de base de datos
 const { initializeDatabase } = require('./config/database');
 
-// Importar utilidades
-const { initAllMockData } = require('./utils/initMockData');
-
 // Importar rutas
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');

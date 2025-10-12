@@ -5,6 +5,8 @@
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "serve:prod": "ng serve --configuration production",
     "test": "ng test"
   },
   "dependencies": {
