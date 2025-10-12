@@ -7,7 +7,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { 
   ApiResponse, 
   Empleado, 
@@ -65,8 +65,15 @@ export class EmpleadosService {
    * Obtener empleado por ID
    */
   getEmpleado(id: number): Observable<ApiResponse<Empleado>> {
-    return this.http.get<ApiResponse<Empleado>>(`${this.baseUrl}/${id}`)
+    return this.http.get<any>(`${this.baseUrl}/${id}`)
       .pipe(
+        map(response => {
+          if (response && response.success && response.data) {
+            const mappedData = this.mapEmpleadoFromAPI(response.data);
+            return { ...response, data: mappedData };
+          }
+          return response;
+        }),
         catchError(this.handleError.bind(this))
       );
   }
@@ -241,5 +248,34 @@ export class EmpleadosService {
       },
       timestamp: new Date().toISOString()
     }));
+  }
+
+  /**
+   * Mapea datos del empleado desde la API (snake_case) al formato del frontend (camelCase)
+   */
+  private mapEmpleadoFromAPI(empleado: any): any {
+    return {
+      id: empleado.id,
+      nombre: empleado.nombre,
+      apellidos: '', 
+      email: empleado.email,
+      telefono: empleado.telefono,
+      puesto: empleado.puesto_id, // ID para el formulario
+      puestoNombre: empleado.puesto_nombre, // Nombre para mostrar
+      sucursal: empleado.sucursal_id, // ID para el formulario
+      sucursalNombre: empleado.sucursal_nombre, // Nombre para mostrar
+      departamento: empleado.sucursal_nombre || `Sucursal ${empleado.sucursal_id}`,
+      salario: parseFloat(empleado.salario) || 0,
+      fechaIngreso: empleado.fecha_ingreso,
+      fechaBaja: empleado.fecha_baja,
+      tipoPermiso: empleado.tipo_acceso,
+      activo: empleado.activo,
+      fechaRegistro: empleado.fecha_registro,
+      fechaModificacion: empleado.fecha_modificacion,
+      roles: empleado.modulosPermitidos || [],
+      modulosPermitidos: empleado.modulosPermitidos || [],
+      tieneUsuario: !!empleado.usuario_id,
+      usuarioId: empleado.usuario_id
+    };
   }
 }

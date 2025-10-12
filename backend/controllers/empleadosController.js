@@ -14,6 +14,16 @@ const {
   createErrorResponse, 
   CODIGOS_ERROR 
 } = require('../utils/apiStandard');
+
+// Función simplificada para respuestas exitosas
+function createSuccessResponse(data, message) {
+  return {
+    success: true,
+    data,
+    message,
+    timestamp: new Date().toISOString()
+  };
+}
 const {
   getAllRoles,
   getRoleById,
@@ -181,7 +191,7 @@ async function getEmpleado(req, res) {
       } : null
     };
 
-    res.json(createResponse(empleadoCompleto, 'Empleado obtenido exitosamente'));
+    res.json(createSuccessResponse(empleadoCompleto, 'Empleado obtenido exitosamente'));
     
   } catch (error) {
     console.error('Error en getEmpleado:', error);

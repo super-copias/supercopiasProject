@@ -250,8 +250,23 @@ export class CatalogosService {
    * Obtener catálogo de sucursales
    */
   getSucursales(): Observable<ApiResponse<Sucursal[]>> {
-    return this.http.get<ApiResponse<Sucursal[]>>(`${this.baseUrl}/sucursales`)
+    return this.http.get<any>(`${this.baseUrl}/sucursales`)
       .pipe(
+        map(response => {
+          if (response && response.success && Array.isArray(response.data)) {
+            const mappedData = response.data.map((sucursal: any) => ({
+              id: sucursal.id,
+              nombre: sucursal.nombre,
+              direccion: sucursal.direccion,
+              telefono: sucursal.telefono,
+              gerente: sucursal.gerente,
+              activa: sucursal.activa,
+              fechaCreacion: sucursal.fecha_creacion
+            }));
+            return { ...response, data: mappedData };
+          }
+          return response;
+        }),
         catchError(this.handleError.bind(this))
       );
   }
@@ -270,8 +285,23 @@ export class CatalogosService {
    * Obtener catálogo de puestos
    */
   getPuestos(): Observable<ApiResponse<Puesto[]>> {
-    return this.http.get<ApiResponse<Puesto[]>>(`${this.baseUrl}/puestos`)
+    return this.http.get<any>(`${this.baseUrl}/puestos`)
       .pipe(
+        map(response => {
+          if (response && response.success && Array.isArray(response.data)) {
+            const mappedData = response.data.map((puesto: any) => ({
+              id: puesto.id,
+              nombre: puesto.nombre,
+              descripcion: puesto.descripcion,
+              salarioMinimo: parseFloat(puesto.salario_minimo) || 0,
+              salarioMaximo: parseFloat(puesto.salario_maximo) || 0,
+              activo: puesto.activo,
+              fechaCreacion: puesto.fecha_creacion
+            }));
+            return { ...response, data: mappedData };
+          }
+          return response;
+        }),
         catchError(this.handleError.bind(this))
       );
   }
