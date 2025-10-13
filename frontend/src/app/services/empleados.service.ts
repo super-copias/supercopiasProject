@@ -116,26 +116,6 @@ export class EmpleadosService {
   }
 
   /**
-   * Obtener catálogo de roles disponibles
-   */
-  getRoles(): Observable<ApiResponse<RolSistema[]>> {
-    return this.http.get<ApiResponse<RolSistema[]>>(`${this.baseUrl}/roles`)
-      .pipe(
-        catchError(this.handleError.bind(this))
-      );
-  }
-
-  /**
-   * Asignar roles a un empleado
-   */
-  assignRoles(id: number, data: AsignarRoles): Observable<ApiResponse<EmpleadoConUsuario>> {
-    return this.http.post<ApiResponse<EmpleadoConUsuario>>(`${this.baseUrl}/${id}/assign-roles`, data)
-      .pipe(
-        catchError(this.handleError.bind(this))
-      );
-  }
-
-  /**
    * Obtener catálogo de puestos
    */
   getPuestos(): Observable<ApiResponse<string[]>> {
@@ -155,16 +135,6 @@ export class EmpleadosService {
       );
   }
 
-  /**
-   * Actualizar permisos de módulos de un empleado
-   */
-  updatePermisos(id: number, permisos: any): Observable<ApiResponse<any>> {
-    return this.http.put<ApiResponse<any>>(`${this.baseUrl}/${id}/permisos`, permisos)
-      .pipe(
-        catchError(this.handleError.bind(this))
-      );
-  }
-
   // ============================================================================
   // MÉTODOS DE COMPATIBILIDAD PARA COMPONENTES EXISTENTES
   // ============================================================================
@@ -174,13 +144,6 @@ export class EmpleadosService {
    */
   list(q?: string, page?: number, limit?: number): Observable<ApiResponse<Empleado[]>> {
     return this.getList({ q, page, limit });
-  }
-
-  /**
-   * Método de compatibilidad para assignRole() - redirige a assignRoles()
-   */
-  assignRole(id: number, role: string): Observable<ApiResponse<EmpleadoConUsuario>> {
-    return this.assignRoles(id, { roles: [role], crearUsuario: false });
   }
 
   /**

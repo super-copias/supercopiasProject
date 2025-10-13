@@ -307,84 +307,6 @@ async function createPuesto(req, res) {
   }
 }
 
-// ============================================================================
-// EXPORTACIONES
-// ============================================================================
-
-/**
- * ⚠️ ENDPOINT TEMPORAL - REMOVER EN PRODUCCIÓN ⚠️
- * GET /api/catalogos/setup-modulos-empleados
- * Contiene datos hardcodeados para desarrollo únicamente
- */
-async function setupModulosEmpleados(req, res) {
-  try {
-    // ⚠️ DATOS HARDCODEADOS - SOLO PARA DESARROLLO ⚠️
-    const datosEmpleados = {
-      1: ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'punto_venta', 'equipos', 'reportes', 'configuracion'], // Admin
-      6: ['empleados'], // Erick
-      7: ['dashboard', 'clientes'], // María
-      8: ['dashboard', 'clientes', 'inventarios'], // Juan
-      9: ['clientes', 'reportes'] // Ana
-    };
-    
-    // Obtener módulos disponibles
-    const modulosResult = await query('SELECT clave FROM modulos WHERE activo = true');
-    const modulosDisponibles = modulosResult.rows.map(m => m.clave);
-    
-    // Limpiar datos anteriores
-    await query('DELETE FROM empleados_modulos');
-    
-    let insertados = 0;
-    
-    // Insertar datos para cada empleado
-    for (const [empleadoId, modulosAsignados] of Object.entries(datosEmpleados)) {
-      for (const modulo of modulosDisponibles) {
-        const tieneAcceso = modulosAsignados.includes(modulo);
-        
-        await query(`
-          INSERT INTO empleados_modulos (empleado_id, modulo, acceso)
-          VALUES ($1, $2, $3)
-        `, [parseInt(empleadoId), modulo, tieneAcceso]);
-        
-        insertados++;
-      }
-    }
-    
-    // Verificar datos insertados
-    const verificacion = await query(`
-      SELECT e.nombre, em.modulo, em.acceso 
-      FROM empleados_modulos em
-      JOIN empleados e ON em.empleado_id = e.id
-      WHERE em.acceso = true
-      ORDER BY e.id, em.modulo
-    `);
-    
-    const resumen = {};
-    verificacion.rows.forEach(row => {
-      if (!resumen[row.nombre]) {
-        resumen[row.nombre] = [];
-      }
-      resumen[row.nombre].push(row.modulo);
-    });
-    
-    res.status(200).json({
-      success: true,
-      message: 'Módulos configurados exitosamente',
-      insertados: insertados,
-      resumen: resumen,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('Error configurando módulos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error configurando módulos para empleados',
-      details: error.message
-    });
-  }
-}
-
 module.exports = {
   // Catálogos SAT
   getEstados,
@@ -398,6 +320,5 @@ module.exports = {
   getSucursales,
   createSucursal,
   getPuestos,
-  createPuesto,
-  setupModulosEmpleados
+  createPuesto
 };

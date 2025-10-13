@@ -153,12 +153,9 @@ const {
   getEmpleado, 
   // createEmpleado,  // Comentamos la función problemática
   updateEmpleado, 
-  deleteEmpleado, 
-  getRoles,
-  assignRoles,
+  deleteEmpleado,
   getPuestos,
-  getModulos,
-  updatePermisos
+  getModulos
 } = require('../controllers/empleadosController');
 
 /**
@@ -179,12 +176,6 @@ router.get('/puestos', auth, getPuestos);
  * Obtener catálogo de módulos del sistema
  */
 router.get('/modulos', auth, getModulos);
-
-/**
- * GET /api/empleados/roles
- * Obtener catálogo de roles disponibles
- */
-router.get('/roles', getRoles);
 
 /**
  * GET /api/empleados/:id
@@ -211,19 +202,5 @@ router.put('/:id', auth, updateEmpleado);
  * Eliminar un empleado (desactivar)
  */
 router.delete('/:id', auth, deleteEmpleado);
-
-/**
- * POST /api/empleados/:id/assign-roles
- * Asignar roles a un empleado - Solo admin
- * Body: { roles: string[], crearUsuario?: boolean }
- */
-router.post('/:id/assign-roles', auth, roles(['admin']), assignRoles);
-
-/**
- * PUT /api/empleados/:id/permisos
- * Actualizar permisos de módulos de un empleado - Solo admin
- * Body: { tipoPermiso: string, modulosPermitidos: string[], permisos?: object[] }
- */
-router.put('/:id/permisos', auth, roles(['admin']), updatePermisos);
 
 module.exports = router;

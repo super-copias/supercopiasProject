@@ -25,9 +25,6 @@ router.get('/metodos-pago', catalogosController.getMetodosPago);
 // Módulos del sistema
 router.get('/modulos', catalogosController.getModulos);
 
-// ENDPOINT TEMPORAL - Configurar módulos para empleados
-router.get('/setup-modulos-empleados', catalogosController.setupModulosEmpleados);
-
 // Sucursales
 router.get('/sucursales', catalogosController.getSucursales);
 router.post('/sucursales', catalogosController.createSucursal);
