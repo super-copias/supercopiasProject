@@ -32,11 +32,12 @@ async function getEstados(req, res) {
   try {
     const result = await query('SELECT * FROM estados WHERE activo = true ORDER BY nombre');
     
-    res.json(createResponse({
+    res.status(200).json({
+      success: true,
       data: result.rows,
       message: 'Estados obtenidos correctamente',
-      count: result.rows.length
-    }));
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error obteniendo estados:', error);
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo estados'));
@@ -51,11 +52,12 @@ async function getRegimenesFiscales(req, res) {
   try {
     const result = await query('SELECT * FROM regimenes_fiscales WHERE activo = true ORDER BY codigo');
     
-    res.json(createResponse({
+    res.status(200).json({
+      success: true,
       data: result.rows,
       message: 'Regímenes fiscales obtenidos correctamente',
-      count: result.rows.length
-    }));
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error obteniendo regímenes fiscales:', error);
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo regímenes fiscales'));
@@ -70,11 +72,12 @@ async function getUsosCFDI(req, res) {
   try {
     const result = await query('SELECT * FROM usos_cfdi WHERE activo = true ORDER BY codigo');
     
-    res.json(createResponse({
+    res.status(200).json({
+      success: true,
       data: result.rows,
       message: 'Usos CFDI obtenidos correctamente',
-      count: result.rows.length
-    }));
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error obteniendo usos CFDI:', error);
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo usos CFDI'));
@@ -89,11 +92,12 @@ async function getFormasPago(req, res) {
   try {
     const result = await query('SELECT * FROM formas_pago WHERE activo = true ORDER BY codigo');
     
-    res.json(createResponse({
+    res.status(200).json({
+      success: true,
       data: result.rows,
       message: 'Formas de pago obtenidas correctamente',
-      count: result.rows.length
-    }));
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error obteniendo formas de pago:', error);
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo formas de pago'));
@@ -108,11 +112,12 @@ async function getMetodosPago(req, res) {
   try {
     const result = await query('SELECT * FROM metodos_pago WHERE activo = true ORDER BY codigo');
     
-    res.json(createResponse({
+    res.status(200).json({
+      success: true,
       data: result.rows,
       message: 'Métodos de pago obtenidos correctamente',
-      count: result.rows.length
-    }));
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error obteniendo métodos de pago:', error);
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo métodos de pago'));
@@ -129,13 +134,48 @@ async function getMetodosPago(req, res) {
  */
 async function getModulos(req, res) {
   try {
-    const result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
+    // Primero verificar si hay módulos, si no, insertarlos
+    let result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
     
-    res.json(createResponse({
+    if (result.rows.length === 0) {
+      console.log('📦 No hay módulos, insertando datos iniciales...');
+      
+      const modulos = [
+        { clave: 'dashboard', nombre: 'Dashboard', icono: 'fas fa-tachometer-alt', orden: 1 },
+        { clave: 'empleados', nombre: 'Empleados', icono: 'fas fa-users', orden: 2 },
+        { clave: 'clientes', nombre: 'Clientes', icono: 'fas fa-user-tie', orden: 3 },
+        { clave: 'proveedores', nombre: 'Proveedores', icono: 'fas fa-truck', orden: 4 },
+        { clave: 'inventarios', nombre: 'Inventarios', icono: 'fas fa-boxes', orden: 5 },
+        { clave: 'punto_venta', nombre: 'Punto de Venta', icono: 'fas fa-cash-register', orden: 6 },
+        { clave: 'equipos', nombre: 'Equipos', icono: 'fas fa-desktop', orden: 7 },
+        { clave: 'reportes', nombre: 'Reportes', icono: 'fas fa-chart-bar', orden: 8 },
+        { clave: 'configuracion', nombre: 'Configuración', icono: 'fas fa-cogs', orden: 9 }
+      ];
+      
+      for (const modulo of modulos) {
+        await query(`
+          INSERT INTO modulos (clave, nombre, icono, activo, orden) 
+          VALUES ($1, $2, $3, true, $4)
+          ON CONFLICT (clave) DO UPDATE SET
+              nombre = EXCLUDED.nombre,
+              icono = EXCLUDED.icono,
+              activo = EXCLUDED.activo,
+              orden = EXCLUDED.orden
+        `, [modulo.clave, modulo.nombre, modulo.icono, modulo.orden]);
+      }
+      
+      // Volver a consultar después de insertar
+      result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
+      console.log(`✅ Insertados ${result.rows.length} módulos`);
+    }
+    
+    // Respuesta directa sin funciones helper
+    res.status(200).json({
+      success: true,
       data: result.rows,
       message: 'Módulos del sistema obtenidos correctamente',
-      count: result.rows.length
-    }));
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error obteniendo módulos:', error);
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo módulos'));
@@ -283,6 +323,88 @@ async function createPuesto(req, res) {
 // EXPORTACIONES
 // ============================================================================
 
+/**
+ * ENDPOINT TEMPORAL - Insertar datos de módulos para empleados
+ * GET /api/catalogos/setup-modulos-empleados
+ */
+async function setupModulosEmpleados(req, res) {
+  try {
+    console.log('🔧 Configurando módulos para empleados...');
+    
+    // Datos de módulos por empleado
+    const datosEmpleados = {
+      1: ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'punto_venta', 'equipos', 'reportes', 'configuracion'], // Admin
+      6: ['empleados'], // Erick
+      7: ['dashboard', 'clientes'], // María
+      8: ['dashboard', 'clientes', 'inventarios'], // Juan
+      9: ['clientes', 'reportes'] // Ana
+    };
+    
+    // Obtener módulos disponibles
+    const modulosResult = await query('SELECT clave FROM modulos WHERE activo = true');
+    const modulosDisponibles = modulosResult.rows.map(m => m.clave);
+    
+    console.log('📦 Módulos disponibles:', modulosDisponibles);
+    
+    // Limpiar datos anteriores
+    await query('DELETE FROM empleados_modulos');
+    console.log('🧹 Datos anteriores eliminados');
+    
+    let insertados = 0;
+    
+    // Insertar datos para cada empleado
+    for (const [empleadoId, modulosAsignados] of Object.entries(datosEmpleados)) {
+      console.log(`👤 Configurando empleado ${empleadoId}...`);
+      
+      for (const modulo of modulosDisponibles) {
+        const tieneAcceso = modulosAsignados.includes(modulo);
+        
+        await query(`
+          INSERT INTO empleados_modulos (empleado_id, modulo, acceso)
+          VALUES ($1, $2, $3)
+        `, [parseInt(empleadoId), modulo, tieneAcceso]);
+        
+        insertados++;
+      }
+    }
+    
+    console.log(`✅ ${insertados} registros insertados`);
+    
+    // Verificar datos insertados
+    const verificacion = await query(`
+      SELECT e.nombre, em.modulo, em.acceso 
+      FROM empleados_modulos em
+      JOIN empleados e ON em.empleado_id = e.id
+      WHERE em.acceso = true
+      ORDER BY e.id, em.modulo
+    `);
+    
+    const resumen = {};
+    verificacion.rows.forEach(row => {
+      if (!resumen[row.nombre]) {
+        resumen[row.nombre] = [];
+      }
+      resumen[row.nombre].push(row.modulo);
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Módulos configurados exitosamente',
+      insertados: insertados,
+      resumen: resumen,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error configurando módulos:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error configurando módulos para empleados',
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   // Catálogos SAT
   getEstados,
@@ -296,5 +418,6 @@ module.exports = {
   getSucursales,
   createSucursal,
   getPuestos,
-  createPuesto
+  createPuesto,
+  setupModulosEmpleados
 };

@@ -58,49 +58,65 @@ async function listEmpleados(req, res) {
     const limit = parseInt(req.query.limit || '10');
     const offset = (page - 1) * limit;
     
-    let baseQuery = `
+    console.log('🔍 Búsqueda de empleados:', { q, page, limit, offset });
+    
+    let queryParams = [];
+    let whereCondition = 'WHERE e.activo = true';
+    
+    // Filtrar por búsqueda si se proporciona
+    if (q) {
+      whereCondition += ` AND (
+        LOWER(e.nombre) LIKE $1 OR 
+        LOWER(e.email) LIKE $1 OR 
+        LOWER(e.telefono) LIKE $1 OR
+        LOWER(p.nombre) LIKE $1 OR
+        LOWER(s.nombre) LIKE $1
+      )`;
+      queryParams.push(`%${q}%`);
+      console.log('🔎 Aplicando filtro de búsqueda:', `%${q}%`);
+    }
+    
+    const baseQuery = `
       SELECT e.*, s.nombre as sucursal_nombre, p.nombre as puesto_nombre 
       FROM empleados e
       LEFT JOIN sucursales s ON e.sucursal_id = s.id
       LEFT JOIN puestos p ON e.puesto_id = p.id
-      WHERE e.activo = true
+      ${whereCondition}
+      ORDER BY e.fecha_ingreso DESC 
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
     `;
-    let countQuery = 'SELECT COUNT(*) FROM empleados e WHERE e.activo = true';
-    let queryParams = [];
     
-    // Filtrar por búsqueda si se proporciona
-    if (q) {
-      const searchCondition = ` AND (
-        LOWER(e.nombre) LIKE $1 OR 
-        LOWER(e.email) LIKE $1 OR 
-        LOWER(e.telefono) LIKE $1
-      )`;
-      baseQuery += searchCondition;
-      countQuery += searchCondition;
-      queryParams.push(`%${q}%`);
-    }
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM empleados e
+      LEFT JOIN sucursales s ON e.sucursal_id = s.id
+      LEFT JOIN puestos p ON e.puesto_id = p.id
+      ${whereCondition}
+    `;
     
-    // Agregar ordenamiento y paginación
-    baseQuery += ` ORDER BY e.fecha_ingreso DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
-    queryParams.push(limit, offset);
+    // Agregar parámetros de paginación
+    const finalParams = [...queryParams, limit, offset];
+    
+    console.log('📝 Query final:', baseQuery);
+    console.log('📋 Parámetros:', finalParams);
     
     // Ejecutar consultas
     const [itemsResult, countResult] = await Promise.all([
-      query(baseQuery, queryParams),
-      query(countQuery, queryParams.slice(0, -2)) // Remover limit y offset para count
+      query(baseQuery, finalParams),
+      query(countQuery, queryParams) // Solo los parámetros de búsqueda para count
     ]);
     
     const items = itemsResult.rows;
     const totalItems = parseInt(countResult.rows[0].count);
-    const totalPages = Math.ceil(totalItems / limit);
+    
+    console.log(`📊 Resultados: ${items.length} empleados de ${totalItems} total`);
     
     return res.json(
       createPaginatedResponse(
         items, 
         page, 
-        totalPages, 
-        totalItems, 
-        'Empleados obtenidos exitosamente'
+        limit,
+        totalItems
       )
     );
   } catch (error) {
@@ -171,14 +187,19 @@ async function getEmpleado(req, res) {
     const empleado = result.rows[0];
     
     // Obtener módulos del empleado
+    console.log('🔍 Buscando módulos para empleado ID:', empleadoId);
     const modulosResult = await query(
       'SELECT modulo, acceso FROM empleados_modulos WHERE empleado_id = $1',
       [empleadoId]
     );
     
+    console.log('📋 Módulos encontrados en BD:', modulosResult.rows);
+    
     const modulosPermitidos = modulosResult.rows
       .filter(m => m.acceso)
       .map(m => m.modulo);
+
+    console.log('✅ Módulos con acceso TRUE:', modulosPermitidos);
 
     // Preparar respuesta
     const empleadoCompleto = {

@@ -35,8 +35,25 @@ export class EmpleadosService {
       }
     });
 
-    return this.http.get<ApiResponse<Empleado[]>>(`${this.baseUrl}?${queryParams}`)
+    return this.http.get<any>(`${this.baseUrl}?${queryParams}`)
       .pipe(
+        map(response => {
+          if (response && response.success && Array.isArray(response.data)) {
+            const mappedData = response.data.map((empleado: any) => ({
+              id: empleado.id,
+              nombre: empleado.nombre,
+              telefono: empleado.telefono,
+              email: empleado.email,
+              puesto: empleado.puesto_nombre || '-',
+              sucursal: empleado.sucursal_nombre || '-',
+              activo: empleado.activo,
+              fechaIngreso: empleado.fecha_ingreso,
+              fechaRegistro: empleado.fecha_registro
+            }));
+            return { ...response, data: mappedData };
+          }
+          return response;
+        }),
         catchError(this.handleError.bind(this))
       );
   }

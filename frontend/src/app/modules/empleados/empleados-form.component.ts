@@ -106,7 +106,7 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
                     formControlName="puesto"
                     [class.is-invalid]="isInvalid('puesto')">
                     <option value="">Seleccione un puesto</option>
-                    <option *ngFor="let puesto of puestos" [value]="puesto.nombre">
+                    <option *ngFor="let puesto of puestos" [value]="puesto.id">
                       {{puesto.nombre}}
                     </option>
                   </select>
@@ -122,7 +122,7 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
                     formControlName="sucursal"
                     [class.is-invalid]="isInvalid('sucursal')">
                     <option value="">Seleccione una sucursal</option>
-                    <option *ngFor="let sucursal of sucursales" [value]="sucursal.nombre">
+                    <option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
                       {{sucursal.nombre}}
                     </option>
                   </select>
@@ -240,16 +240,16 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
                   <label class="form-label">Módulos Permitidos</label>
                   <div class="row">
                     <div class="col-md-6 col-lg-3 mb-3" *ngFor="let modulo of modulos">
-                      <div class="card h-100" [class.border-primary]="isSelected(modulo.id)">
+                      <div class="card h-100" [class.border-primary]="isSelected(modulo.clave)">
                         <div class="card-body p-3">
                           <div class="form-check">
                             <input 
                               class="form-check-input" 
                               type="checkbox" 
-                              [id]="'mod_' + modulo.id"
-                              [checked]="isSelected(modulo.id)"
-                              (change)="toggle(modulo.id)">
-                            <label class="form-check-label" [for]="'mod_' + modulo.id">
+                              [id]="'mod_' + modulo.clave"
+                              [checked]="isSelected(modulo.clave)"
+                              (change)="toggle(modulo.clave)">
+                            <label class="form-check-label" [for]="'mod_' + modulo.clave">
                               <i [class]="modulo.icono + ' me-2 text-primary'"></i>
                               <strong>{{modulo.nombre}}</strong>
                             </label>
@@ -273,15 +273,6 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
                   <div class="alert alert-warning border-warning">
                     <i class="fas fa-crown me-2"></i>
                     <strong>👑 Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema con permisos de administrador. Podrá gestionar empleados, clientes, proveedores, inventarios, equipos, reportes y configuraciones.
-                  </div>
-                </div>
-
-                <div class="mt-3" *ngIf="seleccionados.length > 0 && tipoPermiso !== 'administrador'">
-                  <label class="form-label">Módulos Seleccionados ({{seleccionados.length}}):</label>
-                  <div class="d-flex flex-wrap gap-1">
-                    <span class="badge bg-primary" *ngFor="let moduloId of seleccionados">
-                      {{getNombre(moduloId)}}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -370,6 +361,7 @@ export class EmpleadosFormComponent implements OnInit {
       if (params['id']) {
         this.isEditing = true;
         this.empleadoId = params['id'];
+        console.log('📥 Cargando empleado ID:', this.empleadoId);
         this.loadEmpleado(this.empleadoId);
       }
     });
@@ -403,33 +395,39 @@ export class EmpleadosFormComponent implements OnInit {
     });
 
     // Cargar sucursales
+    console.log('🏪 Cargando sucursales...');
     this.catalogosService.getSucursales().subscribe({
       next: (response) => {
+        console.log('📋 Respuesta sucursales:', response);
         if (response && response.success && Array.isArray(response.data)) {
           this.sucursales = response.data.filter(s => s.activa);
+          console.log('✅ Sucursales filtradas:', this.sucursales.length, this.sucursales);
         } else {
-          console.error('Error: Estructura de respuesta inválida para sucursales');
+          console.error('❌ Error: Estructura de respuesta inválida para sucursales', response);
           this.sucursales = [];
         }
       },
       error: (error) => {
-        console.error('Error cargando sucursales:', error.status, error.message);
+        console.error('❌ Error cargando sucursales:', error);
         this.sucursales = [];
       }
     });
 
     // Cargar puestos
+    console.log('💼 Cargando puestos...');
     this.catalogosService.getPuestos().subscribe({
       next: (response) => {
+        console.log('📋 Respuesta puestos:', response);
         if (response && response.success && Array.isArray(response.data)) {
           this.puestos = response.data.filter(p => p.activo);
+          console.log('✅ Puestos filtrados:', this.puestos.length, this.puestos);
         } else {
-          console.error('Error: Estructura de respuesta inválida para puestos');
+          console.error('❌ Error: Estructura de respuesta inválida para puestos', response);
           this.puestos = [];
         }
       },
       error: (error) => {
-        console.error('Error cargando puestos:', error.status, error.message);
+        console.error('❌ Error cargando puestos:', error);
         this.puestos = [];
       }
     });
@@ -456,19 +454,22 @@ export class EmpleadosFormComponent implements OnInit {
    */
   private loadEmpleado(id: number) {
     this.loading = true;
+    console.log('🔄 Ejecutando getEmpleado para ID:', id);
     this.empleadosService.getEmpleado(id).subscribe({
       next: (response) => {
+        console.log('📬 Respuesta completa del getEmpleado:', response);
         if (response && response.success && response.data) {
           this.empleadoActual = response.data;
+          console.log('👤 Empleado actual asignado:', this.empleadoActual);
           this.populateForm(this.empleadoActual);
         } else {
-          console.error('Error: No se pudo cargar el empleado');
+          console.error('❌ Error: No se pudo cargar el empleado - respuesta inválida:', response);
           this.router.navigate(['/admin/empleados']);
         }
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error cargando empleado:', error);
+        console.error('❌ Error cargando empleado:', error);
         this.router.navigate(['/admin/empleados']);
         this.loading = false;
       }
@@ -479,6 +480,12 @@ export class EmpleadosFormComponent implements OnInit {
    * Llenar el formulario con datos del empleado
    */
   private populateForm(empleado: any) {
+    console.log('👤 Datos del empleado para popular:', empleado);
+    console.log('💼 Puestos disponibles:', this.puestos);
+    console.log('🏪 Sucursales disponibles:', this.sucursales);
+    console.log('🔑 Módulos permitidos:', empleado.modulosPermitidos);
+    console.log('🎯 Tipo de permiso:', empleado.tipoPermiso);
+    
     this.empleadoForm.patchValue({
       nombre: empleado.nombre,
       telefono: empleado.telefono,
@@ -491,10 +498,26 @@ export class EmpleadosFormComponent implements OnInit {
       fechaBaja: empleado.fechaBaja || '',
       tipoPermiso: empleado.tipoPermiso || 'sin_permisos'
     });
+    
+    console.log('📝 Valores del formulario después de popular:', this.empleadoForm.value);
 
     // Configurar módulos seleccionados
-    if (empleado.modulosPermitidos) {
+    if (empleado.modulosPermitidos && Array.isArray(empleado.modulosPermitidos)) {
       this.seleccionados = empleado.modulosPermitidos;
+      this.tipoPermiso = empleado.tipoPermiso || 'personalizado';
+      console.log('📋 Módulos seleccionados configurados:', this.seleccionados);
+      console.log('🎛️ Tipo de permiso configurado:', this.tipoPermiso);
+      console.log('📦 Módulos disponibles para comparar:', this.modulos.map(m => ({ clave: m.clave, nombre: m.nombre })));
+      
+      // Verificar cuáles están marcados
+      this.seleccionados.forEach(moduloClave => {
+        const moduloExiste = this.modulos.find(m => m.clave === moduloClave);
+        console.log(`🔍 Módulo "${moduloClave}": ${moduloExiste ? '✅ existe' : '❌ no encontrado'}`);
+      });
+    } else {
+      this.seleccionados = [];
+      this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
+      console.log('⚠️ No hay módulos permitidos, configurando como:', this.tipoPermiso);
     }
   }
 
@@ -566,9 +589,9 @@ export class EmpleadosFormComponent implements OnInit {
     }
   }
 
-  getNombre(moduloId: string): string {
-    const modulo = this.modulos.find(m => m.id === moduloId);
-    return modulo ? modulo.nombre : moduloId;
+  getNombre(moduloClave: string): string {
+    const modulo = this.modulos.find(m => m.clave === moduloClave);
+    return modulo ? modulo.nombre : moduloClave;
   }
 
   isFormValid(): boolean {

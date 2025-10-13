@@ -126,7 +126,21 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
       debounceTime(300),
       switchMap(() => this.performSearch()),
       takeUntil(this.destroy$)
-    ).subscribe();
+    ).subscribe({
+      next: (response) => {
+        console.log('🎯 Respuesta de búsqueda:', response);
+        if (response.success) {
+          this.empleados = response.data || [];
+          this.total = response.pagination?.total || 0;
+          this.pages = response.pagination?.pages || 1;
+          this.page = response.pagination?.page || 1;
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error en búsqueda:', error);
+        this.empleados = [];
+      }
+    });
 
     // Cargar datos iniciales
     this.loadCatalogos();
@@ -162,6 +176,13 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
     this.q = this.searchTerm.trim();
     this.page = 1;
     this.loading = true;
+    
+    console.log('🔍 Realizando búsqueda:', {
+      searchTerm: this.searchTerm,
+      q: this.q,
+      page: this.page,
+      limit: this.limit
+    });
     
     return this.empleadosService.getList({
       q: this.q,
