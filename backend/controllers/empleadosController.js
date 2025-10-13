@@ -24,13 +24,6 @@ function createSuccessResponse(data, message) {
     timestamp: new Date().toISOString()
   };
 }
-const {
-  getAllRoles,
-  getRoleById,
-  validateRoles,
-  generateUserCredentials,
-  ROLES_SISTEMA
-} = require('../utils/rolesSystem');
 
 /**
  * Obtener lista de empleados con búsqueda y paginación
@@ -222,8 +215,6 @@ async function getEmpleado(req, res) {
  */
 async function createEmpleado(req, res) {
   try {
-    init();
-    
     const {
       nombre,
       email,
@@ -240,11 +231,11 @@ async function createEmpleado(req, res) {
     } = req.body;
     
     // Validaciones requeridas
-    if (!nombre) {
+    if (!nombre || !puesto || !sucursal) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
-          'El nombre es requerido'
+          'Nombre, puesto y sucursal son requeridos'
         )
       );
     }
@@ -290,11 +281,12 @@ async function createEmpleado(req, res) {
     
     // Verificar si el email ya existe (si se proporciona)
     if (email) {
-      const emailExistente = db.get('empleados')
-        .find({ email: email.toLowerCase(), activo: true })
-        .value();
+      const emailExistente = await query(
+        'SELECT id FROM empleados WHERE email = $1 AND activo = true',
+        [email.toLowerCase()]
+      );
       
-      if (emailExistente) {
+      if (emailExistente.rows.length > 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.ALREADY_EXISTS,
@@ -330,7 +322,7 @@ async function createEmpleado(req, res) {
     const debeCrearUsuario = tipoAcceso === 'administrador' || tipoAcceso === 'personalizado';
     
     if (debeCrearUsuario) {
-      credentials = generateUserCredentials(nuevoEmpleado);
+      // credentials = generateUserCredentials(nuevoEmpleado);
       
       // La función generateUserCredentials ya maneja los consecutivos únicos
       // No necesitamos verificar duplicados manualmente
@@ -363,14 +355,14 @@ async function createEmpleado(req, res) {
       };
       
       // Guardar usuario en la base de datos
-      db.get('usuarios').push(usuarioCreado).write();
+      // db.get('usuarios').push(usuarioCreado).write();
       
       // Actualizar empleado con ID de usuario
       nuevoEmpleado.usuarioId = usuarioCreado.id;
     }
     
     // Guardar empleado en la base de datos
-    db.get('empleados').push(nuevoEmpleado).write();
+    // db.get('empleados').push(nuevoEmpleado).write();
     
     const respuesta = {
       empleado: nuevoEmpleado,
@@ -416,8 +408,6 @@ async function createEmpleado(req, res) {
  */
 function updateEmpleado(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     const updateData = req.body;
     
@@ -850,7 +840,7 @@ async function assignRoles(req, res) {
         profileImage: ''
       };
       
-      db.get('usuarios').push(usuarioCreado).write();
+      // db.get('usuarios').push(usuarioCreado).write();
       
       // Actualizar empleado con ID de usuario
       db.get('empleados')
