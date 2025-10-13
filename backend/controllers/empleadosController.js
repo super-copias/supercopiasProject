@@ -58,8 +58,6 @@ async function listEmpleados(req, res) {
     const limit = parseInt(req.query.limit || '10');
     const offset = (page - 1) * limit;
     
-    console.log('🔍 Búsqueda de empleados:', { q, page, limit, offset });
-    
     let queryParams = [];
     let whereCondition = 'WHERE e.activo = true';
     
@@ -73,7 +71,6 @@ async function listEmpleados(req, res) {
         LOWER(s.nombre) LIKE $1
       )`;
       queryParams.push(`%${q}%`);
-      console.log('🔎 Aplicando filtro de búsqueda:', `%${q}%`);
     }
     
     const baseQuery = `
@@ -97,9 +94,6 @@ async function listEmpleados(req, res) {
     // Agregar parámetros de paginación
     const finalParams = [...queryParams, limit, offset];
     
-    console.log('📝 Query final:', baseQuery);
-    console.log('📋 Parámetros:', finalParams);
-    
     // Ejecutar consultas
     const [itemsResult, countResult] = await Promise.all([
       query(baseQuery, finalParams),
@@ -108,8 +102,6 @@ async function listEmpleados(req, res) {
     
     const items = itemsResult.rows;
     const totalItems = parseInt(countResult.rows[0].count);
-    
-    console.log(`📊 Resultados: ${items.length} empleados de ${totalItems} total`);
     
     return res.json(
       createPaginatedResponse(
@@ -187,19 +179,14 @@ async function getEmpleado(req, res) {
     const empleado = result.rows[0];
     
     // Obtener módulos del empleado
-    console.log('🔍 Buscando módulos para empleado ID:', empleadoId);
     const modulosResult = await query(
       'SELECT modulo, acceso FROM empleados_modulos WHERE empleado_id = $1',
       [empleadoId]
     );
     
-    console.log('📋 Módulos encontrados en BD:', modulosResult.rows);
-    
     const modulosPermitidos = modulosResult.rows
       .filter(m => m.acceso)
       .map(m => m.modulo);
-
-    console.log('✅ Módulos con acceso TRUE:', modulosPermitidos);
 
     // Preparar respuesta
     const empleadoCompleto = {

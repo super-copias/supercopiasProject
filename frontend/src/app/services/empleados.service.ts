@@ -283,8 +283,8 @@ export class EmpleadosService {
       sucursalNombre: empleado.sucursal_nombre, // Nombre para mostrar
       departamento: empleado.sucursal_nombre || `Sucursal ${empleado.sucursal_id}`,
       salario: parseFloat(empleado.salario) || 0,
-      fechaIngreso: empleado.fecha_ingreso,
-      fechaBaja: empleado.fecha_baja,
+      fechaIngreso: this.formatDateForInput(empleado.fecha_ingreso),
+      fechaBaja: this.formatDateForInput(empleado.fecha_baja),
       tipoPermiso: empleado.tipo_acceso,
       activo: empleado.activo,
       fechaRegistro: empleado.fecha_registro,
@@ -294,5 +294,26 @@ export class EmpleadosService {
       tieneUsuario: !!empleado.usuario_id,
       usuarioId: empleado.usuario_id
     };
+  }
+
+  /**
+   * Convierte fecha del backend al formato requerido por input type="date" (YYYY-MM-DD)
+   */
+  private formatDateForInput(dateString: string): string {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return '';
+    }
   }
 }

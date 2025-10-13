@@ -138,8 +138,6 @@ async function getModulos(req, res) {
     let result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
     
     if (result.rows.length === 0) {
-      console.log('📦 No hay módulos, insertando datos iniciales...');
-      
       const modulos = [
         { clave: 'dashboard', nombre: 'Dashboard', icono: 'fas fa-tachometer-alt', orden: 1 },
         { clave: 'empleados', nombre: 'Empleados', icono: 'fas fa-users', orden: 2 },
@@ -166,7 +164,6 @@ async function getModulos(req, res) {
       
       // Volver a consultar después de insertar
       result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
-      console.log(`✅ Insertados ${result.rows.length} módulos`);
     }
     
     // Respuesta directa sin funciones helper
@@ -324,14 +321,13 @@ async function createPuesto(req, res) {
 // ============================================================================
 
 /**
- * ENDPOINT TEMPORAL - Insertar datos de módulos para empleados
+ * ⚠️ ENDPOINT TEMPORAL - REMOVER EN PRODUCCIÓN ⚠️
  * GET /api/catalogos/setup-modulos-empleados
+ * Contiene datos hardcodeados para desarrollo únicamente
  */
 async function setupModulosEmpleados(req, res) {
   try {
-    console.log('🔧 Configurando módulos para empleados...');
-    
-    // Datos de módulos por empleado
+    // ⚠️ DATOS HARDCODEADOS - SOLO PARA DESARROLLO ⚠️
     const datosEmpleados = {
       1: ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'punto_venta', 'equipos', 'reportes', 'configuracion'], // Admin
       6: ['empleados'], // Erick
@@ -344,18 +340,13 @@ async function setupModulosEmpleados(req, res) {
     const modulosResult = await query('SELECT clave FROM modulos WHERE activo = true');
     const modulosDisponibles = modulosResult.rows.map(m => m.clave);
     
-    console.log('📦 Módulos disponibles:', modulosDisponibles);
-    
     // Limpiar datos anteriores
     await query('DELETE FROM empleados_modulos');
-    console.log('🧹 Datos anteriores eliminados');
     
     let insertados = 0;
     
     // Insertar datos para cada empleado
     for (const [empleadoId, modulosAsignados] of Object.entries(datosEmpleados)) {
-      console.log(`👤 Configurando empleado ${empleadoId}...`);
-      
       for (const modulo of modulosDisponibles) {
         const tieneAcceso = modulosAsignados.includes(modulo);
         
@@ -367,8 +358,6 @@ async function setupModulosEmpleados(req, res) {
         insertados++;
       }
     }
-    
-    console.log(`✅ ${insertados} registros insertados`);
     
     // Verificar datos insertados
     const verificacion = await query(`

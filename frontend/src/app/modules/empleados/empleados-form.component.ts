@@ -326,6 +326,7 @@ export class EmpleadosFormComponent implements OnInit {
   modulos: any[] = [];
   tipoPermiso = '';
   seleccionados: string[] = [];
+  seleccionadosPersonalizados: string[] = []; // Mantiene los módulos seleccionados para personalizado
   sucursales: Sucursal[] = [];
   puestos: Puesto[] = [];
   roles: any[] = [];
@@ -360,8 +361,7 @@ export class EmpleadosFormComponent implements OnInit {
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.isEditing = true;
-        this.empleadoId = params['id'];
-        console.log('📥 Cargando empleado ID:', this.empleadoId);
+        this.empleadoId = +params['id'];
         this.loadEmpleado(this.empleadoId);
       }
     });
@@ -369,13 +369,21 @@ export class EmpleadosFormComponent implements OnInit {
     this.loadCatalogos();
     
     this.empleadoForm.get('tipoPermiso')?.valueChanges.subscribe(tipo => {
+      // Si el tipo ANTERIOR era personalizado, guardamos las selecciones antes del cambio
+      if (this.tipoPermiso === 'personalizado') {
+        this.seleccionadosPersonalizados = [...this.seleccionados];
+      }
+      
+      // Ahora cambiamos el tipo
       this.tipoPermiso = tipo;
+      
       if (tipo === 'administrador') {
-        this.seleccionados = this.modulos.map(m => m.id);
+        this.seleccionados = this.modulos.map(m => m.clave);
       } else if (tipo === 'sin_permisos') {
         this.seleccionados = []; // Sin módulos
-      } else {
-        this.seleccionados = [];
+      } else if (tipo === 'personalizado') {
+        // Restaurar las selecciones previas de personalizado
+        this.seleccionados = [...this.seleccionadosPersonalizados];
       }
     });
 
@@ -395,39 +403,31 @@ export class EmpleadosFormComponent implements OnInit {
     });
 
     // Cargar sucursales
-    console.log('🏪 Cargando sucursales...');
     this.catalogosService.getSucursales().subscribe({
       next: (response) => {
-        console.log('📋 Respuesta sucursales:', response);
         if (response && response.success && Array.isArray(response.data)) {
           this.sucursales = response.data.filter(s => s.activa);
-          console.log('✅ Sucursales filtradas:', this.sucursales.length, this.sucursales);
         } else {
-          console.error('❌ Error: Estructura de respuesta inválida para sucursales', response);
           this.sucursales = [];
         }
       },
       error: (error) => {
-        console.error('❌ Error cargando sucursales:', error);
+        console.error('Error cargando sucursales:', error);
         this.sucursales = [];
       }
     });
 
     // Cargar puestos
-    console.log('💼 Cargando puestos...');
     this.catalogosService.getPuestos().subscribe({
       next: (response) => {
-        console.log('📋 Respuesta puestos:', response);
         if (response && response.success && Array.isArray(response.data)) {
           this.puestos = response.data.filter(p => p.activo);
-          console.log('✅ Puestos filtrados:', this.puestos.length, this.puestos);
         } else {
-          console.error('❌ Error: Estructura de respuesta inválida para puestos', response);
           this.puestos = [];
         }
       },
       error: (error) => {
-        console.error('❌ Error cargando puestos:', error);
+        console.error('Error cargando puestos:', error);
         this.puestos = [];
       }
     });
@@ -454,22 +454,18 @@ export class EmpleadosFormComponent implements OnInit {
    */
   private loadEmpleado(id: number) {
     this.loading = true;
-    console.log('🔄 Ejecutando getEmpleado para ID:', id);
     this.empleadosService.getEmpleado(id).subscribe({
       next: (response) => {
-        console.log('📬 Respuesta completa del getEmpleado:', response);
         if (response && response.success && response.data) {
           this.empleadoActual = response.data;
-          console.log('👤 Empleado actual asignado:', this.empleadoActual);
           this.populateForm(this.empleadoActual);
         } else {
-          console.error('❌ Error: No se pudo cargar el empleado - respuesta inválida:', response);
           this.router.navigate(['/admin/empleados']);
         }
         this.loading = false;
       },
       error: (error) => {
-        console.error('❌ Error cargando empleado:', error);
+        console.error('Error cargando empleado:', error);
         this.router.navigate(['/admin/empleados']);
         this.loading = false;
       }
@@ -480,12 +476,6 @@ export class EmpleadosFormComponent implements OnInit {
    * Llenar el formulario con datos del empleado
    */
   private populateForm(empleado: any) {
-    console.log('👤 Datos del empleado para popular:', empleado);
-    console.log('💼 Puestos disponibles:', this.puestos);
-    console.log('🏪 Sucursales disponibles:', this.sucursales);
-    console.log('🔑 Módulos permitidos:', empleado.modulosPermitidos);
-    console.log('🎯 Tipo de permiso:', empleado.tipoPermiso);
-    
     this.empleadoForm.patchValue({
       nombre: empleado.nombre,
       telefono: empleado.telefono,
@@ -498,26 +488,20 @@ export class EmpleadosFormComponent implements OnInit {
       fechaBaja: empleado.fechaBaja || '',
       tipoPermiso: empleado.tipoPermiso || 'sin_permisos'
     });
-    
-    console.log('📝 Valores del formulario después de popular:', this.empleadoForm.value);
 
     // Configurar módulos seleccionados
     if (empleado.modulosPermitidos && Array.isArray(empleado.modulosPermitidos)) {
       this.seleccionados = empleado.modulosPermitidos;
       this.tipoPermiso = empleado.tipoPermiso || 'personalizado';
-      console.log('📋 Módulos seleccionados configurados:', this.seleccionados);
-      console.log('🎛️ Tipo de permiso configurado:', this.tipoPermiso);
-      console.log('📦 Módulos disponibles para comparar:', this.modulos.map(m => ({ clave: m.clave, nombre: m.nombre })));
       
-      // Verificar cuáles están marcados
-      this.seleccionados.forEach(moduloClave => {
-        const moduloExiste = this.modulos.find(m => m.clave === moduloClave);
-        console.log(`🔍 Módulo "${moduloClave}": ${moduloExiste ? '✅ existe' : '❌ no encontrado'}`);
-      });
+      // Si el tipo es personalizado, también inicializar la copia
+      if (this.tipoPermiso === 'personalizado') {
+        this.seleccionadosPersonalizados = [...empleado.modulosPermitidos];
+      }
     } else {
       this.seleccionados = [];
+      this.seleccionadosPersonalizados = [];
       this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
-      console.log('⚠️ No hay módulos permitidos, configurando como:', this.tipoPermiso);
     }
   }
 
@@ -587,6 +571,11 @@ export class EmpleadosFormComponent implements OnInit {
     } else {
       this.seleccionados = [...this.seleccionados, moduloId];
     }
+    
+    // Si estamos en modo personalizado, actualizar también la copia
+    if (this.tipoPermiso === 'personalizado') {
+      this.seleccionadosPersonalizados = [...this.seleccionados];
+    }
   }
 
   getNombre(moduloClave: string): string {
@@ -615,11 +604,9 @@ export class EmpleadosFormComponent implements OnInit {
       ...this.empleadoForm.value,
       tipoPermiso: this.tipoPermiso,
       modulosPermitidos: this.tipoPermiso === 'administrador' 
-        ? this.modulos.map(m => m.id) 
+        ? this.modulos.map(m => m.clave) 
         : this.seleccionados
     };
-
-    console.log('Datos a enviar:', datos);
 
     if (this.isEditing && this.empleadoId) {
       this.updateEmpleado(datos);
