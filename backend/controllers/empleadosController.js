@@ -180,7 +180,7 @@ async function getEmpleado(req, res) {
       } : null
     };
 
-    res.json(createSuccessResponse(empleadoCompleto, 'Empleado obtenido exitosamente'));
+    res.json(createResponse(true, empleadoCompleto, 'Empleado obtenido exitosamente'));
     
   } catch (error) {
     console.error('Error en getEmpleado:', error);
@@ -378,6 +378,7 @@ async function createEmpleado(req, res) {
     
     return res.status(201).json(
       createResponse(
+        true,
         respuesta,
         debeCrearUsuario ? 
           'Empleado y usuario creados exitosamente' : 
@@ -595,6 +596,7 @@ async function updateEmpleado(req, res) {
     if (camposActualizar.length === 1) { // Solo fecha_modificacion
       return res.json(
         createResponse(
+          true,
           empleadoExistente,
           'No hay campos para actualizar'
         )
@@ -615,11 +617,84 @@ async function updateEmpleado(req, res) {
     const updateResult = await query(updateQuery, valores);
     const empleadoActualizado = updateResult.rows[0];
     
+    // Verificar si necesita crear usuario del sistema
+    let usuarioCreado = null;
+    const tipoAccesoNuevo = empleadoActualizado.tipo_acceso;
+    const debeCrearUsuario = (tipoAccesoNuevo === 'administrador' || tipoAccesoNuevo === 'personalizado') 
+                             && !empleadoActualizado.usuario_id;
+    
+    if (debeCrearUsuario) {
+      const { generateUserCredentials } = require('../utils/rolesSystem');
+      
+      // Generar credenciales únicas
+      const credentials = await generateUserCredentials({ nombre: empleadoActualizado.nombre });
+      
+      // Asignar roles del sistema basados en el tipo de acceso
+      let role = 'empleado';
+      let roles = ['empleado'];
+      if (tipoAccesoNuevo === 'administrador') {
+        role = 'admin';
+        roles = ['admin'];
+      }
+      
+      // Crear usuario en la base de datos
+      const insertUserQuery = `
+        INSERT INTO usuarios (
+          username, nombre, email, password, role, roles, empleado_id, 
+          activo, fecha_registro, full_name, phone, bio
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11)
+        RETURNING id, username
+      `;
+      
+      const userValues = [
+        credentials.username,
+        empleadoActualizado.nombre,
+        empleadoActualizado.email || `${credentials.username}@supercopias.com`,
+        credentials.hashedPassword,
+        role,
+        JSON.stringify(roles),
+        empleadoActualizado.id,
+        true,
+        empleadoActualizado.nombre,
+        empleadoActualizado.telefono || '',
+        `Empleado - ${tipoAccesoNuevo === 'administrador' ? 'Administrador del sistema' : 'Acceso personalizado'}`
+      ];
+      
+      const userResult = await query(insertUserQuery, userValues);
+      const usuarioId = userResult.rows[0].id;
+      
+      // Actualizar empleado con el ID del usuario
+      await query(
+        'UPDATE empleados SET usuario_id = $1 WHERE id = $2',
+        [usuarioId, empleadoActualizado.id]
+      );
+      
+      // Actualizar el objeto empleadoActualizado con el usuario_id
+      empleadoActualizado.usuario_id = usuarioId;
+      
+      usuarioCreado = {
+        id: usuarioId,
+        username: credentials.username,
+        password: credentials.password, // Contraseña sin hash para mostrar al admin
+        roles: roles,
+        tipoPermiso: updateData.tipoPermiso || (tipoAccesoNuevo === 'administrador' ? 'administrador' : 'personalizado')
+      };
+    }
+    
+    // Preparar respuesta
+    const respuesta = {
+      empleado: empleadoActualizado,
+      ...(usuarioCreado && { usuario: usuarioCreado })
+    };
+    
     // Retornar empleado actualizado
     return res.json(
       createResponse(
-        empleadoActualizado,
-        'Empleado actualizado exitosamente'
+        true,
+        respuesta,
+        debeCrearUsuario ? 
+          'Empleado actualizado y usuario creado exitosamente' : 
+          'Empleado actualizado exitosamente'
       )
     );
     
@@ -693,6 +768,7 @@ async function deleteEmpleado(req, res) {
 
     return res.json(
       createResponse(
+        true,
         { id: empleadoId, eliminado: true },
         'Empleado eliminado completamente exitosamente'
       )
@@ -728,6 +804,7 @@ async function getPuestos(req, res) {
 
     return res.status(200).json(
       createResponse(
+        true,
         puestos,
         'Catálogo de puestos obtenido exitosamente'
       )
@@ -772,6 +849,7 @@ async function getModulos(req, res) {
 
     return res.status(200).json(
       createResponse(
+        true,
         modulos,
         'Catálogo de módulos obtenido exitosamente'
       )
