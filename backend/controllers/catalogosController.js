@@ -6,19 +6,10 @@
 
 const { query, transaction } = require('../config/database');
 const { 
+  createResponse,
   createErrorResponse, 
   CODIGOS_ERROR 
 } = require('../utils/apiStandard');
-
-// Función simplificada para respuestas exitosas
-function createSuccessResponse(data, message) {
-  return {
-    success: true,
-    data,
-    message,
-    timestamp: new Date().toISOString()
-  };
-}
 
 // ============================================================================
 // CATÁLOGOS SAT (Sistema de Administración Tributaria)

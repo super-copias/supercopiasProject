@@ -22,54 +22,61 @@ const {
  * @param {Object} res - Response object
  * @returns {Object} JSON con datos del perfil del usuario
  */
-function getProfile(req, res) {
+async function getProfile(req, res) {
   try {
-    init();
-    
     // El middleware de auth debe haber agregado el usuario al request
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
-      });
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Usuario no autenticado'
+        )
+      );
     }
 
-    // Buscar el usuario en la base de datos para obtener datos actualizados
-    const user = db.get('usuarios').find({ id: req.user.id }).value();
+    // Buscar el usuario en PostgreSQL
+    const result = await query(
+      'SELECT * FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
     
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Usuario no encontrado' 
-      });
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse(
+          CODIGOS_ERROR.NOT_FOUND,
+          'Usuario no encontrado'
+        )
+      );
     }
 
+    const user = result.rows[0];
+    
     // Remover la contraseña de la respuesta
     const { password, ...userProfile } = user;
     
     // Agregar información adicional del perfil
     const profileData = {
       ...userProfile,
-      lastLogin: user.lastLogin || null,
-      createdAt: user.createdAt || null,
-      profileImage: user.profileImage || null,
-      fullName: user.fullName || null,
-      email: user.email || null,
-      phone: user.phone || null,
-      bio: user.bio || null
+      lastLogin: user.ultimo_acceso || null,
+      profileImage: user.profile_image || null,
+      fullName: user.full_name || user.nombre || null
     };
 
-    res.json({
-      success: true,
-      data: profileData
-    });
+    res.json(
+      createResponse(
+        profileData,
+        'Perfil obtenido exitosamente'
+      )
+    );
     
   } catch (error) {
     console.error('Error getting profile:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor' 
-    });
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
   }
 }
 
@@ -81,82 +88,112 @@ function getProfile(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con confirmación de actualización
  */
-function updateProfile(req, res) {
+async function updateProfile(req, res) {
   try {
-    init();
-    
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
-      });
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Usuario no autenticado'
+        )
+      );
     }
 
     const { username, fullName, email, phone, bio } = req.body;
     
     // Validaciones básicas
     if (!username || username.trim().length < 3) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'El nombre de usuario debe tener al menos 3 caracteres' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'El nombre de usuario debe tener al menos 3 caracteres'
+        )
+      );
     }
 
-    // Verificar si el username ya existe (excluyendo el usuario actual)
-    const existingUser = db.get('usuarios')
-      .find(u => u.username === username.trim() && u.id !== req.user.id)
-      .value();
+    // Verificar si el username ya existe en PostgreSQL (excluyendo el usuario actual)
+    const existingUser = await query(
+      'SELECT id FROM usuarios WHERE username = $1 AND id != $2',
+      [username.trim(), req.user.id]
+    );
     
-    if (existingUser) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'El nombre de usuario ya está en uso' 
-      });
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.ALREADY_EXISTS,
+          'El nombre de usuario ya está en uso'
+        )
+      );
     }
 
     // Validar email si se proporciona
     if (email && email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email.trim())) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'El formato del correo electrónico no es válido' 
-        });
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.VALIDATION_ERROR,
+            'El formato del correo electrónico no es válido'
+          )
+        );
       }
     }
 
-    // Preparar datos para actualización
-    const updateData = {
-      username: username.trim(),
-      fullName: fullName?.trim() || null,
-      email: email?.trim() || null,
-      phone: phone?.trim() || null,
-      bio: bio?.trim() || null,
-      updatedAt: new Date().toISOString()
+    // Construir consulta de actualización dinámica
+    const camposUpdate = [];
+    const valoresUpdate = [];
+    let paramIndex = 1;
+    
+    const campos = {
+      username: username?.trim(),
+      full_name: fullName?.trim(),
+      email: email?.trim(),
+      phone: phone?.trim(),
+      bio: bio?.trim()
     };
+    
+    Object.entries(campos).forEach(([campo, valor]) => {
+      if (valor !== undefined) {
+        camposUpdate.push(`${campo} = $${paramIndex}`);
+        valoresUpdate.push(valor);
+        paramIndex++;
+      }
+    });
+    
+    // Agregar fecha de modificación
+    camposUpdate.push(`fecha_modificacion = NOW()`);
+    
+    // Agregar el ID para la condición WHERE
+    valoresUpdate.push(req.user.id);
 
-    // Actualizar en la base de datos
-    db.get('usuarios')
-      .find({ id: req.user.id })
-      .assign(updateData)
-      .write();
+    const updateQuery = `
+      UPDATE usuarios 
+      SET ${camposUpdate.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
 
-    // Obtener usuario actualizado (sin contraseña)
-    const updatedUser = db.get('usuarios').find({ id: req.user.id }).value();
+    const result = await query(updateQuery, valoresUpdate);
+    const updatedUser = result.rows[0];
+    
+    // Remover contraseña de la respuesta
     const { password, ...userProfile } = updatedUser;
 
-    res.json({
-      success: true,
-      message: 'Perfil actualizado correctamente',
-      data: userProfile
-    });
+    res.json(
+      createResponse(
+        userProfile,
+        'Perfil actualizado correctamente'
+      )
+    );
     
   } catch (error) {
     console.error('Error updating profile:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor' 
-    });
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
   }
 }
 
@@ -168,32 +205,36 @@ function updateProfile(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con confirmación de cambio
  */
-function changePassword(req, res) {
+async function changePassword(req, res) {
   try {
-    init();
-    
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
-      });
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Usuario no autenticado'
+        )
+      );
     }
 
     const { currentPassword, newPassword } = req.body;
     
     // Validaciones
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'La contraseña actual y la nueva contraseña son requeridas' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.REQUIRED_FIELD,
+          'La contraseña actual y la nueva contraseña son requeridas'
+        )
+      );
     }
 
     if (newPassword.length < 8) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'La nueva contraseña debe tener al menos 8 caracteres' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'La nueva contraseña debe tener al menos 8 caracteres'
+        )
+      );
     }
 
     // Validar fortaleza de la contraseña
@@ -203,57 +244,72 @@ function changePassword(req, res) {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
     if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'La nueva contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'La nueva contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial'
+        )
+      );
     }
 
-    // Obtener usuario actual
-    const user = db.get('usuarios').find({ id: req.user.id }).value();
+    // Obtener usuario actual de PostgreSQL
+    const result = await query(
+      'SELECT id, password FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
     
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Usuario no encontrado' 
-      });
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse(
+          CODIGOS_ERROR.NOT_FOUND,
+          'Usuario no encontrado'
+        )
+      );
     }
+
+    const user = result.rows[0];
 
     // Verificar contraseña actual
-    const isCurrentPasswordValid = bcrypt.compareSync(currentPassword, user.password);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
     
     if (!isCurrentPasswordValid) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'La contraseña actual es incorrecta' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'La contraseña actual es incorrecta'
+        )
+      );
     }
 
     // Generar hash de la nueva contraseña
     const saltRounds = 8;
-    const hashedNewPassword = bcrypt.hashSync(newPassword, saltRounds);
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Actualizar contraseña en la base de datos
-    db.get('usuarios')
-      .find({ id: req.user.id })
-      .assign({ 
-        password: hashedNewPassword,
-        passwordChangedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })
-      .write();
+    // Actualizar contraseña en PostgreSQL
+    await query(
+      `UPDATE usuarios 
+       SET password = $1, 
+           password_changed_at = NOW(), 
+           fecha_modificacion = NOW()
+       WHERE id = $2`,
+      [hashedNewPassword, req.user.id]
+    );
 
-    res.json({
-      success: true,
-      message: 'Contraseña cambiada correctamente'
-    });
+    res.json(
+      createResponse(
+        null,
+        'Contraseña cambiada correctamente'
+      )
+    );
     
   } catch (error) {
     console.error('Error changing password:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor' 
-    });
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
   }
 }
 
@@ -265,22 +321,24 @@ function changePassword(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con URL de la imagen
  */
-function uploadProfileImage(req, res) {
+async function uploadProfileImage(req, res) {
   try {
-    init();
-    
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
-      });
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Usuario no autenticado'
+        )
+      );
     }
 
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se encontró archivo de imagen' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.REQUIRED_FIELD,
+          'No se encontró archivo de imagen'
+        )
+      );
     }
 
     // Validar tipo de archivo
@@ -288,20 +346,24 @@ function uploadProfileImage(req, res) {
     if (!allowedTypes.includes(req.file.mimetype)) {
       // Eliminar archivo subido
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Tipo de archivo no permitido. Solo JPG, PNG y GIF' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'Tipo de archivo no permitido. Solo JPG, PNG y GIF'
+        )
+      );
     }
 
     // Validar tamaño (2MB máximo)
     if (req.file.size > 2 * 1024 * 1024) {
       // Eliminar archivo subido
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'El archivo es demasiado grande. Máximo 2MB' 
-      });
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'El archivo es demasiado grande. Máximo 2MB'
+        )
+      );
     }
 
     // Generar nombre único para el archivo
@@ -322,29 +384,34 @@ function uploadProfileImage(req, res) {
     // URL de la imagen
     const imageUrl = `/uploads/profiles/${fileName}`;
     
-    // Eliminar imagen anterior si existe
-    const user = db.get('usuarios').find({ id: req.user.id }).value();
-    if (user.profileImage) {
-      const oldImagePath = path.join(__dirname, '..', user.profileImage);
+    // Obtener imagen anterior y eliminarla si existe
+    const userResult = await query(
+      'SELECT profile_image FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
+    
+    if (userResult.rows.length > 0 && userResult.rows[0].profile_image) {
+      const oldImagePath = path.join(__dirname, '..', userResult.rows[0].profile_image);
       if (fs.existsSync(oldImagePath)) {
         fs.unlinkSync(oldImagePath);
       }
     }
 
-    // Actualizar usuario en la base de datos
-    db.get('usuarios')
-      .find({ id: req.user.id })
-      .assign({ 
-        profileImage: imageUrl,
-        updatedAt: new Date().toISOString()
-      })
-      .write();
+    // Actualizar usuario en PostgreSQL
+    await query(
+      `UPDATE usuarios 
+       SET profile_image = $1, 
+           fecha_modificacion = NOW()
+       WHERE id = $2`,
+      [imageUrl, req.user.id]
+    );
 
-    res.json({
-      success: true,
-      message: 'Imagen de perfil subida correctamente',
-      imageUrl: imageUrl
-    });
+    res.json(
+      createResponse(
+        { imageUrl },
+        'Imagen de perfil subida correctamente'
+      )
+    );
     
   } catch (error) {
     console.error('Error uploading profile image:', error);
@@ -354,10 +421,12 @@ function uploadProfileImage(req, res) {
       fs.unlinkSync(req.file.path);
     }
     
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor' 
-    });
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
   }
 }
 
@@ -369,52 +438,73 @@ function uploadProfileImage(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con confirmación de eliminación
  */
-function removeProfileImage(req, res) {
+async function removeProfileImage(req, res) {
   try {
-    init();
-    
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
-      });
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Usuario no autenticado'
+        )
+      );
     }
 
-    const user = db.get('usuarios').find({ id: req.user.id }).value();
+    // Obtener imagen actual del usuario
+    const userResult = await query(
+      'SELECT profile_image FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
     
-    if (!user.profileImage) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No hay imagen de perfil para eliminar' 
-      });
+    if (userResult.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse(
+          CODIGOS_ERROR.NOT_FOUND,
+          'Usuario no encontrado'
+        )
+      );
+    }
+
+    const user = userResult.rows[0];
+    
+    if (!user.profile_image) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'No hay imagen de perfil para eliminar'
+        )
+      );
     }
 
     // Eliminar archivo físico
-    const imagePath = path.join(__dirname, '..', user.profileImage);
+    const imagePath = path.join(__dirname, '..', user.profile_image);
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
     }
 
-    // Actualizar usuario en la base de datos
-    db.get('usuarios')
-      .find({ id: req.user.id })
-      .assign({ 
-        profileImage: null,
-        updatedAt: new Date().toISOString()
-      })
-      .write();
+    // Actualizar usuario en PostgreSQL
+    await query(
+      `UPDATE usuarios 
+       SET profile_image = NULL, 
+           fecha_modificacion = NOW()
+       WHERE id = $1`,
+      [req.user.id]
+    );
 
-    res.json({
-      success: true,
-      message: 'Imagen de perfil eliminada correctamente'
-    });
+    res.json(
+      createResponse(
+        null,
+        'Imagen de perfil eliminada correctamente'
+      )
+    );
     
   } catch (error) {
     console.error('Error removing profile image:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor' 
-    });
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
   }
 }
 

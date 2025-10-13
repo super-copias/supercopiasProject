@@ -4,7 +4,6 @@
  */
 
 const { query } = require('../config/database');
-const { nanoid } = require('nanoid');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const { 
@@ -158,10 +157,8 @@ async function getCliente(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con cliente creado o error de validación
  */
-function createCliente(req, res) {
+async function createCliente(req, res) {
   try {
-    init();
-    
     const {
       nombre,
       telefono,
@@ -240,11 +237,12 @@ function createCliente(req, res) {
     
     // Verificar si el RFC ya existe (solo si se proporciona)
     if (rfc) {
-      const rfcExistente = db.get('clientes')
-        .find({ rfc: rfc.toUpperCase(), activo: true })
-        .value();
+      const rfcResult = await query(
+        'SELECT id FROM clientes WHERE rfc = $1 AND activo = true',
+        [rfc.toUpperCase()]
+      );
       
-      if (rfcExistente) {
+      if (rfcResult.rows.length > 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.ALREADY_EXISTS,
@@ -255,11 +253,12 @@ function createCliente(req, res) {
     }
 
     // Verificar si el email ya existe
-    const emailExistente = db.get('clientes')
-      .find({ email: email.toLowerCase(), activo: true })
-      .value();
+    const emailResult = await query(
+      'SELECT id FROM clientes WHERE email = $1 AND activo = true',
+      [email.toLowerCase()]
+    );
     
-    if (emailExistente) {
+    if (emailResult.rows.length > 0) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.ALREADY_EXISTS,
@@ -268,31 +267,35 @@ function createCliente(req, res) {
       );
     }
     
-    // Crear nuevo cliente con la estructura correcta
-    const nuevoCliente = {
-      id: `CLI_${nanoid(10)}`,
-      nombre: nombre.trim(),
-      telefono: telefono || null,
-      segundoTelefono: segundoTelefono || null,
-      email: email ? email.toLowerCase() : null,
-      direccionEntrega: direccionEntrega || null,
-      razon: razon || null,
-      rfc: rfc ? rfc.toUpperCase() : null,
-      regimen: regimen || null,
-      direccion: direccion || null,
-      cp: cp || null,
-      cfdi: cfdi || null,
-      activo: true,
-      fechaRegistro: new Date().toISOString(),
-      fechaModificacion: null
-    };
+    // Crear nuevo cliente
+    const insertQuery = `
+      INSERT INTO clientes (
+        nombre, telefono, segundo_telefono, email, direccion_entrega,
+        razon, rfc, regimen, direccion, cp, cfdi, activo, fecha_registro
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+      RETURNING *
+    `;
     
-    // Guardar en la base de datos
-    db.get('clientes').push(nuevoCliente).write();
+    const values = [
+      nombre.trim(),
+      telefono || null,
+      segundoTelefono || null,
+      email ? email.toLowerCase() : null,
+      direccionEntrega || null,
+      razon || null,
+      rfc ? rfc.toUpperCase() : null,
+      regimen || null,
+      direccion || null,
+      cp || null,
+      cfdi || null,
+      true
+    ];
     
-    res.status(201).json(
+    const result = await query(insertQuery, values);
+    const nuevoCliente = result.rows[0];
+    
+    return res.status(201).json(
       createResponse(
-        true,
         nuevoCliente,
         'Cliente creado exitosamente'
       )
@@ -300,9 +303,9 @@ function createCliente(req, res) {
     
   } catch (error) {
     console.error('Error creando cliente:', error);
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -317,10 +320,8 @@ function createCliente(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con cliente actualizado o error
  */
-function updateCliente(req, res) {
+async function updateCliente(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     const updateData = req.body;
     
@@ -332,11 +333,25 @@ function updateCliente(req, res) {
         )
       );
     }
+
+    // Convertir ID a número
+    const clienteId = parseInt(id);
+    if (isNaN(clienteId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del cliente debe ser un número válido'
+        )
+      );
+    }
     
     // Buscar cliente existente
-    const clienteExistente = db.get('clientes').find({ id }).value();
+    const clienteResult = await query(
+      'SELECT * FROM clientes WHERE id = $1',
+      [clienteId]
+    );
     
-    if (!clienteExistente) {
+    if (clienteResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -345,17 +360,16 @@ function updateCliente(req, res) {
       );
     }
     
+    const clienteExistente = clienteResult.rows[0];
+    
     // Si se actualiza el RFC, verificar que no esté duplicado
     if (updateData.rfc && updateData.rfc.toUpperCase() !== clienteExistente.rfc) {
-      const rfcDuplicado = db.get('clientes')
-        .find({ 
-          rfc: updateData.rfc.toUpperCase(), 
-          activo: true,
-          id: { $ne: id }
-        })
-        .value();
+      const rfcResult = await query(
+        'SELECT id FROM clientes WHERE rfc = $1 AND activo = true AND id != $2',
+        [updateData.rfc.toUpperCase(), clienteId]
+      );
       
-      if (rfcDuplicado) {
+      if (rfcResult.rows.length > 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.ALREADY_EXISTS,
@@ -365,32 +379,75 @@ function updateCliente(req, res) {
       }
     }
     
-    // Preparar datos de actualización
-    const datosActualizacion = {
-      ...updateData,
-      fechaModificacion: new Date().toISOString()
-    };
+    // Preparar campos dinámicos para actualizar
+    const camposActualizar = [];
+    const valores = [];
+    let contador = 1;
     
-    // Normalizar datos si existen
-    if (datosActualizacion.rfc) {
-      datosActualizacion.rfc = datosActualizacion.rfc.toUpperCase();
+    if (updateData.nombre !== undefined) {
+      camposActualizar.push(`nombre = $${contador++}`);
+      valores.push(updateData.nombre.trim());
     }
-    if (datosActualizacion.email) {
-      datosActualizacion.email = datosActualizacion.email.toLowerCase();
+    if (updateData.telefono !== undefined) {
+      camposActualizar.push(`telefono = $${contador++}`);
+      valores.push(updateData.telefono);
     }
-    if (datosActualizacion.nombre) {
-      datosActualizacion.nombre = datosActualizacion.nombre.trim();
+    if (updateData.segundoTelefono !== undefined) {
+      camposActualizar.push(`segundo_telefono = $${contador++}`);
+      valores.push(updateData.segundoTelefono);
+    }
+    if (updateData.email !== undefined) {
+      camposActualizar.push(`email = $${contador++}`);
+      valores.push(updateData.email.toLowerCase());
+    }
+    if (updateData.direccionEntrega !== undefined) {
+      camposActualizar.push(`direccion_entrega = $${contador++}`);
+      valores.push(updateData.direccionEntrega);
+    }
+    if (updateData.razon !== undefined) {
+      camposActualizar.push(`razon = $${contador++}`);
+      valores.push(updateData.razon);
+    }
+    if (updateData.rfc !== undefined) {
+      camposActualizar.push(`rfc = $${contador++}`);
+      valores.push(updateData.rfc ? updateData.rfc.toUpperCase() : null);
+    }
+    if (updateData.regimen !== undefined) {
+      camposActualizar.push(`regimen = $${contador++}`);
+      valores.push(updateData.regimen);
+    }
+    if (updateData.direccion !== undefined) {
+      camposActualizar.push(`direccion = $${contador++}`);
+      valores.push(updateData.direccion);
+    }
+    if (updateData.cp !== undefined) {
+      camposActualizar.push(`cp = $${contador++}`);
+      valores.push(updateData.cp);
+    }
+    if (updateData.cfdi !== undefined) {
+      camposActualizar.push(`cfdi = $${contador++}`);
+      valores.push(updateData.cfdi);
     }
     
-    // Actualizar en la base de datos
-    const clienteActualizado = db.get('clientes')
-      .find({ id })
-      .assign(datosActualizacion)
-      .write();
+    // Agregar fecha de modificación
+    camposActualizar.push(`fecha_modificacion = NOW()`);
     
-    res.json(
+    // Agregar ID al final
+    valores.push(clienteId);
+    
+    // Construir y ejecutar query
+    const updateQuery = `
+      UPDATE clientes 
+      SET ${camposActualizar.join(', ')}
+      WHERE id = $${contador}
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, valores);
+    const clienteActualizado = result.rows[0];
+    
+    return res.json(
       createResponse(
-        true,
         clienteActualizado,
         'Cliente actualizado exitosamente'
       )
@@ -398,9 +455,9 @@ function updateCliente(req, res) {
     
   } catch (error) {
     console.error('Error actualizando cliente:', error);
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -415,10 +472,8 @@ function updateCliente(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con confirmación o error
  */
-function deleteCliente(req, res) {
+async function deleteCliente(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     
     if (!id) {
@@ -429,10 +484,25 @@ function deleteCliente(req, res) {
         )
       );
     }
+
+    // Convertir ID a número
+    const clienteId = parseInt(id);
+    if (isNaN(clienteId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del cliente debe ser un número válido'
+        )
+      );
+    }
     
-    const cliente = db.get('clientes').find({ id }).value();
+    // Verificar si el cliente existe
+    const clienteResult = await query(
+      'SELECT id FROM clientes WHERE id = $1',
+      [clienteId]
+    );
     
-    if (!cliente) {
+    if (clienteResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -445,23 +515,20 @@ function deleteCliente(req, res) {
     // Aquí podrías agregar validaciones adicionales
     
     // Eliminar cliente completamente de la base de datos
-    db.get('clientes')
-      .remove({ id })
-      .write();
+    await query('DELETE FROM clientes WHERE id = $1', [clienteId]);
     
-    res.json(
+    return res.json(
       createResponse(
-        true,
-        { id, eliminado: true },
+        { id: clienteId, eliminado: true },
         'Cliente eliminado exitosamente'
       )
     );
     
   } catch (error) {
     console.error('Error eliminando cliente:', error);
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -476,10 +543,8 @@ function deleteCliente(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con resultado de la importación
  */
-function uploadExcelClientes(req, res) {
+async function uploadExcelClientes(req, res) {
   try {
-    init();
-    
     if (!req.file) {
       return res.status(400).json(
         createErrorResponse(
@@ -546,60 +611,68 @@ function uploadExcelClientes(req, res) {
         
         // Verificar RFC duplicado solo si existe
         if (fila.rfc) {
-          const rfcExistente = db.get('clientes')
-            .find({ rfc: fila.rfc.toString().toUpperCase(), activo: true })
-            .value();
+          const rfcResult = await query(
+            'SELECT id FROM clientes WHERE rfc = $1 AND activo = true',
+            [fila.rfc.toString().toUpperCase()]
+          );
           
-          if (rfcExistente) {
+          if (rfcResult.rows.length > 0) {
             resultados.errores.push(`Fila ${i + 2}: RFC ${fila.rfc} ya existe`);
             continue;
           }
         }
 
         // Verificar email duplicado
-        const emailExistente = db.get('clientes')
-          .find({ email: correo.toString().toLowerCase(), activo: true })
-          .value();
+        const emailResult = await query(
+          'SELECT id FROM clientes WHERE email = $1 AND activo = true',
+          [correo.toString().toLowerCase()]
+        );
         
-        if (emailExistente) {
+        if (emailResult.rows.length > 0) {
           resultados.errores.push(`Fila ${i + 2}: Email ${correo} ya existe`);
           continue;
         }
         
-        // Crear cliente con estructura correcta
-        const nuevoCliente = {
-          id: `CLI_${nanoid(10)}`,
-          nombre: fila.nombre.trim(),
-          telefono: fila.telefono || null,
-          segundoTelefono: fila['segundo telefono'] || fila.segundoTelefono || null,
-          email: fila.correo || fila.email ? (fila.correo || fila.email).toLowerCase() : null,
-          direccionEntrega: fila['direccion de entrega'] || fila.direccionEntrega || null,
-          razon: fila['razon social'] || fila.razon || null,
-          rfc: fila.rfc ? fila.rfc.toUpperCase() : null,
-          regimen: fila['regimen fiscal'] || fila.regimen || null,
-          direccion: fila.direccion || null,
-          cp: fila['codigo postal'] || fila.cp || null,
-          cfdi: fila['uso cfdi'] || fila.cfdi || null,
-          activo: true,
-          fechaRegistro: new Date().toISOString(),
-          fechaModificacion: null
-        };
+        // Crear cliente
+        const insertQuery = `
+          INSERT INTO clientes (
+            nombre, telefono, segundo_telefono, email, direccion_entrega,
+            razon, rfc, regimen, direccion, cp, cfdi, activo, fecha_registro
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+          RETURNING *
+        `;
         
-        db.get('clientes').push(nuevoCliente).write();
+        const values = [
+          fila.nombre.trim(),
+          fila.telefono || null,
+          fila['segundo telefono'] || fila.segundoTelefono || null,
+          correo ? correo.toLowerCase() : null,
+          fila['direccion de entrega'] || fila.direccionEntrega || null,
+          fila['razon social'] || fila.razon || null,
+          fila.rfc ? fila.rfc.toUpperCase() : null,
+          fila['regimen fiscal'] || fila.regimen || null,
+          fila.direccion || null,
+          fila['codigo postal'] || fila.cp || null,
+          fila['uso cfdi'] || fila.cfdi || null,
+          true
+        ];
+        
+        const result = await query(insertQuery, values);
+        const nuevoCliente = result.rows[0];
+        
         resultados.creados.push(nuevoCliente);
         resultados.importados++;
         
       } catch (error) {
-        resultados.errores.push(`Fila ${i + 1}: ${error.message}`);
+        resultados.errores.push(`Fila ${i + 2}: ${error.message}`);
       }
     }
     
     // Eliminar archivo temporal
     fs.unlinkSync(req.file.path);
     
-    res.json(
+    return res.json(
       createResponse(
-        true,
         resultados,
         `Importación completada: ${resultados.importados} clientes importados`
       )
@@ -613,7 +686,7 @@ function uploadExcelClientes(req, res) {
       fs.unlinkSync(req.file.path);
     }
     
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.FILE_ERROR,
         'Error procesando archivo Excel'

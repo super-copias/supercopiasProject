@@ -204,17 +204,17 @@ function validateRoles(roles) {
 /**
  * Generar usuario y contraseña para empleado
  */
-function generateUserCredentials(empleado) {
+async function generateUserCredentials(empleado) {
   // Validar que el empleado tenga nombre
   if (!empleado || !empleado.nombre) {
     throw new Error('El empleado debe tener un nombre para generar credenciales');
   }
 
-  const { db, init } = require('../db');
-  init();
+  const { query } = require('../config/database');
 
-  // Obtener el siguiente consecutivo
-  const usuarios = db.get('usuarios').value() || [];
+  // Obtener todos los usuarios para encontrar el siguiente consecutivo
+  const result = await query('SELECT username FROM usuarios WHERE username IS NOT NULL');
+  const usuarios = result.rows;
   
   // Filtrar usuarios que siguen el patrón de consecutivo (ej: 001.Nombre, 0001.Ana, A0001.Pedro, etc.)
   const usuariosConsecutivos = usuarios.filter(u => 

@@ -329,7 +329,6 @@ export class EmpleadosFormComponent implements OnInit {
   seleccionadosPersonalizados: string[] = []; // Mantiene los módulos seleccionados para personalizado
   sucursales: Sucursal[] = [];
   puestos: Puesto[] = [];
-  roles: any[] = [];
   
   // Modal de credenciales
   mostrarModalCredenciales = false;
@@ -429,22 +428,6 @@ export class EmpleadosFormComponent implements OnInit {
       error: (error) => {
         console.error('Error cargando puestos:', error);
         this.puestos = [];
-      }
-    });
-
-    // Cargar roles
-    this.empleadosService.getRoles().subscribe({
-      next: (response) => {
-        if (response && response.success && Array.isArray(response.data)) {
-          this.roles = response.data;
-        } else {
-          console.error('Error: Estructura de respuesta inválida para roles');
-          this.roles = [];
-        }
-      },
-      error: (error) => {
-        console.error('Error cargando roles:', error.status, error.message);
-        this.roles = [];
       }
     });
   }

@@ -4,9 +4,6 @@
  */
 
 const { query } = require('../config/database');
-const { nanoid } = require('nanoid');
-const XLSX = require('xlsx');
-const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { 
   createResponse, 
@@ -14,16 +11,7 @@ const {
   createErrorResponse, 
   CODIGOS_ERROR 
 } = require('../utils/apiStandard');
-
-// Función simplificada para respuestas exitosas
-function createSuccessResponse(data, message) {
-  return {
-    success: true,
-    data,
-    message,
-    timestamp: new Date().toISOString()
-  };
-}
+const { getAllRoles } = require('../utils/rolesSystem');
 
 /**
  * Obtener lista de empleados con búsqueda y paginación
@@ -296,36 +284,42 @@ async function createEmpleado(req, res) {
       }
     }
     
-    // Crear nuevo empleado
-    const nuevoEmpleado = {
-      id: `EMP_${nanoid(10)}`,
-      nombre: nombre.trim(),
-      email: email ? email.toLowerCase() : null,
-      telefono: telefono || null,
-      puesto: puesto || null,
-      sucursal: sucursal || null,
-      salario: salario ? parseFloat(salario) : null,
-      fechaIngreso: fechaIngreso || new Date().toISOString().split('T')[0],
-      activo: activo !== undefined ? activo : true,
-      fechaBaja: (!activo && fechaBaja) ? fechaBaja : null,
-      fechaRegistro: new Date().toISOString(),
-      fechaModificacion: null,
-      tipoAcceso: tipoAcceso,
-      modulos: modulos,
-      usuarioId: null
-    };
+    // Insertar nuevo empleado en PostgreSQL
+    const insertQuery = `
+      INSERT INTO empleados (
+        nombre, email, telefono, puesto_id, sucursal_id, salario,
+        fecha_ingreso, activo, fecha_baja, tipo_acceso, modulos_permitidos,
+        fecha_registro
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      RETURNING *
+    `;
     
+    const values = [
+      nombre.trim(),
+      email ? email.toLowerCase() : null,
+      telefono || null,
+      puesto || null,
+      sucursal || null,
+      salario ? parseFloat(salario) : null,
+      fechaIngreso || new Date().toISOString().split('T')[0],
+      activo !== undefined ? activo : true,
+      (!activo && fechaBaja) ? fechaBaja : null,
+      tipoAcceso,
+      JSON.stringify(modulos)
+    ];
+    
+    const result = await query(insertQuery, values);
+    const nuevoEmpleado = result.rows[0];
+    
+    // Crear usuario del sistema si tiene permisos (administrador o personalizado)
     let usuarioCreado = null;
-    let credentials = null;
-    
-    // Crear usuario del sistema si tiene permisos
     const debeCrearUsuario = tipoAcceso === 'administrador' || tipoAcceso === 'personalizado';
     
     if (debeCrearUsuario) {
-      // credentials = generateUserCredentials(nuevoEmpleado);
+      const { generateUserCredentials } = require('../utils/rolesSystem');
       
-      // La función generateUserCredentials ya maneja los consecutivos únicos
-      // No necesitamos verificar duplicados manualmente
+      // Generar credenciales únicas
+      const credentials = await generateUserCredentials({ nombre: nuevoEmpleado.nombre });
       
       // Asignar roles del sistema basados en el tipo de acceso
       let role = 'empleado';
@@ -335,51 +329,55 @@ async function createEmpleado(req, res) {
         roles = ['admin'];
       }
       
+      // Crear usuario en la base de datos
+      const insertUserQuery = `
+        INSERT INTO usuarios (
+          username, nombre, email, password, role, roles, empleado_id, 
+          activo, fecha_registro, full_name, phone, bio
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11)
+        RETURNING id, username
+      `;
+      
+      const userValues = [
+        credentials.username,
+        nuevoEmpleado.nombre,
+        nuevoEmpleado.email || `${credentials.username}@supercopias.com`,
+        credentials.hashedPassword,
+        role,
+        JSON.stringify(roles),
+        nuevoEmpleado.id,
+        true,
+        nuevoEmpleado.nombre,
+        nuevoEmpleado.telefono || '',
+        `Empleado - ${tipoAcceso === 'administrador' ? 'Administrador del sistema' : 'Acceso personalizado'}`
+      ];
+      
+      const userResult = await query(insertUserQuery, userValues);
+      const usuarioId = userResult.rows[0].id;
+      
+      // Actualizar empleado con el ID del usuario
+      await query(
+        'UPDATE empleados SET usuario_id = $1 WHERE id = $2',
+        [usuarioId, nuevoEmpleado.id]
+      );
+      
       usuarioCreado = {
-        id: `USR_${nanoid(10)}`,
+        id: usuarioId,
         username: credentials.username,
-        nombre: nuevoEmpleado.nombre,
-        email: nuevoEmpleado.email,
-        password: credentials.hashedPassword,
-        role: role,
+        password: credentials.password, // Contraseña sin hash para mostrar al admin
         roles: roles,
-        empleadoId: nuevoEmpleado.id,
-        activo: true,
-        fechaRegistro: new Date().toISOString(),
-        fechaModificacion: null,
-        ultimoAcceso: null,
-        fullName: nuevoEmpleado.nombre,
-        phone: nuevoEmpleado.telefono,
-        bio: `Empleado - ${nuevoEmpleado.puesto || 'Sin puesto definido'}`,
-        profileImage: ''
+        tipoPermiso: tipoPermiso
       };
-      
-      // Guardar usuario en la base de datos
-      // db.get('usuarios').push(usuarioCreado).write();
-      
-      // Actualizar empleado con ID de usuario
-      nuevoEmpleado.usuarioId = usuarioCreado.id;
     }
     
-    // Guardar empleado en la base de datos
-    // db.get('empleados').push(nuevoEmpleado).write();
-    
+    // Preparar respuesta
     const respuesta = {
       empleado: nuevoEmpleado,
-      ...(usuarioCreado && {
-        usuario: {
-          id: usuarioCreado.id,
-          username: usuarioCreado.username,
-          password: credentials.password, // Contraseña sin hash para mostrar al admin
-          roles: usuarioCreado.roles,
-          tipoPermiso: tipoPermiso
-        }
-      })
+      ...(usuarioCreado && { usuario: usuarioCreado })
     };
     
-    res.status(201).json(
+    return res.status(201).json(
       createResponse(
-        true,
         respuesta,
         debeCrearUsuario ? 
           'Empleado y usuario creados exitosamente' : 
@@ -406,7 +404,7 @@ async function createEmpleado(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con empleado actualizado o error
  */
-function updateEmpleado(req, res) {
+async function updateEmpleado(req, res) {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -419,11 +417,25 @@ function updateEmpleado(req, res) {
         )
       );
     }
+
+    // Convertir ID a número
+    const empleadoId = parseInt(id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del empleado debe ser un número válido'
+        )
+      );
+    }
     
     // Buscar empleado existente
-    const empleadoExistente = db.get('empleados').find({ id }).value();
+    const empleadoResult = await query(
+      'SELECT * FROM empleados WHERE id = $1',
+      [empleadoId]
+    );
     
-    if (!empleadoExistente) {
+    if (empleadoResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -432,17 +444,16 @@ function updateEmpleado(req, res) {
       );
     }
     
+    const empleadoExistente = empleadoResult.rows[0];
+    
     // Verificar email único (si se actualiza)
     if (updateData.email && updateData.email !== empleadoExistente.email) {
-      const emailDuplicado = db.get('empleados')
-        .find({ 
-          email: updateData.email.toLowerCase(), 
-          activo: true,
-          id: { $ne: id }
-        })
-        .value();
+      const emailResult = await query(
+        'SELECT id FROM empleados WHERE email = $1 AND activo = true AND id != $2',
+        [updateData.email.toLowerCase(), empleadoId]
+      );
       
-      if (emailDuplicado) {
+      if (emailResult.rows.length > 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.ALREADY_EXISTS,
@@ -496,17 +507,11 @@ function updateEmpleado(req, res) {
       delete datosConvertidos.modulosPermitidos;
     }
     
-    // Preparar datos de actualización
-    const datosActualizacion = {
-      ...datosConvertidos,
-      fechaModificacion: new Date().toISOString()
-    };
-    
     // Manejar fechaBaja según el estado activo
-    if (datosActualizacion.activo !== undefined) {
-      if (datosActualizacion.activo === false || datosActualizacion.activo === 'false') {
+    if (datosConvertidos.activo !== undefined) {
+      if (datosConvertidos.activo === false || datosConvertidos.activo === 'false') {
         // Si se marca como inactivo, debe tener fechaBaja
-        if (!datosActualizacion.fechaBaja) {
+        if (!datosConvertidos.fechaBaja) {
           return res.status(400).json(
             createErrorResponse(
               CODIGOS_ERROR.VALIDATION_ERROR,
@@ -514,125 +519,107 @@ function updateEmpleado(req, res) {
             )
           );
         }
-        datosActualizacion.activo = false;
+        datosConvertidos.activo = false;
       } else {
         // Si se reactiva, limpiar fechaBaja
-        datosActualizacion.activo = true;
-        datosActualizacion.fechaBaja = null;
+        datosConvertidos.activo = true;
+        datosConvertidos.fechaBaja = null;
       }
     }
     
     // Limpiar y normalizar datos
-    if (datosActualizacion.nombre) {
-      datosActualizacion.nombre = datosActualizacion.nombre.trim();
+    if (datosConvertidos.nombre) {
+      datosConvertidos.nombre = datosConvertidos.nombre.trim();
     }
-    if (datosActualizacion.email) {
-      datosActualizacion.email = datosActualizacion.email.toLowerCase();
+    if (datosConvertidos.email) {
+      datosConvertidos.email = datosConvertidos.email.toLowerCase();
     }
-    if (datosActualizacion.salario) {
-      datosActualizacion.salario = parseFloat(datosActualizacion.salario);
-    }
-    
-    // Actualizar en la base de datos
-    const empleadoActualizado = db.get('empleados')
-      .find({ id })
-      .assign(datosActualizacion)
-      .write();
-
-    // Variable para almacenar credenciales del usuario si se crea
-    let credencialesUsuario = null;
-
-    // Verificar si necesita crear usuario (cambió de inactivo a admin/personalizado)
-    const tipoAccesoNuevo = datosActualizacion.tipoAcceso || empleadoActualizado.tipoAcceso;
-    const necesitaUsuario = (
-      (tipoAccesoNuevo === 'administrador' || tipoAccesoNuevo === 'personalizado') &&
-      !empleadoActualizado.usuarioId
-    );
-
-    if (necesitaUsuario) {
-      // Crear usuario para el empleado
-      const { username, password, hashedPassword } = generateUserCredentials(empleadoActualizado);
-      
-      const nuevoUsuario = {
-        id: `USR_${nanoid(10)}`,
-        username,
-        nombre: empleadoActualizado.nombre,
-        email: empleadoActualizado.email || `${username}@supercopias.com`,
-        password: hashedPassword,
-        role: tipoAccesoNuevo === 'administrador' ? 'admin' : 'empleado',
-        roles: tipoAccesoNuevo === 'administrador' ? ['admin'] : ['empleado'],
-        empleadoId: empleadoActualizado.id,
-        activo: true,
-        fechaRegistro: new Date().toISOString(),
-        fechaModificacion: null,
-        ultimoAcceso: null,
-        fullName: empleadoActualizado.nombre,
-        phone: empleadoActualizado.telefono || '',
-        bio: `${empleadoActualizado.puesto || 'Empleado'} - ${tipoAccesoNuevo === 'administrador' ? 'Administrador del sistema' : 'Acceso limitado'}`,
-        profileImage: ''
-      };
-
-      // Agregar usuario a la base de datos
-      db.get('usuarios').push(nuevoUsuario).write();
-
-      // Actualizar empleado con información del usuario
-      db.get('empleados')
-        .find({ id })
-        .assign({
-          usuarioId: nuevoUsuario.id,
-          fechaModificacion: new Date().toISOString()
-        })
-        .write();
-
-      // Refrescar datos del empleado
-      const empleadoFinal = db.get('empleados').find({ id }).value();
-
-      credencialesUsuario = {
-        username,
-        password,
-        empleado: empleadoFinal
-      };
-    }
-
-    // Actualizar usuario asociado si existe y se modifican roles
-    if (empleadoActualizado.usuarioId && updateData.roles) {
-      db.get('usuarios')
-        .find({ id: empleadoActualizado.usuarioId })
-        .assign({ 
-          roles: updateData.roles,
-          fechaModificacion: new Date().toISOString()
-        })
-        .write();
+    if (datosConvertidos.salario) {
+      datosConvertidos.salario = parseFloat(datosConvertidos.salario);
     }
     
-    // Obtener empleado actualizado final
-    const empleadoFinal = db.get('empleados').find({ id }).value();
+    // Preparar campos dinámicos para actualizar
+    const camposActualizar = [];
+    const valores = [];
+    let contador = 1;
     
-    // Enriquecer con información de roles
-    const empleadoConRoles = {
-      ...empleadoFinal,
-      rolesInfo: empleadoFinal.roles ? 
-        empleadoFinal.roles.map(roleId => getRoleById(roleId)).filter(Boolean) : []
-    };
-
-    // Crear respuesta con credenciales si se creó usuario
-    const responseData = credencialesUsuario ? {
-      empleado: empleadoConRoles,
-      usuario: {
-        username: credencialesUsuario.username,
-        password: credencialesUsuario.password
-      }
-    } : empleadoConRoles;
-
-    const message = credencialesUsuario ? 
-      'Empleado actualizado y usuario creado exitosamente' : 
-      'Empleado actualizado exitosamente';
-
-    res.json(
+    if (datosConvertidos.nombre !== undefined) {
+      camposActualizar.push(`nombre = $${contador++}`);
+      valores.push(datosConvertidos.nombre);
+    }
+    if (datosConvertidos.email !== undefined) {
+      camposActualizar.push(`email = $${contador++}`);
+      valores.push(datosConvertidos.email);
+    }
+    if (datosConvertidos.telefono !== undefined) {
+      camposActualizar.push(`telefono = $${contador++}`);
+      valores.push(datosConvertidos.telefono);
+    }
+    if (datosConvertidos.puesto !== undefined) {
+      camposActualizar.push(`puesto_id = $${contador++}`);
+      valores.push(datosConvertidos.puesto);
+    }
+    if (datosConvertidos.sucursal !== undefined) {
+      camposActualizar.push(`sucursal_id = $${contador++}`);
+      valores.push(datosConvertidos.sucursal);
+    }
+    if (datosConvertidos.salario !== undefined) {
+      camposActualizar.push(`salario = $${contador++}`);
+      valores.push(datosConvertidos.salario);
+    }
+    if (datosConvertidos.fechaIngreso !== undefined) {
+      camposActualizar.push(`fecha_ingreso = $${contador++}`);
+      valores.push(datosConvertidos.fechaIngreso);
+    }
+    if (datosConvertidos.fechaBaja !== undefined) {
+      camposActualizar.push(`fecha_baja = $${contador++}`);
+      valores.push(datosConvertidos.fechaBaja);
+    }
+    if (datosConvertidos.activo !== undefined) {
+      camposActualizar.push(`activo = $${contador++}`);
+      valores.push(datosConvertidos.activo);
+    }
+    if (datosConvertidos.tipoAcceso !== undefined) {
+      camposActualizar.push(`tipo_acceso = $${contador++}`);
+      valores.push(datosConvertidos.tipoAcceso);
+    }
+    if (datosConvertidos.modulos !== undefined) {
+      camposActualizar.push(`modulos_permitidos = $${contador++}`);
+      valores.push(JSON.stringify(datosConvertidos.modulos));
+    }
+    
+    // Agregar fecha de modificación
+    camposActualizar.push(`fecha_modificacion = NOW()`);
+    
+    // Si no hay campos para actualizar, retornar el empleado actual
+    if (camposActualizar.length === 1) { // Solo fecha_modificacion
+      return res.json(
+        createResponse(
+          empleadoExistente,
+          'No hay campos para actualizar'
+        )
+      );
+    }
+    
+    // Agregar ID al final
+    valores.push(empleadoId);
+    
+    // Construir y ejecutar query de actualización
+    const updateQuery = `
+      UPDATE empleados 
+      SET ${camposActualizar.join(', ')}
+      WHERE id = $${contador}
+      RETURNING *
+    `;
+    
+    const updateResult = await query(updateQuery, valores);
+    const empleadoActualizado = updateResult.rows[0];
+    
+    // Retornar empleado actualizado
+    return res.json(
       createResponse(
-        true,
-        responseData,
-        message
+        empleadoActualizado,
+        'Empleado actualizado exitosamente'
       )
     );
     
@@ -655,10 +642,8 @@ function updateEmpleado(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con confirmación o error
  */
-function deleteEmpleado(req, res) {
+async function deleteEmpleado(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     
     if (!id) {
@@ -669,10 +654,25 @@ function deleteEmpleado(req, res) {
         )
       );
     }
+
+    // Convertir ID a número
+    const empleadoId = parseInt(id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del empleado debe ser un número válido'
+        )
+      );
+    }
     
-    const empleado = db.get('empleados').find({ id }).value();
+    // Verificar que el empleado existe
+    const empleadoResult = await query(
+      'SELECT id, usuario_id FROM empleados WHERE id = $1',
+      [empleadoId]
+    );
     
-    if (!empleado) {
+    if (empleadoResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -681,31 +681,28 @@ function deleteEmpleado(req, res) {
       );
     }
 
+    const empleado = empleadoResult.rows[0];
+
     // Eliminar usuario asociado si existe
-    if (empleado.usuarioId) {
-      db.get('usuarios')
-        .remove({ id: empleado.usuarioId })
-        .write();
+    if (empleado.usuario_id) {
+      await query('DELETE FROM usuarios WHERE id = $1', [empleado.usuario_id]);
     }
 
     // Eliminar empleado completamente de la base de datos
-    db.get('empleados')
-      .remove({ id })
-      .write();
+    await query('DELETE FROM empleados WHERE id = $1', [empleadoId]);
 
-    res.json(
+    return res.json(
       createResponse(
-        true,
-        { id, eliminado: true },
+        { id: empleadoId, eliminado: true },
         'Empleado eliminado completamente exitosamente'
       )
     );
     
   } catch (error) {
     console.error('Error eliminando empleado:', error);
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -722,18 +719,16 @@ function getRoles(req, res) {
   try {
     const roles = getAllRoles();
     
-    const response = createResponse(
-      true,           // success
-      roles,          // data  
-      'Catálogo de roles obtenido exitosamente', // message
-      null            // error
+    return res.json(
+      createResponse(
+        roles,
+        'Catálogo de roles obtenido exitosamente'
+      )
     );
-    
-    res.json(response);
     
   } catch (error) {
     console.error('Error obteniendo roles:', error);
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
         'Error interno del servidor'
@@ -752,8 +747,6 @@ function getRoles(req, res) {
  */
 async function assignRoles(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     const { roles, crearUsuario = false } = req.body;
     
@@ -762,6 +755,17 @@ async function assignRoles(req, res) {
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
           'ID del empleado es requerido'
+        )
+      );
+    }
+
+    // Convertir ID a número
+    const empleadoId = parseInt(id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del empleado debe ser un número válido'
         )
       );
     }
@@ -775,19 +779,13 @@ async function assignRoles(req, res) {
       );
     }
     
-    // Validar roles
-    if (!validateRoles(roles)) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.VALIDATION_ERROR,
-          'Uno o más roles proporcionados no son válidos'
-        )
-      );
-    }
+    // Verificar que el empleado existe
+    const empleadoResult = await query(
+      'SELECT * FROM empleados WHERE id = $1',
+      [empleadoId]
+    );
     
-    const empleado = db.get('empleados').find({ id }).value();
-    
-    if (!empleado) {
+    if (empleadoResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -796,102 +794,42 @@ async function assignRoles(req, res) {
       );
     }
     
-    // Actualizar roles del empleado
-    const empleadoActualizado = db.get('empleados')
-      .find({ id })
-      .assign({ 
-        roles,
-        tieneUsuario: crearUsuario || empleado.tieneUsuario,
-        fechaModificacion: new Date().toISOString()
-      })
-      .write();
+    const empleado = empleadoResult.rows[0];
     
-    let usuarioCreado = null;
+    // Actualizar roles del empleado (guardar como JSON en modulos_permitidos)
+    const rolesJson = JSON.stringify(roles);
+    const updateResult = await query(
+      `UPDATE empleados 
+       SET modulos_permitidos = $1, fecha_modificacion = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [rolesJson, empleadoId]
+    );
     
-    // Crear usuario si se solicita y no existe
-    if (crearUsuario && !empleado.usuarioId) {
-      const credentials = generateUserCredentials(empleado);
-      
-      // Verificar username único
-      let username = credentials.username;
-      let counter = 1;
-      while (db.get('usuarios').find({ username }).value()) {
-        username = `${credentials.username}${counter}`;
-        counter++;
-      }
-      
-      const hashedPassword = await bcrypt.hash(credentials.password, 10);
-      
-      usuarioCreado = {
-        id: `USR_${nanoid(10)}`,
-        username,
-        nombre: `${empleado.nombre} ${empleado.apellidos}`,
-        email: empleado.email,
-        password: hashedPassword,
-        roles: roles,
-        empleadoId: empleado.id,
-        activo: true,
-        fechaRegistro: new Date().toISOString(),
-        fechaModificacion: null,
-        ultimoAcceso: null,
-        fullName: `${empleado.nombre} ${empleado.apellidos}`,
-        phone: empleado.telefono,
-        bio: `Empleado - ${empleado.puesto || 'Sin puesto definido'}`,
-        profileImage: ''
-      };
-      
-      // db.get('usuarios').push(usuarioCreado).write();
-      
-      // Actualizar empleado con ID de usuario
-      db.get('empleados')
-        .find({ id })
-        .assign({ usuarioId: usuarioCreado.id })
-        .write();
-      
-    } else if (empleado.usuarioId) {
-      // Actualizar roles del usuario existente
-      db.get('usuarios')
-        .find({ id: empleado.usuarioId })
-        .assign({ 
-          roles,
-          fechaModificacion: new Date().toISOString()
-        })
-        .write();
+    const empleadoActualizado = updateResult.rows[0];
+    
+    // Actualizar roles del usuario si existe
+    if (empleado.usuario_id) {
+      await query(
+        `UPDATE usuarios 
+         SET roles = $1, fecha_modificacion = NOW()
+         WHERE id = $2`,
+        [rolesJson, empleado.usuario_id]
+      );
     }
     
-    // Enriquecer respuesta
-    const empleadoConRoles = {
-      ...empleadoActualizado,
-      rolesInfo: roles.map(roleId => getRoleById(roleId)).filter(Boolean)
-    };
-    
-    const respuesta = {
-      empleado: empleadoConRoles,
-      ...(usuarioCreado && {
-        usuario: {
-          id: usuarioCreado.id,
-          username: usuarioCreado.username,
-          password: credentials.password,
-          roles: usuarioCreado.roles
-        }
-      })
-    };
-    
-    res.json(
+    return res.json(
       createResponse(
-        true,
-        respuesta,
-        usuarioCreado ? 
-          'Roles asignados y usuario creado exitosamente' : 
-          'Roles asignados exitosamente'
+        empleadoActualizado,
+        'Roles asignados exitosamente'
       )
     );
     
   } catch (error) {
     console.error('Error asignando roles:', error);
-    res.status(500).json(
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -906,39 +844,26 @@ async function assignRoles(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con array de puestos
  */
-function getPuestos(req, res) {
+async function getPuestos(req, res) {
   try {
-    const puestos = [
-      'Gerente General',
-      'Jefe de Ventas',
-      'Supervisor de Operaciones',
-      'Cajero',
-      'Operador de Equipos',
-      'Técnico de Servicio',
-      'Atención al Cliente',
-      'Gestor de Clientes',
-      'Gestor de Inventarios',
-      'Contador',
-      'Asistente Administrativo',
-      'Coordinador de Producción',
-      'Vendedor',
-      'Recepcionista',
-      'Chofer',
-      'Técnico en Mantenimiento',
-      'Encargado de Almacén'
-    ];
+    // Consultar puestos desde la base de datos
+    const result = await query(
+      'SELECT id, nombre, descripcion, activo FROM puestos WHERE activo = true ORDER BY nombre ASC'
+    );
+    
+    const puestos = result.rows;
 
-    res.status(200).json(
+    return res.status(200).json(
       createResponse(
         puestos,
         'Catálogo de puestos obtenido exitosamente'
       )
     );
   } catch (error) {
-    console.error('Error getting puestos:', error);
-    res.status(500).json(
+    console.error('Error obteniendo puestos:', error);
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -953,78 +878,36 @@ function getPuestos(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con array de módulos disponibles
  */
-function getModulos(req, res) {
+async function getModulos(req, res) {
   try {
-    const modulos = [
-      {
-        id: 'dashboard',
-        nombre: 'Dashboard',
-        descripcion: 'Panel principal con métricas y resúmenes',
-        icono: 'fas fa-tachometer-alt',
-        activo: true
-      },
-      {
-        id: 'empleados',
-        nombre: 'Empleados',
-        descripcion: 'Gestión de empleados y recursos humanos',
-        icono: 'fas fa-users',
-        activo: true
-      },
-      {
-        id: 'clientes',
-        nombre: 'Clientes',
-        descripcion: 'Gestión de clientes y base de datos',
-        icono: 'fas fa-user-friends',
-        activo: true
-      },
-      {
-        id: 'proveedores',
-        nombre: 'Proveedores',
-        descripcion: 'Gestión de proveedores y contactos',
-        icono: 'fas fa-truck',
-        activo: true
-      },
-      {
-        id: 'inventarios',
-        nombre: 'Inventarios',
-        descripcion: 'Control de stock y productos',
-        icono: 'fas fa-boxes',
-        activo: true
-      },
-      {
-        id: 'equipos',
-        nombre: 'Equipos',
-        descripcion: 'Gestión de equipos y herramientas',
-        icono: 'fas fa-tools',
-        activo: true
-      },
-      {
-        id: 'reportes',
-        nombre: 'Reportes',
-        descripcion: 'Generación de reportes y análisis',
-        icono: 'fas fa-chart-bar',
-        activo: true
-      },
-      {
-        id: 'puntoventa',
-        nombre: 'Punto de Venta',
-        descripcion: 'Sistema de ventas y facturación',
-        icono: 'fas fa-cash-register',
-        activo: true
-      }
-    ];
+    // Consultar módulos desde la base de datos
+    const result = await query(
+      `SELECT id, codigo, nombre, descripcion, icono, ruta, orden, activo 
+       FROM modulos 
+       WHERE activo = true 
+       ORDER BY orden ASC, nombre ASC`
+    );
+    
+    const modulos = result.rows.map(mod => ({
+      id: mod.codigo || mod.id,
+      nombre: mod.nombre,
+      descripcion: mod.descripcion,
+      icono: mod.icono || 'fas fa-cube',
+      activo: mod.activo,
+      ruta: mod.ruta
+    }));
 
-    res.status(200).json(
+    return res.status(200).json(
       createResponse(
         modulos,
         'Catálogo de módulos obtenido exitosamente'
       )
     );
   } catch (error) {
-    console.error('Error getting modulos:', error);
-    res.status(500).json(
+    console.error('Error obteniendo módulos:', error);
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
@@ -1039,12 +922,30 @@ function getModulos(req, res) {
  * @param {Object} res - Response object
  * @returns {Object} JSON con empleado actualizado
  */
-function updatePermisos(req, res) {
+async function updatePermisos(req, res) {
   try {
-    init();
-    
     const { id } = req.params;
     const { tipoPermiso, modulosPermitidos, permisos } = req.body;
+    
+    if (!id) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.REQUIRED_FIELD,
+          'ID del empleado es requerido'
+        )
+      );
+    }
+
+    // Convertir ID a número
+    const empleadoId = parseInt(id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'ID del empleado debe ser un número válido'
+        )
+      );
+    }
     
     // Validar tipo de permiso
     if (!tipoPermiso || !['sin_permisos', 'administrador', 'personalizado'].includes(tipoPermiso)) {
@@ -1057,9 +958,12 @@ function updatePermisos(req, res) {
     }
     
     // Buscar empleado
-    const empleado = db.get('empleados').find({ id }).value();
+    const empleadoResult = await query(
+      'SELECT * FROM empleados WHERE id = $1',
+      [empleadoId]
+    );
     
-    if (!empleado) {
+    if (empleadoResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse(
           CODIGOS_ERROR.NOT_FOUND,
@@ -1077,22 +981,20 @@ function updatePermisos(req, res) {
       ];
     }
     
-    // Actualizar empleado
-    const empleadoActualizado = {
-      ...empleado,
-      tipoPermiso: tipoPermiso,
-      modulosPermitidos: modulosFinales,
-      permisos: permisos || [],
-      fechaModificacion: new Date().toISOString(),
-      fechaAsignacionPermisos: new Date().toISOString()
-    };
+    // Actualizar empleado con los nuevos permisos
+    const updateResult = await query(
+      `UPDATE empleados 
+       SET tipo_acceso = $1, 
+           modulos_permitidos = $2,
+           fecha_modificacion = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [tipoPermiso, JSON.stringify(modulosFinales), empleadoId]
+    );
     
-    db.get('empleados')
-      .find({ id })
-      .assign(empleadoActualizado)
-      .write();
+    const empleadoActualizado = updateResult.rows[0];
     
-    res.status(200).json(
+    return res.status(200).json(
       createResponse(
         empleadoActualizado,
         'Permisos actualizados exitosamente'
@@ -1100,10 +1002,10 @@ function updatePermisos(req, res) {
     );
     
   } catch (error) {
-    console.error('Error updating permisos:', error);
-    res.status(500).json(
+    console.error('Error actualizando permisos:', error);
+    return res.status(500).json(
       createErrorResponse(
-        CODIGOS_ERROR.INTERNAL_ERROR,
+        CODIGOS_ERROR.DATABASE_ERROR,
         'Error interno del servidor'
       )
     );
