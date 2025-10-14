@@ -128,7 +128,6 @@ export class ProveedoresService {
    * Método de compatibilidad para initMockData()
    */
   initMockData(): void {
-    console.log('ProveedoresService: Usando datos del backend, no hay datos mock locales');
   }
 
   // ============================================================================
@@ -190,12 +189,6 @@ export class ProveedoresService {
       }
     }
 
-    console.error('ProveedoresService Error:', {
-      code: errorCode,
-      message: errorMessage,
-      status: error.status,
-      url: error.url
-    });
 
     return throwError(() => ({
       success: false,

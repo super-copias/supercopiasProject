@@ -282,7 +282,6 @@ export class ProfileEditComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error loading profile:', error);
       }
     });
   }

@@ -25,7 +25,7 @@ async function obtenerModulosActivos() {
     );
     return result.rows.map(row => row.clave);
   } catch (error) {
-    console.error('Error obteniendo módulos activos:', error);
+
     // Retornar array vacío en caso de error para no romper la aplicación
     return [];
   }
@@ -111,7 +111,7 @@ async function listEmpleados(req, res) {
       )
     );
   } catch (error) {
-    console.error('Error en listEmpleados:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -177,14 +177,6 @@ async function getEmpleado(req, res) {
     
     const empleado = result.rows[0];
     
-    console.log('🔍 Empleado obtenido de BD:', {
-      id: empleado.id,
-      nombre: empleado.nombre,
-      tipo_acceso: empleado.tipo_acceso,
-      puesto_id: empleado.puesto_id,
-      sucursal_id: empleado.sucursal_id
-    });
-    
     // Obtener módulos del empleado
     const modulosResult = await query(
       'SELECT modulo, acceso FROM empleados_modulos WHERE empleado_id = $1',
@@ -200,7 +192,6 @@ async function getEmpleado(req, res) {
       const todosLosModulos = await obtenerModulosActivos();
       modulosPermitidos = todosLosModulos;
     }
-    console.log('📦 Módulos permitidos:', modulosPermitidos);
 
     // Convertir tipo_acceso de la BD al formato del frontend
     let tipoPermiso = 'sin_permisos';
@@ -211,8 +202,6 @@ async function getEmpleado(req, res) {
     } else if (empleado.tipo_acceso === 'solo_lectura') {
       tipoPermiso = 'sin_permisos';
     }
-    
-    console.log('🔐 Tipo de permiso convertido:', tipoPermiso);
 
     // Preparar respuesta con campos normalizados para el frontend
     const empleadoCompleto = {
@@ -240,12 +229,11 @@ async function getEmpleado(req, res) {
       } : null
     };
     
-    console.log('📤 Respuesta a enviar:', JSON.stringify(empleadoCompleto, null, 2));
 
     res.json(createResponse(true, empleadoCompleto, 'Empleado obtenido exitosamente'));
     
   } catch (error) {
-    console.error('Error en getEmpleado:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -281,15 +269,6 @@ async function createEmpleado(req, res) {
     } = req.body;
     
     // Debug: Log de datos recibidos
-    console.log('📝 Datos recibidos para crear empleado:', {
-      nombre,
-      email,
-      telefono,
-      tipoPermiso,
-      modulosPermitidos,
-      puesto,
-      sucursal
-    });
     
     // Validaciones requeridas
     if (!nombre || !puesto || !sucursal) {
@@ -385,12 +364,12 @@ async function createEmpleado(req, res) {
     const result = await query(insertQuery, values);
     const nuevoEmpleado = result.rows[0];
     
-    console.log('✅ Empleado creado:', nuevoEmpleado);
-    console.log('🔑 Tipo de acceso determinado:', tipoAcceso);
-    console.log('🔐 ¿Debe crear usuario?:', tipoAcceso === 'completo' || tipoAcceso === 'limitado');
+
+
+
     
     // Insertar módulos en la tabla empleados_modulos
-    console.log('📦 Insertando módulos en empleados_modulos...');
+
     for (const modulo of todosLosModulos) {
       const tieneAcceso = modulos[modulo] && modulos[modulo].acceso === true;
       await query(
@@ -398,14 +377,14 @@ async function createEmpleado(req, res) {
         [nuevoEmpleado.id, modulo, tieneAcceso]
       );
     }
-    console.log('✅ Módulos insertados correctamente');
+
     
     // Crear usuario del sistema si tiene permisos (completo o limitado)
     let usuarioCreado = null;
     const debeCrearUsuario = tipoAcceso === 'completo' || tipoAcceso === 'limitado';
     
     if (debeCrearUsuario) {
-      console.log('🚀 Iniciando creación de usuario...');
+
       const { generateUserCredentials } = require('../utils/rolesSystem');
       
       // Generar credenciales únicas
@@ -445,11 +424,7 @@ async function createEmpleado(req, res) {
       const userResult = await query(insertUserQuery, userValues);
       const usuarioId = userResult.rows[0].id;
       
-      console.log('✅ Usuario creado con ID:', usuarioId);
-      console.log('👤 Credenciales generadas:', {
-        username: credentials.username,
-        password: credentials.password
-      });
+
       
       // Actualizar empleado con el ID del usuario
       await query(
@@ -457,7 +432,7 @@ async function createEmpleado(req, res) {
         [usuarioId, nuevoEmpleado.id]
       );
       
-      console.log('🔗 Empleado vinculado con usuario');
+
       
       usuarioCreado = {
         id: usuarioId,
@@ -467,7 +442,7 @@ async function createEmpleado(req, res) {
         tipoPermiso: tipoPermiso
       };
       
-      console.log('📦 Objeto usuarioCreado:', usuarioCreado);
+
     }
     
     // Preparar respuesta
@@ -476,7 +451,6 @@ async function createEmpleado(req, res) {
       ...(usuarioCreado && { usuario: usuarioCreado })
     };
     
-    console.log('📤 Respuesta a enviar:', JSON.stringify(respuesta, null, 2));
     
     return res.status(201).json(
       createResponse(
@@ -489,7 +463,7 @@ async function createEmpleado(req, res) {
     );
     
   } catch (error) {
-    console.error('Error creando empleado:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -717,7 +691,7 @@ async function updateEmpleado(req, res) {
     
     // Actualizar módulos si se proporcionaron
     if (datosConvertidos.modulos !== undefined) {
-      console.log('📦 Actualizando módulos en empleados_modulos...');
+
       
       // Eliminar módulos existentes
       await query('DELETE FROM empleados_modulos WHERE empleado_id = $1', [empleadoId]);
@@ -733,7 +707,7 @@ async function updateEmpleado(req, res) {
           [empleadoId, modulo, tieneAcceso]
         );
       }
-      console.log('✅ Módulos actualizados correctamente');
+
     }
     
     // Verificar si necesita crear usuario del sistema
@@ -818,7 +792,7 @@ async function updateEmpleado(req, res) {
     );
     
   } catch (error) {
-    console.error('Error actualizando empleado:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -894,7 +868,7 @@ async function deleteEmpleado(req, res) {
     );
     
   } catch (error) {
-    console.error('Error eliminando empleado:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -929,7 +903,7 @@ async function getPuestos(req, res) {
       )
     );
   } catch (error) {
-    console.error('Error obteniendo puestos:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -974,7 +948,7 @@ async function getModulos(req, res) {
       )
     );
   } catch (error) {
-    console.error('Error obteniendo módulos:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,

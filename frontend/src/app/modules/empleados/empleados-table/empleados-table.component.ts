@@ -36,7 +36,6 @@ export class EmpleadosTableComponent {
       event.preventDefault();
     }
     
-    console.log('Eliminando empleado:', empleado);
     // Emitir directamente sin confirm, el componente padre maneja la confirmación
     this.eliminar.emit(empleado);
   }

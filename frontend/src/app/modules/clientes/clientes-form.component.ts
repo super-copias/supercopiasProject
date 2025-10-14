@@ -159,7 +159,6 @@ export class ClientesFormComponent implements OnInit {
         if (usos) this.usosCFDI = usos;
       },
       error: (error) => {
-        console.error('Error cargando usos CFDI:', error);
       }
     });
   }
@@ -178,7 +177,6 @@ export class ClientesFormComponent implements OnInit {
           this.loading = false;
         },
         error: (error) => {
-          console.error('Error cargando cliente:', error);
           this.loading = false;
         }
       });
@@ -238,13 +236,11 @@ export class ClientesFormComponent implements OnInit {
         if (response && response.success) {
           this.router.navigate(['/admin/clientes']);
         } else {
-          console.error('Error en la respuesta:', response);
           alert('Error guardando cliente: ' + (response.message || 'Error desconocido'));
         }
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error guardando cliente:', error);
         const errorMsg = error.error?.message || error.message || 'Error desconocido';
         alert('Error guardando cliente: ' + errorMsg);
         this.loading = false;

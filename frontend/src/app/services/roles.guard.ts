@@ -220,7 +220,6 @@ export class RolesGuard implements CanActivate {
    * Manejar acceso denegado
    */
   private handleAccessDenied(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): void {
-    console.warn('Acceso denegado a la ruta:', state.url);
     
     // Redirigir a página de acceso denegado o dashboard
     const redirectUrl = route.data['accessDeniedRedirect'] || '/dashboard';
@@ -236,7 +235,6 @@ export class RolesGuard implements CanActivate {
    * Manejar errores de autenticación
    */
   private handleError(): void {
-    console.error('Error al verificar permisos');
     this.redirectToLogin();
   }
 

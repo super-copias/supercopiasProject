@@ -70,12 +70,12 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                   <div class="info-grid">
                     <div class="info-item">
                       <span class="label">Puesto:</span>
-                      <span class="value">{{empleado.puesto || 'No definido'}}</span>
+                      <span class="value">{{empleado.puestoNombre || empleado.puesto || 'No definido'}}</span>
                     </div>
                     
                     <div class="info-item">
                       <span class="label">Sucursal:</span>
-                      <span class="value">{{getSucursalNombre(empleado.sucursal) || 'No asignada'}}</span>
+                      <span class="value">{{empleado.sucursalNombre || getSucursalNombre(empleado.sucursal) || 'No asignada'}}</span>
                     </div>
                     
                     <div class="info-item">
@@ -108,8 +108,8 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                     <div class="info-item">
                       <span class="label">Tipo de Acceso:</span>
                       <span class="value">
-                        <span class="badge" [class]="getTipoAccesoBadgeClass(empleado.tipoAcceso)">
-                          {{getTipoAccesoLabel(empleado.tipoAcceso)}}
+                        <span class="badge" [class]="getTipoAccesoBadgeClass(empleado.tipoPermiso || empleado.tipoAcceso)">
+                          {{getTipoAccesoLabel(empleado.tipoPermiso || empleado.tipoAcceso)}}
                         </span>
                       </span>
                     </div>
@@ -117,15 +117,15 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                     <div class="info-item">
                       <span class="label">Usuario:</span>
                       <span class="value">
-                        <span class="badge" [class]="empleado.usuarioId ? 'bg-success' : 'bg-secondary'">
-                          {{empleado.usuarioId ? 'Sí' : 'No'}}
+                        <span class="badge" [class]="(empleado.usuario?.id || empleado.usuarioId) ? 'bg-success' : 'bg-secondary'">
+                          {{(empleado.usuario?.id || empleado.usuarioId) ? (empleado.usuario?.username || 'Sí') : 'No'}}
                         </span>
                       </span>
                     </div>
                   </div>
                   
                   <!-- Módulos en formato compacto -->
-                  <div *ngIf="empleado.modulos && hasModulosActivos()" class="mt-2">
+                  <div *ngIf="hasModulosActivos()" class="mt-2">
                     <small class="text-muted">Módulos:</small>
                     <div class="mt-1">
                       <span *ngFor="let modulo of getModulosActivos()" 
@@ -451,11 +451,11 @@ export class EmpleadoDetailModalComponent {
             </div>
             <div class="info-row">
               <div class="info-label">Puesto:</div>
-              <div class="info-value">${empleado.puesto || 'No definido'}</div>
+              <div class="info-value">${empleado.puestoNombre || empleado.puesto || 'No definido'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Sucursal:</div>
-              <div class="info-value">${this.getSucursalNombre(empleado.sucursal) || 'No asignada'}</div>
+              <div class="info-value">${empleado.sucursalNombre || this.getSucursalNombre(empleado.sucursal) || 'No asignada'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Salario:</div>
@@ -472,10 +472,10 @@ export class EmpleadoDetailModalComponent {
             <div class="info-row">
               <div class="info-label">Acceso Sistema:</div>
               <div class="info-value">
-                <span class="access-badge">${this.getTipoAccesoLabel(empleado.tipoAcceso)}</span>
+                <span class="access-badge">${this.getTipoAccesoLabel(empleado.tipoPermiso || empleado.tipoAcceso)}</span>
               </div>
             </div>
-            ${empleado.modulos && this.hasModulosActivos() ? `
+            ${this.hasModulosActivos() ? `
             <div class="info-row">
               <div class="info-label">Módulos:</div>
               <div class="info-value">${this.getModulosActivos().map(m => this.getModuloLabel(m)).join(', ')}</div>
@@ -540,11 +540,17 @@ export class EmpleadoDetailModalComponent {
   }
 
   getTipoAccesoLabel(tipo: string): string {
+    if (!tipo) return 'No definido';
+    
     switch (tipo) {
       case 'administrador':
+      case 'completo':
         return 'Administrador';
       case 'personalizado':
+      case 'limitado':
         return 'Personalizado';
+      case 'sin_permisos':
+      case 'solo_lectura':
       case 'inactivo':
         return 'Sin Acceso';
       default:
@@ -553,11 +559,17 @@ export class EmpleadoDetailModalComponent {
   }
 
   getTipoAccesoBadgeClass(tipo: string): string {
+    if (!tipo) return 'bg-secondary';
+    
     switch (tipo) {
       case 'administrador':
+      case 'completo':
         return 'bg-danger';
       case 'personalizado':
+      case 'limitado':
         return 'bg-primary';
+      case 'sin_permisos':
+      case 'solo_lectura':
       case 'inactivo':
         return 'bg-secondary';
       default:
@@ -570,11 +582,21 @@ export class EmpleadoDetailModalComponent {
   }
 
   getModulosActivos(): string[] {
-    if (!this.empleado?.modulos) return [];
+    if (!this.empleado) return [];
     
-    return Object.keys(this.empleado.modulos).filter(modulo => 
-      this.empleado.modulos[modulo]?.acceso === true
-    );
+    // Si tiene modulosPermitidos como array (formato del backend)
+    if (this.empleado.modulosPermitidos && Array.isArray(this.empleado.modulosPermitidos)) {
+      return this.empleado.modulosPermitidos;
+    }
+    
+    // Si tiene modulos como objeto (formato antiguo)
+    if (this.empleado.modulos && typeof this.empleado.modulos === 'object') {
+      return Object.keys(this.empleado.modulos).filter(modulo => 
+        this.empleado.modulos[modulo]?.acceso === true
+      );
+    }
+    
+    return [];
   }
 
   getModuloLabel(modulo: string): string {
@@ -585,6 +607,7 @@ export class EmpleadoDetailModalComponent {
       proveedores: 'Proveedores',
       inventarios: 'Inventarios',
       equipos: 'Equipos',
+      punto_venta: 'Punto de Venta',
       reportes: 'Reportes',
       configuracion: 'Configuración'
     };

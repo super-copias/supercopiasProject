@@ -74,10 +74,8 @@ export class SideNavComponent implements OnChanges, OnInit {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['mobileOpen']) {
-      console.log('[SideNav] mobileOpen changed ->', changes['mobileOpen'].currentValue);
     }
     if (changes['collapsed']) {
-      console.log('[SideNav] collapsed changed ->', changes['collapsed'].currentValue);
     }
   }
 }

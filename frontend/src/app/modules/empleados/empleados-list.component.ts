@@ -128,7 +128,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        console.log('🎯 Respuesta de búsqueda:', response);
         if (response.success) {
           this.empleados = response.data || [];
           this.total = response.pagination?.total || 0;
@@ -137,7 +136,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error en búsqueda:', error);
         this.empleados = [];
       }
     });
@@ -177,12 +175,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
     this.page = 1;
     this.loading = true;
     
-    console.log('🔍 Realizando búsqueda:', {
-      searchTerm: this.searchTerm,
-      q: this.q,
-      page: this.page,
-      limit: this.limit
-    });
     
     return this.empleadosService.getList({
       q: this.q,
@@ -217,7 +209,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error cargando empleados:', error);
         this.empleados = [];
       }
     });
@@ -277,7 +268,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error eliminando empleado:', error);
         alert('Error al eliminar el empleado. Por favor intente nuevamente.');
       }
     });
@@ -296,7 +286,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error cargando sucursales:', error);
       }
     });
   }

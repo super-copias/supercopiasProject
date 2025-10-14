@@ -66,7 +66,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.pages = Math.max(1, Math.ceil(this.total / this.limit));
       },
       error: (error) => {
-        console.error('Error loading dashboard data:', error);
         this.colaboradores = [];
         this.colaboradoresFiltered = [];
         this.total = 0;

@@ -55,7 +55,6 @@ export class AuthService {
           }
         });
       } catch (error) {
-        console.error('Error parseando datos de usuario:', error);
         this.clearSession();
       }
     }
@@ -152,7 +151,6 @@ export class AuthService {
       try { 
         window.history.replaceState({}, document.title, '/login'); 
       } catch(e) {
-        console.error('Error navegando al login:', e);
       }
       window.location.href = '/login';
     }
@@ -177,7 +175,6 @@ export class AuthService {
       JSON.parse(user);
       return true;
     } catch (error) {
-      console.error('Token o usuario inválido en localStorage:', error);
       this.clearSession();
       return false;
     }
@@ -241,7 +238,6 @@ export class AuthService {
    * @returns Observable con error formateado
    */
   private handleError = (error: HttpErrorResponse): Observable<never> => {
-    console.error('Error en AuthService:', error);
     
     // Si el servidor devuelve una respuesta de error estándar
     if (error.error && typeof error.error === 'object' && error.error.success === false) {

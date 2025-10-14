@@ -231,7 +231,6 @@ export class ProfileViewComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading profile:', error);
         // Si falla, usar los datos del usuario actual
         if (currentUser) {
           this.profile = currentUser;

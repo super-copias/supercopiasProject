@@ -287,16 +287,12 @@ export class ClientesUploadComponent {
   uploadFile(): void {
     if (!this.selectedFile) return;
 
-    console.log('🚀 Iniciando upload de archivo:', this.selectedFile.name);
-    console.log('📁 Tipo MIME:', this.selectedFile.type);
-    console.log('📏 Tamaño:', this.selectedFile.size);
 
     this.uploading = true;
     this.result = null;
 
     this.clientesService.uploadExcel(this.selectedFile).subscribe({
       next: (response) => {
-        console.log('✅ Respuesta del servidor:', response);
         this.uploading = false;
         
         // Adaptar la respuesta para el template
@@ -317,7 +313,6 @@ export class ClientesUploadComponent {
         }
       },
       error: (error) => {
-        console.error('❌ Error uploading file:', error);
         this.uploading = false;
         
         this.result = {

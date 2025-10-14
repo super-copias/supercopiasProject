@@ -45,7 +45,6 @@ export class ModuleGuard implements CanActivate, CanLoad, CanActivateChild {
     
     // Si no hay usuario cargado pero está logueado, dar un momento para que se cargue
     if (!user) {
-      console.warn('Usuario no cargado aún, permitiendo acceso temporal');
       return true;
     }
 

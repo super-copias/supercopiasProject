@@ -39,7 +39,6 @@ export class AuthGuard implements CanActivate, CanLoad, CanActivateChild {
   private checkAuth(): Observable<boolean | UrlTree> | boolean | UrlTree {
     // Primera verificación rápida del localStorage
     if (!this.auth.isLoggedIn()) {
-      console.log('AuthGuard: No hay sesión válida, redirigiendo a login');
       return this.router.parseUrl('/login');
     }
 
@@ -47,15 +46,12 @@ export class AuthGuard implements CanActivate, CanLoad, CanActivateChild {
     return this.auth.verifyToken().pipe(
       map(response => {
         if (response.success && response.data?.valid) {
-          console.log('AuthGuard: Token verificado exitosamente');
           return true;
         } else {
-          console.log('AuthGuard: Token inválido, redirigiendo a login');
           return this.router.parseUrl('/login');
         }
       }),
       catchError(error => {
-        console.error('AuthGuard: Error verificando token, redirigiendo a login:', error);
         return of(this.router.parseUrl('/login'));
       })
     );

@@ -163,7 +163,6 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   }
 
   private handleError(error: any) {
-    console.error('Error loading clients:', error);
     this.clientes = [];
     this.total = 0;
     this.pages = 1;

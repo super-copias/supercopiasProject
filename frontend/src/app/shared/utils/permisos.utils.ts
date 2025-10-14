@@ -228,7 +228,6 @@ export function RequirePermission(modulo: string, accion: keyof ModuloPermisos) 
     descriptor.value = function (...args: any[]) {
       // Esta implementación sería completada según el contexto del componente
       // Por ahora, solo registramos la verificación
-      console.log(`Verificando permiso: ${modulo}.${String(accion)} para método ${String(propertyKey)}`);
       return originalMethod.apply(this, args);
     };
 

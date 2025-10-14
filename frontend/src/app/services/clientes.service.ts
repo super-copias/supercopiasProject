@@ -188,7 +188,6 @@ export class ClientesService {
    * Método de compatibilidad para initMockData()
    */
   initMockData(): void {
-    console.log('ClientesService: Usando datos del backend, no hay datos mock locales');
   }
 
   // ============================================================================
@@ -250,12 +249,6 @@ export class ClientesService {
       }
     }
 
-    console.error('ClientesService Error:', {
-      code: errorCode,
-      message: errorMessage,
-      status: error.status,
-      url: error.url
-    });
 
     return throwError(() => ({
       success: false,

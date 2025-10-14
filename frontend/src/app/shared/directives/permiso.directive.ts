@@ -138,7 +138,6 @@ export class PermisoDirective implements OnInit, OnDestroy {
     const [modulo, accion] = this.appPermiso.split('.');
     
     if (!modulo || !accion) {
-      console.warn('Formato de permiso inválido. Use: "modulo.accion"');
       return false;
     }
 

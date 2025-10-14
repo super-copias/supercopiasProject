@@ -122,17 +122,11 @@ export class StandardApiInterceptor implements HttpInterceptor {
     // Validar estructura de respuesta estándar
     if (response.body && typeof response.body === 'object') {
       if (!this.isStandardResponse(response.body)) {
-        console.warn('Respuesta no sigue el estándar API:', response.url, response.body);
       }
     }
 
     // Log para desarrollo (eliminar en producción)
     if (!environment.production) {
-      console.log('✅ API Response:', {
-        url: response.url,
-        status: response.status,
-        body: response.body
-      });
     }
   }
 
@@ -140,12 +134,6 @@ export class StandardApiInterceptor implements HttpInterceptor {
    * Manejar errores de forma estándar
    */
   private handleErrorResponse(error: HttpErrorResponse): Observable<never> {
-    console.error('❌ API Error:', {
-      url: error.url,
-      status: error.status,
-      message: error.message,
-      error: error.error
-    });
 
     // Manejar diferentes tipos de errores
     switch (error.status) {

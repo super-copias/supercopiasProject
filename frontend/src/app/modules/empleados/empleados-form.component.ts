@@ -240,16 +240,16 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
                   <label class="form-label">Módulos Permitidos</label>
                   <div class="row">
                     <div class="col-md-6 col-lg-3 mb-3" *ngFor="let modulo of modulos">
-                      <div class="card h-100" [class.border-primary]="isSelected(modulo.clave)">
+                      <div class="card h-100" [class.border-primary]="isSelected(modulo.id)">
                         <div class="card-body p-3">
                           <div class="form-check">
                             <input 
                               class="form-check-input" 
                               type="checkbox" 
-                              [id]="'mod_' + modulo.clave"
-                              [checked]="isSelected(modulo.clave)"
-                              (change)="toggle(modulo.clave)">
-                            <label class="form-check-label" [for]="'mod_' + modulo.clave">
+                              [id]="'mod_' + modulo.id"
+                              [checked]="isSelected(modulo.id)"
+                              (change)="toggle(modulo.id)">
+                            <label class="form-check-label" [for]="'mod_' + modulo.id">
                               <i [class]="modulo.icono + ' me-2 text-primary'"></i>
                               <strong>{{modulo.nombre}}</strong>
                             </label>
@@ -396,7 +396,6 @@ export class EmpleadosFormComponent implements OnInit {
         this.modulos = modulos.filter(m => m.activo);
       },
       error: (error) => {
-        console.error('Error cargando módulos:', error);
         this.modulos = [];
       }
     });
@@ -411,7 +410,6 @@ export class EmpleadosFormComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error cargando sucursales:', error);
         this.sucursales = [];
       }
     });
@@ -426,7 +424,6 @@ export class EmpleadosFormComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error cargando puestos:', error);
         this.puestos = [];
       }
     });
@@ -448,7 +445,6 @@ export class EmpleadosFormComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error cargando empleado:', error);
         this.router.navigate(['/admin/empleados']);
         this.loading = false;
       }
@@ -459,6 +455,7 @@ export class EmpleadosFormComponent implements OnInit {
    * Llenar el formulario con datos del empleado
    */
   private populateForm(empleado: any) {
+    
     this.empleadoForm.patchValue({
       nombre: empleado.nombre,
       telefono: empleado.telefono,
@@ -476,6 +473,7 @@ export class EmpleadosFormComponent implements OnInit {
     // IMPORTANTE: Primero asignar tipoPermiso del backend
     this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
     
+    
     if (empleado.modulosPermitidos && Array.isArray(empleado.modulosPermitidos)) {
       this.seleccionados = empleado.modulosPermitidos;
       
@@ -487,6 +485,7 @@ export class EmpleadosFormComponent implements OnInit {
       this.seleccionados = [];
       this.seleccionadosPersonalizados = [];
     }
+    
   }
 
   private createForm(): FormGroup {
@@ -593,8 +592,6 @@ export class EmpleadosFormComponent implements OnInit {
     };
     
     // Debug: Log datos que se enviarán
-    console.log('📤 Datos a enviar al backend:', datos);
-    console.log('🔑 Tipo de permiso:', this.tipoPermiso);
 
     if (this.isEditing && this.empleadoId) {
       this.updateEmpleado(datos);
@@ -604,20 +601,17 @@ export class EmpleadosFormComponent implements OnInit {
   }
 
   private createEmpleado(datos: any) {
-    console.log('🚀 Llamando al servicio create con datos:', datos);
     
     this.empleadosService.create(datos).subscribe({
       next: (response: any) => {
         this.loading = false;
         
-        console.log('✅ Respuesta del servidor:', response);
         
         // Verificar si se crearon credenciales de usuario
         if (response.data?.usuario) {
           const usuario = response.data.usuario;
           const empleado = response.data.empleado;
           
-          console.log('🔐 Credenciales recibidas:', usuario);
           
           // Configurar datos para el modal de credenciales
           this.credencialesGeneradas = {
@@ -628,20 +622,16 @@ export class EmpleadosFormComponent implements OnInit {
             tipoPermiso: usuario.tipoPermiso
           };
           
-          console.log('📋 Datos del modal:', this.credencialesGeneradas);
           
           // Mostrar modal con las credenciales
           this.mostrarModalCredenciales = true;
-          console.log('🎭 Modal activado:', this.mostrarModalCredenciales);
         } else {
-          console.log('⚠️ No se recibieron credenciales en la respuesta');
           // Si no se crearon credenciales, mostrar mensaje normal y redirigir
           alert('Empleado creado exitosamente');
           this.router.navigate(['/admin/empleados']);
         }
       },
       error: (error) => {
-        console.error('Error:', error);
         this.loading = false;
         
         // Manejo de errores más específico
@@ -687,7 +677,6 @@ export class EmpleadosFormComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error:', error);
         this.loading = false;
         alert('Error al actualizar el empleado');
       }

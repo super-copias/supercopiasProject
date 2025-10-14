@@ -73,7 +73,7 @@ class ProveedoresController {
       );
       
     } catch (error) {
-      console.error('Error en getList proveedores:', error);
+
       return res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.DATABASE_ERROR,
@@ -118,7 +118,7 @@ class ProveedoresController {
       res.json(createResponse(proveedor, 'Proveedor obtenido exitosamente'));
       
     } catch (error) {
-      console.error('Error en getById proveedor:', error);
+
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.DATABASE_ERROR,
@@ -210,7 +210,7 @@ class ProveedoresController {
       );
       
     } catch (error) {
-      console.error('Error creando proveedor:', error);
+
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -326,7 +326,7 @@ class ProveedoresController {
       );
       
     } catch (error) {
-      console.error('Error actualizando proveedor:', error);
+
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -384,7 +384,7 @@ class ProveedoresController {
       );
       
     } catch (error) {
-      console.error('Error eliminando proveedor:', error);
+
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -419,7 +419,7 @@ class ProveedoresController {
       );
       
     } catch (error) {
-      console.error('Error obteniendo tipos de proveedor:', error);
+
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -454,7 +454,7 @@ class ProveedoresController {
       );
       
     } catch (error) {
-      console.error('Error obteniendo condiciones de pago:', error);
+
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,

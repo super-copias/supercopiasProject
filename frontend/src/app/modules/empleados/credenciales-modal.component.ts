@@ -150,9 +150,7 @@ export class CredencialesModalComponent {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(texto).then(() => {
         // Podrías mostrar un toast o mensaje de confirmación aquí
-        console.log('Texto copiado al portapapeles');
       }).catch(err => {
-        console.error('Error al copiar texto:', err);
         this.copiarTextoFallback(texto);
       });
     } else {
@@ -168,9 +166,7 @@ export class CredencialesModalComponent {
     textArea.select();
     try {
       document.execCommand('copy');
-      console.log('Texto copiado al portapapeles (fallback)');
     } catch (err) {
-      console.error('Error al copiar texto (fallback):', err);
     }
     document.body.removeChild(textArea);
   }

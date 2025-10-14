@@ -10,6 +10,5 @@ export class ColaboradoresTableComponent {
   
   verDetalles(colaborador: any) {
     // TODO: Implementar modal o navegación a detalles
-    console.log('Ver detalles de:', colaborador);
   }
 }

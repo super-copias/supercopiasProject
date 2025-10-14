@@ -43,7 +43,6 @@ export abstract class BaseComponent implements OnDestroy {
    * @param context Contexto donde ocurrió el error
    */
   protected handleError(error: any, context: string = 'Operation'): void {
-    console.warn(`${context} error:`, error);
     this.setLoading(false);
   }
 }

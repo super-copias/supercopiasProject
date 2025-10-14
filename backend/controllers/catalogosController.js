@@ -30,7 +30,7 @@ async function getEstados(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo estados:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo estados'));
   }
 }
@@ -50,7 +50,7 @@ async function getRegimenesFiscales(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo regímenes fiscales:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo regímenes fiscales'));
   }
 }
@@ -70,7 +70,7 @@ async function getUsosCFDI(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo usos CFDI:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo usos CFDI'));
   }
 }
@@ -90,7 +90,7 @@ async function getFormasPago(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo formas de pago:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo formas de pago'));
   }
 }
@@ -110,7 +110,7 @@ async function getMetodosPago(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo métodos de pago:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo métodos de pago'));
   }
 }
@@ -165,7 +165,7 @@ async function getModulos(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo módulos:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo módulos'));
   }
 }
@@ -191,7 +191,7 @@ async function getSucursales(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo sucursales:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo sucursales'));
   }
 }
@@ -223,7 +223,7 @@ async function createSucursal(req, res) {
       message: 'Sucursal creada exitosamente'
     }));
   } catch (error) {
-    console.error('Error creando sucursal:', error);
+
     if (error.code === '23505') { // Unique violation
       res.status(400).json(createErrorResponse(
         CODIGOS_ERROR.DATOS_DUPLICADOS,
@@ -256,7 +256,7 @@ async function getPuestos(req, res) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo puestos:', error);
+
     res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo puestos'));
   }
 }
@@ -295,7 +295,7 @@ async function createPuesto(req, res) {
       message: 'Puesto creado exitosamente'
     }));
   } catch (error) {
-    console.error('Error creando puesto:', error);
+
     if (error.code === '23505') { // Unique violation
       res.status(400).json(createErrorResponse(
         CODIGOS_ERROR.DATOS_DUPLICADOS,

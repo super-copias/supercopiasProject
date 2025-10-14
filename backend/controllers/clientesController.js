@@ -81,7 +81,7 @@ async function listClientes(req, res) {
     );
     
   } catch (error) {
-    console.error('Error en listClientes:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -139,7 +139,7 @@ async function getCliente(req, res) {
     res.json(createResponse(cliente, 'Cliente obtenido exitosamente'));
     
   } catch (error) {
-    console.error('Error en getCliente:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -302,7 +302,7 @@ async function createCliente(req, res) {
     );
     
   } catch (error) {
-    console.error('Error creando cliente:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -454,7 +454,7 @@ async function updateCliente(req, res) {
     );
     
   } catch (error) {
-    console.error('Error actualizando cliente:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -525,7 +525,7 @@ async function deleteCliente(req, res) {
     );
     
   } catch (error) {
-    console.error('Error eliminando cliente:', error);
+
     return res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.DATABASE_ERROR,
@@ -679,7 +679,7 @@ async function uploadExcelClientes(req, res) {
     );
     
   } catch (error) {
-    console.error('Error importando Excel:', error);
+
     
     // Limpiar archivo temporal en caso de error
     if (req.file && fs.existsSync(req.file.path)) {
@@ -743,7 +743,7 @@ function getUsosCFDI(req, res) {
     );
 
   } catch (error) {
-    console.error('Error obteniendo usos CFDI:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -776,7 +776,7 @@ function descargarPlantillaExcel(req, res) {
     // Enviar archivo
     res.sendFile(path.resolve(filePath), (err) => {
       if (err) {
-        console.error('Error enviando plantilla:', err);
+
         res.status(500).json(
           createErrorResponse(
             CODIGOS_ERROR.FILE_ERROR,
@@ -787,7 +787,7 @@ function descargarPlantillaExcel(req, res) {
     });
 
   } catch (error) {
-    console.error('Error generando plantilla:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,

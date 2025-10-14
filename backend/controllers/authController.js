@@ -127,7 +127,7 @@ async function login(req, res) {
     );
     
   } catch (error) {
-    console.error('Error en login:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -227,7 +227,7 @@ async function verifyToken(req, res) {
     );
     
   } catch (error) {
-    console.error('Error verificando token:', error);
+
     res.status(401).json(
       createErrorResponse(
         CODIGOS_ERROR.TOKEN_EXPIRED,

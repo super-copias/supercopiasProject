@@ -150,7 +150,6 @@ export class EmpleadosService {
    * Método de compatibilidad para initMockData()
    */
   initMockData(): void {
-    console.log('EmpleadosService: Usando datos del backend, no hay datos mock locales');
   }
 
   // ============================================================================
@@ -212,12 +211,6 @@ export class EmpleadosService {
       }
     }
 
-    console.error('EmpleadosService Error:', {
-      code: errorCode,
-      message: errorMessage,
-      status: error.status,
-      url: error.url
-    });
 
     return throwError(() => ({
       success: false,
@@ -240,22 +233,24 @@ export class EmpleadosService {
       apellidos: '', 
       email: empleado.email,
       telefono: empleado.telefono,
-      puesto: empleado.puesto_id, // ID para el formulario
-      puestoNombre: empleado.puesto_nombre, // Nombre para mostrar
-      sucursal: empleado.sucursal_id, // ID para el formulario
-      sucursalNombre: empleado.sucursal_nombre, // Nombre para mostrar
-      departamento: empleado.sucursal_nombre || `Sucursal ${empleado.sucursal_id}`,
+      puesto: empleado.puesto || empleado.puesto_id, // ID para el formulario
+      puestoNombre: empleado.puestoNombre || empleado.puesto_nombre, // Nombre para mostrar
+      sucursal: empleado.sucursal || empleado.sucursal_id, // ID para el formulario
+      sucursalNombre: empleado.sucursalNombre || empleado.sucursal_nombre, // Nombre para mostrar
+      departamento: empleado.sucursalNombre || empleado.sucursal_nombre || `Sucursal ${empleado.sucursal || empleado.sucursal_id}`,
       salario: parseFloat(empleado.salario) || 0,
-      fechaIngreso: this.formatDateForInput(empleado.fecha_ingreso),
-      fechaBaja: this.formatDateForInput(empleado.fecha_baja),
-      tipoPermiso: empleado.tipo_acceso,
+      fechaIngreso: this.formatDateForInput(empleado.fechaIngreso || empleado.fecha_ingreso),
+      fechaBaja: this.formatDateForInput(empleado.fechaBaja || empleado.fecha_baja),
+      tipoPermiso: empleado.tipoPermiso || empleado.tipo_acceso,
+      tipoAcceso: empleado.tipoAcceso || empleado.tipo_acceso,
       activo: empleado.activo,
-      fechaRegistro: empleado.fecha_registro,
-      fechaModificacion: empleado.fecha_modificacion,
+      fechaRegistro: empleado.fechaRegistro || empleado.fecha_registro,
+      fechaModificacion: empleado.fechaModificacion || empleado.fecha_modificacion,
       roles: empleado.modulosPermitidos || [],
       modulosPermitidos: empleado.modulosPermitidos || [],
-      tieneUsuario: !!empleado.usuario_id,
-      usuarioId: empleado.usuario_id
+      tieneUsuario: !!(empleado.usuario?.id || empleado.usuario_id),
+      usuarioId: empleado.usuario?.id || empleado.usuario_id,
+      usuario: empleado.usuario
     };
   }
 
@@ -275,7 +270,6 @@ export class EmpleadosService {
       
       return `${year}-${month}-${day}`;
     } catch (error) {
-      console.error('Error formateando fecha:', error);
       return '';
     }
   }

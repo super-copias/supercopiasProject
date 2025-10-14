@@ -371,12 +371,6 @@ export class CatalogosService {
       }
     }
 
-    console.error('CatalogosService Error:', {
-      code: errorCode,
-      message: errorMessage,
-      status: error.status,
-      url: error.url
-    });
 
     return throwError(() => ({
       success: false,

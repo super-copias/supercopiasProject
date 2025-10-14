@@ -70,7 +70,7 @@ async function getProfile(req, res) {
     );
     
   } catch (error) {
-    console.error('Error getting profile:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -187,7 +187,7 @@ async function updateProfile(req, res) {
     );
     
   } catch (error) {
-    console.error('Error updating profile:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -303,7 +303,7 @@ async function changePassword(req, res) {
     );
     
   } catch (error) {
-    console.error('Error changing password:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -414,7 +414,7 @@ async function uploadProfileImage(req, res) {
     );
     
   } catch (error) {
-    console.error('Error uploading profile image:', error);
+
     
     // Limpiar archivo si hay error
     if (req.file && fs.existsSync(req.file.path)) {
@@ -498,7 +498,7 @@ async function removeProfileImage(req, res) {
     );
     
   } catch (error) {
-    console.error('Error removing profile image:', error);
+
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,

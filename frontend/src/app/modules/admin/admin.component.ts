@@ -73,11 +73,9 @@ export class AdminComponent {
     const isMobile = forceMobile || window.innerWidth < 768;
     if (isMobile) {
       this.mobileOpen = !this.mobileOpen;
-      console.log('[Admin] toggleSidebar mobile (forced=', forceMobile, ') -> mobileOpen =', this.mobileOpen);
     } else {
       // toggle collapsed state on desktop
       this.collapsed = !this.collapsed;
-      console.log('[Admin] toggleSidebar desktop -> collapsed =', this.collapsed);
     }
   }
 
