@@ -240,16 +240,16 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
                   <label class="form-label">Módulos Permitidos</label>
                   <div class="row">
                     <div class="col-md-6 col-lg-3 mb-3" *ngFor="let modulo of modulos">
-                      <div class="card h-100" [class.border-primary]="isSelected(modulo.id)">
+                      <div class="card h-100" [class.border-primary]="isSelected(modulo.clave)">
                         <div class="card-body p-3">
                           <div class="form-check">
                             <input 
                               class="form-check-input" 
                               type="checkbox" 
-                              [id]="'mod_' + modulo.id"
-                              [checked]="isSelected(modulo.id)"
-                              (change)="toggle(modulo.id)">
-                            <label class="form-check-label" [for]="'mod_' + modulo.id">
+                              [id]="'mod_' + modulo.clave"
+                              [checked]="isSelected(modulo.clave)"
+                              (change)="toggle(modulo.clave)">
+                            <label class="form-check-label" [for]="'mod_' + modulo.clave">
                               <i [class]="modulo.icono + ' me-2 text-primary'"></i>
                               <strong>{{modulo.nombre}}</strong>
                             </label>
@@ -356,16 +356,20 @@ export class EmpleadosFormComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Primero cargar catálogos
+    this.loadCatalogos();
+    
     // Detectar si estamos en modo edición
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.isEditing = true;
         this.empleadoId = +params['id'];
-        this.loadEmpleado(this.empleadoId);
+        // Esperar a que los catálogos estén cargados antes de cargar el empleado
+        this.waitForModulos().then(() => {
+          this.loadEmpleado(this.empleadoId);
+        });
       }
     });
-    
-    this.loadCatalogos();
     
     this.empleadoForm.get('tipoPermiso')?.valueChanges.subscribe(tipo => {
       // Si el tipo ANTERIOR era personalizado, guardamos las selecciones antes del cambio
@@ -389,9 +393,41 @@ export class EmpleadosFormComponent implements OnInit {
     // Valor inicial para depuración removido
   }
 
+  /**
+   * Esperar a que los módulos estén cargados
+   */
+  private waitForModulos(): Promise<void> {
+    return new Promise((resolve) => {
+      // Si ya están cargados, resolver inmediatamente
+      if (this.modulos && this.modulos.length > 0) {
+        resolve();
+        return;
+      }
+      
+      // Esperar hasta que estén cargados (revisar cada 50ms, máximo 3 segundos)
+      let attempts = 0;
+      const maxAttempts = 60; // 60 * 50ms = 3 segundos
+      
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (this.modulos && this.modulos.length > 0) {
+          clearInterval(checkInterval);
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          console.warn('⚠️ Timeout esperando módulos, continuando de todas formas');
+          resolve();
+        }
+      }, 50);
+    });
+  }
+
   private loadCatalogos() {
-    // Cargar módulos del sistema
-    this.catalogosService.getModulos().subscribe({
+    // Limpiar caché para asegurar datos frescos
+    this.catalogosService.clearCache();
+    
+    // Cargar módulos del sistema (sin caché)
+    this.catalogosService.getModulos(false).subscribe({
       next: (modulos) => {
         this.modulos = modulos.filter(m => m.activo);
       },
@@ -455,7 +491,6 @@ export class EmpleadosFormComponent implements OnInit {
    * Llenar el formulario con datos del empleado
    */
   private populateForm(empleado: any) {
-    
     this.empleadoForm.patchValue({
       nombre: empleado.nombre,
       telefono: empleado.telefono,
@@ -470,22 +505,20 @@ export class EmpleadosFormComponent implements OnInit {
     });
 
     // Configurar módulos seleccionados y tipo de permiso
-    // IMPORTANTE: Primero asignar tipoPermiso del backend
     this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
     
-    
     if (empleado.modulosPermitidos && Array.isArray(empleado.modulosPermitidos)) {
-      this.seleccionados = empleado.modulosPermitidos;
+      // Asegurarse de que todos los elementos sean strings
+      this.seleccionados = empleado.modulosPermitidos.map((m: any) => String(m));
       
       // Si el tipo es personalizado, también inicializar la copia
       if (this.tipoPermiso === 'personalizado') {
-        this.seleccionadosPersonalizados = [...empleado.modulosPermitidos];
+        this.seleccionadosPersonalizados = [...this.seleccionados];
       }
     } else {
       this.seleccionados = [];
       this.seleccionadosPersonalizados = [];
     }
-    
   }
 
   private createForm(): FormGroup {
@@ -513,7 +546,7 @@ export class EmpleadosFormComponent implements OnInit {
     
     // Si selecciona "Administrador", seleccionar todos los módulos automáticamente
     if (tipo === 'admin') {
-      this.seleccionados = this.modulos.map(m => m.id);
+      this.seleccionados = this.modulos.map(m => m.clave);
     }
   }
 
@@ -591,8 +624,6 @@ export class EmpleadosFormComponent implements OnInit {
         : this.seleccionados
     };
     
-    // Debug: Log datos que se enviarán
-
     if (this.isEditing && this.empleadoId) {
       this.updateEmpleado(datos);
     } else {

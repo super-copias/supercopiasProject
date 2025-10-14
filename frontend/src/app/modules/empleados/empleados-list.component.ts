@@ -294,8 +294,18 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
    * Mostrar detalle del empleado
    */
   onVerDetalle(empleado: any): void {
-    this.empleadoSeleccionado = empleado;
-    this.mostrarModalDetalle = true;
+    // Obtener datos completos del empleado desde el backend
+    this.empleadosService.getEmpleado(empleado.id).subscribe({
+      next: (response) => {
+        if (response && response.success && response.data) {
+          this.empleadoSeleccionado = response.data;
+          this.mostrarModalDetalle = true;
+        }
+      },
+      error: (error) => {
+        this.mostrarModalDetalle = false;
+      }
+    });
   }
 
   /**

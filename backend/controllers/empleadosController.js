@@ -178,8 +178,18 @@ async function getEmpleado(req, res) {
     const empleado = result.rows[0];
     
     // Obtener módulos del empleado
+    // Hacer JOIN con la tabla modulos para obtener la clave correcta
+    // Esto funciona tanto si 'modulo' es un ID como si es una clave
     const modulosResult = await query(
-      'SELECT modulo, acceso FROM empleados_modulos WHERE empleado_id = $1',
+      `SELECT 
+        CASE 
+          WHEN em.modulo ~ '^[0-9]+$' THEN m.clave 
+          ELSE em.modulo 
+        END as modulo,
+        em.acceso 
+       FROM empleados_modulos em
+       LEFT JOIN modulos m ON em.modulo::text = m.id::text
+       WHERE em.empleado_id = $1`,
       [empleadoId]
     );
     
@@ -228,7 +238,6 @@ async function getEmpleado(req, res) {
         roles: empleado.usuario_roles || []
       } : null
     };
-    
 
     res.json(createResponse(true, empleadoCompleto, 'Empleado obtenido exitosamente'));
     
@@ -297,27 +306,32 @@ async function createEmpleado(req, res) {
     
     // Obtener módulos activos de la BD
     const todosLosModulos = await obtenerModulosActivos();
+    const totalModulos = todosLosModulos.length;
     
-    if (tipoPermiso === 'sin_permisos') {
+    // VALIDACIÓN AUTOMÁTICA: Si personalizado tiene TODOS los módulos → convertir a administrador
+    let tipoPermisoFinal = tipoPermiso;
+    if (tipoPermiso === 'personalizado' && modulosPermitidos.length === totalModulos) {
+      tipoPermisoFinal = 'administrador';
+    }
+    
+    // Asignar tipo de acceso y módulos según la lógica
+    if (tipoPermisoFinal === 'sin_permisos') {
+      // SIN PERMISOS: tipo_acceso = solo_lectura, NO insertar módulos
       tipoAcceso = 'solo_lectura';
       modulos = {};
-    } else if (tipoPermiso === 'administrador') {
+      
+    } else if (tipoPermisoFinal === 'administrador') {
+      // ADMINISTRADOR: tipo_acceso = completo, TODOS los módulos en true
       tipoAcceso = 'completo';
-      // Dar acceso a todos los módulos activos
       todosLosModulos.forEach(mod => {
         modulos[mod] = { acceso: true };
       });
-      // Forzar inserción de todos los módulos con acceso true en empleados_modulos
-      modulos = {};
-      todosLosModulos.forEach(mod => {
-        modulos[mod] = { acceso: true };
-      });
-    } else if (tipoPermiso === 'personalizado') {
+      
+    } else if (tipoPermisoFinal === 'personalizado') {
+      // PERSONALIZADO: tipo_acceso = limitado, SOLO módulos seleccionados en true
       tipoAcceso = 'limitado';
-      modulos = {};
-      // Convertir array de módulos permitidos a formato de objeto
-      todosLosModulos.forEach(mod => {
-        modulos[mod] = { acceso: modulosPermitidos.includes(mod) };
+      modulosPermitidos.forEach(modId => {
+        modulos[modId] = { acceso: true };
       });
     }
     
@@ -364,20 +378,18 @@ async function createEmpleado(req, res) {
     const result = await query(insertQuery, values);
     const nuevoEmpleado = result.rows[0];
     
-
-
-
-    
     // Insertar módulos en la tabla empleados_modulos
-
-    for (const modulo of todosLosModulos) {
-      const tieneAcceso = modulos[modulo] && modulos[modulo].acceso === true;
-      await query(
-        'INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES ($1, $2, $3)',
-        [nuevoEmpleado.id, modulo, tieneAcceso]
-      );
+    // SOLO insertar los módulos que tienen acceso = true
+    const modulosConAcceso = Object.keys(modulos).filter(mod => modulos[mod].acceso === true);
+    
+    if (modulosConAcceso.length > 0) {
+      for (const modulo of modulosConAcceso) {
+        await query(
+          'INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES ($1, $2, $3)',
+          [nuevoEmpleado.id, modulo, true]
+        );
+      }
     }
-
     
     // Crear usuario del sistema si tiene permisos (completo o limitado)
     let usuarioCreado = null;
@@ -548,27 +560,35 @@ async function updateEmpleado(req, res) {
       
       // Obtener módulos activos de la BD
       const todosLosModulos = await obtenerModulosActivos();
+      const totalModulos = todosLosModulos.length;
+      
+      // VALIDACIÓN AUTOMÁTICA: Si personalizado tiene TODOS los módulos → convertir a administrador
+      let tipoPermisoFinal = tipoPermiso;
+      if (tipoPermiso === 'personalizado' && modulosPermitidos.length === totalModulos) {
+        tipoPermisoFinal = 'administrador';
+      }
       
       // Convertir tipoPermiso a tipoAcceso (completo, limitado, solo_lectura)
       let tipoAcceso = 'solo_lectura';
       let modulos = {};
       
-      if (tipoPermiso === 'sin_permisos') {
+      if (tipoPermisoFinal === 'sin_permisos') {
+        // SIN PERMISOS: tipo_acceso = solo_lectura, NO insertar módulos
         tipoAcceso = 'solo_lectura';
         modulos = {};
-      } else if (tipoPermiso === 'administrador') {
+        
+      } else if (tipoPermisoFinal === 'administrador') {
+        // ADMINISTRADOR: tipo_acceso = completo, TODOS los módulos en true
         tipoAcceso = 'completo';
-        // Dar acceso a todos los módulos activos
-        modulos = {};
         todosLosModulos.forEach(mod => {
           modulos[mod] = { acceso: true };
         });
-      } else if (tipoPermiso === 'personalizado') {
+        
+      } else if (tipoPermisoFinal === 'personalizado') {
+        // PERSONALIZADO: tipo_acceso = limitado, SOLO módulos seleccionados en true
         tipoAcceso = 'limitado';
-        modulos = {};
-        // Convertir array de módulos permitidos a formato de objeto
-        todosLosModulos.forEach(mod => {
-          modulos[mod] = { acceso: modulosPermitidos.includes(mod) };
+        modulosPermitidos.forEach(modId => {
+          modulos[modId] = { acceso: true };
         });
       }
       
@@ -691,23 +711,22 @@ async function updateEmpleado(req, res) {
     
     // Actualizar módulos si se proporcionaron
     if (datosConvertidos.modulos !== undefined) {
-
-      
       // Eliminar módulos existentes
       await query('DELETE FROM empleados_modulos WHERE empleado_id = $1', [empleadoId]);
       
-      // Obtener módulos activos de la BD
-      const todosLosModulos = await obtenerModulosActivos();
+      // Insertar solo los módulos que tienen acceso = true
+      const modulosConAcceso = Object.keys(datosConvertidos.modulos).filter(
+        mod => datosConvertidos.modulos[mod].acceso === true
+      );
       
-      // Insertar nuevos módulos
-      for (const modulo of todosLosModulos) {
-        const tieneAcceso = datosConvertidos.modulos[modulo] && datosConvertidos.modulos[modulo].acceso === true;
-        await query(
-          'INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES ($1, $2, $3)',
-          [empleadoId, modulo, tieneAcceso]
-        );
+      if (modulosConAcceso.length > 0) {
+        for (const modulo of modulosConAcceso) {
+          await query(
+            'INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES ($1, $2, $3)',
+            [empleadoId, modulo, true]
+          );
+        }
       }
-
     }
     
     // Verificar si necesita crear usuario del sistema
@@ -925,19 +944,17 @@ async function getModulos(req, res) {
   try {
     // Consultar módulos desde la base de datos
     const result = await query(
-      `SELECT id, codigo, nombre, descripcion, icono, ruta, orden, activo 
+      `SELECT id, clave, nombre, icono, orden, activo 
        FROM modulos 
        WHERE activo = true 
        ORDER BY orden ASC, nombre ASC`
     );
     
     const modulos = result.rows.map(mod => ({
-      id: mod.codigo || mod.id,
+      id: mod.clave,  // Usar clave como id para consistencia
       nombre: mod.nombre,
-      descripcion: mod.descripcion,
       icono: mod.icono || 'fas fa-cube',
-      activo: mod.activo,
-      ruta: mod.ruta
+      activo: mod.activo
     }));
 
     return res.status(200).json(

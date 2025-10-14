@@ -61,6 +61,11 @@ export class HttpLoggerInterceptor implements HttpInterceptor {
   ): void {
     const duration = Date.now() - startTime;
     
+    console.log('================================================================================');
+    console.log(`URL: ${request.method} ${request.urlWithParams}`);
+    console.log(`REQUEST: ${this.formatJSON(requestBody)}`);
+    console.log(`RESPONSE: ${this.formatJSON(response.body)}`);
+    console.log(`STATUS: ${response.status} ${response.statusText} (${duration}ms)`);
   }
 
   private logError(
@@ -71,6 +76,11 @@ export class HttpLoggerInterceptor implements HttpInterceptor {
   ): void {
     const duration = Date.now() - startTime;
     
+    console.log('================================================================================');
+    console.log(`URL: ${request.method} ${request.urlWithParams}`);
+    console.log(`REQUEST: ${this.formatJSON(requestBody)}`);
+    console.log(`RESPONSE: ${this.formatJSON(error.error || { message: error.message })}`);
+    console.log(`STATUS: ${error.status} ${error.statusText || 'ERROR'} (${duration}ms)`);
   }
 
   private formatJSON(obj: any): string {

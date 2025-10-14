@@ -586,7 +586,8 @@ export class EmpleadoDetailModalComponent {
     
     // Si tiene modulosPermitidos como array (formato del backend)
     if (this.empleado.modulosPermitidos && Array.isArray(this.empleado.modulosPermitidos)) {
-      return this.empleado.modulosPermitidos;
+      const modulos = this.empleado.modulosPermitidos.map((m: any) => String(m));
+      return modulos;
     }
     
     // Si tiene modulos como objeto (formato antiguo)
