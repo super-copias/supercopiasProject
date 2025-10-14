@@ -14,6 +14,24 @@ const {
 const { getAllRoles } = require('../utils/rolesSystem');
 
 /**
+ * Helper: Obtener todos los módulos activos de la base de datos
+ * @returns {Promise<Array>} Array con las claves de los módulos activos
+ */
+async function obtenerModulosActivos() {
+  try {
+    const result = await query(
+      'SELECT clave FROM modulos WHERE activo = true ORDER BY orden ASC',
+      []
+    );
+    return result.rows.map(row => row.clave);
+  } catch (error) {
+    console.error('Error obteniendo módulos activos:', error);
+    // Retornar array vacío en caso de error para no romper la aplicación
+    return [];
+  }
+}
+
+/**
  * Obtener lista de empleados con búsqueda y paginación
  * Endpoint: GET /api/empleados
  * Query params: q (búsqueda), page (página), limit (límite por página)
@@ -159,19 +177,61 @@ async function getEmpleado(req, res) {
     
     const empleado = result.rows[0];
     
+    console.log('🔍 Empleado obtenido de BD:', {
+      id: empleado.id,
+      nombre: empleado.nombre,
+      tipo_acceso: empleado.tipo_acceso,
+      puesto_id: empleado.puesto_id,
+      sucursal_id: empleado.sucursal_id
+    });
+    
     // Obtener módulos del empleado
     const modulosResult = await query(
       'SELECT modulo, acceso FROM empleados_modulos WHERE empleado_id = $1',
       [empleadoId]
     );
     
-    const modulosPermitidos = modulosResult.rows
+    let modulosPermitidos = modulosResult.rows
       .filter(m => m.acceso)
       .map(m => m.modulo);
 
-    // Preparar respuesta
+    // Si es administrador, devolver todos los módulos activos
+    if (empleado.tipo_acceso === 'completo') {
+      const todosLosModulos = await obtenerModulosActivos();
+      modulosPermitidos = todosLosModulos;
+    }
+    console.log('📦 Módulos permitidos:', modulosPermitidos);
+
+    // Convertir tipo_acceso de la BD al formato del frontend
+    let tipoPermiso = 'sin_permisos';
+    if (empleado.tipo_acceso === 'completo') {
+      tipoPermiso = 'administrador';
+    } else if (empleado.tipo_acceso === 'limitado') {
+      tipoPermiso = 'personalizado';
+    } else if (empleado.tipo_acceso === 'solo_lectura') {
+      tipoPermiso = 'sin_permisos';
+    }
+    
+    console.log('🔐 Tipo de permiso convertido:', tipoPermiso);
+
+    // Preparar respuesta con campos normalizados para el frontend
     const empleadoCompleto = {
-      ...empleado,
+      id: empleado.id,
+      nombre: empleado.nombre,
+      email: empleado.email,
+      telefono: empleado.telefono,
+      puesto: empleado.puesto_id, // Normalizar nombre de campo
+      puestoNombre: empleado.puesto_nombre,
+      sucursal: empleado.sucursal_id, // Normalizar nombre de campo
+      sucursalNombre: empleado.sucursal_nombre,
+      salario: empleado.salario,
+      fechaIngreso: empleado.fecha_ingreso,
+      activo: empleado.activo,
+      fechaBaja: empleado.fecha_baja,
+      fechaRegistro: empleado.fecha_registro,
+      fechaModificacion: empleado.fecha_modificacion,
+      tipoAcceso: empleado.tipo_acceso,
+      tipoPermiso, // Agregar el tipo de permiso en formato frontend
       modulosPermitidos,
       usuario: empleado.usuario_id ? {
         id: empleado.usuario_id,
@@ -179,6 +239,8 @@ async function getEmpleado(req, res) {
         roles: empleado.usuario_roles || []
       } : null
     };
+    
+    console.log('📤 Respuesta a enviar:', JSON.stringify(empleadoCompleto, null, 2));
 
     res.json(createResponse(true, empleadoCompleto, 'Empleado obtenido exitosamente'));
     
@@ -218,6 +280,17 @@ async function createEmpleado(req, res) {
       modulosPermitidos = []
     } = req.body;
     
+    // Debug: Log de datos recibidos
+    console.log('📝 Datos recibidos para crear empleado:', {
+      nombre,
+      email,
+      telefono,
+      tipoPermiso,
+      modulosPermitidos,
+      puesto,
+      sucursal
+    });
+    
     // Validaciones requeridas
     if (!nombre || !puesto || !sucursal) {
       return res.status(400).json(
@@ -239,29 +312,31 @@ async function createEmpleado(req, res) {
     }
 
     // Convertir tipoPermiso del frontend a tipoAcceso de la DB
-    let tipoAcceso = 'inactivo';
+    // La DB acepta: 'completo', 'limitado', 'solo_lectura'
+    let tipoAcceso = 'solo_lectura';
     let modulos = {};
     
+    // Obtener módulos activos de la BD
+    const todosLosModulos = await obtenerModulosActivos();
+    
     if (tipoPermiso === 'sin_permisos') {
-      tipoAcceso = 'inactivo';
+      tipoAcceso = 'solo_lectura';
       modulos = {};
     } else if (tipoPermiso === 'administrador') {
-      tipoAcceso = 'administrador';
-      modulos = {
-        dashboard: { acceso: true },
-        empleados: { acceso: true },
-        clientes: { acceso: true },
-        proveedores: { acceso: true },
-        inventarios: { acceso: true },
-        equipos: { acceso: true },
-        reportes: { acceso: true },
-        configuracion: { acceso: true }
-      };
+      tipoAcceso = 'completo';
+      // Dar acceso a todos los módulos activos
+      todosLosModulos.forEach(mod => {
+        modulos[mod] = { acceso: true };
+      });
+      // Forzar inserción de todos los módulos con acceso true en empleados_modulos
+      modulos = {};
+      todosLosModulos.forEach(mod => {
+        modulos[mod] = { acceso: true };
+      });
     } else if (tipoPermiso === 'personalizado') {
-      tipoAcceso = 'personalizado';
+      tipoAcceso = 'limitado';
       modulos = {};
       // Convertir array de módulos permitidos a formato de objeto
-      const todosLosModulos = ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'equipos', 'reportes', 'configuracion'];
       todosLosModulos.forEach(mod => {
         modulos[mod] = { acceso: modulosPermitidos.includes(mod) };
       });
@@ -284,13 +359,13 @@ async function createEmpleado(req, res) {
       }
     }
     
-    // Insertar nuevo empleado en PostgreSQL
+    // Insertar nuevo empleado en PostgreSQL (sin modulos_permitidos)
     const insertQuery = `
       INSERT INTO empleados (
         nombre, email, telefono, puesto_id, sucursal_id, salario,
-        fecha_ingreso, activo, fecha_baja, tipo_acceso, modulos_permitidos,
+        fecha_ingreso, activo, fecha_baja, tipo_acceso,
         fecha_registro
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
       RETURNING *
     `;
     
@@ -304,18 +379,33 @@ async function createEmpleado(req, res) {
       fechaIngreso || new Date().toISOString().split('T')[0],
       activo !== undefined ? activo : true,
       (!activo && fechaBaja) ? fechaBaja : null,
-      tipoAcceso,
-      JSON.stringify(modulos)
+      tipoAcceso
     ];
     
     const result = await query(insertQuery, values);
     const nuevoEmpleado = result.rows[0];
     
-    // Crear usuario del sistema si tiene permisos (administrador o personalizado)
+    console.log('✅ Empleado creado:', nuevoEmpleado);
+    console.log('🔑 Tipo de acceso determinado:', tipoAcceso);
+    console.log('🔐 ¿Debe crear usuario?:', tipoAcceso === 'completo' || tipoAcceso === 'limitado');
+    
+    // Insertar módulos en la tabla empleados_modulos
+    console.log('📦 Insertando módulos en empleados_modulos...');
+    for (const modulo of todosLosModulos) {
+      const tieneAcceso = modulos[modulo] && modulos[modulo].acceso === true;
+      await query(
+        'INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES ($1, $2, $3)',
+        [nuevoEmpleado.id, modulo, tieneAcceso]
+      );
+    }
+    console.log('✅ Módulos insertados correctamente');
+    
+    // Crear usuario del sistema si tiene permisos (completo o limitado)
     let usuarioCreado = null;
-    const debeCrearUsuario = tipoAcceso === 'administrador' || tipoAcceso === 'personalizado';
+    const debeCrearUsuario = tipoAcceso === 'completo' || tipoAcceso === 'limitado';
     
     if (debeCrearUsuario) {
+      console.log('🚀 Iniciando creación de usuario...');
       const { generateUserCredentials } = require('../utils/rolesSystem');
       
       // Generar credenciales únicas
@@ -324,7 +414,7 @@ async function createEmpleado(req, res) {
       // Asignar roles del sistema basados en el tipo de acceso
       let role = 'empleado';
       let roles = ['empleado'];
-      if (tipoAcceso === 'administrador') {
+      if (tipoAcceso === 'completo') {
         role = 'admin';
         roles = ['admin'];
       }
@@ -349,17 +439,25 @@ async function createEmpleado(req, res) {
         true,
         nuevoEmpleado.nombre,
         nuevoEmpleado.telefono || '',
-        `Empleado - ${tipoAcceso === 'administrador' ? 'Administrador del sistema' : 'Acceso personalizado'}`
+        `Empleado - ${tipoAcceso === 'completo' ? 'Administrador del sistema' : 'Acceso personalizado'}`
       ];
       
       const userResult = await query(insertUserQuery, userValues);
       const usuarioId = userResult.rows[0].id;
+      
+      console.log('✅ Usuario creado con ID:', usuarioId);
+      console.log('👤 Credenciales generadas:', {
+        username: credentials.username,
+        password: credentials.password
+      });
       
       // Actualizar empleado con el ID del usuario
       await query(
         'UPDATE empleados SET usuario_id = $1 WHERE id = $2',
         [usuarioId, nuevoEmpleado.id]
       );
+      
+      console.log('🔗 Empleado vinculado con usuario');
       
       usuarioCreado = {
         id: usuarioId,
@@ -368,6 +466,8 @@ async function createEmpleado(req, res) {
         roles: roles,
         tipoPermiso: tipoPermiso
       };
+      
+      console.log('📦 Objeto usuarioCreado:', usuarioCreado);
     }
     
     // Preparar respuesta
@@ -375,6 +475,8 @@ async function createEmpleado(req, res) {
       empleado: nuevoEmpleado,
       ...(usuarioCreado && { usuario: usuarioCreado })
     };
+    
+    console.log('📤 Respuesta a enviar:', JSON.stringify(respuesta, null, 2));
     
     return res.status(201).json(
       createResponse(
@@ -470,30 +572,27 @@ async function updateEmpleado(req, res) {
     if (updateData.tipoPermiso) {
       const { tipoPermiso, modulosPermitidos = [] } = updateData;
       
-      // Convertir tipoPermiso a tipoAcceso
-      let tipoAcceso = 'inactivo';
+      // Obtener módulos activos de la BD
+      const todosLosModulos = await obtenerModulosActivos();
+      
+      // Convertir tipoPermiso a tipoAcceso (completo, limitado, solo_lectura)
+      let tipoAcceso = 'solo_lectura';
       let modulos = {};
       
       if (tipoPermiso === 'sin_permisos') {
-        tipoAcceso = 'inactivo';
+        tipoAcceso = 'solo_lectura';
         modulos = {};
       } else if (tipoPermiso === 'administrador') {
-        tipoAcceso = 'administrador';
-        modulos = {
-          dashboard: { acceso: true },
-          empleados: { acceso: true },
-          clientes: { acceso: true },
-          proveedores: { acceso: true },
-          inventarios: { acceso: true },
-          equipos: { acceso: true },
-          reportes: { acceso: true },
-          configuracion: { acceso: true }
-        };
+        tipoAcceso = 'completo';
+        // Dar acceso a todos los módulos activos
+        modulos = {};
+        todosLosModulos.forEach(mod => {
+          modulos[mod] = { acceso: true };
+        });
       } else if (tipoPermiso === 'personalizado') {
-        tipoAcceso = 'personalizado';
+        tipoAcceso = 'limitado';
         modulos = {};
         // Convertir array de módulos permitidos a formato de objeto
-        const todosLosModulos = ['dashboard', 'empleados', 'clientes', 'proveedores', 'inventarios', 'equipos', 'reportes', 'configuracion'];
         todosLosModulos.forEach(mod => {
           modulos[mod] = { acceso: modulosPermitidos.includes(mod) };
         });
@@ -584,10 +683,9 @@ async function updateEmpleado(req, res) {
       camposActualizar.push(`tipo_acceso = $${contador++}`);
       valores.push(datosConvertidos.tipoAcceso);
     }
-    if (datosConvertidos.modulos !== undefined) {
-      camposActualizar.push(`modulos_permitidos = $${contador++}`);
-      valores.push(JSON.stringify(datosConvertidos.modulos));
-    }
+    
+    // Los módulos se actualizan en la tabla empleados_modulos, no aquí
+    // Se manejarán después de actualizar el empleado principal
     
     // Agregar fecha de modificación
     camposActualizar.push(`fecha_modificacion = NOW()`);
@@ -617,10 +715,31 @@ async function updateEmpleado(req, res) {
     const updateResult = await query(updateQuery, valores);
     const empleadoActualizado = updateResult.rows[0];
     
+    // Actualizar módulos si se proporcionaron
+    if (datosConvertidos.modulos !== undefined) {
+      console.log('📦 Actualizando módulos en empleados_modulos...');
+      
+      // Eliminar módulos existentes
+      await query('DELETE FROM empleados_modulos WHERE empleado_id = $1', [empleadoId]);
+      
+      // Obtener módulos activos de la BD
+      const todosLosModulos = await obtenerModulosActivos();
+      
+      // Insertar nuevos módulos
+      for (const modulo of todosLosModulos) {
+        const tieneAcceso = datosConvertidos.modulos[modulo] && datosConvertidos.modulos[modulo].acceso === true;
+        await query(
+          'INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES ($1, $2, $3)',
+          [empleadoId, modulo, tieneAcceso]
+        );
+      }
+      console.log('✅ Módulos actualizados correctamente');
+    }
+    
     // Verificar si necesita crear usuario del sistema
     let usuarioCreado = null;
     const tipoAccesoNuevo = empleadoActualizado.tipo_acceso;
-    const debeCrearUsuario = (tipoAccesoNuevo === 'administrador' || tipoAccesoNuevo === 'personalizado') 
+    const debeCrearUsuario = (tipoAccesoNuevo === 'completo' || tipoAccesoNuevo === 'limitado') 
                              && !empleadoActualizado.usuario_id;
     
     if (debeCrearUsuario) {
@@ -632,7 +751,7 @@ async function updateEmpleado(req, res) {
       // Asignar roles del sistema basados en el tipo de acceso
       let role = 'empleado';
       let roles = ['empleado'];
-      if (tipoAccesoNuevo === 'administrador') {
+      if (tipoAccesoNuevo === 'completo') {
         role = 'admin';
         roles = ['admin'];
       }
@@ -657,7 +776,7 @@ async function updateEmpleado(req, res) {
         true,
         empleadoActualizado.nombre,
         empleadoActualizado.telefono || '',
-        `Empleado - ${tipoAccesoNuevo === 'administrador' ? 'Administrador del sistema' : 'Acceso personalizado'}`
+        `Empleado - ${tipoAccesoNuevo === 'completo' ? 'Administrador del sistema' : 'Acceso personalizado'}`
       ];
       
       const userResult = await query(insertUserQuery, userValues);

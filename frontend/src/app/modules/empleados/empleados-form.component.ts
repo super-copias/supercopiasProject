@@ -324,7 +324,7 @@ export class EmpleadosFormComponent implements OnInit {
   empleadoForm: FormGroup;
   loading = false;
   modulos: any[] = [];
-  tipoPermiso = '';
+  tipoPermiso = 'sin_permisos'; // Valor inicial por defecto
   seleccionados: string[] = [];
   seleccionadosPersonalizados: string[] = []; // Mantiene los módulos seleccionados para personalizado
   sucursales: Sucursal[] = [];
@@ -472,10 +472,12 @@ export class EmpleadosFormComponent implements OnInit {
       tipoPermiso: empleado.tipoPermiso || 'sin_permisos'
     });
 
-    // Configurar módulos seleccionados
+    // Configurar módulos seleccionados y tipo de permiso
+    // IMPORTANTE: Primero asignar tipoPermiso del backend
+    this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
+    
     if (empleado.modulosPermitidos && Array.isArray(empleado.modulosPermitidos)) {
       this.seleccionados = empleado.modulosPermitidos;
-      this.tipoPermiso = empleado.tipoPermiso || 'personalizado';
       
       // Si el tipo es personalizado, también inicializar la copia
       if (this.tipoPermiso === 'personalizado') {
@@ -484,7 +486,6 @@ export class EmpleadosFormComponent implements OnInit {
     } else {
       this.seleccionados = [];
       this.seleccionadosPersonalizados = [];
-      this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
     }
   }
 
@@ -499,7 +500,7 @@ export class EmpleadosFormComponent implements OnInit {
       fechaIngreso: [this.getCurrentDate(), Validators.required],
       activo: [true],
       fechaBaja: [''], // Se validará dinámicamente cuando activo sea false
-      tipoPermiso: ['', Validators.required]
+      tipoPermiso: ['sin_permisos', Validators.required] // Valor por defecto
     });
   }
 
@@ -590,6 +591,10 @@ export class EmpleadosFormComponent implements OnInit {
         ? this.modulos.map(m => m.clave) 
         : this.seleccionados
     };
+    
+    // Debug: Log datos que se enviarán
+    console.log('📤 Datos a enviar al backend:', datos);
+    console.log('🔑 Tipo de permiso:', this.tipoPermiso);
 
     if (this.isEditing && this.empleadoId) {
       this.updateEmpleado(datos);
@@ -599,14 +604,20 @@ export class EmpleadosFormComponent implements OnInit {
   }
 
   private createEmpleado(datos: any) {
+    console.log('🚀 Llamando al servicio create con datos:', datos);
+    
     this.empleadosService.create(datos).subscribe({
       next: (response: any) => {
         this.loading = false;
+        
+        console.log('✅ Respuesta del servidor:', response);
         
         // Verificar si se crearon credenciales de usuario
         if (response.data?.usuario) {
           const usuario = response.data.usuario;
           const empleado = response.data.empleado;
+          
+          console.log('🔐 Credenciales recibidas:', usuario);
           
           // Configurar datos para el modal de credenciales
           this.credencialesGeneradas = {
@@ -617,9 +628,13 @@ export class EmpleadosFormComponent implements OnInit {
             tipoPermiso: usuario.tipoPermiso
           };
           
+          console.log('📋 Datos del modal:', this.credencialesGeneradas);
+          
           // Mostrar modal con las credenciales
           this.mostrarModalCredenciales = true;
+          console.log('🎭 Modal activado:', this.mostrarModalCredenciales);
         } else {
+          console.log('⚠️ No se recibieron credenciales en la respuesta');
           // Si no se crearon credenciales, mostrar mensaje normal y redirigir
           alert('Empleado creado exitosamente');
           this.router.navigate(['/admin/empleados']);
