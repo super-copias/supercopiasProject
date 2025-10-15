@@ -164,6 +164,7 @@ CREATE TABLE clientes (
     nombre_comercial VARCHAR(500),
     email VARCHAR(255),
     telefono VARCHAR(20),
+    segundo_telefono VARCHAR(20),
     direccion TEXT,
     direccion_codigo_postal VARCHAR(10),
     regimen_fiscal VARCHAR(10),

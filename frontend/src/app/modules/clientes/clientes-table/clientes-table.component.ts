@@ -41,20 +41,20 @@ export class ClientesTableComponent {
   }
 
   eliminarCliente(cliente: any) {
-    const nombreCliente = cliente.nombre_comercial || cliente.razon_social || 'este cliente';
+    const nombreCliente = cliente.nombre || 'este cliente';
     if (confirm(`⚠️ ATENCIÓN: Esta acción eliminará PERMANENTEMENTE "${nombreCliente}" de la base de datos.\n\n¿Está completamente seguro de continuar? Esta acción NO se puede deshacer.`)) {
       this.eliminar.emit(cliente);
     }
   }
 
   verUbicacion(cliente: any) {
-    if (!cliente.direccion || cliente.direccion.trim() === '') {
+    if (!cliente.direccionEntrega || cliente.direccionEntrega.trim() === '') {
       alert('Este cliente no tiene una dirección registrada.');
       return;
     }
 
     // Codificar la dirección para URL
-    const direccionCodificada = encodeURIComponent(cliente.direccion.trim());
+    const direccionCodificada = encodeURIComponent(cliente.direccionEntrega.trim());
     
     // Crear URL de Google Maps
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${direccionCodificada}`;

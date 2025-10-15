@@ -67,8 +67,27 @@ async function listClientes(req, res) {
       query(countQuery, queryParams.slice(0, -2))
     ]);
     
-    const items = itemsResult.rows;
+    const clientesDB = itemsResult.rows;
     const totalItems = parseInt(countResult.rows[0].count);
+    
+    // Mapear campos de BD a formato del frontend
+    const items = clientesDB.map(c => ({
+      id: c.id,
+      nombre: c.nombre_comercial || c.razon_social,
+      telefono: c.telefono,
+      segundoTelefono: c.segundo_telefono,
+      email: c.email,
+      direccionEntrega: c.direccion,
+      razon: c.razon_social,
+      rfc: c.rfc,
+      regimen: c.regimen_fiscal,
+      direccion: c.direccion,
+      cp: c.direccion_codigo_postal,
+      cfdi: c.uso_cfdi,
+      activo: c.activo,
+      fecha_registro: c.fecha_registro,
+      fecha_modificacion: c.fecha_modificacion
+    }));
     
     return res.json(
       createPaginatedResponse(
@@ -133,7 +152,26 @@ async function getCliente(req, res) {
       );
     }
     
-    const cliente = result.rows[0];
+    const clienteDB = result.rows[0];
+    
+    // Mapear campos de BD a formato del frontend
+    const cliente = {
+      id: clienteDB.id,
+      nombre: clienteDB.nombre_comercial || clienteDB.razon_social,
+      telefono: clienteDB.telefono,
+      segundoTelefono: clienteDB.segundo_telefono,
+      email: clienteDB.email,
+      direccionEntrega: clienteDB.direccion,
+      razon: clienteDB.razon_social,
+      rfc: clienteDB.rfc,
+      regimen: clienteDB.regimen_fiscal,
+      direccion: clienteDB.direccion,
+      cp: clienteDB.direccion_codigo_postal,
+      cfdi: clienteDB.uso_cfdi,
+      activo: clienteDB.activo,
+      fecha_registro: clienteDB.fecha_registro,
+      fecha_modificacion: clienteDB.fecha_modificacion
+    };
     
     res.json(createResponse(cliente, 'Cliente obtenido exitosamente'));
     
@@ -320,11 +358,11 @@ async function createCliente(req, res) {
     // Crear nuevo cliente con estructura simplificada de dirección
     const insertQuery = `
       INSERT INTO clientes (
-        razon_social, nombre_comercial, email, telefono,
+        razon_social, nombre_comercial, email, telefono, segundo_telefono,
         rfc, regimen_fiscal, uso_cfdi,
         direccion, direccion_codigo_postal,
         activo, fecha_registro, fecha_modificacion
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, NOW(), NOW())
       RETURNING *
     `;
     
@@ -333,15 +371,35 @@ async function createCliente(req, res) {
       nombre.trim(), // nombre_comercial
       email ? email.toLowerCase() : null,
       telefono || null,
+      segundoTelefono || null, // segundo_telefono
       rfc ? rfc.toUpperCase() : null,
       regimen || null, // regimen_fiscal (código SAT)
       cfdi ? cfdi.toUpperCase() : null, // uso_cfdi (código SAT)
-      direccion || null, // direccion (campo único)
+      direccionEntrega || direccion || null, // direccion (priorizar direccionEntrega)
       cp || null // direccion_codigo_postal
     ];
     
     const result = await query(insertQuery, values);
-    const nuevoCliente = result.rows[0];
+    const clienteDB = result.rows[0];
+    
+    // Mapear campos de BD a formato del frontend para la respuesta
+    const nuevoCliente = {
+      id: clienteDB.id,
+      nombre: clienteDB.nombre_comercial || clienteDB.razon_social,
+      telefono: clienteDB.telefono,
+      segundoTelefono: clienteDB.segundo_telefono,
+      email: clienteDB.email,
+      direccionEntrega: clienteDB.direccion,
+      razon: clienteDB.razon_social,
+      rfc: clienteDB.rfc,
+      regimen: clienteDB.regimen_fiscal,
+      direccion: clienteDB.direccion,
+      cp: clienteDB.direccion_codigo_postal,
+      cfdi: clienteDB.uso_cfdi,
+      activo: clienteDB.activo,
+      fecha_registro: clienteDB.fecha_registro,
+      fecha_modificacion: clienteDB.fecha_modificacion
+    };
     
     return res.status(201).json(
       createResponse(
@@ -486,6 +544,10 @@ async function updateCliente(req, res) {
       camposActualizar.push(`telefono = $${contador++}`);
       valores.push(updateData.telefono);
     }
+    if (updateData.segundoTelefono !== undefined) {
+      camposActualizar.push(`segundo_telefono = $${contador++}`);
+      valores.push(updateData.segundoTelefono);
+    }
     if (updateData.rfc !== undefined) {
       camposActualizar.push(`rfc = $${contador++}`);
       valores.push(updateData.rfc ? updateData.rfc.toUpperCase() : null);
@@ -498,7 +560,13 @@ async function updateCliente(req, res) {
       camposActualizar.push(`uso_cfdi = $${contador++}`);
       valores.push(updateData.cfdi ? updateData.cfdi.toUpperCase() : null);
     }
-    if (updateData.direccion !== undefined) {
+    // Mapear direccionEntrega del frontend a direccion de la BD
+    if (updateData.direccionEntrega !== undefined) {
+      camposActualizar.push(`direccion = $${contador++}`);
+      valores.push(updateData.direccionEntrega);
+    }
+    // Si viene direccion también, usarlo (para compatibilidad)
+    else if (updateData.direccion !== undefined) {
       camposActualizar.push(`direccion = $${contador++}`);
       valores.push(updateData.direccion);
     }
@@ -526,7 +594,26 @@ async function updateCliente(req, res) {
     `;
     
     const result = await query(updateQuery, valores);
-    const clienteActualizado = result.rows[0];
+    const clienteDB = result.rows[0];
+    
+    // Mapear campos de BD a formato del frontend para la respuesta
+    const clienteActualizado = {
+      id: clienteDB.id,
+      nombre: clienteDB.nombre_comercial || clienteDB.razon_social,
+      telefono: clienteDB.telefono,
+      segundoTelefono: clienteDB.segundo_telefono,
+      email: clienteDB.email,
+      direccionEntrega: clienteDB.direccion,
+      razon: clienteDB.razon_social,
+      rfc: clienteDB.rfc,
+      regimen: clienteDB.regimen_fiscal,
+      direccion: clienteDB.direccion,
+      cp: clienteDB.direccion_codigo_postal,
+      cfdi: clienteDB.uso_cfdi,
+      activo: clienteDB.activo,
+      fecha_registro: clienteDB.fecha_registro,
+      fecha_modificacion: clienteDB.fecha_modificacion
+    };
     
     return res.json(
       createResponse(
@@ -718,11 +805,11 @@ async function uploadExcelClientes(req, res) {
         // Crear cliente con nueva estructura
         const insertQuery = `
           INSERT INTO clientes (
-            razon_social, nombre_comercial, email, telefono,
+            razon_social, nombre_comercial, email, telefono, segundo_telefono,
             rfc, regimen_fiscal, uso_cfdi,
             direccion, direccion_codigo_postal,
             activo, fecha_registro, fecha_modificacion
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, NOW(), NOW())
           RETURNING *
         `;
         
@@ -731,6 +818,7 @@ async function uploadExcelClientes(req, res) {
           fila.nombre.trim(), // nombre_comercial
           correo ? correo.toLowerCase() : null, // email
           fila.telefono || null, // telefono
+          fila['segundo telefono'] || fila.segundoTelefono || fila.telefono2 || null, // segundo_telefono
           fila.rfc ? fila.rfc.toUpperCase() : null, // rfc
           fila['regimen fiscal'] || fila.regimen || null, // regimen_fiscal
           fila['uso cfdi'] || fila.cfdi || null, // uso_cfdi

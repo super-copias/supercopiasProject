@@ -17,7 +17,7 @@
                     <span [title]="c.id">{{c.id}}</span>
                 </td>
                 <td class="text-truncate" style="max-width: 0;">
-                    <span [title]="c.nombre_comercial || c.razon_social">{{c.nombre_comercial || c.razon_social}}</span>
+                    <span [title]="c.nombre">{{c.nombre}}</span>
                 </td>
                 <td class="text-nowrap">
                     <small>{{c.telefono || '-'}}</small>
@@ -26,7 +26,7 @@
                     <span [title]="c.email">{{c.email || '-'}}</span>
                 </td>
                 <td class="text-truncate" style="max-width: 0;">
-                    <span [title]="c.direccion">{{c.direccion || '-'}}</span>
+                    <span [title]="c.direccionEntrega">{{c.direccionEntrega || '-'}}</span>
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
@@ -34,7 +34,7 @@
                             <i class="fas fa-info-circle"></i>
                         </button>
                         <button class="btn btn-outline-success btn-sm" (click)="verUbicacion(c)" title="Ver ubicación" 
-                                [disabled]="!c.direccion">
+                                [disabled]="!c.direccionEntrega">
                             <i class="fas fa-map-marker-alt"></i>
                         </button>
                         <button class="btn btn-outline-warning btn-sm" (click)="editarCliente(c)" title="Editar">
@@ -58,7 +58,7 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col">
-                            <div class="text-primary fw-bold mb-1">{{c.nombre_comercial || c.razon_social}}</div>
+                            <div class="text-primary fw-bold mb-1">{{c.nombre}}</div>
                             <div class="text-muted small mb-1">
                                 <i class="fas fa-id-badge me-1"></i>{{c.id}}
                             </div>
@@ -68,8 +68,8 @@
                             <div class="text-muted small mb-1" *ngIf="c.email">
                                 <i class="fas fa-envelope me-1"></i>{{c.email}}
                             </div>
-                            <div class="text-muted small" *ngIf="c.direccion">
-                                <i class="fas fa-map-marker-alt me-1"></i>{{c.direccion}}
+                            <div class="text-muted small" *ngIf="c.direccionEntrega">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{c.direccionEntrega}}
                             </div>
                         </div>
                         <div class="col-auto">
@@ -78,7 +78,7 @@
                                     <i class="fas fa-info-circle"></i>
                                 </button>
                                 <button class="btn btn-outline-success btn-sm mb-1" (click)="verUbicacion(c)" title="Ver ubicación" 
-                                        [disabled]="!c.direccion">
+                                        [disabled]="!c.direccionEntrega">
                                     <i class="fas fa-map-marker-alt"></i>
                                 </button>
                                 <button class="btn btn-outline-warning btn-sm mb-1" (click)="editarCliente(c)" title="Editar">
