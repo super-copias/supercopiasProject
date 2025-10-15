@@ -26,7 +26,7 @@ function generarPlantillaClientes() {
       'nombre': 'Comercializadora López S.A. de C.V.',
       'telefono': '961-234-5678',
       'segundo telefono': '',
-      'correo': 'contacto@lopez.com.mx',
+      'correo': '',
       'direccion de entrega': 'Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas',
       'razon social': 'Comercializadora López S.A. de C.V.',
       'rfc': 'CLS920810XYZ',

@@ -663,19 +663,17 @@ async function uploadExcelClientes(req, res) {
           continue;
         }
 
+        // Validar formato de email solo si se proporciona
         const correo = fila.correo || fila.email;
-        if (!correo || correo.toString().trim().length === 0) {
-          resultados.errores.push(`Fila ${i + 2}: Correo electrónico es requerido`);
-          continue;
+        if (correo && correo.toString().trim().length > 0) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(correo.toString().trim())) {
+            resultados.errores.push(`Fila ${i + 2}: Formato de correo electrónico inválido`);
+            continue;
+          }
         }
 
-        // Validaciones de formato
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(correo.toString().trim())) {
-          resultados.errores.push(`Fila ${i + 2}: Formato de correo electrónico inválido`);
-          continue;
-        }
-
+        // Validar formato de teléfono
         const telefonoRegex = /^[\d\-\+\(\)\s]+$/;
         if (!telefonoRegex.test(fila.telefono.toString().trim())) {
           resultados.errores.push(`Fila ${i + 2}: Formato de teléfono inválido`);
@@ -704,39 +702,40 @@ async function uploadExcelClientes(req, res) {
           }
         }
 
-        // Verificar email duplicado
-        const emailResult = await query(
-          'SELECT id FROM clientes WHERE email = $1 AND activo = true',
-          [correo.toString().toLowerCase()]
-        );
-        
-        if (emailResult.rows.length > 0) {
-          resultados.errores.push(`Fila ${i + 2}: Email ${correo} ya existe`);
-          continue;
+        // Verificar email duplicado solo si se proporciona
+        if (correo && correo.toString().trim().length > 0) {
+          const emailResult = await query(
+            'SELECT id FROM clientes WHERE email = $1 AND activo = true',
+            [correo.toString().toLowerCase()]
+          );
+          
+          if (emailResult.rows.length > 0) {
+            resultados.errores.push(`Fila ${i + 2}: Email ${correo} ya existe`);
+            continue;
+          }
         }
         
-        // Crear cliente
+        // Crear cliente con nueva estructura
         const insertQuery = `
           INSERT INTO clientes (
-            nombre, telefono, segundo_telefono, email, direccion_entrega,
-            razon, rfc, regimen, direccion, cp, cfdi, activo, fecha_registro
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+            razon_social, nombre_comercial, email, telefono,
+            rfc, regimen_fiscal, uso_cfdi,
+            direccion, direccion_codigo_postal,
+            activo, fecha_registro, fecha_modificacion
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())
           RETURNING *
         `;
         
         const values = [
-          fila.nombre.trim(),
-          fila.telefono || null,
-          fila['segundo telefono'] || fila.segundoTelefono || null,
-          correo ? correo.toLowerCase() : null,
-          fila['direccion de entrega'] || fila.direccionEntrega || null,
-          fila['razon social'] || fila.razon || null,
-          fila.rfc ? fila.rfc.toUpperCase() : null,
-          fila['regimen fiscal'] || fila.regimen || null,
-          fila.direccion || null,
-          fila['codigo postal'] || fila.cp || null,
-          fila['uso cfdi'] || fila.cfdi || null,
-          true
+          fila['razon social'] || fila.razon || fila.nombre.trim(), // razon_social
+          fila.nombre.trim(), // nombre_comercial
+          correo ? correo.toLowerCase() : null, // email
+          fila.telefono || null, // telefono
+          fila.rfc ? fila.rfc.toUpperCase() : null, // rfc
+          fila['regimen fiscal'] || fila.regimen || null, // regimen_fiscal
+          fila['uso cfdi'] || fila.cfdi || null, // uso_cfdi
+          fila.direccion || fila['direccion de entrega'] || null, // direccion
+          fila['codigo postal'] || fila.cp || null // direccion_codigo_postal
         ];
         
         const result = await query(insertQuery, values);

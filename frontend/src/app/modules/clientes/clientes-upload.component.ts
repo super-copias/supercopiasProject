@@ -50,7 +50,7 @@ import { ClientesService } from '../../services/clientes.service';
         <ul class="mb-2">
           <li><strong>nombre</strong> - Nombre del cliente <span class="text-danger">(requerido)</span></li>
           <li><strong>telefono</strong> - Teléfono principal <span class="text-danger">(requerido)</span></li>
-          <li><strong>correo</strong> - Email del cliente <span class="text-danger">(requerido)</span></li>
+          <li><strong>correo</strong> - Email del cliente</li>
           <li><strong>segundo telefono</strong> - Teléfono secundario</li>
           <li><strong>direccion de entrega</strong> - Dirección de entrega completa</li>
           <li><strong>razon social</strong> - Razón social para facturación</li>
@@ -389,7 +389,6 @@ export class ClientesUploadComponent {
   getErrorTitle(error: string): string {
     if (error.includes('Nombre es requerido')) return 'Nombre faltante';
     if (error.includes('Teléfono es requerido')) return 'Teléfono faltante';
-    if (error.includes('Correo electrónico es requerido')) return 'Email faltante';
     if (error.includes('Formato de correo electrónico inválido')) return 'Email inválido';
     if (error.includes('Formato de teléfono inválido')) return 'Teléfono inválido';
     if (error.includes('Formato de RFC inválido')) return 'RFC inválido';
