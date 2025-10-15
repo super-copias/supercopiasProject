@@ -28,8 +28,8 @@ import { CatalogosService } from '../../services/catalogos.service';
         <input class="form-control" [(ngModel)]="model.segundoTelefono" name="segundoTelefono" />
       </div>
       <div class="mb-2">
-        <label>Correo <span class="text-danger">*</span></label>
-        <input class="form-control" [(ngModel)]="model.email" name="email" type="email" required />
+        <label>Correo</label>
+        <input class="form-control" [(ngModel)]="model.email" name="email" type="email" placeholder="correo@ejemplo.com" />
       </div>
       
       <!-- Campo de dirección de entrega con selector de Google Maps -->
@@ -79,15 +79,23 @@ import { CatalogosService } from '../../services/catalogos.service';
       
       <h5>Datos de facturación</h5>
       <div class="mb-2"><label>Razón social</label><input class="form-control" [(ngModel)]="model.razon" name="razon" /></div>
-      <div class="mb-2"><label>RFC</label><input class="form-control" [(ngModel)]="model.rfc" name="rfc" /></div>
-      <div class="mb-2"><label>Régimen Fiscal</label><input class="form-control" [(ngModel)]="model.regimen" name="regimen" /></div>
+      <div class="mb-2"><label>RFC</label><input class="form-control" [(ngModel)]="model.rfc" name="rfc" maxlength="13" placeholder="XAXX010101000" /></div>
+      <div class="mb-2">
+        <label>Régimen Fiscal</label>
+        <select class="form-select" [(ngModel)]="model.regimen" name="regimen">
+          <option value="">Seleccione un régimen fiscal...</option>
+          <option *ngFor="let regimen of regimenesFiscales" [value]="regimen.codigo">
+            {{regimen.codigo}} - {{regimen.descripcion}}
+          </option>
+        </select>
+      </div>
       <div class="mb-2"><label>Dirección</label><input class="form-control" [(ngModel)]="model.direccion" name="direccion" placeholder="Dirección para facturación" /></div>
-      <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.cp" name="cp" /></div>
+      <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.cp" name="cp" maxlength="5" placeholder="29000" /></div>
       <div class="mb-2">
         <label>Uso CFDI</label>
         <select class="form-select" [(ngModel)]="model.cfdi" name="cfdi">
           <option value="">Seleccione un uso CFDI...</option>
-          <option *ngFor="let uso of usosCFDI" [value]="uso.codigo + ' - ' + uso.descripcion">
+          <option *ngFor="let uso of usosCFDI" [value]="uso.codigo">
             {{uso.codigo}} - {{uso.descripcion}}
           </option>
         </select>
@@ -119,8 +127,9 @@ export class ClientesFormComponent implements OnInit {
   clienteId: number | null = null;
   loading = false;
   
-  // Catálogo de Usos CFDI de México
+  // Catálogos SAT
   usosCFDI: any[] = [];
+  regimenesFiscales: any[] = [];
   
   // Variables para el selector de mapa (accordion expandible)
   showMapSelector = false;
@@ -137,15 +146,30 @@ export class ClientesFormComponent implements OnInit {
 
   /**
    * Inicialización del componente
-   * Carga los Usos CFDI y verifica si es modo edición
+   * Carga los catálogos SAT y verifica si es modo edición
    */
   ngOnInit() {
     this.loadUsosCFDI();
+    this.loadRegimenesFiscales();
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
         this.clienteId = params['id'];
         this.isEdit = true;
         this.loadCliente();
+      }
+    });
+  }
+
+  /**
+   * Cargar catálogo de Regímenes Fiscales desde el backend
+   */
+  loadRegimenesFiscales() {
+    this.catalogosService.getRegimenesFiscales().subscribe({
+      next: (regimenes) => {
+        if (regimenes) this.regimenesFiscales = regimenes;
+      },
+      error: (error) => {
+        console.error('Error cargando regímenes fiscales:', error);
       }
     });
   }
@@ -198,16 +222,13 @@ export class ClientesFormComponent implements OnInit {
       return;
     }
 
-    if (!this.model.email || this.model.email.trim().length === 0) {
-      alert('El correo electrónico es requerido');
-      return;
-    }
-
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.model.email)) {
-      alert('El formato del correo electrónico es inválido');
-      return;
+    // Validar formato de email solo si se proporciona
+    if (this.model.email && this.model.email.trim().length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.model.email)) {
+        alert('El formato del correo electrónico es inválido');
+        return;
+      }
     }
 
     // Validar formato de teléfono

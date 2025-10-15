@@ -164,12 +164,8 @@ CREATE TABLE clientes (
     nombre_comercial VARCHAR(500),
     email VARCHAR(255),
     telefono VARCHAR(20),
-    direccion_calle VARCHAR(500),
-    direccion_numero VARCHAR(50),
-    direccion_colonia VARCHAR(255),
+    direccion TEXT,
     direccion_codigo_postal VARCHAR(10),
-    direccion_ciudad VARCHAR(255),
-    direccion_estado VARCHAR(255),
     regimen_fiscal VARCHAR(10),
     uso_cfdi VARCHAR(10),
     activo BOOLEAN DEFAULT true,
@@ -178,7 +174,9 @@ CREATE TABLE clientes (
     
     -- Constraints
     CONSTRAINT chk_clientes_email CHECK (email IS NULL OR email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
-    CONSTRAINT chk_clientes_rfc CHECK (rfc IS NULL OR LENGTH(rfc) IN (12, 13))
+    CONSTRAINT chk_clientes_rfc CHECK (rfc IS NULL OR LENGTH(rfc) IN (12, 13)),
+    CONSTRAINT chk_clientes_regimen_fiscal CHECK (regimen_fiscal IS NULL OR regimen_fiscal ~ '^[0-9]{3}$'),
+    CONSTRAINT chk_clientes_uso_cfdi CHECK (uso_cfdi IS NULL OR uso_cfdi ~ '^[A-Z][0-9]{2}$')
 );
 
 -- Índices para clientes
@@ -187,7 +185,6 @@ CREATE INDEX idx_clientes_razon_social ON clientes(razon_social);
 CREATE INDEX idx_clientes_email ON clientes(email);
 CREATE INDEX idx_clientes_activo ON clientes(activo);
 CREATE INDEX idx_clientes_codigo_postal ON clientes(direccion_codigo_postal);
-CREATE INDEX idx_clientes_ciudad ON clientes(direccion_ciudad);
 
 -- =====================================================
 -- TABLA: proveedores

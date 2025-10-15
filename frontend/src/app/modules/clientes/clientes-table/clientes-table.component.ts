@@ -41,19 +41,20 @@ export class ClientesTableComponent {
   }
 
   eliminarCliente(cliente: any) {
-    if (confirm(`⚠️ ATENCIÓN: Esta acción eliminará PERMANENTEMENTE al cliente "${cliente.nombre}" de la base de datos.\n\n¿Está completamente seguro de continuar? Esta acción NO se puede deshacer.`)) {
+    const nombreCliente = cliente.nombre_comercial || cliente.razon_social || 'este cliente';
+    if (confirm(`⚠️ ATENCIÓN: Esta acción eliminará PERMANENTEMENTE "${nombreCliente}" de la base de datos.\n\n¿Está completamente seguro de continuar? Esta acción NO se puede deshacer.`)) {
       this.eliminar.emit(cliente);
     }
   }
 
   verUbicacion(cliente: any) {
-    if (!cliente.direccionEntrega || cliente.direccionEntrega.trim() === '') {
-      alert('Este cliente no tiene una dirección de entrega registrada.');
+    if (!cliente.direccion || cliente.direccion.trim() === '') {
+      alert('Este cliente no tiene una dirección registrada.');
       return;
     }
 
     // Codificar la dirección para URL
-    const direccionCodificada = encodeURIComponent(cliente.direccionEntrega.trim());
+    const direccionCodificada = encodeURIComponent(cliente.direccion.trim());
     
     // Crear URL de Google Maps
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${direccionCodificada}`;

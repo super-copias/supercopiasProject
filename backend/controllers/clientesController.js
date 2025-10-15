@@ -40,7 +40,8 @@ async function listClientes(req, res) {
     // Filtrar por búsqueda si se proporciona
     if (q) {
       const searchCondition = ` AND (
-        LOWER(nombre) LIKE $1 OR 
+        LOWER(razon_social) LIKE $1 OR 
+        LOWER(nombre_comercial) LIKE $1 OR
         LOWER(email) LIKE $1 OR 
         LOWER(telefono) LIKE $1 OR
         LOWER(rfc) LIKE $1
@@ -68,15 +69,13 @@ async function listClientes(req, res) {
     
     const items = itemsResult.rows;
     const totalItems = parseInt(countResult.rows[0].count);
-    const totalPages = Math.ceil(totalItems / limit);
     
     return res.json(
       createPaginatedResponse(
         items, 
         page, 
-        totalPages, 
-        totalItems, 
-        'Clientes obtenidos exitosamente'
+        limit,
+        totalItems
       )
     );
     
@@ -192,24 +191,17 @@ async function createCliente(req, res) {
       );
     }
 
-    if (!email || email.trim().length === 0) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.REQUIRED_FIELD,
-          'Correo electrónico es requerido'
-        )
-      );
-    }
-
-    // Validaciones de formato
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.INVALID_FORMAT,
-          'Formato de correo electrónico inválido'
-        )
-      );
+    // Validaciones de formato (solo si se proporcionan)
+    if (email && email.trim().length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Formato de correo electrónico inválido'
+          )
+        );
+      }
     }
 
     const telefonoRegex = /^[\d\-\+\(\)\s]+$/;
@@ -222,14 +214,70 @@ async function createCliente(req, res) {
       );
     }
 
-    // Validar RFC si se proporciona
+    // Validar RFC si se proporciona - Validación mejorada según reglas SAT
     if (rfc) {
+      // RFC Persona Física: 4 letras + 6 dígitos (fecha) + 3 caracteres (homoclave)
+      // RFC Persona Moral: 3 letras + 6 dígitos (fecha) + 3 caracteres (homoclave)
       const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
       if (!rfcRegex.test(rfc.toUpperCase())) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
-            'Formato de RFC inválido'
+            'Formato de RFC inválido. Debe ser: 3-4 letras + 6 dígitos + 3 caracteres (Ej: XAXX010101000)'
+          )
+        );
+      }
+      
+      // Validación adicional de la fecha dentro del RFC
+      const fechaParte = rfc.substring(rfc.length - 9, rfc.length - 3);
+      const año = parseInt(fechaParte.substring(0, 2));
+      const mes = parseInt(fechaParte.substring(2, 4));
+      const dia = parseInt(fechaParte.substring(4, 6));
+      
+      if (mes < 1 || mes > 12 || dia < 1 || dia > 31) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'La fecha dentro del RFC es inválida'
+          )
+        );
+      }
+    }
+    
+    // Validar Régimen Fiscal si se proporciona (debe ser código SAT de 3 dígitos)
+    if (regimen) {
+      const regimenRegex = /^[0-9]{3}$/;
+      if (!regimenRegex.test(regimen)) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Régimen fiscal inválido. Debe ser un código SAT de 3 dígitos (Ej: 601, 612)'
+          )
+        );
+      }
+    }
+    
+    // Validar Uso CFDI si se proporciona (debe ser código SAT: letra + 2 dígitos)
+    if (cfdi) {
+      const cfdiRegex = /^[A-Z][0-9]{2}$/;
+      if (!cfdiRegex.test(cfdi.toUpperCase())) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Uso CFDI inválido. Debe ser código SAT de 1 letra + 2 dígitos (Ej: G01, D01)'
+          )
+        );
+      }
+    }
+    
+    // Validar Código Postal si se proporciona (5 dígitos)
+    if (cp) {
+      const cpRegex = /^[0-9]{5}$/;
+      if (!cpRegex.test(cp)) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Código postal inválido. Debe ser de 5 dígitos'
           )
         );
       }
@@ -252,43 +300,44 @@ async function createCliente(req, res) {
       }
     }
 
-    // Verificar si el email ya existe
-    const emailResult = await query(
-      'SELECT id FROM clientes WHERE email = $1 AND activo = true',
-      [email.toLowerCase()]
-    );
-    
-    if (emailResult.rows.length > 0) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.ALREADY_EXISTS,
-          'Ya existe un cliente con este correo electrónico'
-        )
+    // Verificar si el email ya existe (solo si se proporciona)
+    if (email && email.trim().length > 0) {
+      const emailResult = await query(
+        'SELECT id FROM clientes WHERE email = $1 AND activo = true',
+        [email.toLowerCase()]
       );
+      
+      if (emailResult.rows.length > 0) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.ALREADY_EXISTS,
+            'Ya existe un cliente con este correo electrónico'
+          )
+        );
+      }
     }
     
-    // Crear nuevo cliente
+    // Crear nuevo cliente con estructura simplificada de dirección
     const insertQuery = `
       INSERT INTO clientes (
-        nombre, telefono, segundo_telefono, email, direccion_entrega,
-        razon, rfc, regimen, direccion, cp, cfdi, activo, fecha_registro
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+        razon_social, nombre_comercial, email, telefono,
+        rfc, regimen_fiscal, uso_cfdi,
+        direccion, direccion_codigo_postal,
+        activo, fecha_registro, fecha_modificacion
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())
       RETURNING *
     `;
     
     const values = [
-      nombre.trim(),
-      telefono || null,
-      segundoTelefono || null,
+      razon || nombre.trim(), // razon_social (usar nombre si no hay razón social)
+      nombre.trim(), // nombre_comercial
       email ? email.toLowerCase() : null,
-      direccionEntrega || null,
-      razon || null,
+      telefono || null,
       rfc ? rfc.toUpperCase() : null,
-      regimen || null,
-      direccion || null,
-      cp || null,
-      cfdi || null,
-      true
+      regimen || null, // regimen_fiscal (código SAT)
+      cfdi ? cfdi.toUpperCase() : null, // uso_cfdi (código SAT)
+      direccion || null, // direccion (campo único)
+      cp || null // direccion_codigo_postal
     ];
     
     const result = await query(insertQuery, values);
@@ -362,8 +411,19 @@ async function updateCliente(req, res) {
     
     const clienteExistente = clienteResult.rows[0];
     
-    // Si se actualiza el RFC, verificar que no esté duplicado
+    // Si se actualiza el RFC, verificar que no esté duplicado y validar formato
     if (updateData.rfc && updateData.rfc.toUpperCase() !== clienteExistente.rfc) {
+      // Validar formato de RFC según reglas SAT
+      const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
+      if (!rfcRegex.test(updateData.rfc.toUpperCase())) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Formato de RFC inválido. Debe ser: 3-4 letras + 6 dígitos + 3 caracteres'
+          )
+        );
+      }
+      
       const rfcResult = await query(
         'SELECT id FROM clientes WHERE rfc = $1 AND activo = true AND id != $2',
         [updateData.rfc.toUpperCase(), clienteId]
@@ -379,54 +439,76 @@ async function updateCliente(req, res) {
       }
     }
     
-    // Preparar campos dinámicos para actualizar
+    // Validar Régimen Fiscal si se proporciona
+    if (updateData.regimen) {
+      const regimenRegex = /^[0-9]{3}$/;
+      if (!regimenRegex.test(updateData.regimen)) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Régimen fiscal inválido. Debe ser código SAT de 3 dígitos'
+          )
+        );
+      }
+    }
+    
+    // Validar Uso CFDI si se proporciona
+    if (updateData.cfdi) {
+      const cfdiRegex = /^[A-Z][0-9]{2}$/;
+      if (!cfdiRegex.test(updateData.cfdi.toUpperCase())) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Uso CFDI inválido. Debe ser código SAT (Ej: G01, D01)'
+          )
+        );
+      }
+    }
+    
+    // Preparar campos dinámicos para actualizar con nueva estructura
     const camposActualizar = [];
     const valores = [];
     let contador = 1;
     
+    if (updateData.razon !== undefined) {
+      camposActualizar.push(`razon_social = $${contador++}`);
+      valores.push(updateData.razon);
+    }
     if (updateData.nombre !== undefined) {
-      camposActualizar.push(`nombre = $${contador++}`);
+      camposActualizar.push(`nombre_comercial = $${contador++}`);
       valores.push(updateData.nombre.trim());
-    }
-    if (updateData.telefono !== undefined) {
-      camposActualizar.push(`telefono = $${contador++}`);
-      valores.push(updateData.telefono);
-    }
-    if (updateData.segundoTelefono !== undefined) {
-      camposActualizar.push(`segundo_telefono = $${contador++}`);
-      valores.push(updateData.segundoTelefono);
     }
     if (updateData.email !== undefined) {
       camposActualizar.push(`email = $${contador++}`);
       valores.push(updateData.email.toLowerCase());
     }
-    if (updateData.direccionEntrega !== undefined) {
-      camposActualizar.push(`direccion_entrega = $${contador++}`);
-      valores.push(updateData.direccionEntrega);
-    }
-    if (updateData.razon !== undefined) {
-      camposActualizar.push(`razon = $${contador++}`);
-      valores.push(updateData.razon);
+    if (updateData.telefono !== undefined) {
+      camposActualizar.push(`telefono = $${contador++}`);
+      valores.push(updateData.telefono);
     }
     if (updateData.rfc !== undefined) {
       camposActualizar.push(`rfc = $${contador++}`);
       valores.push(updateData.rfc ? updateData.rfc.toUpperCase() : null);
     }
     if (updateData.regimen !== undefined) {
-      camposActualizar.push(`regimen = $${contador++}`);
+      camposActualizar.push(`regimen_fiscal = $${contador++}`);
       valores.push(updateData.regimen);
+    }
+    if (updateData.cfdi !== undefined) {
+      camposActualizar.push(`uso_cfdi = $${contador++}`);
+      valores.push(updateData.cfdi ? updateData.cfdi.toUpperCase() : null);
     }
     if (updateData.direccion !== undefined) {
       camposActualizar.push(`direccion = $${contador++}`);
       valores.push(updateData.direccion);
     }
     if (updateData.cp !== undefined) {
-      camposActualizar.push(`cp = $${contador++}`);
+      camposActualizar.push(`direccion_codigo_postal = $${contador++}`);
       valores.push(updateData.cp);
     }
-    if (updateData.cfdi !== undefined) {
-      camposActualizar.push(`cfdi = $${contador++}`);
-      valores.push(updateData.cfdi);
+    if (updateData.activo !== undefined) {
+      camposActualizar.push(`activo = $${contador++}`);
+      valores.push(updateData.activo);
     }
     
     // Agregar fecha de modificación
