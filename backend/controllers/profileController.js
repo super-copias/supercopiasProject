@@ -64,8 +64,9 @@ async function getProfile(req, res) {
 
     res.json(
       createResponse(
-        profileData,
-        'Perfil obtenido exitosamente'
+        true,                           // success
+        profileData,                    // data
+        'Perfil obtenido exitosamente'  // message
       )
     );
     
@@ -181,8 +182,9 @@ async function updateProfile(req, res) {
 
     res.json(
       createResponse(
-        userProfile,
-        'Perfil actualizado correctamente'
+        true,                                 // success
+        userProfile,                          // data
+        'Perfil actualizado correctamente'    // message
       )
     );
     
@@ -289,7 +291,6 @@ async function changePassword(req, res) {
     await query(
       `UPDATE usuarios 
        SET password = $1, 
-           password_changed_at = NOW(), 
            fecha_modificacion = NOW()
        WHERE id = $2`,
       [hashedNewPassword, req.user.id]
@@ -297,13 +298,14 @@ async function changePassword(req, res) {
 
     res.json(
       createResponse(
-        null,
-        'Contraseña cambiada correctamente'
+        true,                                   // success
+        null,                                   // data
+        'Contraseña cambiada correctamente'     // message
       )
     );
     
   } catch (error) {
-
+    console.error('Error al cambiar contraseña:', error);
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,
@@ -408,8 +410,9 @@ async function uploadProfileImage(req, res) {
 
     res.json(
       createResponse(
-        { imageUrl },
-        'Imagen de perfil subida correctamente'
+        true,                                       // success
+        { imageUrl },                               // data
+        'Imagen de perfil subida correctamente'     // message
       )
     );
     
@@ -492,8 +495,9 @@ async function removeProfileImage(req, res) {
 
     res.json(
       createResponse(
-        null,
-        'Imagen de perfil eliminada correctamente'
+        true,                                         // success
+        null,                                         // data
+        'Imagen de perfil eliminada correctamente'    // message
       )
     );
     

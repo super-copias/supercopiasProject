@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../services/profile.service';
+import { NotificationService } from '../../../services/notification.service';
 import { Usuario, PerfilUsuario, ActualizarPerfil } from '../../../shared/interfaces';
 
 /**
@@ -37,10 +38,11 @@ import { Usuario, PerfilUsuario, ActualizarPerfil } from '../../../shared/interf
                   <div class="profile-image-container mb-3">
                     <div class="profile-image-wrapper">
                       <img 
-                        [src]="profileImageUrl || 'assets/img/default-avatar.png'" 
+                        [src]="profileImageUrl || '/assets/img/default-avatar.svg'" 
                         alt="Foto de perfil"
                         class="profile-image"
-                        [class.loading]="imageUploading">
+                        [class.loading]="imageUploading"
+                        (error)="onImageError($event)">
                       <div *ngIf="imageUploading" class="image-loading-overlay">
                         <i class="fas fa-spinner fa-spin"></i>
                       </div>
@@ -79,19 +81,6 @@ import { Usuario, PerfilUsuario, ActualizarPerfil } from '../../../shared/interf
                 </div>
                 <div class="card-body">
                   <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
-                    <!-- Mensaje de éxito/error -->
-                    <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show">
-                      <i class="fas fa-check-circle me-2"></i>
-                      {{successMessage}}
-                      <button type="button" class="btn-close" (click)="successMessage = ''"></button>
-                    </div>
-                    
-                    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show">
-                      <i class="fas fa-exclamation-circle me-2"></i>
-                      {{errorMessage}}
-                      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
-                    </div>
-
                     <div class="row">
                       <div class="col-md-6">
                         <div class="mb-3">
@@ -228,13 +217,12 @@ export class ProfileEditComponent implements OnInit {
   saving = false;
   imageUploading = false;
   profileImageUrl = '';
-  successMessage = '';
-  errorMessage = '';
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private profileService: ProfileService,
+    private notificationService: NotificationService,
     private router: Router
   ) {
     this.profileForm = this.fb.group({
@@ -295,13 +283,13 @@ export class ProfileEditComponent implements OnInit {
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      this.errorMessage = 'Por favor selecciona un archivo de imagen válido.';
+      this.notificationService.error('Por favor selecciona un archivo de imagen válido.');
       return;
     }
 
     // Validar tamaño (2MB máximo)
     if (file.size > 2 * 1024 * 1024) {
-      this.errorMessage = 'La imagen no puede ser mayor a 2MB.';
+      this.notificationService.error('La imagen no puede ser mayor a 2MB.');
       return;
     }
 
@@ -313,13 +301,12 @@ export class ProfileEditComponent implements OnInit {
    */
   uploadImage(file: File) {
     this.imageUploading = true;
-    this.errorMessage = '';
 
     this.profileService.uploadProfileImage(file).subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.profileImageUrl = response.data.imageUrl || '';
-          this.successMessage = response.message || 'Imagen actualizada correctamente.';
+          this.notificationService.success(response.message || 'Imagen actualizada correctamente.');
           this.imageUploading = false;
           
           // Actualizar el usuario en el AuthService
@@ -331,7 +318,7 @@ export class ProfileEditComponent implements OnInit {
         }
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Error al subir la imagen.';
+        this.notificationService.error(error.error?.message || 'Error al subir la imagen.');
         this.imageUploading = false;
       }
     });
@@ -350,7 +337,7 @@ export class ProfileEditComponent implements OnInit {
       next: (response) => {
         if (response.success) {
           this.profileImageUrl = '';
-          this.successMessage = response.message || 'Imagen eliminada correctamente.';
+          this.notificationService.success(response.message || 'Imagen eliminada correctamente.');
           this.imageUploading = false;
           
           // Actualizar el usuario en el AuthService
@@ -362,7 +349,7 @@ export class ProfileEditComponent implements OnInit {
         }
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Error al eliminar la imagen.';
+        this.notificationService.error(error.error?.message || 'Error al eliminar la imagen.');
         this.imageUploading = false;
       }
     });
@@ -378,15 +365,13 @@ export class ProfileEditComponent implements OnInit {
     }
 
     this.saving = true;
-    this.errorMessage = '';
-    this.successMessage = '';
 
     const formData: ActualizarPerfil = this.profileForm.value;
     
     this.profileService.updateProfile(formData).subscribe({
       next: (response) => {
         if (response.success) {
-          this.successMessage = response.message || 'Perfil actualizado correctamente.';
+          this.notificationService.success(response.message || 'Perfil actualizado correctamente.');
           this.saving = false;
           
           // Actualizar el usuario en el AuthService
@@ -403,7 +388,7 @@ export class ProfileEditComponent implements OnInit {
         }
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Error al actualizar el perfil.';
+        this.notificationService.error(error.error?.message || 'Error al actualizar el perfil.');
         this.saving = false;
       }
     });
@@ -414,5 +399,13 @@ export class ProfileEditComponent implements OnInit {
    */
   goBack() {
     this.router.navigate(['/admin/dashboard']);
+  }
+
+  /**
+   * Manejar error al cargar imagen
+   */
+  onImageError(event: any) {
+    // Si la imagen falla al cargar, usar un avatar SVG generado
+    event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCBmaWxsPSIjZGRkIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIvPjxjaXJjbGUgZmlsbD0iIzk5OSIgY3g9Ijc1IiBjeT0iNTUiIHI9IjI1Ii8+PHBhdGggZmlsbD0iIzk5OSIgZD0iTTQwIDExNWMwLTIwIDE1LTM1IDM1LTM1czM1IDE1IDM1IDM1eiIvPjwvc3ZnPg==';
   }
 }

@@ -33,11 +33,8 @@
               <div class="mb-3">
                 <div class="form-check"><input class="form-check-input" id="rememberPasswordCheck" data-cy="rememberPasswordCheck" type="checkbox" formControlName="checkbox" /><label class="form-check-label" for="rememberPasswordCheck">Remember password</label></div>
               </div>
-              <div class="d-flex align-items-center justify-content-between mt-4"><a class="small" routerLink="/auth/forgot-password">¿Olvidaste tu contraseña?</a><button class="btn btn-primary" data-cy="loginButton" type="submit" [disabled]="loginForm.invalid">Iniciar sesión</button></div>
+              <div class="d-flex align-items-center justify-content-end mt-4"><button class="btn btn-primary" data-cy="loginButton" type="submit" [disabled]="loginForm.invalid">Iniciar sesión</button></div>
             </form>
-          </div>
-          <div class="card-footer text-center">
-            <div class="small"><a routerLink="/auth/register">¿Necesitas una cuenta? Regístrate</a></div>
           </div>
         </div>
       </div>

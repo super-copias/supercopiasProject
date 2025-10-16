@@ -61,7 +61,7 @@ import { ProfileService } from '../services/profile.service';
                     <div class="col-md-6">
                       <div class="mb-3">
                         <label class="form-label fw-bold text-muted">Nombre Completo</label>
-                        <p class="form-control-plaintext">{{profile.fullName || 'No especificado'}}</p>
+                        <p class="form-control-plaintext">{{profile.fullName || profile.full_name || profile.nombre || 'No especificado'}}</p>
                       </div>
                       <div class="mb-3">
                         <label class="form-label fw-bold text-muted">Teléfono</label>
@@ -69,7 +69,7 @@ import { ProfileService } from '../services/profile.service';
                       </div>
                       <div class="mb-3">
                         <label class="form-label fw-bold text-muted">Fecha de Registro</label>
-                        <p class="form-control-plaintext">{{profile.createdAt | date:'dd/MM/yyyy HH:mm' || 'No disponible'}}</p>
+                        <p class="form-control-plaintext">{{(profile.fecha_registro || profile.createdAt) | date:'dd/MM/yyyy HH:mm'}}</p>
                       </div>
                     </div>
                   </div>
@@ -124,7 +124,7 @@ import { ProfileService } from '../services/profile.service';
 
                   <div class="mb-3">
                     <label class="form-label fw-bold text-muted">Último Acceso</label>
-                    <p class="form-control-plaintext small">{{profile?.lastLogin | date:'dd/MM/yyyy HH:mm' || 'Primera vez'}}</p>
+                    <p class="form-control-plaintext small">{{(profile.lastLogin || profile.ultimo_acceso) | date:'dd/MM/yyyy HH:mm'}}</p>
                   </div>
                 </div>
               </div>
@@ -227,10 +227,13 @@ export class ProfileViewComponent implements OnInit {
     // Luego intentar cargar datos completos del backend
     this.profileService.getProfile().subscribe({
       next: (response) => {
-        this.profile = response;
+        if (response.success && response.data) {
+          this.profile = response.data;
+        }
         this.loading = false;
       },
       error: (error) => {
+        console.error('Error al cargar perfil:', error);
         // Si falla, usar los datos del usuario actual
         if (currentUser) {
           this.profile = currentUser;

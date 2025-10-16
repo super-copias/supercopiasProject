@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ProfileService } from '../services/profile.service';
+import { NotificationService } from '../../../services/notification.service';
 import { CambiarPassword } from '../../../shared/interfaces';
 
 /**
@@ -47,12 +48,6 @@ import { CambiarPassword } from '../../../shared/interfaces';
 
               <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()">
                 <!-- Mensajes -->
-                <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show">
-                  <i class="fas fa-check-circle me-2"></i>
-                  {{successMessage}}
-                  <button type="button" class="btn-close" (click)="successMessage = ''"></button>
-                </div>
-                
                 <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show">
                   <i class="fas fa-exclamation-circle me-2"></i>
                   {{errorMessage}}
@@ -253,7 +248,6 @@ import { CambiarPassword } from '../../../shared/interfaces';
 export class ChangePasswordComponent implements OnInit {
   passwordForm: FormGroup;
   changing = false;
-  successMessage = '';
   errorMessage = '';
   
   showCurrentPassword = false;
@@ -263,6 +257,7 @@ export class ChangePasswordComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private profileService: ProfileService,
+    private notificationService: NotificationService,
     private router: Router
   ) {
     this.passwordForm = this.fb.group({
@@ -378,23 +373,25 @@ export class ChangePasswordComponent implements OnInit {
 
     this.changing = true;
     this.errorMessage = '';
-    this.successMessage = '';
 
     const { currentPassword, newPassword, confirmPassword } = this.passwordForm.value;
     
     this.profileService.changePassword({ currentPassword, newPassword, confirmPassword }).subscribe({
-      next: () => {
-        this.successMessage = 'Contraseña cambiada correctamente. Serás redirigido al dashboard.';
-        this.changing = false;
-        this.passwordForm.reset();
-        
-        // Redirigir al dashboard después de 3 segundos
-        setTimeout(() => {
-          this.router.navigate(['/admin/dashboard']);
-        }, 3000);
+      next: (response) => {
+        if (response.success) {
+          this.notificationService.success(response.message || 'Contraseña cambiada correctamente. Serás redirigido al dashboard.');
+          this.changing = false;
+          this.passwordForm.reset();
+          
+          // Redirigir al dashboard después de 3 segundos
+          setTimeout(() => {
+            this.router.navigate(['/admin/dashboard']);
+          }, 3000);
+        }
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Error al cambiar la contraseña.';
+        console.error('Error al cambiar contraseña:', error);
+        this.errorMessage = error.error?.message || error.message || 'Error al cambiar la contraseña.';
         this.changing = false;
       }
     });
