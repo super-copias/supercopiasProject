@@ -1,0 +1,120 @@
+:root{
+	/* Colores corporativos SuperCopias */
+	--color-bg: #f3f3f2;           /* Blanco grisáceo claro */
+	--color-dark-blue: #1a2a66;    /* Azul oscuro */
+	--color-deep-blue: #003d80;    /* Azul profundo - confianza */
+	--color-cyber-yellow: #ffd302; /* Cyber yellow - energía */
+	
+	/* Variaciones para hover y estados */
+	--color-dark-blue-hover: #152144;
+	--color-deep-blue-hover: #002b66;
+	--color-cyber-yellow-hover: #e6be02;
+	
+	/* Colores de estado usando la paleta corporativa */
+	--color-success: #28a745;
+	--color-danger: #dc3545;
+	--color-warning: var(--color-cyber-yellow);
+	--color-info: var(--color-deep-blue);
+}
+
+html,body{ height:100%; }
+body { 
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+	margin: 0; 
+	padding: 0; 
+	background: var(--color-bg); 
+	color: #333;
+}
+
+/* Bootstrap overrides para colores corporativos */
+.btn-primary {
+	background-color: var(--color-deep-blue);
+	border-color: var(--color-deep-blue);
+	
+	&:hover, &:focus {
+		background-color: var(--color-deep-blue-hover);
+		border-color: var(--color-deep-blue-hover);
+	}
+}
+
+.btn-warning {
+	background-color: var(--color-cyber-yellow);
+	border-color: var(--color-cyber-yellow);
+	color: #333;
+	
+	&:hover, &:focus {
+		background-color: var(--color-cyber-yellow-hover);
+		border-color: var(--color-cyber-yellow-hover);
+		color: #333;
+	}
+}
+
+/* Estilos globales para select/combobox */
+select.form-control,
+select.form-select,
+.form-select {
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23003d80' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 0.75rem center !important;
+	background-size: 16px 12px !important;
+	padding-right: 2.5rem !important;
+	appearance: none !important;
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	cursor: pointer;
+	
+	&:hover {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffd302' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+	}
+
+	&:focus {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffd302' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+	}
+}
+
+/* Asegurar que los inputs no tengan el icono */
+input.form-control,
+textarea.form-control {
+	background-image: none !important;
+	padding-right: 0.75rem !important;
+}
+
+.btn-outline-primary {
+	color: var(--color-deep-blue);
+	border-color: var(--color-deep-blue);
+	
+	&:hover, &:focus {
+		background-color: var(--color-deep-blue);
+		border-color: var(--color-deep-blue);
+	}
+}
+
+/* Clases de utilidad para colores corporativos */
+.text-corporate-blue { color: var(--color-deep-blue) !important; }
+.text-corporate-dark { color: var(--color-dark-blue) !important; }
+.text-cyber { color: var(--color-cyber-yellow) !important; }
+
+.bg-corporate-blue { background-color: var(--color-deep-blue) !important; }
+.bg-corporate-dark { background-color: var(--color-dark-blue) !important; }
+.bg-cyber { background-color: var(--color-cyber-yellow) !important; }
+
+/* Cards corporativos */
+.card-corporate {
+	border: none;
+	box-shadow: 0 0.15rem 1.75rem 0 rgba(26, 42, 102, 0.15);
+	
+	.card-header {
+		background-color: var(--color-deep-blue);
+		color: white;
+		border-bottom: none;
+	}
+}
+
+/* Enlaces corporativos */
+a {
+	color: var(--color-deep-blue);
+	
+	&:hover {
+		color: var(--color-dark-blue);
+	}
+}

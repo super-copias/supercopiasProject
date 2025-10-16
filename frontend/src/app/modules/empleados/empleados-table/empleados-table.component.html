@@ -1,0 +1,235 @@
+<!-- Vista de tabla para pantallas grandes -->
+<div class="table-responsive d-none d-lg-block">
+    <table class="table table-hover table-sm">
+        <thead>
+            <tr>
+                <th style="width: 8%;">ID</th>
+                <th style="width: 20%;">Nombre</th>
+                <th style="width: 12%;">Teléfono</th>
+                <th style="width: 15%;">Email</th>
+                <th style="width: 15%;">Puesto</th>
+                <th style="width: 15%;">Sucursal</th>
+                <th style="width: 8%;">Estado</th>
+                <th style="width: 7%;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let e of empleados">
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="e.id">{{e.id}}</span>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="e.nombre">{{e.nombre}}</span>
+                </td>
+                <td class="text-nowrap">
+                    <small>{{e.telefono}}</small>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="e.email">{{e.email || '-'}}</span>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="e.puesto">{{e.puesto || '-'}}</span>
+                </td>
+                <td class="text-truncate" style="max-width: 0;">
+                    <span [title]="e.sucursal">{{e.sucursal || '-'}}</span>
+                </td>
+                <td>
+                    <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo">
+                        {{e.activo ? 'Activo' : 'Inactivo'}}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary btn-sm" (click)="verDetalles(e)" title="Ver detalles">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" (click)="editarEmpleado(e)" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" (click)="eliminarEmpleado(e, $event)" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Vista de tarjetas para pantallas medianas y pequeñas -->
+<div class="d-lg-none">
+    <div class="row g-3" *ngFor="let e of empleados">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px; border-radius: 50%; font-weight: bold;">
+                                        {{e.nombre?.charAt(0)?.toUpperCase() || 'E'}}
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0 fw-bold">{{e.nombre}}</h6>
+                                    <small class="text-muted">ID: {{e.id}}</small>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo">
+                                        {{e.activo ? 'Activo' : 'Inactivo'}}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Teléfono</small>
+                                    <span class="fw-medium">{{e.telefono}}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Email</small>
+                                    <span class="fw-medium text-truncate d-block">{{e.email || 'N/A'}}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Puesto</small>
+                                    <span class="fw-medium">{{e.puesto || 'N/A'}}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Sucursal</small>
+                                    <span class="fw-medium">{{e.sucursal || 'N/A'}}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-primary btn-sm flex-fill" (click)="verDetalles(e)">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <span class="d-none d-sm-inline">Detalles</span>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm flex-fill" (click)="editarEmpleado(e)">
+                                    <i class="fas fa-edit me-1"></i>
+                                    <span class="d-none d-sm-inline">Editar</span>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm flex-fill" (click)="eliminarEmpleado(e, $event)">
+                                    <i class="fas fa-trash me-1"></i>
+                                    <span class="d-none d-sm-inline">Eliminar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de detalles del empleado -->
+<div class="modal fade" [class.show]="showDetalles" [style.display]="showDetalles ? 'block' : 'none'" 
+     tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="position: relative; z-index: 1061;">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-tie me-2"></i>
+                    Detalles del Empleado
+                </h5>
+                <button type="button" class="btn-close" (click)="cerrarDetalles()"></button>
+            </div>
+            <div class="modal-body" *ngIf="selectedEmpleado">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-user me-1"></i>
+                                    Información Personal
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <strong>ID:</strong> {{selectedEmpleado.id}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Nombre:</strong> {{selectedEmpleado.nombre}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Teléfono:</strong> {{selectedEmpleado.telefono}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Email:</strong> {{selectedEmpleado.email || 'No especificado'}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Estado:</strong>
+                                    <span class="badge ms-1" [class.bg-success]="selectedEmpleado.activo" [class.bg-secondary]="!selectedEmpleado.activo">
+                                        {{selectedEmpleado.activo ? 'Activo' : 'Inactivo'}}
+                                    </span>
+                                </div>
+                                <div class="mb-0" *ngIf="!selectedEmpleado.activo && selectedEmpleado.fechaBaja">
+                                    <strong>Fecha de Baja:</strong> 
+                                    <span class="text-danger">{{selectedEmpleado.fechaBaja | date:'dd/MM/yyyy'}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-briefcase me-1"></i>
+                                    Información Laboral
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <strong>Puesto:</strong> {{selectedEmpleado.puesto || 'No especificado'}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Sucursal:</strong> {{selectedEmpleado.sucursal || 'No especificado'}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Fecha de Ingreso:</strong> {{selectedEmpleado.fechaIngreso | date:'dd/MM/yyyy' || 'No especificada'}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Salario:</strong> {{selectedEmpleado.salario | currency:'MXN':'symbol':'1.2-2' || 'No especificado'}}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Tipo de Permisos:</strong> 
+                                    <span class="badge ms-1" 
+                                          [class.bg-danger]="selectedEmpleado.tipoPermiso === 'sin_permisos'"
+                                          [class.bg-warning]="selectedEmpleado.tipoPermiso === 'administrador'"
+                                          [class.bg-info]="selectedEmpleado.tipoPermiso === 'personalizado'">
+                                        {{getTipoPermisoLabel(selectedEmpleado.tipoPermiso)}}
+                                    </span>
+                                </div>
+                                <div class="mb-3" *ngIf="selectedEmpleado.modulosPermitidos && selectedEmpleado.modulosPermitidos.length > 0">
+                                    <strong>Módulos Permitidos:</strong>
+                                    <div class="mt-1">
+                                        <span *ngFor="let modulo of selectedEmpleado.modulosPermitidos" class="badge bg-primary me-1 mb-1">
+                                            {{getModuloLabel(modulo)}}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <strong>Antigüedad:</strong> {{calcularAntiguedad(selectedEmpleado.fechaIngreso)}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary btn-print" (click)="imprimirEmpleado(); $event.target.blur()">
+                    <i class="fas fa-print me-1"></i>
+                    Imprimir
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="cerrarDetalles()">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Backdrop del modal -->
+<div class="modal-backdrop fade" [class.show]="showDetalles" *ngIf="showDetalles" 
+     style="z-index: 1050;" (click)="cerrarDetalles()"></div>

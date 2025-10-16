@@ -1,0 +1,240 @@
+
+.sidenav-wrapper {
+    position: relative;
+}
+
+/* Header simplificado */
+.sidenav-header {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    transition: all 150ms ease-out;
+}
+
+.sidenav {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100vh;
+    width: 225px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: linear-gradient(180deg, var(--color-deep-blue) 0%, var(--color-dark-blue) 100%);
+    color: rgba(255, 255, 255, 0.95);
+    transition: width 150ms ease-out, transform 150ms ease-out, left 150ms ease-out;
+    z-index: 1060;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidenav-menu {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 0; /* prevent extra bottom space */
+    margin-bottom: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Forzar que la lista de navegación sea una columna vertical */
+.sidenav .nav {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidenav-menu-heading {
+    padding: 1.75rem 1rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 6px;
+    margin: 0.125rem 0.5rem;
+    transition: all 0.15s ease-in-out;
+
+    &:hover {
+        color: #fff;
+        background-color: rgba(255, 221, 2, 0.15);
+        border-left: 3px solid var(--color-cyber-yellow);
+        padding-left: calc(1rem - 3px);
+    }
+
+    &.active {
+        color: #fff;
+        font-weight: 600;
+        background-color: rgba(255, 221, 2, 0.2);
+        border-left: 3px solid var(--color-cyber-yellow);
+        padding-left: calc(1rem - 3px);
+    }
+}
+
+.nav-link-icon {
+    margin-right: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-link-icon i {
+    font-size: 20px; /* larger icons for mobile readability */
+    line-height: 1;
+}
+
+.sidenav-footer {
+    padding: 0.75rem;
+    background: linear-gradient(180deg, var(--color-dark-blue) 0%, rgba(26, 42, 102, 0.9) 100%);
+    flex: 0 0 auto;
+    border-top: 1px solid rgba(255, 221, 2, 0.3);
+}
+
+.sidenav-footer-content {
+    text-align: center;
+}
+
+.sidenav-footer-title {
+    font-weight: bold;
+}
+
+.sidenav-footer-subtitle {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Collapsed state - reduce width and hide text */
+.sidenav-wrapper.collapsed .sidenav {
+    width: 72px;
+}
+
+.sidenav-wrapper.collapsed .nav-text,
+.sidenav-wrapper.collapsed .sidenav-menu-heading {
+    display: none;
+}
+
+.sidenav-wrapper.collapsed .nav-link {
+    justify-content: center;
+}
+
+/* Mobile overlay */
+.sidenav-wrapper .sidenav-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1040;
+    pointer-events: auto;
+}
+
+/* When mobileOpen, slide the sidebar in from left */
+.sidenav-wrapper.mobile-open .sidenav {
+    transform: translateX(0);
+    left: 0;
+}
+
+/* Make wrapper cover full screen in mobile when open so backdrop works correctly */
+@media (max-width: 767.98px) {
+    .sidenav-wrapper {
+        position: fixed;
+        inset: 0;
+        z-index: 1045;
+        pointer-events: none; /* allow content clicks when closed */
+    }
+    .sidenav-wrapper.mobile-open {
+        pointer-events: auto; /* enable backdrop and sidebar interactions when open */
+    }
+}
+
+/* default hidden off-canvas on small screens */
+@media (max-width: 767.98px) {
+    .sidenav {
+        transform: translateX(-110%);
+        width: 200px; /* reduced overlay width to 200px */
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        min-height: 100vh;
+        height: 100%;
+        overflow-y: auto; /* allow scrolling inside sidebar */
+        z-index: 1062;
+    }
+    .sidenav-wrapper.collapsed .sidenav {
+        transform: translateX(-110%);
+    }
+}
+
+/* Ensure mobile-open overrides collapsed/hide rules on small screens */
+@media (max-width: 767.98px) {
+    .sidenav-wrapper.mobile-open .sidenav,
+    .sidenav-wrapper.mobile-open.collapsed .sidenav {
+        transform: translateX(0) !important;
+        left: 0 !important;
+        width: 200px !important; /* match reduced mobile width */
+        bottom: 0 !important;
+        min-height: 100vh !important;
+    }
+    .sidenav-wrapper.mobile-open .sidenav-backdrop {
+        display: block;
+    }
+}
+
+/* Icon hover and item styling to mimic SB Admin Pro spacing */
+.sidenav .nav-link {
+    border-radius: 8px;
+}
+
+.sidenav .nav-link:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+
+/* Center icons in collapsed and mobile overlay when text hidden */
+.sidenav-wrapper.collapsed .nav-link .nav-link-icon,
+.sidenav-wrapper.mobile-open .nav-link .nav-link-icon {
+    margin-right: 0;
+}
+
+.sidenav-wrapper.mobile-open .nav {
+    align-items: stretch;
+}
+
+/* Make icons centered vertically in the column */
+.sidenav-wrapper .nav-link {
+    justify-content: flex-start;
+}
+
+.sidenav-wrapper.collapsed .nav-link {
+    justify-content: center;
+}
+
+/* Espaciado y centrado cuando está colapsado (solo iconos) */
+.sidenav-wrapper.collapsed .nav-link {
+    padding: 1rem 0.25rem;
+}
+
+.sidenav-wrapper.collapsed .nav {
+    align-items: center;
+}
+
+/* En mobile overlay, mantener iconos en columna y con separación */
+@media (max-width: 767.98px) {
+    .sidenav .nav-link {
+        padding: 0.9rem 1rem;
+    }
+    .sidenav .nav-link + .nav-link {
+        margin-top: 0.25rem;
+    }
+
+    /* remove any unexpected bottom gap inside nav list */
+    .sidenav .nav > *:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+}

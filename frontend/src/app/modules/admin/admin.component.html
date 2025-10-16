@@ -1,0 +1,57 @@
+<div class="admin-layout" [class.side-collapsed]="collapsed">
+    <app-side-nav [collapsed]="collapsed" [mobileOpen]="mobileOpen" (requestClose)="closeMobile()"></app-side-nav>
+    <main class="content" [class.shifted]="!collapsed && !mobileOpen">
+        <nav class="navbar bg-white shadow-sm">
+            <div class="container-fluid d-flex justify-content-between align-items-center">
+                <!-- Lado izquierdo: Hamburguesa + Logo -->
+                <div class="d-flex align-items-center navbar-left">
+                    <!-- Botón hamburguesa para desktop -->
+                    <button class="btn btn-link me-3 sidebar-toggle desktop-only" (click)="toggleSidebar()" aria-label="Toggle navigation">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
+                    <!-- Logo y nombre de la aplicación -->
+                    <div class="d-flex align-items-center">
+                        <img src="assets/img/logo azul.png" alt="SuperCopias" class="me-2" style="height: 36px;">
+                    </div>
+                </div>
+                
+                <!-- Lado derecho: Usuario + Menú móvil -->
+                <div class="d-flex align-items-center navbar-right">
+                    <!-- Información del usuario -->
+                    <div class="d-flex align-items-center me-2 user-info">
+                        <i class="fas fa-user-circle me-1 text-primary d-none d-sm-inline"></i>
+                        <span class="fw-medium d-none d-md-inline">{{(auth.user$ | async)?.username || 'Usuario'}}</span>
+                    </div>
+                    
+                    <!-- Dropdown del usuario -->
+                    <div class="dropdown user-dropdown me-2" [class.show]="showUserMenu">
+                        <button class="btn btn-outline-primary dropdown-toggle btn-sm" type="button" id="userMenu" 
+                                (click)="toggleUserMenu()" aria-expanded="false">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-responsive" [class.show]="showUserMenu" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" routerLink="/admin/profile/view" (click)="closeUserMenu()">
+                                <i class="fas fa-user me-2"></i> Ver Perfil</a></li>
+                            <li><a class="dropdown-item" routerLink="/admin/profile/edit" (click)="closeUserMenu()">
+                                <i class="fas fa-user-cog me-2"></i> Editar Perfil</a></li>
+                            <li><a class="dropdown-item" routerLink="/admin/profile/change-password" (click)="closeUserMenu()">
+                                <i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item text-danger" (click)="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i> Cerrar sesión
+                            </button></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Botón hamburguesa para móvil (a la derecha) -->
+                    <button class="btn btn-link sidebar-toggle mobile-only" (click)="toggleSidebar(true)" aria-label="Toggle navigation">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div class="content-body">
+            <router-outlet></router-outlet>
+        </div>
+    </main>
+</div>

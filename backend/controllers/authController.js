@@ -1,0 +1,243 @@
+/**
+ * Controlador de Autenticación - SuperCopias
+ * Gestiona el login y autenticación de usuarios del sistema con estándar API
+ */
+
+const { query } = require('../config/database');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { createResponse, createErrorResponse, CODIGOS_ERROR } = require('../utils/apiStandard');
+
+// Clave secreta para firmar tokens JWT
+const SECRET = process.env.JWT_SECRET || 'supercopias_secret';
+
+/**
+ * Autenticar usuario y generar token JWT
+ * Endpoint: POST /api/auth/login
+ * 
+ * @param {Object} req - Request object con body { identifier, password }
+ * @param {Object} res - Response object
+ * @returns {Object} JSON con token y datos del usuario o error 401
+ */
+async function login(req, res) {
+  try {
+    const { identifier, password } = req.body;
+    
+    // Validar datos de entrada
+    if (!identifier || !password) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.REQUIRED_FIELD,
+          'Usuario/email y contraseña son requeridos'
+        )
+      );
+    }
+    
+    // Buscar usuario por username o email
+    const result = await query(
+      'SELECT * FROM usuarios WHERE (username = $1 OR email = $1) AND activo = true',
+      [identifier]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Credenciales inválidas'
+        )
+      );
+    }
+    
+    const user = result.rows[0];
+    
+    // Verificar contraseña
+    const match = bcrypt.compareSync(password, user.password);
+    if (!match) {
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Credenciales inválidas'
+        )
+      );
+    }
+    
+    // Generar token JWT válido por 8 horas
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role 
+      }, 
+      SECRET, 
+      { expiresIn: '8h' }
+    );
+    
+    // Actualizar último acceso
+    await query(
+      'UPDATE usuarios SET ultimo_acceso = NOW(), fecha_modificacion = NOW() WHERE id = $1',
+      [user.id]
+    );
+
+    // Obtener información adicional del empleado si existe
+    let empleadoInfo = null;
+    let modulosPermitidos = [];
+    
+    if (user.empleado_id) {
+      const empleadoResult = await query(
+        'SELECT * FROM empleados WHERE id = $1',
+        [user.empleado_id]
+      );
+      
+      if (empleadoResult.rows.length > 0) {
+        empleadoInfo = empleadoResult.rows[0];
+        
+        // Obtener módulos del empleado
+        const modulosResult = await query(
+          'SELECT modulo FROM empleados_modulos WHERE empleado_id = $1 AND acceso = true',
+          [user.empleado_id]
+        );
+        
+        modulosPermitidos = modulosResult.rows.map(m => m.modulo);
+      }
+    }
+    
+    // Responder con token y datos del usuario (sin contraseña)
+    res.json(
+      createResponse(
+        true,
+        {
+          token,
+          usuario: {
+            id: user.id,
+            username: user.username,
+            nombre: user.nombre,
+            email: user.email,
+            role: user.role,
+            roles: typeof user.roles === 'string' ? [user.roles] : (Array.isArray(user.roles) ? user.roles : [user.role]),
+            activo: user.activo,
+            fechaRegistro: user.fecha_registro,
+            ultimoAcceso: user.ultimo_acceso,
+            empleadoId: user.empleado_id,
+            tipoPermiso: empleadoInfo?.tipo_acceso || null,
+            modulosPermitidos: modulosPermitidos
+          }
+        },
+        'Login exitoso'
+      )
+    );
+    
+  } catch (error) {
+
+    res.status(500).json(
+      createErrorResponse(
+        CODIGOS_ERROR.INTERNAL_ERROR,
+        'Error interno del servidor'
+      )
+    );
+  }
+}
+
+/**
+ * Verificar token JWT
+ * Endpoint: GET /api/auth/verify
+ * 
+ * @param {Object} req - Request object con token en header Authorization
+ * @param {Object} res - Response object
+ * @returns {Object} JSON con datos del usuario o error 401
+ */
+async function verifyToken(req, res) {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.UNAUTHORIZED,
+          'Token no proporcionado'
+        )
+      );
+    }
+    
+    // Verificar y decodificar token
+    const decoded = jwt.verify(token, SECRET);
+    
+    // Buscar usuario actual
+    const result = await query(
+      'SELECT * FROM usuarios WHERE id = $1 AND activo = true',
+      [decoded.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json(
+        createErrorResponse(
+          CODIGOS_ERROR.NOT_FOUND,
+          'Usuario no encontrado o desactivado'
+        )
+      );
+    }
+
+    const user = result.rows[0];
+
+    // Obtener información adicional del empleado si existe
+    let empleadoInfo = null;
+    let modulosPermitidos = [];
+    
+    if (user.empleado_id) {
+      const empleadoResult = await query(
+        'SELECT * FROM empleados WHERE id = $1',
+        [user.empleado_id]
+      );
+      
+      if (empleadoResult.rows.length > 0) {
+        empleadoInfo = empleadoResult.rows[0];
+        
+        // Obtener módulos del empleado
+        const modulosResult = await query(
+          'SELECT modulo FROM empleados_modulos WHERE empleado_id = $1 AND acceso = true',
+          [user.empleado_id]
+        );
+        
+        modulosPermitidos = modulosResult.rows.map(m => m.modulo);
+      }
+    }
+    
+    // Responder con datos del usuario válidos
+    res.json(
+      createResponse(
+        true,
+        {
+          valid: true,
+          usuario: {
+            id: user.id,
+            username: user.username,
+            nombre: user.nombre,
+            email: user.email,
+            role: user.role,
+            roles: typeof user.roles === 'string' ? [user.roles] : (Array.isArray(user.roles) ? user.roles : [user.role]),
+            activo: user.activo,
+            fechaRegistro: user.fecha_registro,
+            ultimoAcceso: user.ultimo_acceso,
+            empleadoId: user.empleado_id,
+            tipoPermiso: empleadoInfo?.tipo_acceso || null,
+            modulosPermitidos: modulosPermitidos
+          }
+        },
+        'Token válido'
+      )
+    );
+    
+  } catch (error) {
+
+    res.status(401).json(
+      createErrorResponse(
+        CODIGOS_ERROR.TOKEN_EXPIRED,
+        'Token inválido o expirado'
+      )
+    );
+  }
+}
+
+module.exports = { 
+  login,
+  verifyToken
+};

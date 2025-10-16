@@ -1,0 +1,36 @@
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Cargo</th>
+                <th>Departamento</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let colaborador of colaboradores">
+                <td>{{colaborador.id}}</td>
+                <td>{{colaborador.nombre}}</td>
+                <td>{{colaborador.correo}}</td>
+                <td>{{colaborador.cargo}}</td>
+                <td>{{colaborador.departamento}}</td>
+                <td>
+                    <span class="badge" [class.bg-success]="colaborador.estado === 'Activo'"
+                                      [class.bg-danger]="colaborador.estado === 'Inactivo'">
+                        {{colaborador.estado}}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-link" (click)="verDetalles(colaborador)">
+                        <i class="fas fa-info-circle"></i> Detalles
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<!-- pagination moved to parent list components -->

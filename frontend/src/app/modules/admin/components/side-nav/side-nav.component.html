@@ -1,0 +1,38 @@
+<div class="sidenav-wrapper" [class.collapsed]="collapsed" [class.mobile-open]="mobileOpen">
+    <nav class="sidenav shadow-right" (click)="$event.stopPropagation()">
+        <!-- Header simplificado -->
+        <div class="sidenav-header text-center py-3 border-bottom">
+            <div *ngIf="!collapsed || mobileOpen" class="text-white fw-bold">
+                ADMINISTRACIÓN
+            </div>
+            <div *ngIf="collapsed && !mobileOpen" class="text-white fw-bold small">
+                ADMIN
+            </div>
+        </div>
+        
+        <div class="sidenav-menu">
+            <div class="nav">
+                <ng-container *ngFor="let section of menuItems">
+                    <div class="sidenav-menu-heading">{{section.text}}</div>
+                    <ng-container *ngFor="let item of section.items">
+                        <a class="nav-link" [routerLink]="item.link" routerLinkActive="active" (click)="onNavItemClick()">
+                            <div class="nav-link-icon"><i [class]="item.icon"></i></div>
+                            <span class="nav-text">{{item.text}}</span>
+                        </a>
+                    </ng-container>
+                </ng-container>
+            </div>
+        </div>
+        <div class="sidenav-footer">
+            <div class="sidenav-footer-content">
+                <div class="sidenav-footer-subtitle">Usuario:</div>
+                <div class="sidenav-footer-title">{{(auth.user$ | async)?.username || 'Admin'}}</div>
+                <button class="btn btn-danger btn-sm mt-2" (click)="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                </button>
+            </div>
+        </div>
+    </nav>
+    <!-- Backdrop para mobile -->
+    <div class="sidenav-backdrop" *ngIf="mobileOpen" (click)="requestClose.emit()"></div>
+</div>

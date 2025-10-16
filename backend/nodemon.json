@@ -1,0 +1,25 @@
+{
+  "watch": [
+    "index.js",
+    "controllers/",
+    "routes/",
+    "middlewares/",
+    "utils/"
+  ],
+  "ignore": [
+    "db.json",
+    "db.json.backup",
+    "db_backup.json",
+    "uploads/**/*",
+    "node_modules/**/*",
+    "*.log",
+    "**/*.log"
+  ],
+  "ext": "js",
+  "delay": "3000",
+  "verbose": false,
+  "restartable": "rs",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

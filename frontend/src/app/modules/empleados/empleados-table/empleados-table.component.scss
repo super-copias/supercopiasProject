@@ -1,0 +1,567 @@
+/* Tabla corporativa SuperCopias */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+    table-layout: fixed; /* Fuerza anchos fijos */
+    width: 100%;
+    
+    th {
+        background: linear-gradient(90deg, var(--color-deep-blue) 0%, var(--color-dark-blue) 100%);
+        color: white;
+        border-top: none;
+        border-bottom: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 0.5rem; /* Padding más compacto */
+        position: sticky;
+        top: 0;
+
+/* Estilos para el botón de imprimir */
+.btn-print {
+    color: #0d6efd !important;
+    background-color: transparent !important;
+    border-color: #0d6efd !important;
+    
+    &:hover {
+        color: white !important;
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+    }
+    
+    &:focus,
+    &:active,
+    &.active,
+    &:focus-visible {
+        color: #0d6efd !important;
+        background-color: transparent !important;
+        border-color: #0d6efd !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    &:not(:disabled):not(.disabled):active,
+    &:not(:disabled):not(.disabled).active {
+        color: #0d6efd !important;
+        background-color: transparent !important;
+        border-color: #0d6efd !important;
+        box-shadow: none !important;
+    }
+}
+        z-index: 1;
+        white-space: nowrap; /* Evita saltos de línea en headers */
+    }
+    
+    td {
+        padding: 0.75rem 0.5rem; /* Padding más compacto */
+        vertical-align: middle;
+        border-bottom: 1px solid #e9ecef;
+        
+        /* Truncate text con ellipsis */
+        &.text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Teléfonos más compactos */
+        &.text-nowrap {
+            white-space: nowrap;
+        }
+        
+        /* Botones más pequeños */
+        .btn-group {
+            display: flex;
+            gap: 2px;
+            
+            .btn {
+                padding: 0.25rem 0.375rem;
+                font-size: 0.75rem;
+                
+                i {
+                    font-size: 0.75rem;
+                }
+            }
+        }
+    }
+    
+    td {
+        vertical-align: middle;
+        padding: 0.875rem 0.75rem;
+        border-top: 1px solid rgba(0, 61, 128, 0.1);
+        transition: background-color 0.15s ease;
+    }
+    
+    tbody tr {
+        transition: all 0.15s ease;
+        
+        &:hover {
+            background-color: rgba(255, 221, 2, 0.05);
+            transform: scale(1.002);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        &:nth-child(even) {
+            background-color: rgba(243, 243, 242, 0.3);
+        }
+    }
+}
+
+.btn-link {
+    color: var(--color-deep-blue);
+    text-decoration: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    
+    &:hover { 
+        color: white;
+        background-color: var(--color-deep-blue);
+        text-decoration: none;
+    }
+    
+    i {
+        margin-right: 0.25rem;
+    }
+}
+
+.badge { 
+    padding: 0.5em 0.75em;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
+    &.bg-success {
+        background-color: #28a745 !important;
+        color: white;
+    }
+    
+    &.bg-danger {
+        background-color: #dc3545 !important;
+        color: white;
+    }
+    
+    &.bg-warning {
+        background-color: var(--color-cyber-yellow) !important;
+        color: #333;
+    }
+    
+    &.bg-secondary {
+        background-color: #6c757d !important;
+        color: white;
+    }
+}
+
+/* Responsive table improvements */
+@media (max-width: 768px) {
+    .table-responsive {
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+        
+        .table {
+            margin-bottom: 0;
+            box-shadow: none;
+            
+            th, td {
+                white-space: nowrap;
+                min-width: 120px;
+                
+                &:first-child {
+                    min-width: 80px;
+                }
+                
+                &:last-child {
+                    min-width: 140px;
+                }
+            }
+        }
+    }
+}
+
+/* Modal customizations */
+.modal {
+    &.show {
+        animation: modalFadeIn 0.3s ease-out;
+    }
+}
+
+.modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    
+    .modal-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+}
+
+.modal-body {
+    padding: 1.5rem;
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.05);
+        
+        .card-header {
+            background-color: rgba(243, 243, 242, 0.5) !important;
+            border-bottom: 1px solid rgba(0, 61, 128, 0.1);
+            
+            h6 {
+                font-weight: 600;
+                color: var(--color-deep-blue);
+            }
+        }
+    }
+    
+    dt {
+        font-weight: 600;
+        color: var(--color-dark-blue);
+        font-size: 0.875rem;
+    }
+    
+    dd {
+        color: #333;
+        font-size: 0.875rem;
+        
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        i {
+            color: var(--color-deep-blue);
+        }
+    }
+}
+
+.modal-footer {
+    border-top: none;
+    padding: 1rem 1.5rem 1.5rem;
+    
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        
+        i {
+            font-size: 0.875rem;
+        }
+        
+        &.btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            
+            &:hover {
+                background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 0.25rem 0.75rem rgba(40, 167, 69, 0.3);
+            }
+        }
+    }
+}
+
+.modal-backdrop {
+    &.show {
+        animation: backdropFadeIn 0.3s ease-out;
+    }
+}
+
+/* Button group improvements */
+.btn-group-sm .btn {
+    padding: 0.375rem 0.5rem;
+    border-radius: 4px;
+    
+    &:not(:last-child) {
+        margin-right: 2px;
+    }
+    
+    i {
+        font-size: 0.875rem;
+    }
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Estilos específicos para botón de ubicación */
+.btn-outline-success {
+    border-color: #28a745;
+    color: #28a745;
+    
+    &:hover {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: white;
+        box-shadow: 0 0.25rem 0.75rem rgba(40, 167, 69, 0.3);
+    }
+    
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        
+        &:hover {
+            background-color: transparent;
+            border-color: #28a745;
+            color: #28a745;
+            transform: none;
+            box-shadow: none;
+        }
+    }
+    
+    i.fa-map-marker-alt {
+        color: inherit;
+        transition: all 0.15s ease;
+        
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+}
+
+/* Responsive actions for mobile */
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.375rem;
+        
+        i {
+            font-size: 0.75rem;
+        }
+    }
+}
+
+/* Animations */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.5; }
+}
+
+/* Estilos responsivos para mejorar visualización */
+@media (max-width: 1200px) {
+    .table {
+        th, td {
+            padding: 0.5rem 0.375rem;
+            font-size: 0.875rem;
+        }
+        
+        th {
+            font-size: 0.75rem;
+        }
+    }
+}
+
+@media (max-width: 992px) {
+    .table {
+        th, td {
+            padding: 0.375rem 0.25rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-group .btn {
+            padding: 0.2rem 0.3rem;
+            font-size: 0.7rem;
+            
+            i {
+                font-size: 0.7rem;
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .table {
+        th, td {
+            padding: 0.25rem 0.2rem;
+            font-size: 0.75rem;
+        }
+        
+        /* Ocultar columnas menos importantes en móviles */
+        th:nth-child(4), td:nth-child(4) { /* Segundo teléfono */
+            display: none;
+        }
+    }
+}
+
+/* Tooltip para textos truncados */
+.text-truncate span {
+    cursor: help;
+}
+
+/* Estilos para cards responsivos */
+.border-left-primary {
+    border-left: 4px solid var(--color-deep-blue) !important;
+}
+
+.card {
+    transition: all 0.15s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Botones verticales para mobile */
+.btn-group-vertical {
+    .btn {
+        border-radius: 0.375rem !important;
+        margin-bottom: 0.25rem;
+        
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
+
+/* Iconos con espaciado */
+.fa-id-badge,
+.fa-phone,
+.fa-envelope,
+.fa-map-marker-alt {
+    width: 1rem;
+    text-align: center;
+}
+
+/* Mejoras responsivas */
+@media (max-width: 991.98px) {
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .btn-group-vertical .btn {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Solución para z-index del modal en pantallas pequeñas */
+.modal-high-z {
+    z-index: 9999 !important; /* Más alto que el menú hamburguesa */
+}
+
+.modal-backdrop-high-z {
+    z-index: 9998 !important; /* Justo debajo del modal */
+}
+
+/* Botón de cerrar modal mejorado */
+.modal-close-btn {
+    z-index: 10000 !important;
+    position: relative;
+    
+    /* Área de click más grande para móviles */
+    &::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        right: -10px;
+        bottom: -10px;
+        background: transparent;
+    }
+}
+
+/* Mejoras específicas para pantallas pequeñas */
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+    
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+    
+    .modal-header {
+        padding: 1rem;
+        
+        .modal-title {
+            font-size: 1.1rem;
+        }
+        
+        .btn-close {
+            margin: 0;
+            padding: 0.75rem;
+            
+            /* Hacer el botón más grande y fácil de presionar */
+            &::before {
+                top: -15px;
+                left: -15px;
+                right: -15px;
+                bottom: -15px;
+            }
+        }
+    }
+    
+    .modal-body {
+        padding: 1rem;
+        
+        .row {
+            margin: 0;
+        }
+        
+        .col-md-6 {
+            padding: 0;
+            margin-bottom: 1rem;
+            
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+        
+        .card {
+            border: 1px solid #dee2e6;
+            margin-bottom: 0;
+        }
+    }
+    
+    .modal-footer {
+        padding: 1rem;
+        justify-content: space-between;
+        
+        .btn {
+            flex: 1;
+            margin: 0 0.25rem;
+        }
+    }
+}
+
+/* Avatar circle para empleados */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-deep-blue);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+}

@@ -1,0 +1,59 @@
+import { Injectable } from '@angular/core';
+import { CanActivate, CanLoad, CanActivateChild, Route, UrlSegment, Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { AuthService } from './auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class AuthGuard implements CanActivate, CanLoad, CanActivateChild {
+  constructor(private auth: AuthService, private router: Router) {}
+
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | boolean | UrlTree {
+    return this.checkAuth();
+  }
+
+  canLoad(route: Route, segments: UrlSegment[]): Observable<boolean> | boolean {
+    const authCheck = this.checkAuth();
+    if (typeof authCheck === 'boolean') {
+      return authCheck;
+    }
+    if (authCheck instanceof UrlTree) {
+      this.router.navigateByUrl(authCheck);
+      return false;
+    }
+    return authCheck.pipe(
+      map(result => {
+        if (result instanceof UrlTree) {
+          this.router.navigateByUrl(result);
+          return false;
+        }
+        return result;
+      })
+    );
+  }
+
+  canActivateChild(childRoute: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | boolean | UrlTree {
+    return this.checkAuth();
+  }
+
+  private checkAuth(): Observable<boolean | UrlTree> | boolean | UrlTree {
+    // Primera verificación rápida del localStorage
+    if (!this.auth.isLoggedIn()) {
+      return this.router.parseUrl('/login');
+    }
+
+    // Si hay token, verificar con el servidor
+    return this.auth.verifyToken().pipe(
+      map(response => {
+        if (response.success && response.data?.valid) {
+          return true;
+        } else {
+          return this.router.parseUrl('/login');
+        }
+      }),
+      catchError(error => {
+        return of(this.router.parseUrl('/login'));
+      })
+    );
+  }
+}
