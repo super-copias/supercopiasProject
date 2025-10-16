@@ -70,18 +70,16 @@ coverage/
 # PM2
 .pm2/
 
-# Deployment files (mantener solo render.yaml)
-Dockerfile*
+# Deployment files (Railway específicos están permitidos)
+Dockerfile
 docker-compose*
-nixpacks.toml
-Procfile*
 app.json
 static.json
 firebase.json
 vercel.json
 netlify.toml
 _redirects
-railway.json
+render.yaml
 
 # Documentación temporal de desarrollo
 ARCHIVOS_FINALES.md
