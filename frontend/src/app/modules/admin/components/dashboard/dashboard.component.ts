@@ -1,8 +1,22 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, finalize, switchMap, takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { EmpleadosService } from '../../../../services/empleados.service';
-import { RequestCancellationService } from '../../../../services/request-cancellation.service';
+import { ClientesService } from '../../../../services/clientes.service';
+
+interface DashboardStats {
+  totalClientes: number;
+  clientesActivos: number;
+  clientesInactivos: number;
+  totalEmpleados: number;
+  empleadosActivos: number;
+  empleadosInactivos: number;
+}
+
+interface UltimosRegistros {
+  clientes: any[];
+  empleados: any[];
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -10,79 +24,117 @@ import { RequestCancellationService } from '../../../../services/request-cancell
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  colaboradores: any[] = [];
-  colaboradoresFiltered: any[] = [];
-  search$ = new Subject<string>();
   private destroy$ = new Subject<void>();
-  private searchSub: Subscription | null = null;
-  page = 1;
-  limit = 10;
-  total = 0;
-  pages = 1;
-  q = '';
   loading = false;
 
-  estadisticas = {
-    trabajosPendientes: 24,
-    clientesActivos: 150,
-    ingresosMensuales: 40000,
-    serviciosCompletados: 215
+  // Para usar Date.now() en el template
+  Date = Date;
+
+  // Estadísticas principales
+  stats: DashboardStats = {
+    totalClientes: 0,
+    clientesActivos: 0,
+    clientesInactivos: 0,
+    totalEmpleados: 0,
+    empleadosActivos: 0,
+    empleadosInactivos: 0
   };
 
+  // Últimos registros
+  ultimosClientes: any[] = [];
+  ultimosEmpleados: any[] = [];
+
+  // Control de vista
+  mostrarClientes = true;
+  mostrarEmpleados = true;
+
   constructor(
-    private svc: EmpleadosService,
-    private cancellationService: RequestCancellationService
+    private empleadosService: EmpleadosService,
+    private clientesService: ClientesService
   ) {}
 
-  ngOnInit() { 
-    this.load();
-    
-    // Búsqueda optimizada con cancelación automática
-    this.searchSub = this.search$.pipe(
-      debounceTime(300),
-      switchMap(q => {
-        this.q = q; 
-        this.page = 1; 
-        return this.loadData();
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe();
+  ngOnInit() {
+    this.cargarDashboard();
   }
 
-  private loadData() {
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Carga todas las estadísticas del dashboard
+   */
+  cargarDashboard() {
     this.loading = true;
-    return this.svc.list(this.q, this.page, this.limit).pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.loading = false)
-    );
-  }
 
-  load() {
-    this.loadData().subscribe({
-      next: (r: any) => {
-        this.colaboradores = r.data || [];
-        this.colaboradoresFiltered = [...this.colaboradores];
-        this.total = r.total || this.colaboradores.length;
-        this.pages = Math.max(1, Math.ceil(this.total / this.limit));
+    forkJoin({
+      // Obtener últimos 5 registros para mostrar en tablas
+      ultimosClientes: this.clientesService.getList({ page: 1, limit: 5 }),
+      ultimosEmpleados: this.empleadosService.getList({ page: 1, limit: 5 }),
+      // Obtener TODOS los registros para contar activos/inactivos correctamente
+      todosClientes: this.clientesService.getList({ page: 1, limit: 999999 }),
+      todosEmpleados: this.empleadosService.getList({ page: 1, limit: 999999 })
+    })
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (resultado) => {
+        // Procesar clientes
+        if (resultado.ultimosClientes.success && resultado.todosClientes.success) {
+          this.stats.totalClientes = resultado.todosClientes.pagination?.total || 0;
+          this.ultimosClientes = resultado.ultimosClientes.data || [];
+          
+          // Contar activos e inactivos de TODOS los clientes (no solo los últimos 5)
+          const todosLosClientes = resultado.todosClientes.data || [];
+          this.stats.clientesActivos = todosLosClientes.filter(c => c.activo).length;
+          this.stats.clientesInactivos = todosLosClientes.filter(c => !c.activo).length;
+        }
+
+        // Procesar empleados
+        if (resultado.ultimosEmpleados.success && resultado.todosEmpleados.success) {
+          this.stats.totalEmpleados = resultado.todosEmpleados.pagination?.total || 0;
+          this.ultimosEmpleados = resultado.ultimosEmpleados.data || [];
+          
+          // Contar activos e inactivos de TODOS los empleados (no solo los últimos 5)
+          const todosLosEmpleados = resultado.todosEmpleados.data || [];
+          this.stats.empleadosActivos = todosLosEmpleados.filter(e => e.activo).length;
+          this.stats.empleadosInactivos = todosLosEmpleados.filter(e => !e.activo).length;
+        }
+
+        this.loading = false;
       },
       error: (error) => {
-        this.colaboradores = [];
-        this.colaboradoresFiltered = [];
-        this.total = 0;
-        this.pages = 1;
+        console.error('Error al cargar dashboard:', error);
+        this.loading = false;
       }
     });
   }
 
-  ngOnDestroy() { 
-    this.destroy$.next();
-    this.destroy$.complete();
-    if (this.searchSub) this.searchSub.unsubscribe(); 
+  /**
+   * Recarga las estadísticas
+   */
+  recargar() {
+    this.cargarDashboard();
   }
 
-  go(p: number) { 
-    if (p < 1 || p > this.pages || p === this.page) return; 
-    this.page = p; 
-    this.load(); 
+  /**
+   * Alterna la visibilidad de la sección de clientes
+   */
+  toggleClientes() {
+    this.mostrarClientes = !this.mostrarClientes;
+  }
+
+  /**
+   * Alterna la visibilidad de la sección de empleados
+   */
+  toggleEmpleados() {
+    this.mostrarEmpleados = !this.mostrarEmpleados;
+  }
+
+  /**
+   * Obtiene el porcentaje de activos
+   */
+  getPorcentajeActivos(activos: number, total: number): number {
+    return total > 0 ? Math.round((activos / total) * 100) : 0;
   }
 }

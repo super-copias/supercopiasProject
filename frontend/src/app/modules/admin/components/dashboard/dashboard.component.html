@@ -1,87 +1,280 @@
-<div class="dashboard">
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Trabajos Pendientes</div>
-                            <div class="text-lg fw-bold">{{estadisticas.trabajosPendientes}}</div>
-                        </div>
-                        <i class="fas fa-tasks fa-2x opacity-25"></i>
-                    </div>
-                </div>
-            </div>
+<div class="dashboard-container">
+  <!-- Header del Dashboard -->
+  <div class="dashboard-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="mb-1">Dashboard General</h2>
+        <p class="text-muted mb-0">Vista general del sistema SuperCopias</p>
+      </div>
+      <button class="btn btn-primary" (click)="recargar()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+        {{ loading ? 'Cargando...' : 'Actualizar' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Tarjetas de Estadísticas Principales -->
+  <div class="row g-3 mb-4">
+    <!-- Total Clientes -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card card-blue">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Clientes Activos</div>
-                            <div class="text-lg fw-bold">{{estadisticas.clientesActivos}}</div>
-                        </div>
-                        <i class="fas fa-users fa-2x opacity-25"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Clientes</div>
+          <div class="stat-value">{{ stats.totalClientes }}</div>
+          <div class="stat-footer">
+            <span class="badge bg-success">{{ stats.clientesActivos }} activos</span>
+            <span class="badge bg-secondary ms-1">{{ stats.clientesInactivos }} inactivos</span>
+          </div>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Ingresos Mensuales</div>
-                            <div class="text-lg fw-bold">${{estadisticas.ingresosMensuales}}</div>
-                        </div>
-                        <i class="fas fa-dollar-sign fa-2x opacity-25"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Servicios Completados</div>
-                            <div class="text-lg fw-bold">{{estadisticas.serviciosCompletados}}</div>
-                        </div>
-                        <i class="fas fa-check-circle fa-2x opacity-25"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Empleados</h5>
-            <div class="d-flex gap-2">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Buscar colaborador..." [(ngModel)]="q" (input)="search$.next(q)" [disabled]="loading">
-                    <button class="btn btn-outline-secondary" type="button" (click)="load()" [disabled]="loading">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </div>
+    <!-- Total Empleados -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card card-yellow">
+        <div class="stat-icon">
+          <i class="fas fa-user-tie"></i>
         </div>
-        <div class="card-body">
-            <app-colaboradores-table [colaboradores]="colaboradoresFiltered"></app-colaboradores-table>
-            <div *ngIf="loading" class="my-2">
-                <small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</small>
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="small text-muted">Mostrando {{total}} empleados</div>
-                <nav aria-label="paginacion-empleados">
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item" [class.disabled]="page===1"><a class="page-link" (click)="go(page-1)">Anterior</a></li>
-                        <li class="page-item disabled"><span class="page-link">Página {{page}} / {{pages}}</span></li>
-                        <li class="page-item" [class.disabled]="page===pages"><a class="page-link" (click)="go(page+1)">Siguiente</a></li>
-                    </ul>
-                </nav>
-            </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Empleados</div>
+          <div class="stat-value">{{ stats.totalEmpleados }}</div>
+          <div class="stat-footer">
+            <span class="badge bg-success">{{ stats.empleadosActivos }} activos</span>
+            <span class="badge bg-secondary ms-1">{{ stats.empleadosInactivos }} inactivos</span>
+          </div>
         </div>
+      </div>
     </div>
+
+    <!-- Porcentaje Clientes Activos -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card card-green">
+        <div class="stat-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Clientes Activos</div>
+          <div class="stat-value">{{ getPorcentajeActivos(stats.clientesActivos, stats.totalClientes) }}%</div>
+          <div class="stat-footer">
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar bg-success" role="progressbar" 
+                   [style.width.%]="getPorcentajeActivos(stats.clientesActivos, stats.totalClientes)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Porcentaje Empleados Activos -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card card-purple">
+        <div class="stat-icon">
+          <i class="fas fa-chart-pie"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Empleados Activos</div>
+          <div class="stat-value">{{ getPorcentajeActivos(stats.empleadosActivos, stats.totalEmpleados) }}%</div>
+          <div class="stat-footer">
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar bg-warning" role="progressbar" 
+                   [style.width.%]="getPorcentajeActivos(stats.empleadosActivos, stats.totalEmpleados)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Clientes -->
+  <div class="card section-card mb-4">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-users me-2 text-primary"></i>
+          <h5 class="mb-0">Módulo de Clientes</h5>
+        </div>
+        <button class="btn btn-sm btn-outline-primary" (click)="toggleClientes()">
+          <i class="fas" [class.fa-chevron-up]="mostrarClientes" [class.fa-chevron-down]="!mostrarClientes"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body" *ngIf="mostrarClientes">
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <div class="info-box">
+            <div class="info-label">Total Registrados</div>
+            <div class="info-value text-primary">{{ stats.totalClientes }}</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-box">
+            <div class="info-label">Clientes Activos</div>
+            <div class="info-value text-success">{{ stats.clientesActivos }}</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-box">
+            <div class="info-label">Clientes Inactivos</div>
+            <div class="info-value text-secondary">{{ stats.clientesInactivos }}</div>
+          </div>
+        </div>
+      </div>
+
+      <h6 class="mb-3">Últimos 5 Clientes Registrados</h6>
+      <div class="table-responsive">
+        <table class="table table-hover table-sm">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre/Razón Social</th>
+              <th>RFC</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th>Fecha Registro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cliente of ultimosClientes">
+              <td>{{ cliente.id }}</td>
+              <td>
+                <span *ngIf="cliente.tipo_persona === 'moral'">{{ cliente.razon_social }}</span>
+                <span *ngIf="cliente.tipo_persona === 'fisica'">{{ cliente.nombre }} {{ cliente.apellido_paterno }} {{ cliente.apellido_materno }}</span>
+              </td>
+              <td>{{ cliente.rfc }}</td>
+              <td>{{ cliente.email }}</td>
+              <td>
+                <span class="badge" [class.bg-success]="cliente.activo" [class.bg-secondary]="!cliente.activo">
+                  {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>{{ cliente.fecha_registro | date:'dd/MM/yyyy' }}</td>
+            </tr>
+            <tr *ngIf="ultimosClientes.length === 0">
+              <td colspan="6" class="text-center text-muted">
+                <i class="fas fa-info-circle me-2"></i>No hay clientes registrados
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Empleados -->
+  <div class="card section-card mb-4">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-user-tie me-2 text-warning"></i>
+          <h5 class="mb-0">Módulo de Empleados</h5>
+        </div>
+        <button class="btn btn-sm btn-outline-warning" (click)="toggleEmpleados()">
+          <i class="fas" [class.fa-chevron-up]="mostrarEmpleados" [class.fa-chevron-down]="!mostrarEmpleados"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body" *ngIf="mostrarEmpleados">
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <div class="info-box">
+            <div class="info-label">Total Registrados</div>
+            <div class="info-value text-warning">{{ stats.totalEmpleados }}</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-box">
+            <div class="info-label">Empleados Activos</div>
+            <div class="info-value text-success">{{ stats.empleadosActivos }}</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-box">
+            <div class="info-label">Empleados Inactivos</div>
+            <div class="info-value text-secondary">{{ stats.empleadosInactivos }}</div>
+          </div>
+        </div>
+      </div>
+
+      <h6 class="mb-3">Últimos 5 Empleados Registrados</h6>
+      <div class="table-responsive">
+        <table class="table table-hover table-sm">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre Completo</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Puesto</th>
+              <th>Estado</th>
+              <th>Fecha Registro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let empleado of ultimosEmpleados">
+              <td>{{ empleado.id }}</td>
+              <td>{{ empleado.nombre }}</td>
+              <td>{{ empleado.email }}</td>
+              <td>{{ empleado.telefono }}</td>
+              <td>{{ empleado.puesto || '-' }}</td>
+              <td>
+                <span class="badge" [class.bg-success]="empleado.activo" [class.bg-secondary]="!empleado.activo">
+                  {{ empleado.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>{{ empleado.fechaRegistro | date:'dd/MM/yyyy' }}</td>
+            </tr>
+            <tr *ngIf="ultimosEmpleados.length === 0">
+              <td colspan="7" class="text-center text-muted">
+                <i class="fas fa-info-circle me-2"></i>No hay empleados registrados
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Información adicional -->
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card info-card">
+        <div class="card-body">
+          <h6 class="mb-3"><i class="fas fa-info-circle text-info me-2"></i>Módulos Disponibles</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-primary"><i class="fas fa-users me-1"></i>Clientes</span>
+            <span class="badge bg-warning"><i class="fas fa-user-tie me-1"></i>Empleados</span>
+            <span class="badge bg-secondary"><i class="fas fa-boxes me-1"></i>Inventarios</span>
+            <span class="badge bg-secondary"><i class="fas fa-desktop me-1"></i>Equipos</span>
+            <span class="badge bg-secondary"><i class="fas fa-chart-bar me-1"></i>Reportes</span>
+            <span class="badge bg-secondary"><i class="fas fa-cash-register me-1"></i>Punto de Venta</span>
+            <span class="badge bg-primary"><i class="fas fa-truck me-1"></i>Proveedores</span>
+          </div>
+          <p class="text-muted small mt-3 mb-0">
+            <i class="fas fa-lightbulb me-1"></i>
+            Los módulos marcados en colores están actualmente desarrollados. Los demás se agregarán progresivamente.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card info-card">
+        <div class="card-body">
+          <h6 class="mb-3"><i class="fas fa-clock text-success me-2"></i>Última Actualización</h6>
+          <p class="mb-2">
+            <strong>Fecha:</strong> {{ loading ? 'Actualizando...' : (Date.now() | date:'dd/MM/yyyy HH:mm:ss') }}
+          </p>
+          <p class="text-muted small mb-0">
+            <i class="fas fa-sync-alt me-1"></i>
+            Los datos se actualizan automáticamente al cargar el dashboard. Use el botón "Actualizar" para obtener información más reciente.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
