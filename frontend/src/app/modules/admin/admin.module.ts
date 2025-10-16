@@ -39,7 +39,7 @@ import { SharedModule } from '../../shared/shared.module';
           ,{ path: 'inventarios', loadChildren: () => import('./inventarios/inventarios.module').then(m => m.InventariosModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'inventarios' } },
           { path: 'equipos', loadChildren: () => import('./equipos/equipos.module').then(m => m.EquiposModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'equipos' } },
           { path: 'reportes', loadChildren: () => import('./reportes/reportes.module').then(m => m.ReportesModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'reportes' } },
-          { path: 'punto-venta', loadChildren: () => import('./punto-venta/punto-venta.module').then(m => m.PuntoVentaModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'puntoventa' } },
+          { path: 'punto-venta', loadChildren: () => import('./punto-venta/punto-venta.module').then(m => m.PuntoVentaModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'punto_venta' } },
           { path: 'proveedores', loadChildren: () => import('../proveedores/proveedores.module').then(m => m.ProveedoresModule), canLoad: [ModuleGuard], canActivateChild: [ModuleGuard], data: { module: 'proveedores' } }
         ],
         canActivateChild: [AuthGuard]

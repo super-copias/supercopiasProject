@@ -159,7 +159,7 @@ export class ModuleGuard implements CanActivate, CanLoad, CanActivateChild {
         'inventarios', 
         'equipos', 
         'reportes', 
-        'puntoventa'
+        'punto_venta'
       ];
     }
 

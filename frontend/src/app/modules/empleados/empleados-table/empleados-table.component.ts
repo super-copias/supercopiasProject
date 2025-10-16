@@ -115,7 +115,7 @@ export class EmpleadosTableComponent {
       'inventarios': 'Inventarios',
       'equipos': 'Equipos',
       'reportes': 'Reportes',
-      'puntoventa': 'Punto de Venta'
+      'punto_venta': 'Punto de Venta'
     };
     return labels[modulo] || modulo;
   }
