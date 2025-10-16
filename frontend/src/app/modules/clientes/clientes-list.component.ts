@@ -3,6 +3,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, finalize, switchMap, takeUntil } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-clientes-list',
@@ -102,7 +103,8 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   
   constructor(
     private svc: ClientesService, 
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) { }
   
   ngOnInit() {
@@ -208,12 +210,26 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   onEliminar(cliente: any) {
     this.svc.delete(cliente.id).pipe(
       takeUntil(this.destroy$)
-    ).subscribe((response) => {
-      // El backend siempre devuelve ApiResponse<{id: string, eliminado: boolean}>
-      if (response?.success) {
-        this.load(); // Recargar la lista
-      } else {
-        alert('Error al eliminar el cliente');
+    ).subscribe({
+      next: (response) => {
+        if (response?.success) {
+          this.notificationService.success(
+            `El cliente "${cliente.nombre}" ha sido eliminado correctamente`,
+            'Cliente eliminado'
+          );
+          this.load(); // Recargar la lista
+        } else {
+          this.notificationService.error(
+            'No se pudo eliminar el cliente',
+            'Error al eliminar'
+          );
+        }
+      },
+      error: (error) => {
+        this.notificationService.error(
+          error.error?.message || 'Error desconocido al eliminar el cliente',
+          'Error al eliminar'
+        );
       }
     });
   }

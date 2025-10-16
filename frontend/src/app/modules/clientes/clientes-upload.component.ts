@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
+import { NotificationService } from '../../services/notification.service';
 
 /**
  * Componente para carga masiva de clientes desde archivo Excel
@@ -243,7 +244,8 @@ export class ClientesUploadComponent {
   constructor(
     private clientesService: ClientesService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private notificationService: NotificationService
   ) {}
 
   /**
@@ -267,13 +269,19 @@ export class ClientesUploadComponent {
     const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
 
     if (!allowedTypes.includes(file.type) && !hasValidExtension) {
-      alert('Por favor selecciona un archivo válido (.xlsx, .xls o .csv)');
+      this.notificationService.warning(
+        'Por favor selecciona un archivo válido (.xlsx, .xls o .csv)',
+        'Formato no válido'
+      );
       return;
     }
 
     // Validar tamaño (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('El archivo es demasiado grande. El tamaño máximo es 5MB.');
+      this.notificationService.warning(
+        'El archivo es demasiado grande. El tamaño máximo es 5MB.',
+        'Archivo muy grande'
+      );
       return;
     }
 
@@ -285,8 +293,10 @@ export class ClientesUploadComponent {
    * Sube y procesa el archivo Excel
    */
   uploadFile(): void {
-    if (!this.selectedFile) return;
-
+    if (!this.selectedFile) {
+      this.notificationService.warning('Por favor selecciona un archivo primero', 'Archivo requerido');
+      return;
+    }
 
     this.uploading = true;
     this.result = null;
@@ -304,8 +314,25 @@ export class ClientesUploadComponent {
           message: response.message
         };
         
-        // Si fue exitoso, limpiar la selección
+        // Mostrar notificación de éxito
         if (response.success) {
+          const insertados = response.data?.importados || 0;
+          if (insertados > 0) {
+            this.notificationService.success(
+              `Se importaron ${insertados} clientes correctamente`,
+              'Importación exitosa'
+            );
+          }
+          
+          // Si hay errores, también mostrar una advertencia
+          const errores = response.data?.errores?.length || 0;
+          if (errores > 0) {
+            this.notificationService.warning(
+              `${errores} registros tuvieron errores. Revisa los detalles abajo.`,
+              'Algunos errores encontrados'
+            );
+          }
+          
           this.selectedFile = null;
           // Limpiar el input file
           const fileInput = document.getElementById('excelFile') as HTMLInputElement;
@@ -315,10 +342,14 @@ export class ClientesUploadComponent {
       error: (error) => {
         this.uploading = false;
         
+        const errorMsg = error.error?.message || 'Error al procesar el archivo. Por favor intenta nuevamente.';
+        
         this.result = {
           success: false,
-          message: error.error?.message || 'Error al procesar el archivo. Por favor intenta nuevamente.'
+          message: errorMsg
         };
+        
+        this.notificationService.error(errorMsg, 'Error en la importación');
       }
     });
   }
@@ -376,6 +407,12 @@ export class ClientesUploadComponent {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // Mostrar notificación
+    this.notificationService.info(
+      'La plantilla se está descargando',
+      'Descarga iniciada'
+    );
     
     // Simular delay para UX
     setTimeout(() => {

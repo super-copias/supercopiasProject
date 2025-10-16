@@ -295,14 +295,18 @@ async function createCliente(req, res) {
       }
     }
     
-    // Validar Uso CFDI si se proporciona (debe ser código SAT: letra + 2 dígitos)
-    if (cfdi) {
-      const cfdiRegex = /^[A-Z][0-9]{2}$/;
-      if (!cfdiRegex.test(cfdi.toUpperCase())) {
+    // Validar Uso CFDI si se proporciona (verificar que exista en el catálogo)
+    if (cfdi && cfdi.trim().length > 0) {
+      const cfdiResult = await query(
+        'SELECT codigo FROM usos_cfdi WHERE UPPER(codigo) = UPPER($1) AND activo = true',
+        [cfdi.trim()]
+      );
+      
+      if (cfdiResult.rows.length === 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
-            'Uso CFDI inválido. Debe ser código SAT de 1 letra + 2 dígitos (Ej: G01, D01)'
+            'Uso CFDI inválido. El código proporcionado no existe en el catálogo SAT'
           )
         );
       }
@@ -530,14 +534,18 @@ async function updateCliente(req, res) {
       }
     }
     
-    // Validar Uso CFDI si se proporciona
+    // Validar Uso CFDI si se proporciona (verificar que exista en el catálogo)
     if (updateData.cfdi && updateData.cfdi.trim().length > 0) {
-      const cfdiRegex = /^[A-Z][0-9]{2}$/;
-      if (!cfdiRegex.test(updateData.cfdi.toUpperCase())) {
+      const cfdiResult = await query(
+        'SELECT codigo FROM usos_cfdi WHERE UPPER(codigo) = UPPER($1) AND activo = true',
+        [updateData.cfdi.trim()]
+      );
+      
+      if (cfdiResult.rows.length === 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
-            'Uso CFDI inválido. Debe ser código SAT (Ej: G01, D01)'
+            'Uso CFDI inválido. El código proporcionado no existe en el catálogo SAT'
           )
         );
       }
@@ -888,43 +896,22 @@ async function uploadExcelClientes(req, res) {
 }
 
 /**
- * Obtener catálogo de Usos CFDI
+ * Obtener catálogo de Usos CFDI desde la base de datos
  * Endpoint: GET /api/clientes/usos-cfdi
  * 
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @returns {Object} JSON con catálogo de usos CFDI
  */
-function getUsosCFDI(req, res) {
+async function getUsosCFDI(req, res) {
   try {
-    // Catálogo oficial de Usos CFDI del SAT
-    const usosCFDI = [
-      { clave: 'G01', descripcion: 'Adquisición de mercancías' },
-      { clave: 'G02', descripcion: 'Devoluciones, descuentos o bonificaciones' },
-      { clave: 'G03', descripcion: 'Gastos en general' },
-      { clave: 'I01', descripcion: 'Construcciones' },
-      { clave: 'I02', descripcion: 'Mobiliario y equipo de oficina por inversiones' },
-      { clave: 'I03', descripcion: 'Equipo de transporte' },
-      { clave: 'I04', descripcion: 'Equipo de cómputo y accesorios' },
-      { clave: 'I05', descripcion: 'Dados, troqueles, moldes, matrices y herramental' },
-      { clave: 'I06', descripcion: 'Comunicaciones telefónicas' },
-      { clave: 'I07', descripcion: 'Comunicaciones satelitales' },
-      { clave: 'I08', descripcion: 'Otra maquinaria y equipo' },
-      { clave: 'D01', descripcion: 'Honorarios médicos, dentales y gastos hospitalarios' },
-      { clave: 'D02', descripcion: 'Gastos médicos por incapacidad o discapacidad' },
-      { clave: 'D03', descripcion: 'Gastos funerales' },
-      { clave: 'D04', descripcion: 'Donativos' },
-      { clave: 'D05', descripcion: 'Intereses reales efectivamente pagados por créditos hipotecarios' },
-      { clave: 'D06', descripcion: 'Aportaciones voluntarias al SAR' },
-      { clave: 'D07', descripcion: 'Primas por seguros de gastos médicos' },
-      { clave: 'D08', descripcion: 'Gastos de transportación escolar obligatoria' },
-      { clave: 'D09', descripcion: 'Depósitos en cuentas para el ahorro, primas que tengan como base planes de pensiones' },
-      { clave: 'D10', descripcion: 'Pagos por servicios educativos (colegiaturas)' },
-      { clave: 'P01', descripcion: 'Por definir' },
-      { clave: 'S01', descripcion: 'Sin efectos fiscales' },
-      { clave: 'CP01', descripcion: 'Pagos' },
-      { clave: 'CN01', descripcion: 'Nómina' }
-    ];
+    // Consultar catálogo de usos CFDI desde la base de datos
+    const result = await query(
+      'SELECT codigo as clave, descripcion FROM usos_cfdi WHERE activo = true ORDER BY codigo',
+      []
+    );
+    
+    const usosCFDI = result.rows;
 
     res.json(
       createResponse(
@@ -935,7 +922,7 @@ function getUsosCFDI(req, res) {
     );
 
   } catch (error) {
-
+    console.error('Error al obtener catálogo de Usos CFDI:', error);
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,

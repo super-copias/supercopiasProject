@@ -8,6 +8,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ClientesService } from '../../services/clientes.service';
 import { CatalogosService } from '../../services/catalogos.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-clientes-form',
@@ -147,7 +148,8 @@ export class ClientesFormComponent implements OnInit {
     private catalogosService: CatalogosService,
     private router: Router,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private notificationService: NotificationService
   ) { }
 
   /**
@@ -165,7 +167,7 @@ export class ClientesFormComponent implements OnInit {
           this.isEdit = true;
           this.loadCliente();
         } else {
-          alert('ID de cliente inválido');
+          this.notificationService.error('El ID del cliente no es válido', 'ID inválido');
           this.router.navigate(['/admin/clientes']);
         }
       }
@@ -224,13 +226,19 @@ export class ClientesFormComponent implements OnInit {
             };
             this.cdr.detectChanges();
           } else {
-            alert('Error cargando cliente: ' + (response.message || 'No se encontró el cliente'));
+            this.notificationService.error(
+              response.message || 'No se encontró el cliente',
+              'Error al cargar'
+            );
             this.router.navigate(['/admin/clientes']);
           }
           this.loading = false;
         },
         error: (error) => {
-          alert('Error cargando cliente: ' + (error.error?.message || error.message || 'Error desconocido'));
+          this.notificationService.error(
+            error.error?.message || error.message || 'Error desconocido',
+            'Error al cargar cliente'
+          );
           this.loading = false;
           this.router.navigate(['/admin/clientes']);
         }
@@ -244,12 +252,12 @@ export class ClientesFormComponent implements OnInit {
   save() {
     // Validaciones del lado del cliente
     if (!this.model.nombre || this.model.nombre.trim().length === 0) {
-      alert('El nombre es requerido');
+      this.notificationService.warning('El nombre del cliente es requerido', 'Campo requerido');
       return;
     }
 
     if (!this.model.telefono || this.model.telefono.trim().length === 0) {
-      alert('El teléfono es requerido');
+      this.notificationService.warning('El teléfono es requerido', 'Campo requerido');
       return;
     }
 
@@ -257,7 +265,7 @@ export class ClientesFormComponent implements OnInit {
     if (this.model.email && this.model.email.trim().length > 0) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(this.model.email)) {
-        alert('El formato del correo electrónico es inválido');
+        this.notificationService.warning('El formato del correo electrónico es inválido', 'Formato inválido');
         return;
       }
     }
@@ -265,7 +273,7 @@ export class ClientesFormComponent implements OnInit {
     // Validar formato de teléfono
     const telefonoRegex = /^[\d\-\+\(\)\s]+$/;
     if (!telefonoRegex.test(this.model.telefono)) {
-      alert('El formato del teléfono es inválido');
+      this.notificationService.warning('El formato del teléfono es inválido. Use solo números y caracteres: - + ( )', 'Formato inválido');
       return;
     }
 
@@ -273,7 +281,7 @@ export class ClientesFormComponent implements OnInit {
     if (this.model.rfc && this.model.rfc.trim().length > 0) {
       const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
       if (!rfcRegex.test(this.model.rfc.toUpperCase())) {
-        alert('El formato del RFC es inválido');
+        this.notificationService.warning('El formato del RFC es inválido. Debe tener 12 o 13 caracteres', 'Formato inválido');
         return;
       }
     }
@@ -286,15 +294,31 @@ export class ClientesFormComponent implements OnInit {
     request$.subscribe({
       next: (response) => {
         if (response && response.success) {
-          this.router.navigate(['/admin/clientes']);
+          const mensaje = this.isEdit 
+            ? 'El cliente ha sido actualizado correctamente' 
+            : 'El cliente ha sido creado correctamente';
+          const titulo = this.isEdit ? 'Cliente actualizado' : 'Cliente creado';
+          
+          this.notificationService.success(mensaje, titulo);
+          
+          // Redirigir después de un pequeño delay para que el usuario vea la notificación
+          setTimeout(() => {
+            this.router.navigate(['/admin/clientes']);
+          }, 500);
         } else {
-          alert('Error guardando cliente: ' + (response.message || 'Error desconocido'));
+          this.notificationService.error(
+            response.message || 'Error desconocido al guardar el cliente',
+            'Error al guardar'
+          );
         }
         this.loading = false;
       },
       error: (error) => {
         const errorMsg = error.error?.message || error.message || 'Error desconocido';
-        alert('Error guardando cliente: ' + errorMsg);
+        this.notificationService.error(
+          errorMsg,
+          'Error al guardar cliente'
+        );
         this.loading = false;
       }
     });

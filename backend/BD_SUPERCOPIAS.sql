@@ -176,8 +176,9 @@ CREATE TABLE clientes (
     -- Constraints
     CONSTRAINT chk_clientes_email CHECK (email IS NULL OR email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
     CONSTRAINT chk_clientes_rfc CHECK (rfc IS NULL OR LENGTH(rfc) IN (12, 13)),
-    CONSTRAINT chk_clientes_regimen_fiscal CHECK (regimen_fiscal IS NULL OR regimen_fiscal ~ '^[0-9]{3}$'),
-    CONSTRAINT chk_clientes_uso_cfdi CHECK (uso_cfdi IS NULL OR uso_cfdi ~ '^[A-Z][0-9]{2}$')
+    CONSTRAINT chk_clientes_regimen_fiscal CHECK (regimen_fiscal IS NULL OR regimen_fiscal ~ '^[0-9]{3}$')
+    -- NOTA: La validación de uso_cfdi se realiza en el backend consultando la tabla usos_cfdi
+    -- Restricción eliminada para permitir códigos de 3-5 caracteres (G01, D01, CP01, CN01, etc.)
 );
 
 -- Índices para clientes
@@ -608,4 +609,17 @@ BEGIN
         (SELECT COUNT(*) FROM information_schema.views WHERE table_schema = 'public'),
         (SELECT COUNT(*) FROM information_schema.routines WHERE routine_schema = 'public');
     RAISE NOTICE '🚀 Sistema listo para usar con PostgreSQL';
+END $$;
+
+-- =====================================================
+-- SCRIPTS DE MIGRACIÓN PARA BASES DE DATOS EXISTENTES
+-- =====================================================
+
+-- MIGRACIÓN: Eliminar restricción CHECK de uso_cfdi (16/10/2025)
+-- Razón: La restricción solo permitía códigos de 3 caracteres (^[A-Z][0-9]{2}$)
+--        pero el catálogo SAT incluye códigos de 4 caracteres (CP01, CN01)
+--        La validación ahora se hace en el backend consultando la tabla usos_cfdi
+-- 
+-- Ejecutar en bases de datos existentes:
+-- ALTER TABLE clientes DROP CONSTRAINT IF EXISTS chk_clientes_uso_cfdi;
 END $$;

@@ -11,6 +11,7 @@ import { EmpleadosModule } from './modules/empleados/empleados.module';
 import { AuthInterceptor } from './services/auth-interceptor';
 import { HttpLoggerInterceptor } from './services/http-logger.interceptor';
 import { AuthGuard } from './services/auth.guard';
+import { SharedModule } from './shared/shared.module';
 
 const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -20,7 +21,7 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes)],
+  imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes), SharedModule],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: HttpLoggerInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
