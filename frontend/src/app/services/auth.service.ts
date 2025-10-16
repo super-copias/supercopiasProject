@@ -15,10 +15,11 @@ import {
   LoginRequest, 
   LoginResponse 
 } from '../shared/interfaces';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private base = '/api/auth';
+  private base = `${environment.apiUrl}/auth`;
   private userSubject = new BehaviorSubject<Usuario | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
   

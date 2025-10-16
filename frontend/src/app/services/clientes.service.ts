@@ -10,10 +10,11 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
 import { ApiResponse, Cliente, PaginationParams } from '../shared/interfaces';
 import { CatalogosService } from './catalogos.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ClientesService {
-  private baseUrl = '/api/clientes';
+  private baseUrl = `${environment.apiUrl}/clientes`;
   
   constructor(
     private http: HttpClient,
@@ -102,7 +103,7 @@ export class ClientesService {
    * Obtener catálogo de estados desde backend
    */
   getEstados(): Observable<any[]> {
-    return this.http.get<ApiResponse<any[]>>('/api/catalogos/estados')
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/catalogos/estados`)
       .pipe(
         map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))
@@ -113,7 +114,7 @@ export class ClientesService {
    * Obtener catálogo de regímenes fiscales desde backend
    */
   getRegimenesFiscales(): Observable<any[]> {
-    return this.http.get<ApiResponse<any[]>>('/api/catalogos/regimenes-fiscales')
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/catalogos/regimenes-fiscales`)
       .pipe(
         map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))
@@ -124,7 +125,7 @@ export class ClientesService {
    * Obtener catálogo de formas de pago desde backend
    */
   getFormasPago(): Observable<any[]> {
-    return this.http.get<ApiResponse<any[]>>('/api/catalogos/formas-pago')
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/catalogos/formas-pago`)
       .pipe(
         map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))
@@ -135,7 +136,7 @@ export class ClientesService {
    * Obtener catálogo de métodos de pago desde backend
    */
   getMetodosPago(): Observable<any[]> {
-    return this.http.get<ApiResponse<any[]>>('/api/catalogos/metodos-pago')
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/catalogos/metodos-pago`)
       .pipe(
         map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))

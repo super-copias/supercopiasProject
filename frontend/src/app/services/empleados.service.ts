@@ -17,10 +17,11 @@ import {
   RolSistema,
   PaginationParams 
 } from '../shared/interfaces';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class EmpleadosService {
-  private baseUrl = '/api/empleados';
+  private baseUrl = `${environment.apiUrl}/empleados`;
   
   constructor(private http: HttpClient) {}
 

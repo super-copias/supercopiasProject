@@ -9,6 +9,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { ApiResponse } from '../shared/interfaces';
+import { environment } from '../../environments/environment';
 
 // Interfaces para catálogos
 export interface Estado {
@@ -65,7 +66,7 @@ export interface Puesto {
 
 @Injectable({ providedIn: 'root' })
 export class CatalogosService {
-  private baseUrl = '/api/catalogos';
+  private baseUrl = `${environment.apiUrl}/catalogos`;
   
   // Cache local para evitar llamadas repetidas solo para catálogos estáticos
   private estadosCache$ = new BehaviorSubject<Estado[] | null>(null);

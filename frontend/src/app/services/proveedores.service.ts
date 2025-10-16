@@ -9,10 +9,11 @@ import { Observable, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
 import { ApiResponse, PaginationParams, Proveedor } from '../shared/interfaces';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ProveedoresService {
-  private baseUrl = '/api/proveedores';
+  private baseUrl = `${environment.apiUrl}/proveedores`;
   
   constructor(private http: HttpClient) {}
 
