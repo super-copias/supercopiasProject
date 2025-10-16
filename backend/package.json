@@ -10,8 +10,7 @@
     "dev:clean": "nodemon --exec \"node index.js\" --ignore db.json --ignore uploads/",
     "migrate": "node scripts/migrate-to-postgres.js",
     "setup-db": "psql -U postgres -d supercopias -f BD_SUPERCOPIAS.sql",
-    "build": "echo 'No build step needed for Node.js backend'",
-    "postinstall": "npm run migrate"
+    "build": "echo 'No build step needed for Node.js backend'"
   },
   "dependencies": {
     "axios": "^1.12.2",

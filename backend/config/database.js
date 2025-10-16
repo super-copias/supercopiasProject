@@ -9,24 +9,31 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 // Configuración del pool de conexiones PostgreSQL
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'supercopias',
-  
-  // Configuración del pool
-  max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
-  idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
-  connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
-  
-  // Configuración SSL (para producción)
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  
-  // Configuración adicional
-  application_name: 'SuperCopias_Backend'
-};
+// Railway proporciona DATABASE_URL, que tiene prioridad sobre variables individuales
+const dbConfig = process.env.DATABASE_URL 
+  ? {
+      // Configuración para Railway (usando DATABASE_URL)
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
+      idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
+      connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
+      application_name: 'SuperCopias_Backend'
+    }
+  : {
+      // Configuración para desarrollo local (usando variables individuales)
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'supercopias',
+      max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
+      idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
+      connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
+      ssl: false,
+      application_name: 'SuperCopias_Backend'
+    };
+
 
 // Pool de conexiones
 let pool;

@@ -32,7 +32,9 @@ const app = express();
 
 // Middlewares globales
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://127.0.0.1:4200'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || '*'
+    : ['http://localhost:4200', 'http://127.0.0.1:4200'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -70,25 +72,26 @@ async function startServer() {
     // Inicializar conexión a la base de datos
     console.log('🔌 Conectando a la base de datos...');
     await initializeDatabase();
-    console.log('✅ Conexión a MySQL establecida');
+    console.log('✅ Conexión a PostgreSQL establecida');
 
     // Iniciar el servidor Express
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 SuperCopias Server running on port ${PORT}`);
       console.log(`📡 API available at http://localhost:${PORT}`);
-      console.log(`🗄️  Database: MySQL (${process.env.DB_NAME})`);
+      console.log(`🗄️  Database: PostgreSQL (${process.env.DB_NAME})`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       
-      // Nota: Los datos mock ya no son necesarios con MySQL
+      // Nota: Los datos mock ya no son necesarios con PostgreSQL
       console.log('\n✅ Sistema listo para usar\n');
     });
 
   } catch (error) {
     console.error('💥 Error iniciando el servidor:', error);
     console.error('📋 Posibles soluciones:');
-    console.error('  1. Verificar que MySQL esté corriendo');
-    console.error('  2. Verificar credenciales en .env');
+    console.error('  1. Verificar que PostgreSQL esté corriendo');
+    console.error('  2. Verificar credenciales en variables de entorno');
     console.error('  3. Verificar que la base de datos existe');
-    console.error('  4. Ejecutar: npm run setup-db');
+    console.error('  4. Verificar configuración DATABASE_URL en Railway');
     process.exit(1);
   }
 }
