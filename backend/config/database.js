@@ -9,10 +9,10 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 // Configuración del pool de conexiones PostgreSQL
-// Railway proporciona DATABASE_URL, que tiene prioridad sobre variables individuales
+// Render y otras plataformas proporcionan DATABASE_URL, que tiene prioridad sobre variables individuales
 const dbConfig = process.env.DATABASE_URL 
   ? {
-      // Configuración para Railway (usando DATABASE_URL)
+      // Configuración para producción (usando DATABASE_URL de Render/Railway/etc)
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,

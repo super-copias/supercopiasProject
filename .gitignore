@@ -69,3 +69,25 @@ coverage/
 
 # PM2
 .pm2/
+
+# Deployment files (mantener solo render.yaml)
+Dockerfile*
+docker-compose*
+nixpacks.toml
+Procfile*
+app.json
+static.json
+firebase.json
+vercel.json
+netlify.toml
+_redirects
+railway.json
+
+# Documentación temporal de desarrollo
+ARCHIVOS_FINALES.md
+CAMBIOS_APLICADOS.md
+GUIA_COMPLETA.md
+SISTEMA_EMPLEADOS.md
+RAILWAY_*.md
+START_HERE_RAILWAY.md
+DB_UPDATE_LOG.md
