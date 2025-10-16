@@ -3,7 +3,7 @@ services:
   - type: web
     name: supercopias-backend
     env: node
-    plan: free
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
     rootDir: ./backend
@@ -22,7 +22,7 @@ services:
   - type: web
     name: supercopias-frontend
     env: static
-    plan: free
+    plan: starter
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist/supercopias-frontend
     rootDir: ./frontend
@@ -34,4 +34,4 @@ services:
 databases:
   # PostgreSQL Database
   - name: supercopias-db
-    plan: free
+    plan: starter
