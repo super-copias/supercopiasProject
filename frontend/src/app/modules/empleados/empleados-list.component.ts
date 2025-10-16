@@ -4,6 +4,7 @@ import { debounceTime, switchMap, takeUntil, finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { EmpleadosService } from '../../services/empleados.service';
 import { CatalogosService } from '../../services/catalogos.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-empleados-list',
@@ -117,7 +118,8 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
   constructor(
     private empleadosService: EmpleadosService,
     private catalogosService: CatalogosService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -261,14 +263,23 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (response) => {
         if (response?.success) {
-          alert('Empleado eliminado exitosamente');
+          this.notificationService.success(
+            `El empleado "${empleado.nombre}" ha sido eliminado correctamente`,
+            'Empleado eliminado'
+          );
           this.load(); // Recargar la lista
         } else {
-          alert('Error al eliminar el empleado');
+          this.notificationService.error(
+            'No se pudo eliminar el empleado',
+            'Error al eliminar'
+          );
         }
       },
       error: (error) => {
-        alert('Error al eliminar el empleado. Por favor intente nuevamente.');
+        this.notificationService.error(
+          error.error?.message || 'Error al eliminar el empleado. Por favor intente nuevamente.',
+          'Error al eliminar'
+        );
       }
     });
   }

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-login',
@@ -11,7 +12,12 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   isPasswordVisible = false;
-  constructor(private auth: AuthService, private router: Router, private fb: FormBuilder) { }
+  constructor(
+    private auth: AuthService, 
+    private router: Router, 
+    private fb: FormBuilder,
+    private notificationService: NotificationService
+  ) { }
   ngOnInit() {
     this.loginForm = this.fb.group({
       identifier: ['', [Validators.required]],
@@ -36,11 +42,17 @@ export class LoginComponent implements OnInit {
           localStorage.setItem('user', JSON.stringify(res.data.user || {}));
           this.router.navigate(['/admin/dashboard'], { replaceUrl: true });
         } else {
-          alert('No se recibió token válido');
+          this.notificationService.error(
+            'No se recibió un token válido del servidor',
+            'Error de autenticación'
+          );
         }
       }, error: err => {
-        const msg = (err && err.error && err.error.message) ? err.error.message : (err.statusText || err.message || JSON.stringify(err));
-        alert('Error: ' + msg);
+        const msg = (err && err.error && err.error.message) ? err.error.message : (err.statusText || err.message || 'Error desconocido');
+        this.notificationService.error(
+          msg,
+          'Error al iniciar sesión'
+        );
       }
     });
   }

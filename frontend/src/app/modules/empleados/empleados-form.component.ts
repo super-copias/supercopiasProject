@@ -3,6 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EmpleadosService } from '../../services/empleados.service';
 import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-empleados-form',
@@ -350,7 +351,8 @@ export class EmpleadosFormComponent implements OnInit {
     private empleadosService: EmpleadosService,
     private catalogosService: CatalogosService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private notificationService: NotificationService
   ) {
     this.empleadoForm = this.createForm();
   }
@@ -610,7 +612,10 @@ export class EmpleadosFormComponent implements OnInit {
 
   onSubmit() {
     if (!this.isFormValid()) {
-      alert('Por favor completa todos los campos requeridos');
+      this.notificationService.warning(
+        'Por favor completa todos los campos requeridos correctamente',
+        'Formulario incompleto'
+      );
       return;
     }
 
@@ -658,7 +663,10 @@ export class EmpleadosFormComponent implements OnInit {
           this.mostrarModalCredenciales = true;
         } else {
           // Si no se crearon credenciales, mostrar mensaje normal y redirigir
-          alert('Empleado creado exitosamente');
+          this.notificationService.success(
+            'El empleado ha sido creado exitosamente',
+            'Empleado creado'
+          );
           this.router.navigate(['/admin/empleados']);
         }
       },
@@ -667,13 +675,25 @@ export class EmpleadosFormComponent implements OnInit {
         
         // Manejo de errores más específico
         if (error.status === 400 && error.error?.error?.message) {
-          alert(`Error de validación: ${error.error.error.message}`);
+          this.notificationService.error(
+            error.error.error.message,
+            'Error de validación'
+          );
         } else if (error.status === 409) {
-          alert('Error: Ya existe un empleado con ese email o número de empleado');
+          this.notificationService.error(
+            'Ya existe un empleado con ese email o número de empleado',
+            'Empleado duplicado'
+          );
         } else if (error.status === 500) {
-          alert('Error interno del servidor. Por favor intente nuevamente');
+          this.notificationService.error(
+            'Error interno del servidor. Por favor intente nuevamente',
+            'Error del servidor'
+          );
         } else {
-          alert('Error al crear el empleado. Por favor verifique los datos e intente nuevamente');
+          this.notificationService.error(
+            'Por favor verifique los datos e intente nuevamente',
+            'Error al crear empleado'
+          );
         }
       }
     });
@@ -703,13 +723,19 @@ export class EmpleadosFormComponent implements OnInit {
           this.mostrarModalCredenciales = true;
         } else {
           // Si no se crearon credenciales, mostrar mensaje normal y redirigir
-          alert('Empleado actualizado exitosamente');
+          this.notificationService.success(
+            'El empleado ha sido actualizado exitosamente',
+            'Empleado actualizado'
+          );
           this.router.navigate(['/admin/empleados']);
         }
       },
       error: (error) => {
         this.loading = false;
-        alert('Error al actualizar el empleado');
+        this.notificationService.error(
+          error.error?.message || 'Error al actualizar el empleado',
+          'Error al actualizar'
+        );
       }
     });
   }

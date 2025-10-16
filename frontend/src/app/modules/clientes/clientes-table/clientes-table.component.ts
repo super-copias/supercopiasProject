@@ -1,4 +1,5 @@
 import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-clientes-table',
@@ -13,6 +14,8 @@ export class ClientesTableComponent {
 
   selectedCliente: any = null;
   showDetalles = false;
+
+  constructor(private notificationService: NotificationService) {}
 
   // Cerrar modal con tecla Escape
   @HostListener('document:keydown.escape', ['$event'])
@@ -49,7 +52,10 @@ export class ClientesTableComponent {
 
   verUbicacion(cliente: any) {
     if (!cliente.direccionEntrega || cliente.direccionEntrega.trim() === '') {
-      alert('Este cliente no tiene una dirección registrada.');
+      this.notificationService.warning(
+        'Este cliente no tiene una dirección registrada',
+        'Dirección no disponible'
+      );
       return;
     }
 
