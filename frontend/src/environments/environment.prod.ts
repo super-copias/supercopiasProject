@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
+  apiUrl: 'https://supercopiasproject-production.up.railway.app/api',
   name: 'production'
 };
