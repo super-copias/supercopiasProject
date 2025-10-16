@@ -157,23 +157,23 @@ async function getCliente(req, res) {
     // Mapear campos de BD a formato del frontend
     const cliente = {
       id: clienteDB.id,
-      nombre: clienteDB.nombre_comercial || clienteDB.razon_social,
-      telefono: clienteDB.telefono,
-      segundoTelefono: clienteDB.segundo_telefono,
-      email: clienteDB.email,
-      direccionEntrega: clienteDB.direccion,
-      razon: clienteDB.razon_social,
-      rfc: clienteDB.rfc,
-      regimen: clienteDB.regimen_fiscal,
-      direccion: clienteDB.direccion,
-      cp: clienteDB.direccion_codigo_postal,
-      cfdi: clienteDB.uso_cfdi,
+      nombre: clienteDB.nombre_comercial || clienteDB.razon_social || '',
+      telefono: clienteDB.telefono || '',
+      segundoTelefono: clienteDB.segundo_telefono || '',
+      email: clienteDB.email || '',
+      direccionEntrega: clienteDB.direccion || '',
+      razon: clienteDB.razon_social || '',
+      rfc: clienteDB.rfc || '',
+      regimen: clienteDB.regimen_fiscal || '',
+      direccion: clienteDB.direccion || '',
+      cp: clienteDB.direccion_codigo_postal || '',
+      cfdi: clienteDB.uso_cfdi || '',
       activo: clienteDB.activo,
       fecha_registro: clienteDB.fecha_registro,
       fecha_modificacion: clienteDB.fecha_modificacion
     };
     
-    res.json(createResponse(cliente, 'Cliente obtenido exitosamente'));
+    res.json(createResponse(true, cliente, 'Cliente obtenido exitosamente'));
     
   } catch (error) {
 
@@ -369,14 +369,14 @@ async function createCliente(req, res) {
     const values = [
       razon || nombre.trim(), // razon_social (usar nombre si no hay razón social)
       nombre.trim(), // nombre_comercial
-      email ? email.toLowerCase() : null,
+      email && email.trim().length > 0 ? email.toLowerCase() : null,
       telefono || null,
-      segundoTelefono || null, // segundo_telefono
-      rfc ? rfc.toUpperCase() : null,
-      regimen || null, // regimen_fiscal (código SAT)
-      cfdi ? cfdi.toUpperCase() : null, // uso_cfdi (código SAT)
+      segundoTelefono && segundoTelefono.trim().length > 0 ? segundoTelefono : null, // segundo_telefono
+      rfc && rfc.trim().length > 0 ? rfc.toUpperCase() : null,
+      regimen && regimen.trim().length > 0 ? regimen : null, // regimen_fiscal (código SAT)
+      cfdi && cfdi.trim().length > 0 ? cfdi.toUpperCase() : null, // uso_cfdi (código SAT)
       direccionEntrega || direccion || null, // direccion (priorizar direccionEntrega)
-      cp || null // direccion_codigo_postal
+      cp && cp.trim().length > 0 ? cp : null // direccion_codigo_postal
     ];
     
     const result = await query(insertQuery, values);
@@ -403,6 +403,7 @@ async function createCliente(req, res) {
     
     return res.status(201).json(
       createResponse(
+        true,
         nuevoCliente,
         'Cliente creado exitosamente'
       )
@@ -469,8 +470,27 @@ async function updateCliente(req, res) {
     
     const clienteExistente = clienteResult.rows[0];
     
+    // Validaciones básicas
+    if (updateData.nombre !== undefined && (!updateData.nombre || updateData.nombre.trim().length === 0)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.REQUIRED_FIELD,
+          'El nombre del cliente es requerido'
+        )
+      );
+    }
+    
+    if (updateData.telefono !== undefined && (!updateData.telefono || updateData.telefono.trim().length === 0)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.REQUIRED_FIELD,
+          'El teléfono es requerido'
+        )
+      );
+    }
+    
     // Si se actualiza el RFC, verificar que no esté duplicado y validar formato
-    if (updateData.rfc && updateData.rfc.toUpperCase() !== clienteExistente.rfc) {
+    if (updateData.rfc && updateData.rfc.trim().length > 0 && updateData.rfc.toUpperCase() !== clienteExistente.rfc) {
       // Validar formato de RFC según reglas SAT
       const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
       if (!rfcRegex.test(updateData.rfc.toUpperCase())) {
@@ -498,7 +518,7 @@ async function updateCliente(req, res) {
     }
     
     // Validar Régimen Fiscal si se proporciona
-    if (updateData.regimen) {
+    if (updateData.regimen && updateData.regimen.trim().length > 0) {
       const regimenRegex = /^[0-9]{3}$/;
       if (!regimenRegex.test(updateData.regimen)) {
         return res.status(400).json(
@@ -511,7 +531,7 @@ async function updateCliente(req, res) {
     }
     
     // Validar Uso CFDI si se proporciona
-    if (updateData.cfdi) {
+    if (updateData.cfdi && updateData.cfdi.trim().length > 0) {
       const cfdiRegex = /^[A-Z][0-9]{2}$/;
       if (!cfdiRegex.test(updateData.cfdi.toUpperCase())) {
         return res.status(400).json(
@@ -530,35 +550,35 @@ async function updateCliente(req, res) {
     
     if (updateData.razon !== undefined) {
       camposActualizar.push(`razon_social = $${contador++}`);
-      valores.push(updateData.razon);
+      valores.push(updateData.razon && updateData.razon.trim().length > 0 ? updateData.razon.trim() : null);
     }
     if (updateData.nombre !== undefined) {
       camposActualizar.push(`nombre_comercial = $${contador++}`);
-      valores.push(updateData.nombre.trim());
+      valores.push(updateData.nombre && updateData.nombre.trim().length > 0 ? updateData.nombre.trim() : null);
     }
     if (updateData.email !== undefined) {
       camposActualizar.push(`email = $${contador++}`);
-      valores.push(updateData.email.toLowerCase());
+      valores.push(updateData.email && updateData.email.trim().length > 0 ? updateData.email.toLowerCase() : null);
     }
     if (updateData.telefono !== undefined) {
       camposActualizar.push(`telefono = $${contador++}`);
-      valores.push(updateData.telefono);
+      valores.push(updateData.telefono && updateData.telefono.trim().length > 0 ? updateData.telefono : null);
     }
     if (updateData.segundoTelefono !== undefined) {
       camposActualizar.push(`segundo_telefono = $${contador++}`);
-      valores.push(updateData.segundoTelefono);
+      valores.push(updateData.segundoTelefono && updateData.segundoTelefono.trim().length > 0 ? updateData.segundoTelefono : null);
     }
     if (updateData.rfc !== undefined) {
       camposActualizar.push(`rfc = $${contador++}`);
-      valores.push(updateData.rfc ? updateData.rfc.toUpperCase() : null);
+      valores.push(updateData.rfc && updateData.rfc.trim().length > 0 ? updateData.rfc.toUpperCase() : null);
     }
     if (updateData.regimen !== undefined) {
       camposActualizar.push(`regimen_fiscal = $${contador++}`);
-      valores.push(updateData.regimen);
+      valores.push(updateData.regimen && updateData.regimen.trim().length > 0 ? updateData.regimen : null);
     }
     if (updateData.cfdi !== undefined) {
       camposActualizar.push(`uso_cfdi = $${contador++}`);
-      valores.push(updateData.cfdi ? updateData.cfdi.toUpperCase() : null);
+      valores.push(updateData.cfdi && updateData.cfdi.trim().length > 0 ? updateData.cfdi.toUpperCase() : null);
     }
     // Mapear direccionEntrega del frontend a direccion de la BD
     if (updateData.direccionEntrega !== undefined) {
@@ -617,6 +637,7 @@ async function updateCliente(req, res) {
     
     return res.json(
       createResponse(
+        true,
         clienteActualizado,
         'Cliente actualizado exitosamente'
       )
@@ -688,6 +709,7 @@ async function deleteCliente(req, res) {
     
     return res.json(
       createResponse(
+        true,
         { id: clienteId, eliminado: true },
         'Cliente eliminado exitosamente'
       )
@@ -842,6 +864,7 @@ async function uploadExcelClientes(req, res) {
     
     return res.json(
       createResponse(
+        true,
         resultados,
         `Importación completada: ${resultados.importados} clientes importados`
       )

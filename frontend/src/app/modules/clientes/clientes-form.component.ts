@@ -14,7 +14,13 @@ import { CatalogosService } from '../../services/catalogos.service';
   template: `
   <div class="p-4">
     <h3>{{isEdit ? 'Editar Cliente' : 'Nuevo Cliente'}}</h3>
-    <form (ngSubmit)="save()">
+    
+    <!-- Indicador de carga -->
+    <div class="alert alert-info" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i> Cargando datos del cliente...
+    </div>
+    
+    <form (ngSubmit)="save()" *ngIf="!loading">
       <div class="mb-2">
         <label>Nombre completo <span class="text-danger">*</span></label>
         <input class="form-control" [(ngModel)]="model.nombre" name="nombre" required />
@@ -153,9 +159,15 @@ export class ClientesFormComponent implements OnInit {
     this.loadRegimenesFiscales();
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
-        this.clienteId = params['id'];
-        this.isEdit = true;
-        this.loadCliente();
+        const id = parseInt(params['id'], 10);
+        if (!isNaN(id) && id > 0) {
+          this.clienteId = id;
+          this.isEdit = true;
+          this.loadCliente();
+        } else {
+          alert('ID de cliente inválido');
+          this.router.navigate(['/admin/clientes']);
+        }
       }
     });
   }
@@ -196,12 +208,31 @@ export class ClientesFormComponent implements OnInit {
       this.svc.getById(this.clienteId).subscribe({
         next: (response) => {
           if (response && response.success && response.data) {
-            this.model = { ...response.data };
+            const clienteData = response.data;
+            this.model = {
+              nombre: clienteData.nombre || '',
+              telefono: clienteData.telefono || '',
+              segundoTelefono: clienteData.segundoTelefono || '',
+              email: clienteData.email || '',
+              direccionEntrega: clienteData.direccionEntrega || '',
+              razon: clienteData.razon || '',
+              rfc: clienteData.rfc || '',
+              regimen: clienteData.regimen || '',
+              direccion: clienteData.direccion || '',
+              cp: clienteData.cp || '',
+              cfdi: clienteData.cfdi || ''
+            };
+            this.cdr.detectChanges();
+          } else {
+            alert('Error cargando cliente: ' + (response.message || 'No se encontró el cliente'));
+            this.router.navigate(['/admin/clientes']);
           }
           this.loading = false;
         },
         error: (error) => {
+          alert('Error cargando cliente: ' + (error.error?.message || error.message || 'Error desconocido'));
           this.loading = false;
+          this.router.navigate(['/admin/clientes']);
         }
       });
     }

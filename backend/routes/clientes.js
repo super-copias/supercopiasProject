@@ -53,23 +53,35 @@ const upload = multer({
 });
 
 /**
- * GET /api/clientes
- * Listar clientes con búsqueda y paginación
- * Query params: q (búsqueda), page (página), limit (límite)
- */
-router.get('/', auth, listClientes);
-
-/**
  * GET /api/clientes/usos-cfdi
  * Obtener catálogo de Usos CFDI de México
+ * IMPORTANTE: Esta ruta debe estar ANTES de /:id para evitar conflictos
  */
 router.get('/usos-cfdi', auth, getUsosCFDI);
 
 /**
  * GET /api/clientes/plantilla-excel
  * Descargar plantilla Excel para carga masiva de clientes
+ * IMPORTANTE: Esta ruta debe estar ANTES de /:id para evitar conflictos
  */
 router.get('/plantilla-excel', auth, descargarPlantillaExcel);
+
+/**
+ * POST /api/clientes/upload-excel
+ * Carga masiva de clientes desde archivo Excel
+ * Acepta: archivos .xlsx y .xls
+ * Headers requeridos: nombre, telefono, segundo telefono, correo, direccion, 
+ *                    razon social, rfc, regimen fiscal, codigo postal, uso cfdi
+ * IMPORTANTE: Esta ruta debe estar ANTES de /:id para evitar conflictos
+ */
+router.post('/upload-excel', auth, upload.single('excel'), uploadExcelClientes);
+
+/**
+ * GET /api/clientes
+ * Listar clientes con búsqueda y paginación
+ * Query params: q (búsqueda), page (página), limit (límite)
+ */
+router.get('/', auth, listClientes);
 
 /**
  * GET /api/clientes/:id
@@ -96,14 +108,5 @@ router.put('/:id', auth, updateCliente);
  * Eliminar un cliente
  */
 router.delete('/:id', auth, deleteCliente);
-
-/**
- * POST /api/clientes/upload-excel
- * Carga masiva de clientes desde archivo Excel
- * Acepta: archivos .xlsx y .xls
- * Headers requeridos: nombre, telefono, segundo telefono, correo, direccion, 
- *                    razon social, rfc, regimen fiscal, codigo postal, uso cfdi
- */
-router.post('/upload-excel', auth, upload.single('excel'), uploadExcelClientes);
 
 module.exports = router;
