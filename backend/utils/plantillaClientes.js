@@ -11,42 +11,42 @@ function generarPlantillaClientes() {
   const datosEjemplo = [
     {
       'nombre': 'Juan Pérez García',
-      'telefono': '961-123-4567',
-      'segundo telefono': '961-123-4568',
+      'telefono': '9611234567',
+      'segundo telefono': '9611234568',
       'correo': 'juan.perez@email.com',
       'direccion de entrega': 'Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas',
       'razon social': 'Juan Pérez García',
       'rfc': 'PEGJ850315ABC',
-      'regimen fiscal': '612 - Personas Físicas con Actividades Empresariales',
+      'regimen fiscal': '612',
       'direccion': 'Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas',
       'codigo postal': '29000',
-      'uso cfdi': 'G03 - Gastos en general'
+      'uso cfdi': 'G03'
     },
     {
       'nombre': 'Comercializadora López S.A. de C.V.',
-      'telefono': '961-234-5678',
+      'telefono': '9612345678',
       'segundo telefono': '',
       'correo': '',
       'direccion de entrega': 'Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas',
       'razon social': 'Comercializadora López S.A. de C.V.',
       'rfc': 'CLS920810XYZ',
-      'regimen fiscal': '601 - General de Ley Personas Morales',
+      'regimen fiscal': '601',
       'direccion': 'Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas',
       'codigo postal': '29030',
-      'uso cfdi': 'G01 - Adquisición de mercancías'
+      'uso cfdi': 'G01'
     },
     {
       'nombre': 'María González Hernández',
-      'telefono': '967-345-6789',
-      'segundo telefono': '967-345-6790',
+      'telefono': '9673456789',
+      'segundo telefono': '9673456790',
       'correo': 'maria.gonzalez@email.com',
       'direccion de entrega': 'Real de Guadalupe 789, Centro, San Cristóbal de las Casas, Chiapas',
       'razon social': 'María González Hernández',
       'rfc': 'GOHM750425DEF',
-      'regimen fiscal': '612 - Personas Físicas con Actividades Empresariales',
+      'regimen fiscal': '612',
       'direccion': 'Real de Guadalupe 789, Centro, San Cristóbal de las Casas, Chiapas',
       'codigo postal': '29200',
-      'uso cfdi': 'G03 - Gastos en general'
+      'uso cfdi': 'G03'
     }
   ];
 

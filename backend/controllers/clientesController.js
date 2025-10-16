@@ -767,6 +767,11 @@ async function uploadExcelClientes(req, res) {
     // Procesar cada fila
     for (let i = 0; i < jsonData.length; i++) {
       const fila = jsonData[i];
+      let correo = null; // Declarar fuera del try para que sea accesible en catch
+      let telefonoLimpio = null;
+      let segundoTelefonoLimpio = null;
+      let cfdiLimpio = null;
+      let regimenLimpio = null;
       
       try {
         // Validaciones requeridas
@@ -781,7 +786,7 @@ async function uploadExcelClientes(req, res) {
         }
 
         // Validar formato de email solo si se proporciona
-        const correo = fila.correo || fila.email;
+        correo = fila.correo || fila.email;
         if (correo && correo.toString().trim().length > 0) {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(correo.toString().trim())) {
@@ -843,15 +848,45 @@ async function uploadExcelClientes(req, res) {
           RETURNING *
         `;
         
+        // Función auxiliar para limpiar números de teléfono (solo dígitos)
+        const limpiarTelefono = (tel) => {
+          if (!tel) return null;
+          return tel.toString().replace(/\D/g, ''); // Remover todo excepto dígitos
+        };
+        
+        // Función auxiliar para extraer solo el código de uso_cfdi (ej: "G03 - Gastos en general" -> "G03")
+        const extraerCodigoCFDI = (cfdi) => {
+          if (!cfdi) return null;
+          const cfdiStr = cfdi.toString().trim();
+          // Si tiene el formato "G03 - Descripción", extraer solo "G03"
+          const match = cfdiStr.match(/^([A-Z]\d{2})/);
+          return match ? match[1] : cfdiStr.substring(0, 3); // Tomar los primeros 3 caracteres
+        };
+        
+        // Función auxiliar para extraer código de régimen fiscal (ej: "612 - Descripción" -> "612")
+        const extraerCodigoRegimen = (regimen) => {
+          if (!regimen) return null;
+          const regimenStr = regimen.toString().trim();
+          // Si tiene el formato "612 - Descripción", extraer solo "612"
+          const match = regimenStr.match(/^(\d{3})/);
+          return match ? match[1] : regimenStr;
+        };
+        
+        // Preparar valores limpios
+        telefonoLimpio = limpiarTelefono(fila.telefono);
+        segundoTelefonoLimpio = limpiarTelefono(fila['segundo telefono'] || fila.segundoTelefono || fila.telefono2);
+        cfdiLimpio = extraerCodigoCFDI(fila['uso cfdi'] || fila.cfdi);
+        regimenLimpio = extraerCodigoRegimen(fila['regimen fiscal'] || fila.regimen);
+        
         const values = [
           fila['razon social'] || fila.razon || fila.nombre.trim(), // razon_social
           fila.nombre.trim(), // nombre_comercial
           correo ? correo.toLowerCase() : null, // email
-          fila.telefono || null, // telefono
-          fila['segundo telefono'] || fila.segundoTelefono || fila.telefono2 || null, // segundo_telefono
+          telefonoLimpio, // telefono (solo dígitos)
+          segundoTelefonoLimpio, // segundo_telefono
           fila.rfc ? fila.rfc.toUpperCase() : null, // rfc
-          fila['regimen fiscal'] || fila.regimen || null, // regimen_fiscal
-          fila['uso cfdi'] || fila.cfdi || null, // uso_cfdi
+          regimenLimpio, // regimen_fiscal (solo código)
+          cfdiLimpio, // uso_cfdi (solo código)
           fila.direccion || fila['direccion de entrega'] || null, // direccion
           fila['codigo postal'] || fila.cp || null // direccion_codigo_postal
         ];
@@ -863,7 +898,107 @@ async function uploadExcelClientes(req, res) {
         resultados.importados++;
         
       } catch (error) {
-        resultados.errores.push(`Fila ${i + 2}: ${error.message}`);
+        // Mapear errores de base de datos a columnas específicas del Excel
+        let mensajeError = error.message;
+        let columnaIdentificada = false;
+        
+        // Detectar errores de longitud de campo
+        if (mensajeError.includes('value too long for type character varying')) {
+          // Extraer el límite de caracteres
+          const match = mensajeError.match(/character varying\((\d+)\)/);
+          const limite = match ? parseInt(match[1]) : 0;
+          
+          // Analizar los valores LIMPIOS que se intentaron insertar
+          // Verificar en el mismo orden que el array values
+          
+          const razonSocial = fila['razon social'] || fila.razon || fila.nombre.trim();
+          const nombreComercial = fila.nombre.trim();
+          const emailLimpio = correo ? correo.toLowerCase() : null;
+          const rfcLimpio = fila.rfc ? fila.rfc.toUpperCase() : null;
+          const direccionLimpia = fila.direccion || fila['direccion de entrega'] || null;
+          const cpLimpio = fila['codigo postal'] || fila.cp || null;
+          
+          // Verificar cada campo limpio contra el límite
+          if (telefonoLimpio && telefonoLimpio.length > limite) {
+            mensajeError = `Columna "telefono" - El valor "${fila.telefono}" genera "${telefonoLimpio}" que es demasiado largo (máximo ${limite} caracteres, actual: ${telefonoLimpio.length})`;
+            columnaIdentificada = true;
+          } 
+          else if (segundoTelefonoLimpio && segundoTelefonoLimpio.length > limite) {
+            mensajeError = `Columna "segundo telefono" - El valor "${fila['segundo telefono']}" genera "${segundoTelefonoLimpio}" que es demasiado largo (máximo ${limite} caracteres, actual: ${segundoTelefonoLimpio.length})`;
+            columnaIdentificada = true;
+          }
+          else if (emailLimpio && emailLimpio.length > limite) {
+            mensajeError = `Columna "correo" - El valor "${emailLimpio}" es demasiado largo (máximo ${limite} caracteres, actual: ${emailLimpio.length})`;
+            columnaIdentificada = true;
+          }
+          else if (rfcLimpio && rfcLimpio.length > limite) {
+            mensajeError = `Columna "rfc" - El valor "${rfcLimpio}" es demasiado largo (máximo ${limite} caracteres, actual: ${rfcLimpio.length})`;
+            columnaIdentificada = true;
+          }
+          else if (regimenLimpio && regimenLimpio.length > limite) {
+            mensajeError = `Columna "regimen fiscal" - El valor "${fila['regimen fiscal']}" genera código "${regimenLimpio}" que es demasiado largo (máximo ${limite} caracteres, actual: ${regimenLimpio.length})`;
+            columnaIdentificada = true;
+          }
+          else if (cfdiLimpio && cfdiLimpio.length > limite) {
+            mensajeError = `Columna "uso cfdi" - El valor "${fila['uso cfdi']}" genera código "${cfdiLimpio}" que es demasiado largo (máximo ${limite} caracteres, actual: ${cfdiLimpio.length})`;
+            columnaIdentificada = true;
+          }
+          else if (cpLimpio && cpLimpio.toString().length > limite) {
+            mensajeError = `Columna "codigo postal" - El valor "${cpLimpio}" es demasiado largo (máximo ${limite} caracteres, actual: ${cpLimpio.toString().length})`;
+            columnaIdentificada = true;
+          }
+          else if (razonSocial && razonSocial.length > limite) {
+            mensajeError = `Columna "razon social" - El valor es demasiado largo (máximo ${limite} caracteres, actual: ${razonSocial.length}). Valor: "${razonSocial.substring(0, 50)}..."`;
+            columnaIdentificada = true;
+          }
+          else if (nombreComercial && nombreComercial.length > limite) {
+            mensajeError = `Columna "nombre" - El valor es demasiado largo (máximo ${limite} caracteres, actual: ${nombreComercial.length}). Valor: "${nombreComercial.substring(0, 50)}..."`;
+            columnaIdentificada = true;
+          }
+          else if (direccionLimpia && direccionLimpia.length > limite) {
+            mensajeError = `Columna "direccion" - El valor es demasiado largo (máximo ${limite} caracteres, actual: ${direccionLimpia.length}). Valor: "${direccionLimpia.substring(0, 50)}..."`;
+            columnaIdentificada = true;
+          }
+          
+          if (!columnaIdentificada) {
+            // Mostrar todos los campos y sus longitudes para debug
+            mensajeError = `Columna "desconocida" - Un campo excede ${limite} caracteres. Longitudes: telefono=${telefonoLimpio?.length || 0}, segundo_tel=${segundoTelefonoLimpio?.length || 0}, email=${emailLimpio?.length || 0}, rfc=${rfcLimpio?.length || 0}, regimen=${regimenLimpio?.length || 0}, cfdi=${cfdiLimpio?.length || 0}, cp=${cpLimpio?.toString().length || 0}, razon=${razonSocial?.length || 0}, nombre=${nombreComercial?.length || 0}, dir=${direccionLimpia?.length || 0}`;
+          }
+        }
+        // Detectar errores de constraint check
+        else if (mensajeError.includes('check constraint') || mensajeError.includes('chk_')) {
+          if (mensajeError.includes('uso_cfdi') || mensajeError.includes('cfdi')) {
+            mensajeError = `Columna "uso cfdi" - El valor "${fila['uso cfdi'] || fila.cfdi}" no es válido. Debe ser un código CFDI válido (ej: G01, G03, D01, etc.)`;
+            columnaIdentificada = true;
+          } else if (mensajeError.includes('regimen_fiscal')) {
+            mensajeError = `Columna "regimen fiscal" - El valor "${fila['regimen fiscal'] || fila.regimen}" no es válido`;
+            columnaIdentificada = true;
+          } else {
+            mensajeError = `Valor no cumple con las restricciones de validación`;
+          }
+        }
+        // Detectar errores de tipo de dato
+        else if (mensajeError.includes('invalid input syntax')) {
+          if (mensajeError.includes('integer')) {
+            mensajeError = `Un campo numérico tiene un valor no válido`;
+          } else if (mensajeError.includes('date')) {
+            mensajeError = `Un campo de fecha tiene un formato no válido`;
+          }
+        }
+        // Detectar errores de clave única
+        else if (mensajeError.includes('unique constraint') || mensajeError.includes('duplicate key')) {
+          if (mensajeError.includes('rfc')) {
+            mensajeError = `Columna "rfc" - El RFC "${fila.rfc}" ya existe en la base de datos`;
+            columnaIdentificada = true;
+          } else if (mensajeError.includes('email') || mensajeError.includes('correo')) {
+            mensajeError = `Columna "correo" - El email "${correo}" ya existe en la base de datos`;
+            columnaIdentificada = true;
+          } else {
+            mensajeError = `Ya existe un registro con estos datos`;
+          }
+        }
+        
+        resultados.errores.push(`Fila ${i + 2}: ${mensajeError}`);
       }
     }
     

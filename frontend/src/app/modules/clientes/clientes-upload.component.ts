@@ -50,17 +50,28 @@ import { NotificationService } from '../../services/notification.service';
         <p class="mb-2">El archivo Excel debe contener las siguientes columnas exactas:</p>
         <ul class="mb-2">
           <li><strong>nombre</strong> - Nombre del cliente <span class="text-danger">(requerido)</span></li>
-          <li><strong>telefono</strong> - Teléfono principal <span class="text-danger">(requerido)</span></li>
+          <li><strong>telefono</strong> - Teléfono principal <span class="text-danger">(requerido, solo dígitos sin guiones)</span></li>
           <li><strong>correo</strong> - Email del cliente</li>
-          <li><strong>segundo telefono</strong> - Teléfono secundario</li>
+          <li><strong>segundo telefono</strong> - Teléfono secundario (solo dígitos sin guiones)</li>
           <li><strong>direccion de entrega</strong> - Dirección de entrega completa</li>
           <li><strong>razon social</strong> - Razón social para facturación</li>
           <li><strong>rfc</strong> - RFC para facturación</li>
-          <li><strong>regimen fiscal</strong> - Régimen fiscal</li>
+          <li><strong>regimen fiscal</strong> - Código de régimen fiscal (ej: <code>612</code>, <code>601</code>)</li>
           <li><strong>direccion</strong> - Dirección para facturación</li>
           <li><strong>codigo postal</strong> - Código postal</li>
-          <li><strong>uso cfdi</strong> - Uso CFDI (código como G01, D01, etc.)</li>
+          <li><strong>uso cfdi</strong> - Código de Uso CFDI (ej: <code>G01</code>, <code>G03</code>, <code>D01</code>)</li>
         </ul>
+        
+        <div class="alert alert-warning mb-2">
+          <small>
+            <strong><i class="fas fa-exclamation-triangle me-1"></i> Importante:</strong>
+            <ul class="mb-0 mt-1">
+              <li>Los teléfonos deben ser <strong>solo números</strong>, sin guiones ni espacios (ej: <code>9611234567</code>)</li>
+              <li><strong>uso cfdi</strong> debe ser solo el <strong>código</strong> (ej: <code>G03</code>), no incluir la descripción</li>
+              <li><strong>regimen fiscal</strong> debe ser solo el <strong>código numérico</strong> (ej: <code>612</code>), no incluir la descripción</li>
+            </ul>
+          </small>
+        </div>
         
         <!-- Botón de descarga de plantilla -->
         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -191,28 +202,46 @@ import { NotificationService } from '../../services/notification.service';
             <strong>{{result.errores.length}}</strong> registros con errores no fueron procesados:
           </p>
           
-          <!-- Lista de errores agrupados por tipo -->
-          <div class="error-list" style="max-height: 300px; overflow-y: auto;">
-            <div *ngFor="let error of result.errores; let i = index" class="error-item mb-2">
+          <!-- Lista de errores detallados -->
+          <div class="error-list" style="max-height: 400px; overflow-y: auto;">
+            <div *ngFor="let error of result.errores; let i = index" class="error-item p-3 mb-2 border-start border-4 border-danger bg-white rounded shadow-sm">
               <div class="d-flex align-items-start">
-                <span class="badge bg-danger me-2 mt-1">{{i + 1}}</span>
+                <span class="badge bg-danger me-3 mt-1" style="min-width: 40px; font-size: 0.9rem;">{{i + 1}}</span>
                 <div class="flex-grow-1">
-                  <div class="fw-bold text-danger">{{getErrorTitle(error)}}</div>
-                  <div class="text-muted small">{{getErrorDescription(error)}}</div>
+                  <!-- Encabezado: Fila X: Columna Y -->
+                  <div class="mb-2">
+                    <span class="fw-bold text-dark" style="font-size: 1.1rem;">
+                      <i class="fas fa-table text-success me-1"></i>
+                      {{getFilaNumero(error)}}:
+                    </span>
+                    <span class="text-danger fw-bold ms-1" style="font-size: 1.1rem;">
+                      Columna "{{getColumna(error)}}"
+                    </span>
+                  </div>
+                  
+                  <!-- Descripción del error -->
+                  <div class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    {{getDescripcionError(error)}}
+                  </div>
                 </div>
               </div>
-              <hr class="my-2" *ngIf="i < result.errores.length - 1">
             </div>
           </div>
           
           <!-- Resumen de tipos de errores -->
-          <div class="mt-3 p-2 bg-light rounded">
-            <small class="text-muted">
-              <strong>Tipos de errores encontrados:</strong>
-              <span *ngFor="let tipo of getErrorTypes(); let last = last">
-                {{tipo}}<span *ngIf="!last">, </span>
-              </span>
-            </small>
+          <div class="mt-3 p-3 bg-light rounded">
+            <div class="mb-2">
+              <strong><i class="fas fa-chart-pie me-1"></i> Resumen de errores:</strong>
+            </div>
+            <div class="row g-2">
+              <div class="col-md-4" *ngFor="let tipo of getErrorSummary()">
+                <div class="d-flex align-items-center">
+                  <span class="badge bg-secondary me-2">{{tipo.count}}</span>
+                  <small>{{tipo.type}}</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -421,35 +450,92 @@ export class ClientesUploadComponent {
   }
 
   /**
-   * Obtiene el título del error
+   * Extrae el número de fila del mensaje de error
+   */
+  getFilaNumero(error: string): string {
+    const match = error.match(/Fila (\d+):/);
+    return match ? `Fila ${match[1]}` : 'Fila desconocida';
+  }
+
+  /**
+   * Extrae la columna del mensaje de error
+   */
+  getColumna(error: string): string {
+    // Buscar patrón "Columna "nombre_columna""
+    const columnaMatch = error.match(/Columna "([^"]+)"/);
+    if (columnaMatch) {
+      return columnaMatch[1].charAt(0).toUpperCase() + columnaMatch[1].slice(1);
+    }
+    
+    // Fallback: detectar por palabras clave
+    if (error.includes('Nombre')) return 'nombre';
+    if (error.includes('Teléfono') || error.includes('telefono')) return 'telefono';
+    if (error.includes('correo') || error.includes('Email') || error.includes('email')) return 'correo';
+    if (error.includes('RFC') || error.includes('rfc')) return 'rfc';
+    if (error.includes('uso cfdi') || error.includes('CFDI')) return 'uso cfdi';
+    if (error.includes('regimen fiscal') || error.includes('régimen')) return 'regimen fiscal';
+    if (error.includes('direccion') || error.includes('dirección')) return 'direccion';
+    
+    return 'Campo no especificado';
+  }
+
+  /**
+   * Extrae la descripción limpia del error
+   */
+  getDescripcionError(error: string): string {
+    // Remover el prefijo "Fila X:"
+    let descripcion = error.replace(/^Fila \d+:\s*/, '');
+    
+    // Si tiene el formato "Columna "xxx" - descripción", extraer solo la descripción
+    const match = descripcion.match(/Columna "[^"]+" - (.+)$/);
+    if (match) {
+      return match[1];
+    }
+    
+    return descripcion;
+  }
+
+  /**
+   * Genera un resumen agrupado de errores por tipo
+   */
+  getErrorSummary(): Array<{type: string, count: number}> {
+    if (!this.result?.errores) return [];
+    
+    const contadores: {[key: string]: number} = {};
+    
+    this.result.errores.forEach((error: string) => {
+      const columna = this.getColumna(error);
+      contadores[columna] = (contadores[columna] || 0) + 1;
+    });
+    
+    return Object.entries(contadores)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count); // Ordenar por cantidad descendente
+  }
+
+  /**
+   * Obtiene el título del error (DEPRECATED - usar getColumna)
    */
   getErrorTitle(error: string): string {
-    if (error.includes('Nombre es requerido')) return 'Nombre faltante';
-    if (error.includes('Teléfono es requerido')) return 'Teléfono faltante';
-    if (error.includes('Formato de correo electrónico inválido')) return 'Email inválido';
-    if (error.includes('Formato de teléfono inválido')) return 'Teléfono inválido';
-    if (error.includes('Formato de RFC inválido')) return 'RFC inválido';
-    if (error.includes('RFC') && error.includes('ya existe')) return 'RFC duplicado';
-    if (error.includes('Email') && error.includes('ya existe')) return 'Email duplicado';
-    return 'Error de validación';
+    return this.getColumna(error);
   }
 
   /**
-   * Obtiene la descripción del error
+   * Obtiene la descripción del error (DEPRECATED - usar getDescripcionError)
    */
   getErrorDescription(error: string): string {
-    return error;
+    return this.getDescripcionError(error);
   }
 
   /**
-   * Obtiene los tipos únicos de errores
+   * Obtiene los tipos únicos de errores (DEPRECATED - usar getErrorSummary)
    */
   getErrorTypes(): string[] {
     if (!this.result?.errores) return [];
     
     const tipos = new Set<string>();
     this.result.errores.forEach((error: string) => {
-      tipos.add(this.getErrorTitle(error));
+      tipos.add(this.getColumna(error));
     });
     
     return Array.from(tipos);
