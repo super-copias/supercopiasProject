@@ -32,13 +32,22 @@ const app = express();
 
 // Middlewares globales
 // CORS: configurar orígenes permitidos y manejo explícito de preflight
-const allowedOrigins = (process.env.NODE_ENV === 'production'
-  ? [
-      process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
-      'https://supercopias.com'
-    ]
-  : ['http://localhost:4200', 'http://127.0.0.1:4200']
-);
+const defaultProdOrigins = [
+  process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
+  'https://supercopias.com'
+];
+const defaultDevOrigins = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+const envOrigins = (process.env.FRONTEND_URLS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+// Unir todos para evitar bloqueos si NODE_ENV no está bien configurado
+const allowedOrigins = Array.from(new Set([
+  ...defaultProdOrigins,
+  ...defaultDevOrigins,
+  ...envOrigins
+]));
+try { console.log('CORS allowed origins (boot):', allowedOrigins); } catch (e) {}
 
 const corsOptions = {
   origin: (origin, callback) => {
