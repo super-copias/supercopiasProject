@@ -8,4 +8,4 @@ cmd = "npm ci"
 cmd = "npm run build -- --configuration production"
 
 [start]
-cmd = "npx http-server dist/supercopias-frontend --spa --cors --verbose -p $PORT"
+cmd = "node spa-server.js"

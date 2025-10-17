@@ -10,6 +10,7 @@
     "test": "ng test",
     "serve:static": "npx http-server dist/supercopias-frontend --spa --cors --verbose -p 8080",
     "serve:static:quiet": "npx http-server dist/supercopias-frontend --spa -p 8080",
+    "serve:spa": "node spa-server.js",
     "diagnose": "powershell -ExecutionPolicy Bypass -File diagnose.ps1",
     "diagnose:bash": "bash diagnose.sh",
     "test:local": "powershell -ExecutionPolicy Bypass -File test-local.ps1",
@@ -25,6 +26,7 @@
     "@angular/platform-browser": "^16.2.0",
     "@angular/platform-browser-dynamic": "^16.2.0",
     "@angular/router": "^16.2.0",
+    "express": "^4.21.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.5.0",
     "zone.js": "~0.13.0"
