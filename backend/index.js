@@ -34,9 +34,7 @@ const app = express();
 // CORS: configurar orígenes permitidos y manejo explícito de preflight
 const defaultProdOrigins = [
   process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
-  'https://supercopias.com',
-  'https://supercopias-frontend-production.up.railway.app',
-  'https://supercopiasproject-production.up.railway.app' // URL que aparece en logs de error
+  'https://supercopias.com'
 ];
 const defaultDevOrigins = ['http://localhost:4200', 'http://127.0.0.1:4200'];
 const envOrigins = (process.env.FRONTEND_URLS || '')
@@ -49,27 +47,14 @@ const allowedOrigins = Array.from(new Set([
   ...defaultDevOrigins,
   ...envOrigins
 ]));
-console.log('🚀 CORS allowed origins (startup):', allowedOrigins);
+try { console.log('CORS allowed origins (boot):', allowedOrigins); } catch (e) {}
 
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('🔍 CORS Request from origin:', origin);
-    console.log('🔍 Allowed origins:', allowedOrigins);
-    
     // Permitir solicitudes sin encabezado Origin (e.g., curl/healthchecks)
-    if (!origin) {
-      console.log('✅ CORS: Allowing request without origin');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ CORS: Origin allowed:', origin);
-      return callback(null, true);
-    }
-    
-    console.log('❌ CORS: Origin not allowed:', origin);
-    console.log('❌ CORS: Available origins:', allowedOrigins);
-    return callback(new Error(`CORS: Origin ${origin} not allowed`));
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -81,19 +66,24 @@ app.use(cors(corsOptions)); // Permitir requests desde frontend
 // Responder explícitamente preflight para cualquier ruta
 app.options('*', cors(corsOptions));
 
-// Middleware de logging para debuggear requests
+// Middleware de logging detallado
 app.use((req, res, next) => {
-  console.log(`\n🌐 ${req.method} ${req.path}`);
-  console.log('🔍 Headers:', {
-    origin: req.headers.origin,
-    'user-agent': req.headers['user-agent']?.substring(0, 50) + '...',
-    authorization: req.headers.authorization ? 'Present' : 'Not present'
-  });
-  if (req.body && Object.keys(req.body).length > 0) {
-    const bodyLog = { ...req.body };
-    if (bodyLog.password) bodyLog.password = '***hidden***';
-    console.log('📦 Body:', bodyLog);
-  }
+  const timestamp = new Date().toISOString();
+  console.log(`📝 [${timestamp}] ${req.method} ${req.url}`);
+  console.log(`📍 Origin: ${req.get('Origin') || 'No Origin'}`);
+  console.log(`🔍 User-Agent: ${req.get('User-Agent') || 'No User-Agent'}`);
+  console.log(`📊 Headers: ${JSON.stringify(req.headers)}`);
+  
+  // Log de respuesta
+  const originalSend = res.send;
+  res.send = function(data) {
+    console.log(`📤 [${timestamp}] Response ${res.statusCode} for ${req.method} ${req.url}`);
+    if (res.statusCode >= 400) {
+      console.log(`❌ Error Response: ${data}`);
+    }
+    originalSend.call(this, data);
+  };
+  
   next();
 });
 
@@ -118,7 +108,58 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'SuperCopias API',
     version: '1.0.0',
-    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores']
+    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores'],
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Middleware para manejar rutas no encontradas
+app.use('*', (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`🚫 [${timestamp}] 404 - Ruta no encontrada: ${req.method} ${req.originalUrl}`);
+  console.log(`📍 Origin: ${req.get('Origin') || 'No Origin'}`);
+  console.log(`🔍 Referrer: ${req.get('Referrer') || 'No Referrer'}`);
+  
+  res.status(404).json({
+    error: 'Ruta no encontrada',
+    method: req.method,
+    url: req.originalUrl,
+    timestamp: timestamp,
+    availableEndpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores'],
+    message: 'Esta es una API REST. Para la aplicación web, visita el frontend desplegado.'
+  });
+});
+
+// Middleware global de manejo de errores
+app.use((err, req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.error(`💥 [${timestamp}] Error en ${req.method} ${req.originalUrl}:`);
+  console.error(`📋 Error: ${err.message}`);
+  console.error(`📚 Stack: ${err.stack}`);
+  
+  // No revelar información sensible en producción
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  res.status(err.status || 500).json({
+    error: 'Error interno del servidor',
+    timestamp: timestamp,
+    path: req.originalUrl,
+    method: req.method,
+    ...(isDevelopment && { 
+      message: err.message,
+      stack: err.stack 
+    })
   });
 });
 
@@ -134,13 +175,29 @@ async function startServer() {
 
     // Iniciar el servidor Express
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 SuperCopias Server running on port ${PORT}`);
-      console.log(`📡 API available at http://localhost:${PORT}`);
-      console.log(`🗄️  Database: PostgreSQL (${process.env.DB_NAME})`);
+      console.log('='.repeat(60));
+      console.log(`🚀 SuperCopias Backend Server STARTED`);
+      console.log('='.repeat(60));
+      console.log(`📡 API available at: http://localhost:${PORT}`);
+      console.log(`🌐 External URL: ${process.env.RAILWAY_STATIC_URL || 'Not set'}`);
+      console.log(`🗄️  Database: PostgreSQL (${process.env.DB_NAME || 'Not set'})`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      
-      // Nota: Los datos mock ya no son necesarios con PostgreSQL
-      console.log('\n✅ Sistema listo para usar\n');
+      console.log(`🔧 Port: ${PORT}`);
+      console.log(`📋 CORS Origins:`, allowedOrigins);
+      console.log(`📍 Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+      console.log('─'.repeat(60));
+      console.log('📌 Available Endpoints:');
+      console.log('  • GET  /           - API Info');
+      console.log('  • GET  /health     - Health Check');
+      console.log('  • POST /api/auth/* - Authentication');
+      console.log('  • GET  /api/profile/* - User Profile');
+      console.log('  • GET  /api/clientes/* - Clients Management');
+      console.log('  • GET  /api/empleados/* - Employees Management');
+      console.log('  • GET  /api/catalogos/* - Catalogs');
+      console.log('  • GET  /api/proveedores/* - Suppliers');
+      console.log('='.repeat(60));
+      console.log('✅ Sistema listo para recibir peticiones');
+      console.log('='.repeat(60));
     });
 
   } catch (error) {
