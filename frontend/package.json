@@ -7,7 +7,14 @@
     "build": "ng build --configuration production",
     "build:prod": "ng build --configuration production",
     "serve:prod": "ng serve --configuration production",
-    "test": "ng test"
+    "test": "ng test",
+    "serve:static": "npx http-server dist/supercopias-frontend --spa --cors --verbose -p 8080",
+    "serve:static:quiet": "npx http-server dist/supercopias-frontend --spa -p 8080",
+    "diagnose": "powershell -ExecutionPolicy Bypass -File diagnose.ps1",
+    "diagnose:bash": "bash diagnose.sh",
+    "test:local": "powershell -ExecutionPolicy Bypass -File test-local.ps1",
+    "redeploy": "powershell -ExecutionPolicy Bypass -File redeploy.ps1",
+    "build:check": "powershell -ExecutionPolicy Bypass -File build-and-check.ps1"
   },
   "dependencies": {
     "@angular/animations": "^16.2.0",
