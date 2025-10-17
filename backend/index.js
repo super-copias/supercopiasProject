@@ -33,11 +33,15 @@ const app = express();
 // Middlewares globales
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL || '*'
+    ? [
+        process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
+        'https://supercopias.com'
+      ]
     : ['http://localhost:4200', 'http://127.0.0.1:4200'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 })); // Permitir requests desde frontend
 app.use(bodyParser.json()); // Parsear JSON en requests
 
