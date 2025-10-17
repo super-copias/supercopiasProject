@@ -34,7 +34,9 @@ const app = express();
 // CORS: configurar orígenes permitidos y manejo explícito de preflight
 const defaultProdOrigins = [
   process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
-  'https://supercopias.com'
+  'https://supercopias.com',
+  'https://supercopias-frontend-production.up.railway.app',
+  'https://supercopiasproject-production.up.railway.app' // URL que aparece en logs de error
 ];
 const defaultDevOrigins = ['http://localhost:4200', 'http://127.0.0.1:4200'];
 const envOrigins = (process.env.FRONTEND_URLS || '')
@@ -47,14 +49,27 @@ const allowedOrigins = Array.from(new Set([
   ...defaultDevOrigins,
   ...envOrigins
 ]));
-try { console.log('CORS allowed origins (boot):', allowedOrigins); } catch (e) {}
+console.log('🚀 CORS allowed origins (startup):', allowedOrigins);
 
 const corsOptions = {
   origin: (origin, callback) => {
+    console.log('🔍 CORS Request from origin:', origin);
+    console.log('🔍 Allowed origins:', allowedOrigins);
+    
     // Permitir solicitudes sin encabezado Origin (e.g., curl/healthchecks)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
+    if (!origin) {
+      console.log('✅ CORS: Allowing request without origin');
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS: Origin allowed:', origin);
+      return callback(null, true);
+    }
+    
+    console.log('❌ CORS: Origin not allowed:', origin);
+    console.log('❌ CORS: Available origins:', allowedOrigins);
+    return callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -65,6 +80,22 @@ const corsOptions = {
 app.use(cors(corsOptions)); // Permitir requests desde frontend
 // Responder explícitamente preflight para cualquier ruta
 app.options('*', cors(corsOptions));
+
+// Middleware de logging para debuggear requests
+app.use((req, res, next) => {
+  console.log(`\n🌐 ${req.method} ${req.path}`);
+  console.log('🔍 Headers:', {
+    origin: req.headers.origin,
+    'user-agent': req.headers['user-agent']?.substring(0, 50) + '...',
+    authorization: req.headers.authorization ? 'Present' : 'Not present'
+  });
+  if (req.body && Object.keys(req.body).length > 0) {
+    const bodyLog = { ...req.body };
+    if (bodyLog.password) bodyLog.password = '***hidden***';
+    console.log('📦 Body:', bodyLog);
+  }
+  next();
+});
 
 app.use(bodyParser.json()); // Parsear JSON en requests
 
