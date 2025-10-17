@@ -31,18 +31,32 @@ const proveedoresRoutes = require('./routes/proveedores');
 const app = express();
 
 // Middlewares globales
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
-        'https://supercopias.com'
-      ]
-    : ['http://localhost:4200', 'http://127.0.0.1:4200'],
+// CORS: configurar orígenes permitidos y manejo explícito de preflight
+const allowedOrigins = (process.env.NODE_ENV === 'production'
+  ? [
+      process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
+      'https://supercopias.com'
+    ]
+  : ['http://localhost:4200', 'http://127.0.0.1:4200']
+);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permitir solicitudes sin encabezado Origin (e.g., curl/healthchecks)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-})); // Permitir requests desde frontend
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions)); // Permitir requests desde frontend
+// Responder explícitamente preflight para cualquier ruta
+app.options('*', cors(corsOptions));
+
 app.use(bodyParser.json()); // Parsear JSON en requests
 
 // Servir archivos estáticos (imágenes de perfil, etc.)
