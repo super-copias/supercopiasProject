@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_18"]
 cmd = "npm ci"
 
 [phases.build]
-cmd = "npm run build"
+cmd = "npm run build -- --configuration production"
 
 [start]
 cmd = "npx http-server dist/supercopias-frontend --spa -p $PORT"

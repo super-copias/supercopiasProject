@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://supercopiasproject-production.up.railway.app/api/auth/login',
+  apiUrl: 'http://localhost:3000/api',
   name: 'development'
 };
