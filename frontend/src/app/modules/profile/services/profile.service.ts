@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
+import { ConfigService } from '../../../services/config.service';
 import { 
   ApiResponse, 
   PerfilUsuario, 
@@ -18,12 +19,15 @@ import {
   providedIn: 'root'
 })
 export class ProfileService {
-  private baseUrl = '/api/profile';
+  private baseUrl: string;
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService
-  ) {}
+    private authService: AuthService,
+    private configService: ConfigService
+  ) {
+    this.baseUrl = this.configService.buildApiUrl('profile');
+  }
 
   /**
    * Obtener el perfil completo del usuario actual
