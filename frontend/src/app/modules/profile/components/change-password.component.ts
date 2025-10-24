@@ -389,10 +389,37 @@ export class ChangePasswordComponent implements OnInit {
           }, 3000);
         }
       },
-      error: (error) => {
-        console.error('Error al cambiar contraseña:', error);
-        this.errorMessage = error.error?.message || error.message || 'Error al cambiar la contraseña.';
+      error: (httpError) => {
+        console.error('Error HTTP completo:', httpError);
         this.changing = false;
+        
+        // El backend devuelve: { success: false, error: { code, message } }
+        // Angular HttpClient lo envuelve en httpError.error
+        
+        let errorMessage = 'Error al cambiar la contraseña.';
+        
+        try {
+          if (httpError.error && typeof httpError.error === 'object') {
+            const backendResponse = httpError.error;
+            
+            // Si es una respuesta estándar de la API
+            if (backendResponse.success === false && backendResponse.error?.message) {
+              errorMessage = backendResponse.error.message;
+            } 
+            // Si es una respuesta directa con mensaje
+            else if (backendResponse.message) {
+              errorMessage = backendResponse.message;
+            }
+          }
+          // Si no hay estructura específica, usar mensaje HTTP genérico
+          else if (httpError.message) {
+            errorMessage = httpError.message;
+          }
+        } catch (e) {
+          console.error('Error parseando respuesta:', e);
+        }
+        
+        this.errorMessage = errorMessage;
       }
     });
   }
