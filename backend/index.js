@@ -31,23 +31,18 @@ const proveedoresRoutes = require('./routes/proveedores');
 const app = express();
 
 // Middlewares globales
-// CORS: configurar orígenes permitidos y manejo explícito de preflight
-const defaultProdOrigins = [
-  process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
-  'https://supercopias.com'
-];
-const defaultDevOrigins = ['http://localhost:4200', 'http://127.0.0.1:4200'];
-const envOrigins = (process.env.FRONTEND_URLS || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
-// Unir todos para evitar bloqueos si NODE_ENV no está bien configurado
-const allowedOrigins = Array.from(new Set([
-  ...defaultProdOrigins,
-  ...defaultDevOrigins,
-  ...envOrigins
-]));
-try { console.log('CORS allowed origins (boot):', allowedOrigins); } catch (e) {}
+// CORS: configurar orígenes permitidos
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+const allowedOrigins = isDevelopment 
+  ? ['http://localhost:4200', 'http://127.0.0.1:4200']
+  : [
+      process.env.FRONTEND_URL || 'https://supercopias-frontend-production.up.railway.app',
+      'https://supercopias.com'
+    ];
+
+console.log('🌐 Entorno:', isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN');
+console.log('🔐 CORS orígenes permitidos:', allowedOrigins);
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -66,24 +61,13 @@ app.use(cors(corsOptions)); // Permitir requests desde frontend
 // Responder explícitamente preflight para cualquier ruta
 app.options('*', cors(corsOptions));
 
-// Middleware de logging detallado
+// Middleware de logging (simplificado para desarrollo)
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`📝 [${timestamp}] ${req.method} ${req.url}`);
-  console.log(`📍 Origin: ${req.get('Origin') || 'No Origin'}`);
-  console.log(`🔍 User-Agent: ${req.get('User-Agent') || 'No User-Agent'}`);
-  console.log(`📊 Headers: ${JSON.stringify(req.headers)}`);
-  
-  // Log de respuesta
-  const originalSend = res.send;
-  res.send = function(data) {
-    console.log(`📤 [${timestamp}] Response ${res.statusCode} for ${req.method} ${req.url}`);
-    if (res.statusCode >= 400) {
-      console.log(`❌ Error Response: ${data}`);
-    }
-    originalSend.call(this, data);
-  };
-  
+  if (isDevelopment) {
+    const timestamp = new Date().toISOString();
+    console.log(`📝 [${timestamp}] ${req.method} ${req.url}`);
+    console.log(`📍 Origin: ${req.get('Origin') || 'Sin Origin'}`);
+  }
   next();
 });
 
