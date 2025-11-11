@@ -1,34 +1,125 @@
-# 🚀 SuperCopias Backend
+# � SuperCopias Backend
 
-Backend con Node.js + Express + PostgreSQL.
+API REST con Node.js + Express + PostgreSQL.
 
-## 🎯 Para Migrar a PostgreSQL
+---
 
-**➡️ Ve al directorio raíz y sigue: `../GUIA_COMPLETA.md`**
-
-## � Después de la Migración
+## ⚡ Inicio Rápido
 
 ```bash
-npm start  # Iniciar servidor
+# Instalar dependencias
+npm install
+
+# Configurar .env (si no existe)
+cp .env.example .env
+
+# Iniciar en modo desarrollo
+npm run dev
 ```
+
+El servidor estará en: **http://localhost:3000**
+
+---
+
+## 🗄️ Base de Datos
+
+### Crear la base de datos
+
+```bash
+# Crear base de datos
+npm run db:create
+
+# Ejecutar schema
+npm run setup-db
+```
+
+### Comandos útiles
+
+```bash
+npm run db:drop     # Eliminar base de datos
+npm run setup-db    # Ejecutar schema SQL
+```
+
+---
 
 ## 📡 API Endpoints
 
-- `POST /api/auth/login` - Login
-- `GET /api/catalogos/estados` - Estados México  
-- `GET /api/empleados` - Empleados
-- `GET /api/clientes` - Clientes
+### Autenticación
+- `POST /api/auth/login` - Login de usuario
+- `POST /api/auth/register` - Registro de usuario
 
-**¡Sigue la GUIA_COMPLETA.md para migrar!** 🎯
+### Catálogos
+- `GET /api/catalogos/estados` - Estados de México
+- `GET /api/catalogos/roles` - Roles del sistema
 
-Endpoints básicos:
-- POST /api/auth/login { username, password }
-- GET /api/clientes
-- POST /api/clientes
-- GET /api/empleados
-- POST /api/empleados
- - POST /api/empleados/import (multipart/form-data file) -> importar empleados desde Excel (solo admin)
- - POST /api/empleados/:id/role { role, createUser?, username?, password? } -> asignar rol a empleado (solo admin)
+### Clientes
+- `GET /api/clientes` - Listar clientes
+- `POST /api/clientes` - Crear cliente
+- `PUT /api/clientes/:id` - Actualizar cliente
+- `DELETE /api/clientes/:id` - Eliminar cliente
+- `POST /api/clientes/import` - Importar desde Excel
 
-Notas:
-- Este esqueleto es para desarrollo local. Para producción considera usar una base de datos real y prácticas de seguridad.
+### Empleados
+- `GET /api/empleados` - Listar empleados
+- `POST /api/empleados` - Crear empleado
+- `PUT /api/empleados/:id` - Actualizar empleado
+- `DELETE /api/empleados/:id` - Eliminar empleado
+- `POST /api/empleados/import` - Importar desde Excel
+- `POST /api/empleados/:id/role` - Asignar rol (admin)
+
+### Proveedores
+- `GET /api/proveedores` - Listar proveedores
+- `POST /api/proveedores` - Crear proveedor
+- `PUT /api/proveedores/:id` - Actualizar proveedor
+- `DELETE /api/proveedores/:id` - Eliminar proveedor
+
+### Perfil
+- `GET /api/profile` - Obtener perfil del usuario
+- `PUT /api/profile` - Actualizar perfil
+- `POST /api/profile/photo` - Subir foto de perfil
+
+---
+
+## 🔐 Autenticación
+
+Todas las rutas (excepto `/api/auth/login`) requieren token JWT:
+
+```
+Authorization: Bearer <token>
+```
+
+---
+
+## 📁 Estructura
+
+```
+backend/
+├── config/           # Configuración (DB, etc)
+├── controllers/      # Lógica de negocio
+├── middlewares/      # Auth, roles, etc
+├── routes/           # Definición de rutas
+├── utils/           # Utilidades
+├── uploads/         # Archivos subidos
+├── index.js         # Entrada principal
+└── .env             # Variables de entorno (NO subir)
+```
+
+---
+
+## 🛠️ Scripts Disponibles
+
+```bash
+npm start           # Producción
+npm run dev         # Desarrollo con auto-reload
+npm run setup-db    # Ejecutar schema SQL
+npm run db:create   # Crear base de datos
+npm run db:drop     # Eliminar base de datos
+```
+
+---
+
+## 📝 Notas
+
+- El archivo `.env` contiene configuración sensible (NO subir a git)
+- Para ambiente de producción, usar variables de entorno de Railway
+- Los uploads se guardan en `uploads/` (no se suben a git)

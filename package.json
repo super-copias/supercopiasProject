@@ -1,0 +1,20 @@
+{
+  "name": "supercopias-project",
+  "version": "0.1.0",
+  "description": "SuperCopias - Sistema de Gestión Integral",
+  "private": true,
+  "scripts": {
+    "start": "npm run start:all",
+    "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm run dev",
+    "start:frontend": "cd frontend && npm start",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "setup": "npm run install:all && npm run db:setup",
+    "db:setup": "cd backend && npm run setup-db"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
