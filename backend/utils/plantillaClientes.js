@@ -14,11 +14,11 @@ function generarPlantillaClientes() {
       'telefono': '9611234567',
       'segundo telefono': '9611234568',
       'correo': 'juan.perez@email.com',
-      'direccion de entrega': 'Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas',
+      'direccion de entrega': 'Av. Central 123, Local 5, Col. Centro, Tuxtla Gutiérrez, Chiapas',
       'razon social': 'Juan Pérez García',
       'rfc': 'PEGJ850315ABC',
       'regimen fiscal': '612',
-      'direccion': 'Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas',
+      'direccion de facturacion': 'Av. Central 123, Col. Centro, Tuxtla Gutiérrez, Chiapas',
       'codigo postal': '29000',
       'uso cfdi': 'G03'
     },
@@ -27,11 +27,11 @@ function generarPlantillaClientes() {
       'telefono': '9612345678',
       'segundo telefono': '',
       'correo': '',
-      'direccion de entrega': 'Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas',
+      'direccion de entrega': 'Bodega 3, Parque Industrial, Tuxtla Gutiérrez, Chiapas',
       'razon social': 'Comercializadora López S.A. de C.V.',
       'rfc': 'CLS920810XYZ',
       'regimen fiscal': '601',
-      'direccion': 'Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas',
+      'direccion de facturacion': 'Blvd. Belisario Domínguez 456, Col. Moctezuma, Tuxtla Gutiérrez, Chiapas',
       'codigo postal': '29030',
       'uso cfdi': 'G01'
     },
@@ -44,7 +44,7 @@ function generarPlantillaClientes() {
       'razon social': 'María González Hernández',
       'rfc': 'GOHM750425DEF',
       'regimen fiscal': '612',
-      'direccion': 'Real de Guadalupe 789, Centro, San Cristóbal de las Casas, Chiapas',
+      'direccion de facturacion': 'Real de Guadalupe 789, Centro, San Cristóbal de las Casas, Chiapas',
       'codigo postal': '29200',
       'uso cfdi': 'G03'
     }
@@ -66,7 +66,7 @@ function generarPlantillaClientes() {
     { wch: 30 }, // razon social
     { wch: 15 }, // rfc
     { wch: 40 }, // regimen fiscal
-    { wch: 40 }, // direccion
+    { wch: 50 }, // direccion de facturacion
     { wch: 12 }, // codigo postal
     { wch: 35 }  // uso cfdi
   ];

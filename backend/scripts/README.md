@@ -1,120 +1,237 @@
-# 🚀 Scripts de Migración SuperCopias# Scripts del Backend - SuperCopias# Scripts de Gestión de Clientes
+# 📁 Scripts del Backend - SuperCopias# 🚀 Scripts de Migración SuperCopias# Scripts del Backend - SuperCopias# Scripts de Gestión de Clientes
 
 
 
-## Scripts Esenciales
+Este directorio contiene scripts SQL y de Node.js para gestión de la base de datos y migraciones.
 
 
 
-### 1. `install-postgresql.js` Este directorio contiene el script de inicialización del sistema.Este directorio contiene scripts para gestionar los datos de clientes en la base de datos.
-
-**Instala y configura PostgreSQL completo**
-
-```bash
-
-node scripts/install-postgresql.js
-
-```## Script Disponible## Scripts disponibles
+---## Scripts Esenciales
 
 
 
-### 2. `migrate-to-postgres.js`
+## 🗄️ Scripts SQL de Migración
 
-**Ejecuta la migración de datos**
 
-```bash### `init-clean-data.js`### 1. `limpiar-clientes.js` (Limpieza rápida)
+
+### `migration-simplify-direcciones.sql`### 1. `install-postgresql.js` Este directorio contiene el script de inicialización del sistema.Este directorio contiene scripts para gestionar los datos de clientes en la base de datos.
+
+**Propósito:** Simplifica la estructura de direcciones en la tabla clientes.  
+
+**Uso:** Se ejecuta automáticamente con `migrate-to-postgres.js`**Instala y configura PostgreSQL completo**
+
+
+
+### `add-segundo-telefono-clientes.sql````bash
+
+**Propósito:** Agrega campo de segundo teléfono a clientes.  
+
+**Uso:** Migración automática, ya aplicada en producción.node scripts/install-postgresql.js
+
+
+
+### `remove-rfc-unique-constraint.sql````## Script Disponible## Scripts disponibles
+
+**Propósito:** Permite RFC duplicados entre clientes.  
+
+**Fecha:** 11 nov 2025  
+
+**Uso:**
+
+```bash### 2. `migrate-to-postgres.js`
+
+psql -U postgres -d supercopias -f remove-rfc-unique-constraint.sql
+
+```**Ejecuta la migración de datos**
+
+
+
+### `insertar-modulos.sql````bash### `init-clean-data.js`### 1. `limpiar-clientes.js` (Limpieza rápida)
+
+**Propósito:** Inserta módulos del sistema en la base de datos.
 
 node scripts/migrate-to-postgres.js
 
-```**Descripción:** Script maestro para inicializar el sistema con datos limpios.Script simple que elimina todos los clientes y crea 2 clientes de prueba.
+### `verificar-migracion.sql`
+
+**Propósito:** Verifica el estado de las migraciones aplicadas.```**Descripción:** Script maestro para inicializar el sistema con datos limpios.Script simple que elimina todos los clientes y crea 2 clientes de prueba.
 
 
 
-## Proceso de Migración - 3 Pasos Simples
+---
 
 
 
-### PASO 1: Instalar PostgreSQL**Funcionalidad:**```bash
+## 🔧 Scripts de Node.js## Proceso de Migración - 3 Pasos Simples
+
+
+
+### `migrate-to-postgres.js`
+
+**Propósito:** Script principal de migración a PostgreSQL.  
+
+**Uso:**### PASO 1: Instalar PostgreSQL**Funcionalidad:**```bash
 
 ```bash
+
+node scripts/migrate-to-postgres.js```bash
+
+```
 
 node scripts/install-postgresql.js- Crea 1 usuario administrador# Desde el directorio backend
 
-```
+**Funcionalidad:**
 
-Este script:- Crea 3 empleados con diferentes niveles de accesonode scripts/limpiar-clientes.js
+- Crea estructura de base de datos```
+
+- Migra datos existentes
+
+- Aplica todas las migraciones SQLEste script:- Crea 3 empleados con diferentes niveles de accesonode scripts/limpiar-clientes.js
+
+- Inicializa catálogos SAT
 
 - Descarga PostgreSQL 15
 
+---
+
 - Lo instala automáticamente- Crea 5 clientes de ejemplo  ```
+
+## 📝 Historial de Cambios
 
 - Crea la base de datos 'supercopias'
 
+Ver archivo `CHANGELOG.md` para el registro completo de todas las migraciones y cambios estructurales de la base de datos.
+
 - Configura usuario y contraseña- Inicializa catálogos básicos del sistema
 
+**Última migración:** Eliminación de RFC único (11 nov 2025)
 
+
+
+---
 
 ### PASO 2: Ejecutar Migración### 2. `limpiar-inconsistentes.js` (Limpiar estructura)
 
-```bash
-
-node scripts/migrate-to-postgres.js**Uso:**Script que elimina clientes con estructura de datos inconsistente.
-
-```
-
-Este script:```bash
-
-- Crea todas las tablas
-
-- Migra los datos existentes# Desde el directorio backend```bash
-
-- Instala catálogos SAT oficiales
-
-- Convierte IDs a numéricasnpm run init# Limpiar clientes con estructura incorrecta
-
-
-
-### PASO 3: Verificar Resultadonode scripts/limpiar-inconsistentes.js
+## 🚀 Guía Rápida
 
 ```bash
 
-npm start# O directamente:```
+### Primera vez - Configurar Base de Datos
 
-```
+```bashnode scripts/migrate-to-postgres.js**Uso:**Script que elimina clientes con estructura de datos inconsistente.
 
-El servidor iniciará con PostgreSQL.node scripts/init-clean-data.js
+# 1. Asegurarse que PostgreSQL está instalado y corriendo
 
-
-
-## ¿Problemas?```### 3. `gestionar-clientes.js` (Gestión avanzada)
-
-
-
-**Error de conexión:**Script completo con múltiples opciones para gestionar clientes.
-
-```bash
-
-# Verificar PostgreSQL**Credenciales creadas:**
-
-Get-Service postgresql*
-
-```- **Admin:** admin / Admin123!$```bash
-
-
-
-**Tablas vacías:**- **Empleado (completo):** mgomez / empleado123# Listar todos los clientes
-
-```bash
-
-# Re-ejecutar migración- **Empleado (limitado):** jperez / empleado123node scripts/gestionar-clientes.js listar
+# 2. Ejecutar migración principal```
 
 node scripts/migrate-to-postgres.js
 
+Este script:```bash
+
+# 3. Verificar
+
+node scripts/verificar-migracion.sql- Crea todas las tablas
+
 ```
 
+- Migra los datos existentes# Desde el directorio backend```bash
+
+### Aplicar Migración Específica
+
+```bash- Instala catálogos SAT oficiales
+
+# Conectarse a la base de datos
+
+psql -U postgres -d supercopias- Convierte IDs a numéricasnpm run init# Limpiar clientes con estructura incorrecta
 
 
-**¡Eso es todo! Solo 2 scripts, 3 pasos.** 🎯**Empleados configurados:**# Crear respaldo de clientes actuales
+
+# Ejecutar archivo SQL específico
+
+\i scripts/nombre-del-script.sql
+
+```### PASO 3: Verificar Resultadonode scripts/limpiar-inconsistentes.js
+
+
+
+### Para Producción```bash
+
+```bash
+
+# Siempre hacer respaldo primeronpm start# O directamente:```
+
+pg_dump -U postgres supercopias > backup_$(date +%Y%m%d).sql
+
+```
+
+# Aplicar migración
+
+psql -U postgres -d supercopias -f scripts/nombre-del-script.sqlEl servidor iniciará con PostgreSQL.node scripts/init-clean-data.js
+
+
+
+# Verificar cambios
+
+psql -U postgres -d supercopias -c "\d nombre_tabla"
+
+```## ¿Problemas?```### 3. `gestionar-clientes.js` (Gestión avanzada)
+
+
+
+---
+
+
+
+## ⚠️ Notas Importantes**Error de conexión:**Script completo con múltiples opciones para gestionar clientes.
+
+
+
+### Estructura Actual de Clientes```bash
+
+- **RFC:** Puede repetirse (desde nov 2025)
+
+- **Email:** ÚNICO - no puede repetirse# Verificar PostgreSQL**Credenciales creadas:**
+
+- **Teléfono:** Requerido
+
+- **Segundo teléfono:** OpcionalGet-Service postgresql*
+
+
+
+### Validaciones Activas```- **Admin:** admin / Admin123!$```bash
+
+✅ Formato de RFC válido  
+
+✅ Email único  
+
+✅ Formato de email  
+
+✅ Régimen fiscal (3 dígitos)  **Tablas vacías:**- **Empleado (completo):** mgomez / empleado123# Listar todos los clientes
+
+❌ RFC único (eliminado)
+
+```bash
+
+---
+
+# Re-ejecutar migración- **Empleado (limitado):** jperez / empleado123node scripts/gestionar-clientes.js listar
+
+## 📞 Soporte
+
+node scripts/migrate-to-postgres.js
+
+Para problemas con migraciones:
+
+1. Revisar `CHANGELOG.md````
+
+2. Verificar logs de PostgreSQL
+
+3. Consultar respaldos en `backups/` (si existen)
+
+
+
+**Importante:** Siempre hacer respaldo antes de ejecutar migraciones en producción.**¡Eso es todo! Solo 2 scripts, 3 pasos.** 🎯**Empleados configurados:**# Crear respaldo de clientes actuales
+
 
 - María Gómez: Acceso administrador (todos los módulos)node scripts/gestionar-clientes.js respaldar
 
@@ -207,6 +324,29 @@ node scripts/limpiar-inconsistentes.js
 node scripts/gestionar-clientes.js restaurar
 ```
 
+## Migraciones de Base de Datos
+
+### `remove-rfc-unique-constraint.sql`
+
+**Descripción:** Elimina la restricción de RFC único en la tabla de clientes.
+
+**Propósito:** Permite que múltiples clientes puedan compartir el mismo RFC.
+
+**Uso:**
+```bash
+# Desde el directorio backend
+psql -U postgres -d supercopias -f scripts/remove-rfc-unique-constraint.sql
+```
+
+**Cambios realizados:**
+- ✅ Elimina constraint UNIQUE `clientes_rfc_key`
+- ✅ Elimina índice único de RFC
+- ✅ Crea índice normal (no único) para mejorar búsquedas
+
+**Documentación:** Ver `MIGRACION-RFC-NO-UNICO.md` para detalles completos.
+
+**Fecha de aplicación:** 11 de noviembre de 2025
+
 ## Archivos de respaldo
 
 - `db_backup_clientes.json`: Respaldo automático creado por el script gestor
@@ -216,7 +356,7 @@ node scripts/gestionar-clientes.js restaurar
 
 - Validaciones en frontend y backend
 - Formatos de datos estrictamente validados
-- Prevención de duplicados en campos únicos
+- Prevención de duplicados en campos únicos (excepto RFC desde nov 2025)
 - Manejo de errores y feedback detallado
 
 ## Plantilla Excel
@@ -230,7 +370,7 @@ node scripts/gestionar-clientes.js restaurar
 4. segundo telefono
 5. direccion de entrega
 6. razon social
-7. rfc
+7. rfc (puede repetirse entre clientes)
 8. regimen fiscal
 9. direccion
 10. codigo postal

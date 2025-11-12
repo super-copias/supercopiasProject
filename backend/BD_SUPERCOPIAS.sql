@@ -60,7 +60,6 @@ DROP INDEX IF EXISTS public.idx_empleados_modulos_acceso;
 DROP INDEX IF EXISTS public.idx_empleados_fecha_ingreso;
 DROP INDEX IF EXISTS public.idx_empleados_email;
 DROP INDEX IF EXISTS public.idx_empleados_activo;
-DROP INDEX IF EXISTS public.idx_clientes_rfc;
 DROP INDEX IF EXISTS public.idx_clientes_razon_social;
 DROP INDEX IF EXISTS public.idx_clientes_email;
 DROP INDEX IF EXISTS public.idx_clientes_codigo_postal;
@@ -94,7 +93,6 @@ ALTER TABLE IF EXISTS ONLY public.estados DROP CONSTRAINT IF EXISTS estados_codi
 ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS empleados_pkey;
 ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS empleados_modulos_pkey;
 ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS empleados_email_key;
-ALTER TABLE IF EXISTS ONLY public.clientes DROP CONSTRAINT IF EXISTS clientes_rfc_key;
 ALTER TABLE IF EXISTS ONLY public.clientes DROP CONSTRAINT IF EXISTS clientes_pkey;
 ALTER TABLE IF EXISTS ONLY public.auditoria DROP CONSTRAINT IF EXISTS auditoria_pkey;
 ALTER TABLE IF EXISTS public.usuarios ALTER COLUMN id DROP DEFAULT;
@@ -364,22 +362,17 @@ CREATE TABLE public.clientes (
     nombre_comercial character varying(500),
     email character varying(255),
     telefono character varying(20),
-    direccion_calle character varying(500),
-    direccion_numero character varying(50),
-    direccion_colonia character varying(255),
     direccion_codigo_postal character varying(10),
-    direccion_ciudad character varying(255),
-    direccion_estado character varying(255),
     regimen_fiscal character varying(10),
     uso_cfdi character varying(10),
     activo boolean DEFAULT true,
     fecha_registro timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    direccion text,
+    direccion_entrega text,
+    direccion_facturacion text,
     segundo_telefono character varying(20),
     CONSTRAINT chk_clientes_email CHECK (((email IS NULL) OR ((email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text))),
-    CONSTRAINT chk_clientes_regimen_fiscal CHECK (((regimen_fiscal IS NULL) OR ((regimen_fiscal)::text ~ '^[0-9]{3}$'::text))),
-    CONSTRAINT chk_clientes_rfc CHECK (((rfc IS NULL) OR (length((rfc)::text) = ANY (ARRAY[12, 13]))))
+    CONSTRAINT chk_clientes_regimen_fiscal CHECK (((regimen_fiscal IS NULL) OR ((regimen_fiscal)::text ~ '^[0-9]{3}$'::text)))
 );
 
 
@@ -958,9 +951,9 @@ CREATE VIEW public.vista_clientes_activos AS
     clientes.nombre_comercial,
     clientes.email,
     clientes.telefono,
-    concat(clientes.direccion_calle, ' ', clientes.direccion_numero, ', ', clientes.direccion_colonia) AS direccion_completa,
-    clientes.direccion_ciudad,
-    clientes.direccion_estado,
+    clientes.segundo_telefono,
+    clientes.direccion_entrega,
+    clientes.direccion_facturacion,
     clientes.direccion_codigo_postal,
     clientes.regimen_fiscal,
     clientes.uso_cfdi,
@@ -1455,14 +1448,6 @@ ALTER TABLE ONLY public.clientes
 
 
 --
--- Name: clientes clientes_rfc_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.clientes
-    ADD CONSTRAINT clientes_rfc_key UNIQUE (rfc);
-
-
---
 -- Name: empleados empleados_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1718,12 +1703,6 @@ CREATE INDEX idx_clientes_razon_social ON public.clientes USING btree (razon_soc
 
 
 --
--- Name: idx_clientes_rfc; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_clientes_rfc ON public.clientes USING btree (rfc);
-
-
 --
 -- Name: idx_empleados_activo; Type: INDEX; Schema: public; Owner: postgres
 --

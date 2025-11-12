@@ -77,11 +77,11 @@ async function listClientes(req, res) {
       telefono: c.telefono,
       segundoTelefono: c.segundo_telefono,
       email: c.email,
-      direccionEntrega: c.direccion,
+      direccionEntrega: c.direccion_entrega,
       razon: c.razon_social,
       rfc: c.rfc,
       regimen: c.regimen_fiscal,
-      direccion: c.direccion,
+      direccion: c.direccion_facturacion,
       cp: c.direccion_codigo_postal,
       cfdi: c.uso_cfdi,
       activo: c.activo,
@@ -161,11 +161,11 @@ async function getCliente(req, res) {
       telefono: clienteDB.telefono || '',
       segundoTelefono: clienteDB.segundo_telefono || '',
       email: clienteDB.email || '',
-      direccionEntrega: clienteDB.direccion || '',
+      direccionEntrega: clienteDB.direccion_entrega || '',
       razon: clienteDB.razon_social || '',
       rfc: clienteDB.rfc || '',
       regimen: clienteDB.regimen_fiscal || '',
-      direccion: clienteDB.direccion || '',
+      direccion: clienteDB.direccion_facturacion || '',
       cp: clienteDB.direccion_codigo_postal || '',
       cfdi: clienteDB.uso_cfdi || '',
       activo: clienteDB.activo,
@@ -324,23 +324,6 @@ async function createCliente(req, res) {
         );
       }
     }
-    
-    // Verificar si el RFC ya existe (solo si se proporciona)
-    if (rfc) {
-      const rfcResult = await query(
-        'SELECT id FROM clientes WHERE rfc = $1 AND activo = true',
-        [rfc.toUpperCase()]
-      );
-      
-      if (rfcResult.rows.length > 0) {
-        return res.status(400).json(
-          createErrorResponse(
-            CODIGOS_ERROR.ALREADY_EXISTS,
-            'Ya existe un cliente con este RFC'
-          )
-        );
-      }
-    }
 
     // Verificar si el email ya existe (solo si se proporciona)
     if (email && email.trim().length > 0) {
@@ -364,9 +347,9 @@ async function createCliente(req, res) {
       INSERT INTO clientes (
         razon_social, nombre_comercial, email, telefono, segundo_telefono,
         rfc, regimen_fiscal, uso_cfdi,
-        direccion, direccion_codigo_postal,
+        direccion_entrega, direccion_facturacion, direccion_codigo_postal,
         activo, fecha_registro, fecha_modificacion
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
       RETURNING *
     `;
     
@@ -379,7 +362,8 @@ async function createCliente(req, res) {
       rfc && rfc.trim().length > 0 ? rfc.toUpperCase() : null,
       regimen && regimen.trim().length > 0 ? regimen : null, // regimen_fiscal (código SAT)
       cfdi && cfdi.trim().length > 0 ? cfdi.toUpperCase() : null, // uso_cfdi (código SAT)
-      direccionEntrega || direccion || null, // direccion (priorizar direccionEntrega)
+      direccionEntrega && direccionEntrega.trim().length > 0 ? direccionEntrega : null, // direccion_entrega
+      direccion && direccion.trim().length > 0 ? direccion : null, // direccion_facturacion
       cp && cp.trim().length > 0 ? cp : null // direccion_codigo_postal
     ];
     
@@ -393,11 +377,11 @@ async function createCliente(req, res) {
       telefono: clienteDB.telefono,
       segundoTelefono: clienteDB.segundo_telefono,
       email: clienteDB.email,
-      direccionEntrega: clienteDB.direccion,
+      direccionEntrega: clienteDB.direccion_entrega,
       razon: clienteDB.razon_social,
       rfc: clienteDB.rfc,
       regimen: clienteDB.regimen_fiscal,
-      direccion: clienteDB.direccion,
+      direccion: clienteDB.direccion_facturacion,
       cp: clienteDB.direccion_codigo_postal,
       cfdi: clienteDB.uso_cfdi,
       activo: clienteDB.activo,
@@ -493,8 +477,8 @@ async function updateCliente(req, res) {
       );
     }
     
-    // Si se actualiza el RFC, verificar que no esté duplicado y validar formato
-    if (updateData.rfc && updateData.rfc.trim().length > 0 && updateData.rfc.toUpperCase() !== clienteExistente.rfc) {
+    // Si se actualiza el RFC, validar formato
+    if (updateData.rfc && updateData.rfc.trim().length > 0) {
       // Validar formato de RFC según reglas SAT
       const rfcRegex = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
       if (!rfcRegex.test(updateData.rfc.toUpperCase())) {
@@ -502,20 +486,6 @@ async function updateCliente(req, res) {
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
             'Formato de RFC inválido. Debe ser: 3-4 letras + 6 dígitos + 3 caracteres'
-          )
-        );
-      }
-      
-      const rfcResult = await query(
-        'SELECT id FROM clientes WHERE rfc = $1 AND activo = true AND id != $2',
-        [updateData.rfc.toUpperCase(), clienteId]
-      );
-      
-      if (rfcResult.rows.length > 0) {
-        return res.status(400).json(
-          createErrorResponse(
-            CODIGOS_ERROR.ALREADY_EXISTS,
-            'Ya existe otro cliente con este RFC'
           )
         );
       }
@@ -588,15 +558,15 @@ async function updateCliente(req, res) {
       camposActualizar.push(`uso_cfdi = $${contador++}`);
       valores.push(updateData.cfdi && updateData.cfdi.trim().length > 0 ? updateData.cfdi.toUpperCase() : null);
     }
-    // Mapear direccionEntrega del frontend a direccion de la BD
+    // Dirección de entrega
     if (updateData.direccionEntrega !== undefined) {
-      camposActualizar.push(`direccion = $${contador++}`);
-      valores.push(updateData.direccionEntrega);
+      camposActualizar.push(`direccion_entrega = $${contador++}`);
+      valores.push(updateData.direccionEntrega && updateData.direccionEntrega.trim().length > 0 ? updateData.direccionEntrega : null);
     }
-    // Si viene direccion también, usarlo (para compatibilidad)
-    else if (updateData.direccion !== undefined) {
-      camposActualizar.push(`direccion = $${contador++}`);
-      valores.push(updateData.direccion);
+    // Dirección de facturación
+    if (updateData.direccion !== undefined) {
+      camposActualizar.push(`direccion_facturacion = $${contador++}`);
+      valores.push(updateData.direccion && updateData.direccion.trim().length > 0 ? updateData.direccion : null);
     }
     if (updateData.cp !== undefined) {
       camposActualizar.push(`direccion_codigo_postal = $${contador++}`);
@@ -631,11 +601,11 @@ async function updateCliente(req, res) {
       telefono: clienteDB.telefono,
       segundoTelefono: clienteDB.segundo_telefono,
       email: clienteDB.email,
-      direccionEntrega: clienteDB.direccion,
+      direccionEntrega: clienteDB.direccion_entrega,
       razon: clienteDB.razon_social,
       rfc: clienteDB.rfc,
       regimen: clienteDB.regimen_fiscal,
-      direccion: clienteDB.direccion,
+      direccion: clienteDB.direccion_facturacion,
       cp: clienteDB.direccion_codigo_postal,
       cfdi: clienteDB.uso_cfdi,
       activo: clienteDB.activo,
@@ -810,19 +780,6 @@ async function uploadExcelClientes(req, res) {
             continue;
           }
         }
-        
-        // Verificar RFC duplicado solo si existe
-        if (fila.rfc) {
-          const rfcResult = await query(
-            'SELECT id FROM clientes WHERE rfc = $1 AND activo = true',
-            [fila.rfc.toString().toUpperCase()]
-          );
-          
-          if (rfcResult.rows.length > 0) {
-            resultados.errores.push(`Fila ${i + 2}: RFC ${fila.rfc} ya existe`);
-            continue;
-          }
-        }
 
         // Verificar email duplicado solo si se proporciona
         if (correo && correo.toString().trim().length > 0) {
@@ -842,9 +799,9 @@ async function uploadExcelClientes(req, res) {
           INSERT INTO clientes (
             razon_social, nombre_comercial, email, telefono, segundo_telefono,
             rfc, regimen_fiscal, uso_cfdi,
-            direccion, direccion_codigo_postal,
+            direccion_entrega, direccion_facturacion, direccion_codigo_postal,
             activo, fecha_registro, fecha_modificacion
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
           RETURNING *
         `;
         
@@ -887,7 +844,8 @@ async function uploadExcelClientes(req, res) {
           fila.rfc ? fila.rfc.toUpperCase() : null, // rfc
           regimenLimpio, // regimen_fiscal (solo código)
           cfdiLimpio, // uso_cfdi (solo código)
-          fila.direccion || fila['direccion de entrega'] || null, // direccion
+          fila['direccion de entrega'] || fila.direccion_entrega || null, // direccion_entrega
+          fila['direccion de facturacion'] || fila.direccion || fila['direccion facturacion'] || null, // direccion_facturacion
           fila['codigo postal'] || fila.cp || null // direccion_codigo_postal
         ];
         
@@ -987,10 +945,7 @@ async function uploadExcelClientes(req, res) {
         }
         // Detectar errores de clave única
         else if (mensajeError.includes('unique constraint') || mensajeError.includes('duplicate key')) {
-          if (mensajeError.includes('rfc')) {
-            mensajeError = `Columna "rfc" - El RFC "${fila.rfc}" ya existe en la base de datos`;
-            columnaIdentificada = true;
-          } else if (mensajeError.includes('email') || mensajeError.includes('correo')) {
+          if (mensajeError.includes('email') || mensajeError.includes('correo')) {
             mensajeError = `Columna "correo" - El email "${correo}" ya existe en la base de datos`;
             columnaIdentificada = true;
           } else {

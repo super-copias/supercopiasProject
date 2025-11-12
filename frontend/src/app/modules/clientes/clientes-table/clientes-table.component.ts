@@ -252,7 +252,7 @@ export class ClientesTableComponent {
               <div class="info-value">${cliente.regimen || 'No especificado'}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Dirección:</div>
+              <div class="info-label">Dirección de facturación:</div>
               <div class="info-value">${cliente.direccion || 'No especificada'}</div>
             </div>
             <div class="info-row">

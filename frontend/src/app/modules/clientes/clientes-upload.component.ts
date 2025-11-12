@@ -53,11 +53,11 @@ import { NotificationService } from '../../services/notification.service';
           <li><strong>telefono</strong> - Teléfono principal <span class="text-danger">(requerido, solo dígitos sin guiones)</span></li>
           <li><strong>correo</strong> - Email del cliente</li>
           <li><strong>segundo telefono</strong> - Teléfono secundario (solo dígitos sin guiones)</li>
-          <li><strong>direccion de entrega</strong> - Dirección de entrega completa</li>
+          <li><strong>direccion de entrega</strong> - Dirección completa donde se entregan los productos</li>
           <li><strong>razon social</strong> - Razón social para facturación</li>
           <li><strong>rfc</strong> - RFC para facturación</li>
           <li><strong>regimen fiscal</strong> - Código de régimen fiscal (ej: <code>612</code>, <code>601</code>)</li>
-          <li><strong>direccion</strong> - Dirección para facturación</li>
+          <li><strong>direccion de facturacion</strong> - Dirección de facturación (para emisión de facturas)</li>
           <li><strong>codigo postal</strong> - Código postal</li>
           <li><strong>uso cfdi</strong> - Código de Uso CFDI (ej: <code>G01</code>, <code>G03</code>, <code>D01</code>)</li>
         </ul>
@@ -66,6 +66,7 @@ import { NotificationService } from '../../services/notification.service';
           <small>
             <strong><i class="fas fa-exclamation-triangle me-1"></i> Importante:</strong>
             <ul class="mb-0 mt-1">
+              <li><strong>Direcciones:</strong> El sistema maneja dos direcciones separadas: <code>direccion de entrega</code> (para envíos) y <code>direccion de facturacion</code> (para facturas)</li>
               <li>Los teléfonos deben ser <strong>solo números</strong>, sin guiones ni espacios (ej: <code>9611234567</code>)</li>
               <li><strong>uso cfdi</strong> debe ser solo el <strong>código</strong> (ej: <code>G03</code>), no incluir la descripción</li>
               <li><strong>regimen fiscal</strong> debe ser solo el <strong>código numérico</strong> (ej: <code>612</code>), no incluir la descripción</li>
@@ -474,6 +475,8 @@ export class ClientesUploadComponent {
     if (error.includes('RFC') || error.includes('rfc')) return 'rfc';
     if (error.includes('uso cfdi') || error.includes('CFDI')) return 'uso cfdi';
     if (error.includes('regimen fiscal') || error.includes('régimen')) return 'regimen fiscal';
+    if (error.includes('direccion de entrega')) return 'direccion de entrega';
+    if (error.includes('direccion facturacion')) return 'direccion';
     if (error.includes('direccion') || error.includes('dirección')) return 'direccion';
     
     return 'Campo no especificado';

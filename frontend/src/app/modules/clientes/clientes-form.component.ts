@@ -96,7 +96,7 @@ import { NotificationService } from '../../services/notification.service';
           </option>
         </select>
       </div>
-      <div class="mb-2"><label>Dirección</label><input class="form-control" [(ngModel)]="model.direccion" name="direccion" placeholder="Dirección para facturación" /></div>
+      <div class="mb-2"><label>Dirección de facturación</label><input class="form-control" [(ngModel)]="model.direccion" name="direccion" placeholder="Dirección para facturación" /></div>
       <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.cp" name="cp" maxlength="5" placeholder="29000" /></div>
       <div class="mb-2">
         <label>Uso CFDI</label>
