@@ -103,7 +103,7 @@ start_backend() {
     # Iniciar en nueva pestaña de Terminal
     osascript <<EOF > /dev/null 2>&1
 tell application "Terminal"
-    do script "cd '$BACKEND_PATH' && clear && echo '=== Backend SuperCopias ===' && echo 'Puerto: 3000' && echo 'Presiona Ctrl+C para detener' && echo '' && source ~/.zshrc 2>/dev/null || true && npm run dev"
+    do script "cd '$BACKEND_PATH' && clear && echo '=== Backend SuperCopias ===' && echo 'Puerto: 3000' && echo 'Presiona Ctrl+C para detener' && echo '' && export PATH=\"/opt/homebrew/opt/node@18/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH\" && npm run dev"
     activate
 end tell
 EOF
@@ -124,7 +124,7 @@ start_frontend() {
     # Iniciar en nueva pestaña de Terminal
     osascript <<EOF > /dev/null 2>&1
 tell application "Terminal"
-    do script "cd '$FRONTEND_PATH' && clear && echo '=== Frontend SuperCopias ===' && echo 'Puerto: 4200' && echo 'URL: http://localhost:4200' && echo 'Presiona Ctrl+C para detener' && echo '' && source ~/.zshrc 2>/dev/null || true && npm start"
+    do script "cd '$FRONTEND_PATH' && clear && echo '=== Frontend SuperCopias ===' && echo 'Puerto: 4200' && echo 'URL: http://localhost:4200' && echo 'Presiona Ctrl+C para detener' && echo '' && export PATH=\"/opt/homebrew/opt/node@18/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH\" && npm start"
     activate
 end tell
 EOF
