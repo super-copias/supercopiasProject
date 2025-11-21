@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
 import { NotificationService } from '../../../services/notification.service';
+import { CatalogosService } from '../../../services/catalogos.service';
 
 @Component({
   selector: 'app-clientes-table',
@@ -14,8 +15,31 @@ export class ClientesTableComponent {
 
   selectedCliente: any = null;
   showDetalles = false;
+  usosCFDI: any[] = [];
 
-  constructor(private notificationService: NotificationService) {}
+  constructor(
+    private notificationService: NotificationService,
+    private catalogosService: CatalogosService
+  ) {
+    this.cargarUsosCFDI();
+  }
+
+  cargarUsosCFDI() {
+    this.catalogosService.getUsosCFDI().subscribe({
+      next: (usos) => {
+        this.usosCFDI = usos;
+      },
+      error: (error) => {
+        console.error('Error al cargar usos CFDI:', error);
+      }
+    });
+  }
+
+  getUsoCFDIDescripcion(codigo: string): string {
+    if (!codigo) return 'No especificado';
+    const uso = this.usosCFDI.find(u => u.codigo === codigo);
+    return uso ? `${uso.codigo} - ${uso.descripcion}` : codigo;
+  }
 
   // Cerrar modal con tecla Escape
   @HostListener('document:keydown.escape', ['$event'])
@@ -261,7 +285,7 @@ export class ClientesTableComponent {
             </div>
             <div class="info-row">
               <div class="info-label">Uso CFDI:</div>
-              <div class="info-value">${cliente.cfdi || 'No especificado'}</div>
+              <div class="info-value">${this.getUsoCFDIDescripcion(cliente.cfdi)}</div>
             </div>
           </div>
         </div>
