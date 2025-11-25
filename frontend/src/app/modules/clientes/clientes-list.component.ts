@@ -214,21 +214,21 @@ export class ClientesListComponent implements OnInit, OnDestroy {
       next: (response) => {
         if (response?.success) {
           this.notificationService.success(
-            `El cliente "${cliente.nombre}" ha sido eliminado correctamente`,
-            'Cliente eliminado'
+            `El cliente "${cliente.nombre}" ha sido desactivado correctamente`,
+            'Cliente desactivado'
           );
           this.load(); // Recargar la lista
         } else {
           this.notificationService.error(
-            'No se pudo eliminar el cliente',
-            'Error al eliminar'
+            'No se pudo desactivar el cliente',
+            'Error al desactivar'
           );
         }
       },
       error: (error) => {
         this.notificationService.error(
-          error.error?.message || 'Error desconocido al eliminar el cliente',
-          'Error al eliminar'
+          error.error?.message || 'Error desconocido al desactivar el cliente',
+          'Error al desactivar'
         );
       }
     });

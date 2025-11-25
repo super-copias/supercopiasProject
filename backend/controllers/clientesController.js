@@ -655,7 +655,7 @@ async function updateCliente(req, res) {
 }
 
 /**
- * Eliminar un cliente (desactivar)
+ * Eliminar un cliente (soft delete - desactivar)
  * Endpoint: DELETE /api/clientes/:id
  * 
  * @param {Object} req - Request object con param id
@@ -686,9 +686,9 @@ async function deleteCliente(req, res) {
       );
     }
     
-    // Verificar si el cliente existe
+    // Verificar si el cliente existe y está activo
     const clienteResult = await query(
-      'SELECT id FROM clientes WHERE id = $1',
+      'SELECT id, activo FROM clientes WHERE id = $1',
       [clienteId]
     );
     
@@ -700,18 +700,27 @@ async function deleteCliente(req, res) {
         )
       );
     }
+
+    if (clienteResult.rows[0].activo === false) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.INVALID_DATA,
+          'El cliente ya está inactivo'
+        )
+      );
+    }
     
-    // Verificar si tiene dependencias (facturas, pedidos, etc.)
-    // Aquí podrías agregar validaciones adicionales
-    
-    // Eliminar cliente completamente de la base de datos
-    await query('DELETE FROM clientes WHERE id = $1', [clienteId]);
+    // Soft delete: marcar como inactivo en lugar de eliminar
+    await query(
+      'UPDATE clientes SET activo = false, fecha_modificacion = NOW() WHERE id = $1',
+      [clienteId]
+    );
     
     return res.json(
       createResponse(
         true,
-        { id: clienteId, eliminado: true },
-        'Cliente eliminado exitosamente'
+        { id: clienteId, activo: false },
+        'Cliente desactivado exitosamente'
       )
     );
     

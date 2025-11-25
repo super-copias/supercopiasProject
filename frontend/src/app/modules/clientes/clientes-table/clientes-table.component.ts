@@ -69,7 +69,7 @@ export class ClientesTableComponent {
 
   eliminarCliente(cliente: any) {
     const nombreCliente = cliente.nombre || 'este cliente';
-    if (confirm(`⚠️ ATENCIÓN: Esta acción eliminará PERMANENTEMENTE "${nombreCliente}" de la base de datos.\n\n¿Está completamente seguro de continuar? Esta acción NO se puede deshacer.`)) {
+    if (confirm(`¿Desea desactivar a "${nombreCliente}"?\n\nEl cliente se marcará como inactivo y no aparecerá en la lista, pero sus datos se conservarán en el sistema.`)) {
       this.eliminar.emit(cliente);
     }
   }
