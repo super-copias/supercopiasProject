@@ -38,6 +38,10 @@ import { NotificationService } from '../../services/notification.service';
         <label>Correo</label>
         <input class="form-control" [(ngModel)]="model.email" name="email" type="email" placeholder="correo@ejemplo.com" />
       </div>
+      <div class="mb-2">
+        <label>Segundo correo</label>
+        <input class="form-control" [(ngModel)]="model.segundoEmail" name="segundoEmail" type="email" placeholder="correo2@ejemplo.com" />
+      </div>
       
       <!-- Campo de dirección de entrega con selector de Google Maps -->
       <div class="mb-2">
@@ -122,6 +126,7 @@ export class ClientesFormComponent implements OnInit {
     telefono: '',
     segundoTelefono: '',
     email: '',
+    segundoEmail: '',
     direccionEntrega: '',
     razon: '',
     rfc: '',

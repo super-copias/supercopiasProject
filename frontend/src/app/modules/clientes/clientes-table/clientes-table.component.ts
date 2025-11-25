@@ -252,6 +252,11 @@ export class ClientesTableComponent {
               <div class="info-label">Correo:</div>
               <div class="info-value">${cliente.email}</div>
             </div>
+            ${cliente.segundoEmail ? `
+            <div class="info-row">
+              <div class="info-label">Segundo correo:</div>
+              <div class="info-value">${cliente.segundoEmail}</div>
+            </div>` : ''}
             <div class="info-row">
               <div class="info-label">Dirección de entrega:</div>
               <div class="info-value">${cliente.direccionEntrega}</div>

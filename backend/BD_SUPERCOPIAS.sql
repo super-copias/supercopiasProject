@@ -371,8 +371,10 @@ CREATE TABLE public.clientes (
     direccion_entrega text,
     direccion_facturacion text,
     segundo_telefono character varying(20),
+    segundo_email character varying(255),
     CONSTRAINT chk_clientes_email CHECK (((email IS NULL) OR ((email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text))),
-    CONSTRAINT chk_clientes_regimen_fiscal CHECK (((regimen_fiscal IS NULL) OR ((regimen_fiscal)::text ~ '^[0-9]{3}$'::text)))
+    CONSTRAINT chk_clientes_regimen_fiscal CHECK (((regimen_fiscal IS NULL) OR ((regimen_fiscal)::text ~ '^[0-9]{3}$'::text))),
+    CONSTRAINT chk_clientes_segundo_email CHECK (((segundo_email IS NULL) OR ((segundo_email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)))
 );
 
 

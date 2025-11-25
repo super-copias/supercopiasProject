@@ -77,6 +77,7 @@ async function listClientes(req, res) {
       telefono: c.telefono,
       segundoTelefono: c.segundo_telefono,
       email: c.email,
+      segundoEmail: c.segundo_email,
       direccionEntrega: c.direccion_entrega,
       razon: c.razon_social,
       rfc: c.rfc,
@@ -161,6 +162,7 @@ async function getCliente(req, res) {
       telefono: clienteDB.telefono || '',
       segundoTelefono: clienteDB.segundo_telefono || '',
       email: clienteDB.email || '',
+      segundoEmail: clienteDB.segundo_email || '',
       direccionEntrega: clienteDB.direccion_entrega || '',
       razon: clienteDB.razon_social || '',
       rfc: clienteDB.rfc || '',
@@ -201,6 +203,7 @@ async function createCliente(req, res) {
       telefono,
       segundoTelefono,
       email,
+      segundoEmail,
       direccionEntrega,
       razon,
       rfc,
@@ -237,6 +240,18 @@ async function createCliente(req, res) {
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
             'Formato de correo electrónico inválido'
+          )
+        );
+      }
+    }
+
+    if (segundoEmail && segundoEmail.trim().length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(segundoEmail)) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_FORMAT,
+            'Formato de segundo correo electrónico inválido'
           )
         );
       }
@@ -345,11 +360,11 @@ async function createCliente(req, res) {
     // Crear nuevo cliente con estructura simplificada de dirección
     const insertQuery = `
       INSERT INTO clientes (
-        razon_social, nombre_comercial, email, telefono, segundo_telefono,
+        razon_social, nombre_comercial, email, segundo_email, telefono, segundo_telefono,
         rfc, regimen_fiscal, uso_cfdi,
         direccion_entrega, direccion_facturacion, direccion_codigo_postal,
         activo, fecha_registro, fecha_modificacion
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, NOW(), NOW())
       RETURNING *
     `;
     
@@ -357,6 +372,7 @@ async function createCliente(req, res) {
       razon || nombre.trim(), // razon_social (usar nombre si no hay razón social)
       nombre.trim(), // nombre_comercial
       email && email.trim().length > 0 ? email.toLowerCase() : null,
+      segundoEmail && segundoEmail.trim().length > 0 ? segundoEmail.toLowerCase() : null, // segundo_email
       telefono || null,
       segundoTelefono && segundoTelefono.trim().length > 0 ? segundoTelefono : null, // segundo_telefono
       rfc && rfc.trim().length > 0 ? rfc.toUpperCase() : null,
@@ -377,6 +393,7 @@ async function createCliente(req, res) {
       telefono: clienteDB.telefono,
       segundoTelefono: clienteDB.segundo_telefono,
       email: clienteDB.email,
+      segundoEmail: clienteDB.segundo_email,
       direccionEntrega: clienteDB.direccion_entrega,
       razon: clienteDB.razon_social,
       rfc: clienteDB.rfc,
@@ -546,6 +563,10 @@ async function updateCliente(req, res) {
       camposActualizar.push(`segundo_telefono = $${contador++}`);
       valores.push(updateData.segundoTelefono && updateData.segundoTelefono.trim().length > 0 ? updateData.segundoTelefono : null);
     }
+    if (updateData.segundoEmail !== undefined) {
+      camposActualizar.push(`segundo_email = $${contador++}`);
+      valores.push(updateData.segundoEmail && updateData.segundoEmail.trim().length > 0 ? updateData.segundoEmail.toLowerCase() : null);
+    }
     if (updateData.rfc !== undefined) {
       camposActualizar.push(`rfc = $${contador++}`);
       valores.push(updateData.rfc && updateData.rfc.trim().length > 0 ? updateData.rfc.toUpperCase() : null);
@@ -601,6 +622,7 @@ async function updateCliente(req, res) {
       telefono: clienteDB.telefono,
       segundoTelefono: clienteDB.segundo_telefono,
       email: clienteDB.email,
+      segundoEmail: clienteDB.segundo_email,
       direccionEntrega: clienteDB.direccion_entrega,
       razon: clienteDB.razon_social,
       rfc: clienteDB.rfc,

@@ -146,6 +146,12 @@
                     {{selectedCliente.email}}
                   </dd>
                   
+                  <dt class="col-sm-4" *ngIf="selectedCliente.segundoEmail">Segundo correo:</dt>
+                  <dd class="col-sm-8" *ngIf="selectedCliente.segundoEmail">
+                    <i class="fas fa-envelope me-1 text-muted"></i>
+                    {{selectedCliente.segundoEmail}}
+                  </dd>
+                  
                   <dt class="col-sm-4">Dirección de entrega:</dt>
                   <dd class="col-sm-8">
                     <i class="fas fa-map-marker-alt me-1 text-muted"></i>
