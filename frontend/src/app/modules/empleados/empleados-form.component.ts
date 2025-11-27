@@ -133,6 +133,21 @@ import { NotificationService } from '../../services/notification.service';
                 </div>
 
                 <div class="mb-3">
+                  <label class="form-label">Turno *</label>
+                  <select 
+                    class="form-select" 
+                    formControlName="turno"
+                    [class.is-invalid]="isInvalid('turno')">
+                    <option value="">Seleccione un turno</option>
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="isInvalid('turno')">
+                    Debe seleccionar un turno
+                  </div>
+                </div>
+
+                <div class="mb-3">
                   <label class="form-label">Salario Mensual *</label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
@@ -517,6 +532,7 @@ export class EmpleadosFormComponent implements OnInit {
       email: empleado.email,
       puesto: empleado.puesto,
       sucursal: empleado.sucursal,
+      turno: empleado.turno || 'Matutino',
       salario: empleado.salario,
       fechaIngreso: empleado.fechaIngreso,
       activo: empleado.activo,
@@ -548,6 +564,7 @@ export class EmpleadosFormComponent implements OnInit {
       email: ['', [Validators.email]],
       puesto: ['', Validators.required],
       sucursal: ['', Validators.required],
+      turno: ['Matutino', Validators.required],
       salario: [0, [Validators.required, Validators.min(1)]],
       fechaIngreso: [this.getCurrentDate(), Validators.required],
       diasVacacionesSugeridos: [12, [Validators.min(0), Validators.max(99)]],

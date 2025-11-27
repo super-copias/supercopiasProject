@@ -1,6 +1,6 @@
 /**
  * Controlador de Empleados - SuperCopias
- * Gestiona todas las operaciones CRUD para empleados con sistema de roles
+ * Gestiona todas las operaciones CRUD para empleados con sistema de roles 
  */
 
 const { query } = require('../config/database');
@@ -223,6 +223,7 @@ async function getEmpleado(req, res) {
       puestoNombre: empleado.puesto_nombre,
       sucursal: empleado.sucursal_id, // Normalizar nombre de campo
       sucursalNombre: empleado.sucursal_nombre,
+      turno: empleado.turno,
       salario: empleado.salario,
       fechaIngreso: empleado.fecha_ingreso,
       activo: empleado.activo,
@@ -268,6 +269,7 @@ async function createEmpleado(req, res) {
       telefono,
       puesto,
       sucursal,
+      turno,
       salario,
       fechaIngreso,
       diasVacacionesSugeridos,
@@ -356,10 +358,10 @@ async function createEmpleado(req, res) {
     // Insertar nuevo empleado en PostgreSQL (sin modulos_permitidos)
     const insertQuery = `
       INSERT INTO empleados (
-        nombre, email, telefono, puesto_id, sucursal_id, salario,
+        nombre, email, telefono, puesto_id, sucursal_id, turno, salario,
         fecha_ingreso, dias_vacaciones_sugeridos, activo, fecha_baja, tipo_acceso,
         fecha_registro
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       RETURNING *
     `;
     
@@ -369,6 +371,7 @@ async function createEmpleado(req, res) {
       telefono || null,
       puesto || null,
       sucursal || null,
+      turno || 'Matutino',
       salario ? parseFloat(salario) : null,
       fechaIngreso || new Date().toISOString().split('T')[0],
       diasVacacionesSugeridos || 12,
@@ -659,6 +662,10 @@ async function updateEmpleado(req, res) {
       camposActualizar.push(`sucursal_id = $${contador++}`);
       valores.push(datosConvertidos.sucursal);
     }
+    if (datosConvertidos.turno !== undefined && datosConvertidos.turno !== '') {
+      camposActualizar.push(`turno = $${contador++}`);
+      valores.push(datosConvertidos.turno);
+    }
     if (datosConvertidos.salario !== undefined) {
       camposActualizar.push(`salario = $${contador++}`);
       valores.push(datosConvertidos.salario);
@@ -817,7 +824,7 @@ async function updateEmpleado(req, res) {
     );
     
   } catch (error) {
-
+    console.error('Error en updateEmpleado:', error);
     res.status(500).json(
       createErrorResponse(
         CODIGOS_ERROR.INTERNAL_ERROR,

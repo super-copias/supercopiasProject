@@ -97,6 +97,11 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                     </div>
                     
                     <div class="info-item">
+                      <span class="label">Turno:</span>
+                      <span class="value">{{empleado.turno || 'No definido'}}</span>
+                    </div>
+                    
+                    <div class="info-item">
                       <span class="label">Salario:</span>
                       <span class="value">
                         <span *ngIf="empleado.salario">{{empleado.salario | currency:'MXN':'symbol':'1.0-0'}}</span>

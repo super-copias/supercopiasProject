@@ -3,12 +3,13 @@
     <table class="table table-hover table-sm">
         <thead>
             <tr>
-                <th style="width: 8%;">ID</th>
-                <th style="width: 20%;">Nombre</th>
-                <th style="width: 12%;">Teléfono</th>
-                <th style="width: 15%;">Email</th>
-                <th style="width: 15%;">Puesto</th>
-                <th style="width: 15%;">Sucursal</th>
+                <th style="width: 7%;">ID</th>
+                <th style="width: 18%;">Nombre</th>
+                <th style="width: 11%;">Teléfono</th>
+                <th style="width: 14%;">Email</th>
+                <th style="width: 13%;">Puesto</th>
+                <th style="width: 13%;">Sucursal</th>
+                <th style="width: 9%;">Turno</th>
                 <th style="width: 8%;">Estado</th>
                 <th style="width: 7%;">Acciones</th>
             </tr>
@@ -32,6 +33,9 @@
                 </td>
                 <td class="text-truncate" style="max-width: 0;">
                     <span [title]="e.sucursal">{{e.sucursal || '-'}}</span>
+                </td>
+                <td class="text-nowrap">
+                    <small>{{e.turno || '-'}}</small>
                 </td>
                 <td>
                     <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo">
@@ -98,6 +102,10 @@
                                 <div class="col-6">
                                     <small class="text-muted d-block">Sucursal</small>
                                     <span class="fw-medium">{{e.sucursal || 'N/A'}}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Turno</small>
+                                    <span class="fw-medium">{{e.turno || 'N/A'}}</span>
                                 </div>
                             </div>
                             
