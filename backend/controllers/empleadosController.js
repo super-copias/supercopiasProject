@@ -270,6 +270,7 @@ async function createEmpleado(req, res) {
       sucursal,
       salario,
       fechaIngreso,
+      diasVacacionesSugeridos,
       activo = true,
       fechaBaja = null,
       // Campos del frontend
@@ -356,9 +357,9 @@ async function createEmpleado(req, res) {
     const insertQuery = `
       INSERT INTO empleados (
         nombre, email, telefono, puesto_id, sucursal_id, salario,
-        fecha_ingreso, activo, fecha_baja, tipo_acceso,
+        fecha_ingreso, dias_vacaciones_sugeridos, activo, fecha_baja, tipo_acceso,
         fecha_registro
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
       RETURNING *
     `;
     
@@ -370,6 +371,7 @@ async function createEmpleado(req, res) {
       sucursal || null,
       salario ? parseFloat(salario) : null,
       fechaIngreso || new Date().toISOString().split('T')[0],
+      diasVacacionesSugeridos || 12,
       activo !== undefined ? activo : true,
       (!activo && fechaBaja) ? fechaBaja : null,
       tipoAcceso
@@ -664,6 +666,10 @@ async function updateEmpleado(req, res) {
     if (datosConvertidos.fechaIngreso !== undefined) {
       camposActualizar.push(`fecha_ingreso = $${contador++}`);
       valores.push(datosConvertidos.fechaIngreso);
+    }
+    if (datosConvertidos.diasVacacionesSugeridos !== undefined) {
+      camposActualizar.push(`dias_vacaciones_sugeridos = $${contador++}`);
+      valores.push(datosConvertidos.diasVacacionesSugeridos);
     }
     if (datosConvertidos.fechaBaja !== undefined) {
       camposActualizar.push(`fecha_baja = $${contador++}`);

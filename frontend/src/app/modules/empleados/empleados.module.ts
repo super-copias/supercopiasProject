@@ -12,6 +12,12 @@ import { EmpleadosFormComponent } from './empleados-form.component';
 import { EmpleadosTableComponent } from './empleados-table/empleados-table.component';
 import { CredencialesModalComponent } from './credenciales-modal.component';
 import { EmpleadoDetailModalComponent } from './empleado-detail-modal.component';
+import { EventosPersonalComponent } from './eventos-personal.component';
+import { EventoPersonalFormModalComponent } from './evento-personal-form-modal.component';
+import { FormVacacionesComponent } from './form-vacaciones.component';
+import { FormFaltaComponent } from './form-falta.component';
+import { FormPermisoComponent } from './form-permiso.component';
+import { FormOtroComponent } from './form-otro.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
@@ -20,7 +26,13 @@ import { SharedModule } from '../../shared/shared.module';
     EmpleadosFormComponent, 
     EmpleadosTableComponent,
     CredencialesModalComponent,
-    EmpleadoDetailModalComponent
+    EmpleadoDetailModalComponent,
+    EventosPersonalComponent,
+    EventoPersonalFormModalComponent,
+    FormVacacionesComponent,
+    FormFaltaComponent,
+    FormPermisoComponent,
+    FormOtroComponent
   ],
   imports: [
     CommonModule, 

@@ -68,4 +68,11 @@ router.put('/:id', auth, updateEmpleado);
  */
 router.delete('/:id', auth, deleteEmpleado);
 
+/**
+ * Rutas anidadas de eventos de personal
+ * Base: /api/empleados/:empleadoId/eventos
+ */
+const eventosPersonalRoutes = require('./eventosPersonal');
+router.use('/:empleadoId/eventos', eventosPersonalRoutes);
+
 module.exports = router;

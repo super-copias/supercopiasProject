@@ -16,6 +16,24 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
             <button type="button" class="btn-close btn-close-white" (click)="cerrar()"></button>
           </div>
           <div class="modal-body p-3" *ngIf="empleado">
+            <!-- Tabs de navegación -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" [class.active]="tabActivo === 'informacion'" 
+                        (click)="tabActivo = 'informacion'" type="button">
+                  <i class="fas fa-user me-1"></i> Información
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" [class.active]="tabActivo === 'eventos'" 
+                        (click)="tabActivo = 'eventos'" type="button">
+                  <i class="fas fa-calendar-alt me-1"></i> Eventos de Personal
+                </button>
+              </li>
+            </ul>
+
+            <!-- Tab: Información General -->
+            <div *ngIf="tabActivo === 'informacion'">
             <!-- Header con información básica -->
             <div class="row mb-3">
               <div class="col-12">
@@ -153,6 +171,13 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                 </div>
               </div>
             </div>
+            </div><!-- Fin Tab Información -->
+
+            <!-- Tab: Eventos de Personal -->
+            <div *ngIf="tabActivo === 'eventos'">
+              <app-eventos-personal [empleadoId]="empleado.id"></app-eventos-personal>
+            </div>
+
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="cerrar()">
@@ -262,8 +287,11 @@ export class EmpleadoDetailModalComponent {
   
   @Output() cerrarModal = new EventEmitter<void>();
 
+  tabActivo: 'informacion' | 'eventos' = 'informacion';
+
   cerrar() {
     this.visible = false;
+    this.tabActivo = 'informacion'; // Resetear tab al cerrar
     this.cerrarModal.emit();
   }
 

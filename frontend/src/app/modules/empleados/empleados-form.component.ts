@@ -162,6 +162,24 @@ import { NotificationService } from '../../services/notification.service';
                     La fecha de ingreso es requerida
                   </div>
                 </div>
+
+                <div class="mb-3">
+                  <label class="form-label">
+                    Días de Vacaciones Sugeridos
+                    <i class="fas fa-info-circle text-muted ms-1" 
+                       title="Días de vacaciones anuales sugeridos. El sistema permite flexibilidad en el registro."></i>
+                  </label>
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    formControlName="diasVacacionesSugeridos"
+                    placeholder="12"
+                    min="0"
+                    max="99">
+                  <small class="form-text text-muted">
+                    Solo como referencia. El sistema permite registrar más días si es necesario.
+                  </small>
+                </div>
               </div>
             </div>
           </div>
@@ -532,6 +550,7 @@ export class EmpleadosFormComponent implements OnInit {
       sucursal: ['', Validators.required],
       salario: [0, [Validators.required, Validators.min(1)]],
       fechaIngreso: [this.getCurrentDate(), Validators.required],
+      diasVacacionesSugeridos: [12, [Validators.min(0), Validators.max(99)]],
       activo: [true],
       fechaBaja: [''], // Se validará dinámicamente cuando activo sea false
       tipoPermiso: ['sin_permisos', Validators.required] // Valor por defecto
