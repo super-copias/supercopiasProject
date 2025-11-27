@@ -69,7 +69,7 @@ export class ClientesTableComponent {
 
   eliminarCliente(cliente: any) {
     const nombreCliente = cliente.nombre || 'este cliente';
-    if (confirm(`¿Desea desactivar a "${nombreCliente}"?\n\nEl cliente se marcará como inactivo y no aparecerá en la lista, pero sus datos se conservarán en el sistema.`)) {
+    if (confirm(`¿Desea desactivar a "${nombreCliente}"?\n\nEl cliente se marcará como inactivo.`)) {
       this.eliminar.emit(cliente);
     }
   }
