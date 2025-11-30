@@ -301,18 +301,40 @@ export class ProveedoresFormComponent implements OnInit {
         next: (response) => {
           if (response && response.success && response.data) {
             const data = response.data as any;
+            
+            // Convertir tipo_proveedor de descripción a clave para el select
+            let tipoProveedor = data.tipo_proveedor || 'MIXTO';
+            if (tipoProveedor === 'Productos') tipoProveedor = 'PRODUCTOS';
+            if (tipoProveedor === 'Servicios') tipoProveedor = 'SERVICIOS';
+            if (tipoProveedor === 'Mixto') tipoProveedor = 'MIXTO';
+            
+            // Convertir metodo_pago_principal de descripción a clave
+            let metodoPago = data.metodo_pago_principal || '';
+            const mapeoMetodos: any = {
+              'Efectivo': 'EFECTIVO',
+              'Transferencia': 'TRANSFERENCIA',
+              'Transferencia bancaria': 'TRANSFERENCIA',
+              'Cheque': 'CHEQUE',
+              'Tarjeta de crédito': 'TARJETA_CREDITO',
+              'Tarjeta de débito': 'TARJETA_DEBITO',
+              'Otro': 'OTRO'
+            };
+            if (metodoPago && mapeoMetodos[metodoPago]) {
+              metodoPago = mapeoMetodos[metodoPago];
+            }
+            
             this.model = {
               nombreComercial: data.nombre_comercial || '',
               razonSocial: data.razon_social || '',
               rfc: data.rfc || '',
-              tipoProveedor: data.tipo_proveedor || 'Mixto',
+              tipoProveedor: tipoProveedor,
               activo: data.activo !== false,
               nombreContacto: data.nombre_contacto || '',
               telefono: data.telefono || '',
               email: data.email || '',
               paginaWeb: data.pagina_web || '',
               direccion: data.direccion || '',
-              metodoPagoPrincipal: data.metodo_pago_principal || '',
+              metodoPagoPrincipal: metodoPago,
               cuentaBancaria: data.cuenta_bancaria || '',
               diasCredito: data.dias_credito || 0,
               notas: data.notas || ''

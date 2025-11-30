@@ -114,7 +114,13 @@ class ProveedoresController {
       
       const proveedor = result.rows[0];
       
-      res.json(createResponse(proveedor, 'Proveedor obtenido exitosamente'));
+      res.json(
+        createResponse(
+          true,
+          proveedor,
+          'Proveedor obtenido exitosamente'
+        )
+      );
       
     } catch (error) {
       console.error('Error en getById proveedores:', error);
@@ -159,6 +165,25 @@ class ProveedoresController {
         );
       }
       
+      // Convertir clave de tipo a descripción para la BD
+      const mapeoTipos = {
+        'PRODUCTOS': 'Productos',
+        'SERVICIOS': 'Servicios',
+        'MIXTO': 'Mixto'
+      };
+      const tipoParaBD = mapeoTipos[tipoProveedor] || tipoProveedor || 'Mixto';
+      
+      // Convertir clave de método de pago a descripción
+      const mapeoMetodos = {
+        'EFECTIVO': 'Efectivo',
+        'TRANSFERENCIA': 'Transferencia',
+        'CHEQUE': 'Cheque',
+        'TARJETA_CREDITO': 'Tarjeta de crédito',
+        'TARJETA_DEBITO': 'Tarjeta de débito',
+        'OTRO': 'Otro'
+      };
+      const metodoParaBD = metodoPagoPrincipal ? (mapeoMetodos[metodoPagoPrincipal] || metodoPagoPrincipal) : null;
+      
       // Verificar RFC único en PostgreSQL si se proporciona
       if (rfc && rfc.trim().length > 0) {
         const existingResult = await query(
@@ -191,13 +216,13 @@ class ProveedoresController {
         nombreComercial.trim(),
         razonSocial?.trim() || null,
         rfc?.toUpperCase().trim() || null,
-        tipoProveedor || 'Mixto',
+        tipoParaBD,
         nombreContacto?.trim() || null,
         telefono?.trim() || null,
         email?.trim() || null,
         paginaWeb?.trim() || null,
         direccion?.trim() || null,
-        metodoPagoPrincipal?.trim() || null,
+        metodoParaBD,
         cuentaBancaria?.trim() || null,
         diasCredito || 0,
         notas?.trim() || null
@@ -208,6 +233,7 @@ class ProveedoresController {
       
       res.status(201).json(
         createResponse(
+          true,
           nuevoProveedor,
           'Proveedor creado correctamente'
         )
@@ -323,6 +349,29 @@ class ProveedoresController {
             valor = valor.toUpperCase();
           }
           
+          // Convertir clave de tipo a descripción para la BD
+          if (campoDb === 'tipo_proveedor' && valor) {
+            const mapeoTipos = {
+              'PRODUCTOS': 'Productos',
+              'SERVICIOS': 'Servicios',
+              'MIXTO': 'Mixto'
+            };
+            valor = mapeoTipos[valor] || valor;
+          }
+          
+          // Convertir clave de método de pago a descripción
+          if (campoDb === 'metodo_pago_principal' && valor) {
+            const mapeoMetodos = {
+              'EFECTIVO': 'Efectivo',
+              'TRANSFERENCIA': 'Transferencia',
+              'CHEQUE': 'Cheque',
+              'TARJETA_CREDITO': 'Tarjeta de crédito',
+              'TARJETA_DEBITO': 'Tarjeta de débito',
+              'OTRO': 'Otro'
+            };
+            valor = mapeoMetodos[valor] || valor;
+          }
+          
           camposUpdate.push(`${campoDb} = $${paramIndex}`);
           valoresUpdate.push(valor);
           paramIndex++;
@@ -356,6 +405,7 @@ class ProveedoresController {
       
       res.json(
         createResponse(
+          true,
           proveedorActualizado,
           'Proveedor actualizado correctamente'
         )
@@ -414,6 +464,7 @@ class ProveedoresController {
       
       res.json(
         createResponse(
+          true,
           { id: proveedorId, activo: false },
           'Proveedor desactivado correctamente'
         )
