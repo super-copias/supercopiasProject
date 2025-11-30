@@ -61,15 +61,13 @@ class ProveedoresController {
       
       const proveedores = itemsResult.rows;
       const total = parseInt(countResult.rows[0].count);
-      const totalPages = Math.ceil(total / parseInt(limit));
       
       return res.json(
         createPaginatedResponse(
           proveedores,
           parseInt(page),
-          totalPages,
-          total,
-          'Proveedores obtenidos exitosamente'
+          parseInt(limit),
+          total
         )
       );
       
@@ -448,6 +446,7 @@ class ProveedoresController {
       
       res.json(
         createResponse(
+          true,
           result.rows,
           'Tipos de proveedor obtenidos correctamente'
         )
@@ -480,6 +479,7 @@ class ProveedoresController {
       
       res.json(
         createResponse(
+          true,
           result.rows,
           'Métodos de pago obtenidos correctamente'
         )

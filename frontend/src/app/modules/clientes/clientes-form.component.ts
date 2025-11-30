@@ -221,6 +221,7 @@ export class ClientesFormComponent implements OnInit {
               telefono: clienteData.telefono || '',
               segundoTelefono: clienteData.segundoTelefono || '',
               email: clienteData.email || '',
+              segundoEmail: clienteData.segundoEmail || '',
               direccionEntrega: clienteData.direccionEntrega || '',
               razon: clienteData.razon || '',
               rfc: clienteData.rfc || '',

@@ -143,7 +143,7 @@ export class ProveedoresListComponent implements OnInit, OnDestroy {
     if (r.success) {
       this.proveedores = r.data || []; 
       this.total = r.pagination?.total || 0; 
-      this.pages = r.pagination?.pages || Math.max(1, Math.ceil(this.total / this.limit));
+      this.pages = r.pagination?.pages || 1;
     } else {
       this.proveedores = [];
       this.total = 0;

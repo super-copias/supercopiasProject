@@ -98,6 +98,7 @@ export interface Cliente extends BaseEntity {
   telefono?: string;
   segundoTelefono?: string;
   email?: string;
+  segundoEmail?: string;
   direccionEntrega?: string;
   razon?: string;
   rfc?: string;
