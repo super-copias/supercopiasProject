@@ -4,6 +4,107 @@ Este archivo registra todos los cambios estructurales aplicados a la base de dat
 
 ---
 
+## [2025-11-30] Módulo de Proveedores Completado
+
+### Cambios en Base de Datos
+- ✅ Tabla `proveedores` actualizada con dirección única
+- ✅ Creados catálogos: `cat_tipos_proveedor`, `cat_metodos_pago_proveedor`
+- ✅ Insertados 5 proveedores de ejemplo
+- ✅ Insertados 3 tipos de proveedor (Productos, Servicios, Mixto)
+- ✅ Insertados 6 métodos de pago
+
+### Cambios en Backend
+- ✅ Actualizado `proveedoresController.js`:
+  - Métodos CRUD completos con formato estándar de respuesta
+  - Endpoints de catálogos: `getTipos()`, `getMetodosPago()`
+  - Conversión automática de claves a descripciones (SERVICIOS → Servicios)
+  - Validación de RFC único entre proveedores activos
+  - Búsqueda inteligente por múltiples campos
+
+### Cambios en Frontend
+- ✅ Componente completo de proveedores con:
+  - Lista con búsqueda y paginación
+  - Formulario multi-sección
+  - Modal de detalles con impresión
+  - Integración Google Maps para direcciones
+  - Conversión bidireccional de catálogos
+- ✅ Servicio `proveedores.service.ts` con todos los métodos HTTP
+
+### Estado
+✅ Módulo completamente funcional y probado
+✅ Aplicado en BD_SUPERCOPIAS_UTF8.sql
+
+---
+
+## [2025-11-26] Módulo de Eventos de Personal
+
+### Cambios en Base de Datos
+- ✅ Tabla `eventos_personal` creada con todos los campos
+- ✅ Agregadas columnas a `empleados`:
+  - `dias_vacaciones_sugeridos INTEGER DEFAULT 12`
+  - `notas_vacaciones TEXT`
+- ✅ Vista `vacaciones_resumen` para consultas rápidas
+- ✅ Índices de optimización
+- ✅ Triggers de auditoría
+
+### Cambios en Backend
+- ✅ Controlador `eventosPersonalController.js` con métodos:
+  - `listEventos()`, `createEvento()`, `updateEvento()`, `deleteEvento()`
+  - `getResumenVacaciones()`, `getEstadisticas()`
+- ✅ Rutas integradas en `/api/empleados/:id/eventos`
+
+### Cambios en Frontend
+- ✅ Servicio `eventos-personal.service.ts`
+- ✅ Componente principal `EventosPersonalComponent`
+- ✅ Modal de formulario `EventoPersonalFormModalComponent`
+- ✅ Formularios especializados por tipo:
+  - `FormVacacionesComponent` - Sistema flexible con advertencias
+  - `FormFaltaComponent` - Justificadas/injustificadas
+  - `FormPermisoComponent` - Por horas con cálculo automático
+  - `FormOtroComponent` - Eventos especiales
+- ✅ Integración en tab de detalle de empleados
+
+### Características
+- Sistema flexible de vacaciones (permite exceder días sugeridos)
+- Cálculo automático de días tomados/restantes
+- Advertencias visuales
+- Resumen estadístico por año
+- 4 tipos de eventos: Vacaciones, Faltas, Permisos, Otros
+
+### Estado
+✅ Implementado y funcional
+✅ Documentado en MODULO-EVENTOS-PERSONAL.md
+
+---
+
+## [2025-11-26] Campo Turno en Empleados
+
+### Cambios en Base de Datos
+- ✅ Agregada columna `turno VARCHAR(20) NOT NULL`
+- ✅ Constraint `empleados_turno_check` CHECK (turno IN ('Matutino', 'Vespertino'))
+- ✅ Valor por defecto: 'Matutino'
+- ✅ Registros existentes actualizados
+
+### Cambios en Backend
+- ✅ Actualizado `empleadosController.js`:
+  - Campo incluido en create, update, get
+  - Valor por defecto si no se proporciona
+
+### Cambios en Frontend
+- ✅ Select en formulario de empleados
+- ✅ Columna en tabla (desktop y mobile)
+- ✅ Campo en modal de detalle
+- ✅ Incluido en documento de impresión
+
+### Script de Migración
+`add-turno-empleados.sql`
+
+### Estado
+✅ Aplicado en BD_SUPERCOPIAS_UTF8.sql
+✅ Documentado en CAMPO-TURNO-EMPLEADOS.md
+
+---
+
 ## [2025-11-24] Agregado Segundo Email a Clientes
 
 ### Cambios en Base de Datos
