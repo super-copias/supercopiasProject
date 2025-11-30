@@ -77,8 +77,8 @@ export class ProveedoresService {
   /**
    * Obtener catálogo de tipos de proveedor
    */
-  getTipos(): Observable<string[]> {
-    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/tipos`)
+  getTipos(): Observable<any[]> {
+    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogo/tipos`)
       .pipe(
         map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))
@@ -86,10 +86,10 @@ export class ProveedoresService {
   }
 
   /**
-   * Obtener catálogo de condiciones de pago
+   * Obtener catálogo de métodos de pago
    */
-  getCondicionesPago(): Observable<string[]> {
-    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/condiciones-pago`)
+  getMetodosPago(): Observable<any[]> {
+    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogo/metodos-pago`)
       .pipe(
         map(response => response.success ? response.data || [] : []),
         catchError(this.handleError.bind(this))

@@ -171,18 +171,28 @@ export interface EmpleadoConUsuario {
 
 // Interface para Proveedor
 export interface Proveedor extends BaseEntity {
-  nombre: string;
-  rfc: string;
-  email?: string;
-  telefono?: string;
-  direccion?: string;
-  codigoPostal?: string;
-  ciudad?: string;
-  estado?: string;
-  contacto?: string;
+  nombreComercial: string;
+  razonSocial?: string;
+  rfc?: string;
   tipoProveedor?: string;
-  condicionesPago?: string;
+  nombreContacto?: string;
+  telefono?: string;
+  email?: string;
+  paginaWeb?: string;
+  direccion?: string;
+  metodoPagoPrincipal?: string;
+  cuentaBancaria?: string;
+  diasCredito?: number;
   notas?: string;
+  // Compatibilidad con datos de backend (snake_case)
+  nombre_comercial?: string;
+  razon_social?: string;
+  tipo_proveedor?: string;
+  nombre_contacto?: string;
+  pagina_web?: string;
+  metodo_pago_principal?: string;
+  cuenta_bancaria?: string;
+  dias_credito?: number;
 }
 
 // Interfaces para operaciones comunes
