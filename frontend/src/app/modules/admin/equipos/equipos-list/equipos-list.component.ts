@@ -12,6 +12,9 @@ import { NotificationService } from '../../../../services/notification.service';
 })
 export class EquiposListComponent implements OnInit, OnDestroy {
   equipos: any[] = [];
+  alertas: any[] = [];
+  mostrarAlertas = true;
+  Math = Math; // Para usar Math.abs en el template
   q = '';
   searchTerm = '';
   loading = false;
@@ -40,6 +43,9 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Cargar catálogos
     this.loadCatalogos();
+    
+    // Cargar alertas de mantenimiento
+    this.loadAlertas();
     
     this.pageSub = this.pageChange$.pipe(
       debounceTime(150),
@@ -117,6 +123,29 @@ export class EquiposListComponent implements OnInit, OnDestroy {
         console.error('Error al cargar catálogos:', err);
       }
     });
+  }
+
+  loadAlertas() {
+    this.equiposService.getAlertasMantenimiento().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.alertas = response.data;
+          this.mostrarAlertas = this.alertas.length > 0;
+        }
+      },
+      error: (err) => {
+        console.error('Error al cargar alertas:', err);
+        this.alertas = [];
+      }
+    });
+  }
+  
+  ocultarAlertas() {
+    this.mostrarAlertas = false;
+  }
+
+  onVerAlerta(alerta: any) {
+    this.router.navigate(['/admin/equipos/detalle', alerta.id]);
   }
   
   load() {

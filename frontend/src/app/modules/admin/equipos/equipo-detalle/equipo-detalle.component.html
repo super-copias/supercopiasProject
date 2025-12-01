@@ -44,6 +44,11 @@
             <i class="fas fa-fill-drip me-1"></i>Consumibles
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'preventivo'" (click)="setTab('preventivo')" style="cursor: pointer;">
+            <i class="fas fa-calendar-check me-1"></i>Preventivo
+          </a>
+        </li>
       </ul>
 
       <!-- Tab: Información -->
@@ -323,6 +328,106 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Tab: Mantenimiento Preventivo -->
+      <div *ngIf="activeTab === 'preventivo'">
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">
+              <i class="fas fa-calendar-check me-2"></i>Configuración de Mantenimiento Preventivo
+            </h6>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small">
+              <i class="fas fa-info-circle me-1"></i>
+              Configure un intervalo de tiempo para recibir alertas automáticas cuando el equipo requiera mantenimiento.
+            </p>
+            
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">
+                  Intervalo de Mantenimiento
+                  <i class="fas fa-question-circle text-muted ms-1" 
+                     title="Cada cuántos días se debe realizar mantenimiento"></i>
+                </label>
+                <div class="input-group">
+                  <input type="number" class="form-control" 
+                         [(ngModel)]="configMantenimiento.intervalo_dias"
+                         placeholder="Ej: 90">
+                  <span class="input-group-text">días</span>
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label">
+                  Fecha de Inicio
+                  <i class="fas fa-question-circle text-muted ms-1" 
+                     title="Desde cuándo empezar a contar"></i>
+                </label>
+                <input type="date" class="form-control" 
+                       [(ngModel)]="configMantenimiento.fecha_inicio">
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label">
+                  Días de Anticipación
+                  <i class="fas fa-question-circle text-muted ms-1" 
+                     title="Cuántos días antes mostrar la alerta"></i>
+                </label>
+                <div class="input-group">
+                  <input type="number" class="form-control" 
+                         [(ngModel)]="configMantenimiento.dias_alerta"
+                         placeholder="7">
+                  <span class="input-group-text">días</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-info mt-3" *ngIf="configMantenimiento.intervalo_dias">
+              <i class="fas fa-lightbulb me-2"></i>
+              <strong>Cálculo automático:</strong> 
+              El sistema calculará el próximo mantenimiento basado en el último servicio realizado 
+              + {{configMantenimiento.intervalo_dias}} días. 
+              La alerta se mostrará {{configMantenimiento.dias_alerta || 7}} días antes.
+            </div>
+
+            <div class="mt-3">
+              <button class="btn btn-primary" (click)="onGuardarConfigMantenimiento()">
+                <i class="fas fa-save me-2"></i>Guardar Configuración
+              </button>
+              <button class="btn btn-secondary ms-2" (click)="onDeshabilitarMantenimientoPreventivo()"
+                      *ngIf="equipo.mantenimiento_intervalo_dias">
+                <i class="fas fa-times me-2"></i>Deshabilitar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información actual -->
+        <div class="card" *ngIf="equipo.mantenimiento_intervalo_dias">
+          <div class="card-header bg-success text-white">
+            <h6 class="mb-0">
+              <i class="fas fa-check-circle me-2"></i>Mantenimiento Preventivo Activo
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4">
+                <strong>Intervalo configurado:</strong>
+                <p>Cada {{equipo.mantenimiento_intervalo_dias}} días</p>
+              </div>
+              <div class="col-md-4">
+                <strong>Fecha de inicio:</strong>
+                <p>{{equipo.mantenimiento_fecha_inicio | date:'dd/MM/yyyy'}}</p>
+              </div>
+              <div class="col-md-4">
+                <strong>Anticipación de alerta:</strong>
+                <p>{{equipo.mantenimiento_dias_alerta || 7}} días antes</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

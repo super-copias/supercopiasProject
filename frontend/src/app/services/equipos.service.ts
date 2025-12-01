@@ -142,6 +142,18 @@ export class EquiposService {
   }
 
   // =====================================================
+  // Mantenimiento Preventivo
+  // =====================================================
+
+  configurarMantenimientoPreventivo(equipoId: number, config: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${equipoId}/mantenimiento-preventivo`, config);
+  }
+
+  getAlertasMantenimiento(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/alertas-mantenimiento`);
+  }
+
+  // =====================================================
   // Catálogos
   // =====================================================
 

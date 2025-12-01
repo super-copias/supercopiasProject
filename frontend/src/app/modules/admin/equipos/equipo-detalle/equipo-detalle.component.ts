@@ -29,6 +29,13 @@ export class EquipoDetalleComponent implements OnInit {
   formContador = { contador_actual: null, tecnico_nombre: '', observaciones: '' };
   formMantenimiento = { descripcion: '', contador_servicio: null, costo: null, tecnico_nombre: '', proveedor_nombre: '', observaciones: '' };
   formConsumible = { tipo_consumible: '', rendimiento_estimado: null, contador_instalacion: null, contador_proximo_cambio: null, observaciones: '' };
+  
+  // Configuración de mantenimiento preventivo
+  configMantenimiento = {
+    intervalo_dias: null,
+    fecha_inicio: null,
+    dias_alerta: 7
+  };
 
   constructor(
     private route: ActivatedRoute,
@@ -52,6 +59,12 @@ export class EquipoDetalleComponent implements OnInit {
       next: (response) => {
         if (response.success) {
           this.equipo = response.data;
+          // Cargar configuración de mantenimiento preventivo si existe
+          this.configMantenimiento = {
+            intervalo_dias: this.equipo.mantenimiento_intervalo_dias,
+            fecha_inicio: this.equipo.mantenimiento_fecha_inicio,
+            dias_alerta: this.equipo.mantenimiento_dias_alerta || 7
+          };
         }
         this.loading = false;
       },
@@ -232,5 +245,61 @@ export class EquipoDetalleComponent implements OnInit {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
       .trim();
+  }
+
+  // Mantenimiento Preventivo
+  onGuardarConfigMantenimiento() {
+    if (!this.configMantenimiento.intervalo_dias) {
+      this.notificationService.warning('El intervalo de días es obligatorio');
+      return;
+    }
+
+    if (!this.configMantenimiento.fecha_inicio) {
+      this.notificationService.warning('La fecha de inicio es obligatoria');
+      return;
+    }
+
+    const config = {
+      mantenimiento_intervalo_dias: this.configMantenimiento.intervalo_dias,
+      mantenimiento_fecha_inicio: this.configMantenimiento.fecha_inicio,
+      mantenimiento_dias_alerta: this.configMantenimiento.dias_alerta || 7
+    };
+
+    this.equiposService.configurarMantenimientoPreventivo(this.equipoId, config).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.notificationService.success('Mantenimiento preventivo configurado exitosamente');
+          this.loadEquipo(); // Recargar para obtener los nuevos valores
+        }
+      },
+      error: (err) => {
+        console.error('Error al configurar mantenimiento:', err);
+        this.notificationService.error('Error al guardar configuración');
+      }
+    });
+  }
+
+  onDeshabilitarMantenimientoPreventivo() {
+    if (confirm('¿Está seguro de deshabilitar el mantenimiento preventivo?')) {
+      const config = {
+        mantenimiento_intervalo_dias: null,
+        mantenimiento_fecha_inicio: null,
+        mantenimiento_dias_alerta: 7
+      };
+
+      this.equiposService.configurarMantenimientoPreventivo(this.equipoId, config).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.notificationService.success('Mantenimiento preventivo deshabilitado');
+            this.configMantenimiento = { intervalo_dias: null, fecha_inicio: null, dias_alerta: 7 };
+            this.loadEquipo();
+          }
+        },
+        error: (err) => {
+          console.error('Error:', err);
+          this.notificationService.error('Error al deshabilitar');
+        }
+      });
+    }
   }
 }

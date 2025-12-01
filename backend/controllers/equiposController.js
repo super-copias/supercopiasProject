@@ -575,6 +575,88 @@ async function getStats(req, res) {
   }
 }
 
+/**
+ * Configurar mantenimiento preventivo
+ * PUT /api/equipos/:id/mantenimiento-preventivo
+ */
+async function configurarMantenimientoPreventivo(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      mantenimiento_intervalo_dias,
+      mantenimiento_fecha_inicio,
+      mantenimiento_dias_alerta
+    } = req.body;
+    
+    // Verificar que existe el equipo
+    const checkResult = await query('SELECT id FROM equipos WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Equipo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+    
+    // Actualizar configuración de mantenimiento preventivo
+    const updateQuery = `
+      UPDATE equipos SET
+        mantenimiento_intervalo_dias = $1,
+        mantenimiento_fecha_inicio = $2,
+        mantenimiento_dias_alerta = COALESCE($3, 7),
+        fecha_modificacion = CURRENT_TIMESTAMP
+      WHERE id = $4
+      RETURNING id, nombre_equipo, mantenimiento_intervalo_dias, 
+                mantenimiento_fecha_inicio, mantenimiento_dias_alerta
+    `;
+    
+    const result = await query(updateQuery, [
+      mantenimiento_intervalo_dias,
+      mantenimiento_fecha_inicio,
+      mantenimiento_dias_alerta,
+      id
+    ]);
+    
+    return res.json(
+      createResponse(true, result.rows[0], 'Mantenimiento preventivo configurado exitosamente')
+    );
+    
+  } catch (error) {
+    console.error('Error al configurar mantenimiento preventivo:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al configurar mantenimiento preventivo', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
+ * Obtener alertas de mantenimiento
+ * GET /api/equipos/alertas-mantenimiento
+ */
+async function getAlertasMantenimiento(req, res) {
+  try {
+    const alertasQuery = `
+      SELECT * FROM equipos_alertas_mantenimiento
+      WHERE estado_alerta IN ('vencido', 'urgente', 'proximo')
+      ORDER BY 
+        CASE estado_alerta
+          WHEN 'vencido' THEN 1
+          WHEN 'urgente' THEN 2
+          WHEN 'proximo' THEN 3
+        END,
+        dias_restantes ASC
+    `;
+    
+    const result = await query(alertasQuery);
+    
+    return res.json(createResponse(true, result.rows, 'Alertas obtenidas correctamente'));
+    
+  } catch (error) {
+    console.error('Error al obtener alertas:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al obtener alertas', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
 module.exports = {
   listEquipos,
   getEquipoById,
@@ -587,5 +669,7 @@ module.exports = {
   getHistorialMantenimiento,
   addConsumible,
   getConsumibles,
-  getStats
+  getStats,
+  configurarMantenimientoPreventivo,
+  getAlertasMantenimiento
 };

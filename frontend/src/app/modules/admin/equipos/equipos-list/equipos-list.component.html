@@ -1,4 +1,55 @@
-<div class="card mb-4">
+<div class="container-fluid">
+  <!-- Alertas de Mantenimiento -->
+  <div class="row mb-4" *ngIf="mostrarAlertas && alertas && alertas.length > 0">
+    <div class="col-12">
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <h6 class="alert-heading">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Alertas de Mantenimiento Preventivo ({{alertas.length}})
+        </h6>
+        <div class="row g-3 mt-2">
+          <div class="col-12 col-md-6 col-lg-4" *ngFor="let alerta of alertas">
+            <div class="card border-start border-4" 
+                 [class.border-danger]="alerta.estado_alerta === 'vencido'"
+                 [class.border-warning]="alerta.estado_alerta === 'urgente'"
+                 [class.border-info]="alerta.estado_alerta === 'proximo'">
+              <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 small">{{alerta.nombre_equipo}}</h6>
+                    <p class="mb-1 text-muted small">
+                      <i class="fas fa-laptop me-1"></i>{{alerta.marca}} {{alerta.modelo}}
+                    </p>
+                    <p class="mb-0 small">
+                      <i class="fas fa-calendar me-1"></i>
+                      <span *ngIf="alerta.estado_alerta === 'vencido'" class="text-danger">
+                        <strong>¡Vencido!</strong> Hace {{Math.abs(alerta.dias_restantes)}} días
+                      </span>
+                      <span *ngIf="alerta.estado_alerta === 'urgente'" class="text-warning">
+                        <strong>Urgente:</strong> En {{alerta.dias_restantes}} días
+                      </span>
+                      <span *ngIf="alerta.estado_alerta === 'proximo'" class="text-info">
+                        Próximo: En {{alerta.dias_restantes}} días
+                      </span>
+                    </p>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary ms-2" 
+                          (click)="onVerAlerta(alerta)"
+                          title="Ver detalles">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="ocultarAlertas()" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Equipos -->
+  <div class="card mb-4">
   <div class="card-header">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
       <h5 class="mb-0">Equipos</h5>
@@ -147,4 +198,5 @@
       </nav>
     </div>
   </div>
+</div>
 </div>

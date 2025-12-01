@@ -4,6 +4,63 @@ Este archivo registra todos los cambios estructurales aplicados a la base de dat
 
 ---
 
+## [2025-12-01] Sistema de Mantenimiento Preventivo con Alertas Automáticas
+
+### Cambios en Base de Datos
+- ✅ **NUEVA FUNCIONALIDAD**: Sistema de mantenimiento preventivo programado
+- ✅ Tabla `equipos` - Nuevos campos:
+  - `mantenimiento_intervalo_dias INTEGER` - Días entre mantenimientos (NULL = deshabilitado)
+  - `mantenimiento_fecha_inicio DATE` - Fecha desde la cual empezar a contar
+  - `mantenimiento_dias_alerta INTEGER DEFAULT 7` - Días de anticipación para alertas
+- ✅ Vista `equipos_alertas_mantenimiento` - Cálculo automático de:
+  - Último mantenimiento realizado
+  - Próxima fecha de mantenimiento
+  - Días restantes hasta el mantenimiento
+  - Estado de alerta: `vencido`, `urgente`, `proximo`, `ok`, `sin_configurar`
+- ✅ Lógica de cálculo basada en último servicio + intervalo configurado
+
+### Motivación del Cambio
+- 📅 **Automatización**: Alertas automáticas sin intervención manual
+- ⚠️ **Prevención**: Evitar fallas por falta de mantenimiento
+- 📊 **Visibilidad**: Dashboard con equipos que requieren atención
+- ⚙️ **Flexibilidad**: Configuración opcional por equipo
+
+### Cambios en Backend
+- ✅ `equiposController.js` - Nuevos endpoints:
+  - `configurarMantenimientoPreventivo()` - PUT /api/equipos/:id/mantenimiento-preventivo
+  - `getAlertasMantenimiento()` - GET /api/equipos/alertas-mantenimiento
+- ✅ Vista SQL consultada para obtener alertas en tiempo real
+- ✅ Filtrado por estados: vencido > urgente > proximo
+
+### Cambios en Frontend
+- ✅ `equipos.service.ts` - Nuevos métodos:
+  - `configurarMantenimientoPreventivo(equipoId, config)`
+  - `getAlertasMantenimiento()`
+- ✅ `equipo-detalle.component` - Nueva pestaña "Preventivo":
+  - Formulario de configuración de intervalo
+  - Selector de fecha de inicio
+  - Configuración de días de anticipación
+  - Información del estado actual
+  - Botón para deshabilitar mantenimiento preventivo
+- ✅ `equipos-list.component` - Sistema de alertas:
+  - Tarjetas de alertas en la parte superior
+  - Código de colores: Rojo (vencido), Amarillo (urgente), Azul (próximo)
+  - Contador de días restantes/vencidos
+  - Botón para ver detalles del equipo
+  - Opción para ocultar alertas
+- ✅ Diseño responsive con Bootstrap grid
+
+### Archivos Modificados
+- `backend/BD_SUPERCOPIAS.sql` - Estructura actualizada
+- `backend/scripts/add-mantenimiento-preventivo.sql` - Script de migración
+- `backend/controllers/equiposController.js`
+- `backend/routes/equipos.js`
+- `frontend/src/app/services/equipos.service.ts`
+- `frontend/src/app/modules/admin/equipos/equipo-detalle/*`
+- `frontend/src/app/modules/admin/equipos/equipos-list/*`
+
+---
+
 ## [2025-11-30] Módulo de Gestión de Equipos - Refactorizado a Módulo Independiente
 
 ### Cambios en Base de Datos

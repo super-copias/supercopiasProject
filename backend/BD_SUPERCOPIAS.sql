@@ -680,6 +680,9 @@ CREATE TABLE public.equipos (
     fecha_alta timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     activo boolean DEFAULT true,
+    mantenimiento_intervalo_dias integer,
+    mantenimiento_fecha_inicio date,
+    mantenimiento_dias_alerta integer DEFAULT 7,
     CONSTRAINT chk_equipos_estatus CHECK (((estatus)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying, 'en_reparacion'::character varying, 'baja'::character varying])::text[]))),
     CONSTRAINT chk_equipos_tipo CHECK (((tipo_equipo)::text = ANY ((ARRAY['fotocopiadora'::character varying, 'impresora'::character varying, 'pc'::character varying, 'laptop'::character varying, 'monitor'::character varying, 'router'::character varying, 'escaner'::character varying, 'otro'::character varying])::text[])))
 );
@@ -690,6 +693,27 @@ CREATE TABLE public.equipos (
 --
 
 COMMENT ON TABLE public.equipos IS 'Tabla principal de equipos electrÃ³nicos del negocio - MÃ³dulo independiente';
+
+
+--
+-- Name: COLUMN equipos.mantenimiento_intervalo_dias; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.equipos.mantenimiento_intervalo_dias IS 'Días entre mantenimientos programados (NULL = sin mantenimiento preventivo)';
+
+
+--
+-- Name: COLUMN equipos.mantenimiento_fecha_inicio; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.equipos.mantenimiento_fecha_inicio IS 'Fecha desde la cual empezar a contar el intervalo';
+
+
+--
+-- Name: COLUMN equipos.mantenimiento_dias_alerta; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.equipos.mantenimiento_dias_alerta IS 'Días de anticipación para mostrar alerta (default: 7)';
 
 
 --
@@ -1326,6 +1350,60 @@ CREATE SEQUENCE public.usuarios_id_seq
 --
 
 ALTER SEQUENCE public.usuarios_id_seq OWNED BY public.usuarios.id;
+
+
+--
+-- Name: equipos_alertas_mantenimiento; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.equipos_alertas_mantenimiento AS
+ SELECT e.id,
+    e.nombre_equipo,
+    e.marca,
+    e.modelo,
+    e.tipo_equipo,
+    e.area_ubicacion,
+    e.estatus,
+    e.mantenimiento_intervalo_dias,
+    e.mantenimiento_fecha_inicio,
+    e.mantenimiento_dias_alerta,
+    ( SELECT max(em.fecha_servicio) AS max
+           FROM equipos_mantenimiento em
+          WHERE (em.equipo_id = e.id)) AS ultimo_mantenimiento,
+        CASE
+            WHEN (e.mantenimiento_intervalo_dias IS NOT NULL) THEN ((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
+               FROM equipos_mantenimiento
+              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date
+            ELSE NULL::date
+        END AS proximo_mantenimiento,
+        CASE
+            WHEN (e.mantenimiento_intervalo_dias IS NOT NULL) THEN (((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
+               FROM equipos_mantenimiento
+              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date - CURRENT_DATE)
+            ELSE NULL::integer
+        END AS dias_restantes,
+        CASE
+            WHEN (e.mantenimiento_intervalo_dias IS NULL) THEN 'sin_configurar'::text
+            WHEN (((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
+               FROM equipos_mantenimiento
+              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date < CURRENT_DATE) THEN 'vencido'::text
+            WHEN ((((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
+               FROM equipos_mantenimiento
+              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date - CURRENT_DATE) <= e.mantenimiento_dias_alerta) THEN 'urgente'::text
+            WHEN ((((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
+               FROM equipos_mantenimiento
+              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date - CURRENT_DATE) <= (e.mantenimiento_dias_alerta * 2)) THEN 'proximo'::text
+            ELSE 'ok'::text
+        END AS estado_alerta
+   FROM equipos e
+  WHERE ((e.activo = true) AND ((e.estatus)::text = 'activo'::text) AND (e.mantenimiento_intervalo_dias IS NOT NULL));
+
+
+--
+-- Name: VIEW equipos_alertas_mantenimiento; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON VIEW public.equipos_alertas_mantenimiento IS 'Vista que calcula automáticamente las próximas fechas de mantenimiento y el estado de alertas';
 
 
 --

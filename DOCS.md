@@ -368,6 +368,8 @@ PostgreSQL Database
 - Historial de contadores (impresoras/fotocopiadoras)
 - Bitácora de mantenimientos y servicios
 - Control de consumibles (toner, cilindros, reveladores)
+- **Sistema de mantenimiento preventivo programado** 🆕
+- **Alertas automáticas de mantenimientos próximos o vencidos** 🆕
 - Filtros por tipo, estatus y cliente
 - Asociación con clientes y ubicaciones
 
@@ -381,6 +383,19 @@ PostgreSQL Database
 - Estatus (Activo, Inactivo, En Reparación, Baja)
 - Responsable técnico
 - Observaciones
+
+**Mantenimiento Preventivo** 🆕:
+- Intervalo de días entre mantenimientos (configurable)
+- Fecha de inicio del intervalo
+- Días de anticipación para alertas (default: 7)
+- Cálculo automático basado en último servicio
+- Estados de alerta:
+  - **Vencido**: Mantenimiento atrasado
+  - **Urgente**: Dentro del período de alerta
+  - **Próximo**: Dentro del doble del período de alerta
+  - **OK**: Fuera del rango de alerta
+- Dashboard de alertas en la vista principal
+- Tarjetas visuales con código de colores
 
 **Características específicas**:
 
@@ -406,6 +421,7 @@ PostgreSQL Database
 - **Contador**: Registro cronológico de lecturas para fotocopiadoras/impresoras
 - **Mantenimiento**: Bitácora de servicios con descripción, costo y técnico
 - **Consumibles**: Control de instalación y próximo cambio
+- **Preventivo** 🆕: Vista calculada de próximos mantenimientos y alertas
 
 ### 5. 🔐 Módulo de Autenticación
 

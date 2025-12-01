@@ -19,7 +19,9 @@ const {
   getHistorialMantenimiento,
   addConsumible,
   getConsumibles,
-  getStats
+  getStats,
+  configurarMantenimientoPreventivo,
+  getAlertasMantenimiento
 } = require('../controllers/equiposController');
 
 /**
@@ -28,6 +30,13 @@ const {
  * IMPORTANTE: Esta ruta debe estar ANTES de /:id
  */
 router.get('/stats', auth, getStats);
+
+/**
+ * GET /api/equipos/alertas-mantenimiento
+ * Obtener alertas de mantenimientos próximos o vencidos
+ * IMPORTANTE: Esta ruta debe estar ANTES de /:id
+ */
+router.get('/alertas-mantenimiento', auth, getAlertasMantenimiento);
 
 /**
  * GET /api/equipos
@@ -95,5 +104,11 @@ router.post('/:id/consumibles', auth, addConsumible);
  * Obtener consumibles del equipo
  */
 router.get('/:id/consumibles', auth, getConsumibles);
+
+/**
+ * PUT /api/equipos/:id/mantenimiento-preventivo
+ * Configurar mantenimiento preventivo del equipo
+ */
+router.put('/:id/mantenimiento-preventivo', auth, configurarMantenimientoPreventivo);
 
 module.exports = router;
