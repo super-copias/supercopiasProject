@@ -103,8 +103,8 @@
       </div>
     </div>
 
-    <!-- Tabla -->
-    <div class="table-responsive">
+    <!-- Tabla para pantallas grandes -->
+    <div class="table-responsive d-none d-lg-block">
       <table class="table table-hover table-sm">
         <thead>
           <tr>
@@ -170,6 +170,94 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Vista de cards para pantallas pequeñas -->
+    <div class="d-lg-none">
+      <div class="row g-3" *ngFor="let equipo of equipos">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-3">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="flex-shrink-0 me-3">
+                      <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                           style="width: 40px; height: 40px; border-radius: 50%; font-weight: bold;">
+                        <i class="fas fa-desktop"></i>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0 fw-bold">{{equipo.nombre_equipo || 'Sin nombre'}}</h6>
+                      <small class="text-muted">ID: {{equipo.id}}</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                      <span [ngClass]="getEstatusClass(equipo.estatus)">
+                        {{getEstatusNombre(equipo.estatus)}}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <small class="text-muted d-block">Tipo</small>
+                      <span class="badge bg-primary">{{getTipoNombre(equipo.tipo_equipo)}}</span>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted d-block">Marca</small>
+                      <span class="fw-medium">{{equipo.marca || 'N/A'}}</span>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted d-block">Modelo</small>
+                      <span class="fw-medium">{{equipo.modelo || 'N/A'}}</span>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted d-block">Serie</small>
+                      <span class="fw-medium font-monospace small">{{equipo.numero_serie || 'N/A'}}</span>
+                    </div>
+                  </div>
+
+                  <div class="mb-2" *ngIf="equipo.area_ubicacion">
+                    <small class="text-muted d-block">
+                      <i class="fas fa-map-marker-alt me-1"></i>Ubicación
+                    </small>
+                    <span>{{equipo.area_ubicacion}}</span>
+                  </div>
+
+                  <div class="mb-3" *ngIf="equipo.cliente_nombre">
+                    <small class="text-muted d-block">
+                      <i class="fas fa-user me-1"></i>Cliente
+                    </small>
+                    <span>{{equipo.cliente_nombre}}</span>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm flex-fill" (click)="onVer(equipo)">
+                      <i class="fas fa-info-circle me-1"></i>Ver
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm flex-fill" (click)="onEditar(equipo)">
+                      <i class="fas fa-edit me-1"></i>Editar
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" (click)="onEliminar(equipo)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensaje de loading/vacío para móvil -->
+      <div *ngIf="loading" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+        <p class="mt-2 text-muted">Cargando equipos...</p>
+      </div>
+      <div *ngIf="!loading && equipos.length === 0" class="text-center py-5">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <p class="text-muted">No se encontraron equipos</p>
+      </div>
     </div>
 
     <div *ngIf="loading" class="my-2">

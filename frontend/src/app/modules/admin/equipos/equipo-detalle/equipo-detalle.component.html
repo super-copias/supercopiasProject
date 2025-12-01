@@ -1,52 +1,52 @@
-<div class="container-fluid py-4">
+<div class="container-fluid py-2 py-md-4">
   <div class="card shadow-sm" *ngIf="!loading && equipo">
     <!-- Header -->
     <div class="card-header bg-white">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+        <div class="flex-grow-1">
           <h5 class="mb-1">
-            <i class="fas fa-laptop me-2"></i>
+            <i class="fas fa-laptop me-2 d-none d-md-inline"></i>
             {{equipo.marca}} {{equipo.modelo}}
           </h5>
           <small class="text-muted">Serie: {{equipo.numero_serie || 'N/A'}}</small>
         </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-secondary btn-sm" (click)="onVolver()">
-            <i class="fas fa-arrow-left me-2"></i>Volver
+        <div class="d-flex gap-2 w-100 w-md-auto">
+          <button class="btn btn-secondary btn-sm flex-fill flex-md-grow-0" (click)="onVolver()">
+            <i class="fas fa-arrow-left me-1 me-md-2"></i><span class="d-none d-sm-inline">Volver</span>
           </button>
-          <button class="btn btn-primary btn-sm" (click)="onEditar()">
-            <i class="fas fa-edit me-2"></i>Editar
+          <button class="btn btn-primary btn-sm flex-fill flex-md-grow-0" (click)="onEditar()">
+            <i class="fas fa-edit me-1 me-md-2"></i><span class="d-none d-sm-inline">Editar</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div class="card-body">
-      <ul class="nav nav-tabs mb-3">
+    <div class="card-body p-2 p-md-3">
+      <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto">
         <li class="nav-item">
           <a class="nav-link" [class.active]="activeTab === 'info'" (click)="setTab('info')" style="cursor: pointer;">
-            <i class="fas fa-info-circle me-1"></i>Información
+            <i class="fas fa-info-circle me-1"></i><span class="d-none d-sm-inline">Información</span>
           </a>
         </li>
         <li class="nav-item" *ngIf="esImpresora">
           <a class="nav-link" [class.active]="activeTab === 'contador'" (click)="setTab('contador')" style="cursor: pointer;">
-            <i class="fas fa-tachometer-alt me-1"></i>Contador
+            <i class="fas fa-tachometer-alt me-1"></i><span class="d-none d-sm-inline">Contador</span>
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" [class.active]="activeTab === 'mantenimiento'" (click)="setTab('mantenimiento')" style="cursor: pointer;">
-            <i class="fas fa-tools me-1"></i>Mantenimiento
+            <i class="fas fa-tools me-1"></i><span class="d-none d-sm-inline">Mantenimiento</span>
           </a>
         </li>
         <li class="nav-item" *ngIf="esImpresora">
           <a class="nav-link" [class.active]="activeTab === 'consumibles'" (click)="setTab('consumibles')" style="cursor: pointer;">
-            <i class="fas fa-fill-drip me-1"></i>Consumibles
+            <i class="fas fa-fill-drip me-1"></i><span class="d-none d-sm-inline">Consumibles</span>
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" [class.active]="activeTab === 'preventivo'" (click)="setTab('preventivo')" style="cursor: pointer;">
-            <i class="fas fa-calendar-check me-1"></i>Preventivo
+            <i class="fas fa-calendar-check me-1"></i><span class="d-none d-sm-inline">Preventivo</span>
           </a>
         </li>
       </ul>
