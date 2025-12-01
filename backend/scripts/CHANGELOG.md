@@ -4,6 +4,94 @@ Este archivo registra todos los cambios estructurales aplicados a la base de dat
 
 ---
 
+## [2025-11-30] Módulo de Gestión de Equipos - Refactorizado a Módulo Independiente
+
+### Cambios en Base de Datos
+- ✅ **REFACTORIZACIÓN**: Módulo convertido de diseño relacional a independiente
+- ✅ Tabla `equipos` actualizada:
+  - ❌ Eliminado `cliente_id INTEGER REFERENCES clientes(id)`
+  - ✅ Agregado `cliente_nombre VARCHAR(255)` - Nombre del cliente (opcional)
+  - ❌ Eliminado `responsable_id INTEGER REFERENCES empleados(id)`
+  - ✅ Agregado `responsable_nombre VARCHAR(255)` - Nombre del técnico responsable (opcional)
+  - ✅ Índice `idx_equipos_cliente_nombre` para búsquedas
+- ✅ Tabla `equipos_caracteristicas` para características dinámicas (JSON)
+- ✅ Tabla `equipos_historial_contador` actualizada:
+  - ❌ Eliminado `tecnico_id INTEGER REFERENCES empleados(id)`
+  - ✅ Agregado `tecnico_nombre VARCHAR(255)` - Nombre del técnico que tomó la lectura
+- ✅ Tabla `equipos_mantenimiento` actualizada:
+  - ❌ Eliminado `tecnico_id INTEGER REFERENCES empleados(id)`
+  - ✅ Agregado `tecnico_nombre VARCHAR(255)` - Nombre del técnico que realizó el servicio
+  - ✅ Agregado `proveedor_nombre VARCHAR(255)` - Nombre del proveedor (opcional)
+- ✅ Tabla `equipos_consumibles` para control de consumibles
+- ✅ Índices optimizados para búsqueda, filtrado y ordenamiento
+- ❌ **SIN FOREIGN KEYS** - Módulo completamente independiente
+- ✅ Constraints de validación para tipo de equipo y estatus
+
+### Motivación del Cambio
+- 🔒 **Independencia total**: El módulo de equipos no afecta módulos ya probados (clientes, empleados)
+- 🚀 **Escalabilidad**: Permite agregar equipos de cualquier cliente sin depender de registros existentes
+- 🛡️ **Seguridad**: Evita problemas de integridad referencial con módulos críticos
+- 📊 **Simplicidad**: Relaciones de solo consulta mediante nombres (texto libre)
+
+### Cambios en Backend
+- ✅ Controlador `equiposController.js` actualizado:
+  - ❌ Eliminados todos los LEFT JOIN con `clientes` y `empleados`
+  - ✅ Métodos CRUD usan campos de nombres directamente
+  - ✅ Métodos: `listEquipos()`, `getEquipoById()`, `createEquipo()`, `updateEquipo()`, `deleteEquipo()`
+  - ✅ Historial de contador: `addContador()`, `getHistorialContador()`
+  - ✅ Mantenimiento: `addMantenimiento()`, `getHistorialMantenimiento()`
+  - ✅ Consumibles: `addConsumible()`, `getConsumibles()`
+  - ✅ Estadísticas: `getStats()`
+- ✅ Rutas `/api/equipos` sin cambios (compatibles)
+- ✅ Integración en `index.js` del backend
+
+### Cambios en Frontend
+- ✅ Servicio `equipos.service.ts`:
+  - ❌ Eliminadas propiedades: `cliente_id`, `responsable_id`, `tecnico_id`
+  - ✅ Agregadas propiedades: `cliente_nombre`, `responsable_nombre`, `tecnico_nombre`, `proveedor_nombre`
+  - ✅ Interfaces TypeScript actualizadas
+- ✅ Componentes actualizados:
+  - **EquiposFormComponent**: 
+    - ❌ Eliminados selects de cliente/responsable
+    - ✅ Agregados inputs de texto para nombres
+  - **EquipoDetalleComponent**:
+    - ✅ Formulario de contador con campo `tecnico_nombre`
+    - ✅ Formulario de mantenimiento con campos `tecnico_nombre` y `proveedor_nombre`
+    - ✅ Tablas actualizadas para mostrar nombres
+  - **EquiposListComponent**: Sin cambios (ya usa nombres)
+
+### Script de Migración
+- ✅ `migrate-equipos-independiente.sql` - Convierte módulo relacional a independiente
+  - Migra datos de IDs a nombres automáticamente
+  - Elimina foreign keys
+  - Elimina columnas de IDs
+  - Crea índices para nombres
+  - Verificación post-migración incluida
+
+### Características Implementadas
+- 📋 **Tipos de equipos**: Fotocopiadora, Impresora, PC, Laptop, Monitor, Router, Escáner, Otro
+- 🔧 **Campos dinámicos**: Características específicas según tipo seleccionado
+- 📊 **Historial de contador**: Registro cronológico para impresoras/fotocopiadoras
+- 🛠️ **Mantenimiento**: Bitácora completa con descripción, costos, técnicos y proveedores
+- 🖨️ **Consumibles**: Control de instalación, rendimiento y próximo cambio
+- 🏷️ **Relaciones de consulta**: Nombres de clientes, técnicos y proveedores (texto libre)
+- 🔄 **Estatus**: Activo, Inactivo, En Reparación, Dado de Baja
+- 🔍 **Filtros**: Por tipo, estatus, cliente y búsqueda de texto
+- 🔓 **Independencia total**: Sin dependencias de otros módulos
+
+### Permisos y Roles
+- ✅ Módulo `equipos` agregado al sistema de roles en `rolesSystem.js`
+- ✅ Permisos configurados para: Administrador, Gestor de Inventarios
+
+### Estado
+✅ Módulo completamente funcional como independiente
+✅ Refactorización aplicada en BD_SUPERCOPIAS.sql
+✅ Script de migración disponible para bases de datos existentes
+✅ Frontend actualizado y sin errores de compilación
+✅ Documentado en DOCS.md y MODULO-EQUIPOS.md
+
+---
+
 ## [2025-11-30] Módulo de Proveedores Completado
 
 ### Cambios en Base de Datos

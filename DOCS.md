@@ -359,7 +359,55 @@ PostgreSQL Database
    - Campo para pegar dirección exacta
 3. Aplicación automática al presionar Enter
 
-### 4. 🔐 Módulo de Autenticación
+### 4. 🔧 Módulo de Equipos
+
+**Funcionalidades**:
+- CRUD completo de equipos electrónicos
+- Registro de 8 tipos de equipos (Fotocopiadora, Impresora, PC, Laptop, Monitor, Router, Escáner, Otro)
+- Características dinámicas según tipo de equipo
+- Historial de contadores (impresoras/fotocopiadoras)
+- Bitácora de mantenimientos y servicios
+- Control de consumibles (toner, cilindros, reveladores)
+- Filtros por tipo, estatus y cliente
+- Asociación con clientes y ubicaciones
+
+**Campos principales**:
+- Tipo de equipo
+- Marca y modelo
+- Número de serie
+- Nombre del equipo
+- Área/ubicación
+- Cliente asignado
+- Estatus (Activo, Inactivo, En Reparación, Baja)
+- Responsable técnico
+- Observaciones
+
+**Características específicas**:
+
+1. **Fotocopiadoras/Impresoras**
+   - Contador actual
+   - Capacidad de bandejas
+   - Tipo de consumible
+   - Rendimiento estimado del toner
+
+2. **PCs/Laptops**
+   - Procesador
+   - RAM
+   - Almacenamiento
+   - Sistema operativo
+   - Dirección IP
+
+3. **Monitores**
+   - Tamaño en pulgadas
+   - Tipo de panel
+   - Resolución
+
+**Historiales**:
+- **Contador**: Registro cronológico de lecturas para fotocopiadoras/impresoras
+- **Mantenimiento**: Bitácora de servicios con descripción, costo y técnico
+- **Consumibles**: Control de instalación y próximo cambio
+
+### 5. 🔐 Módulo de Autenticación
 
 **Funcionalidades**:
 - Login con username/password
@@ -374,7 +422,7 @@ PostgreSQL Database
 - **gerente**: Gestión de módulos asignados
 - **empleado**: Acceso limitado
 
-### 5. ⚙️ Módulo de Administración
+### 6. ⚙️ Módulo de Administración
 
 **Funcionalidades**:
 - Gestión de usuarios
@@ -847,6 +895,46 @@ dist/supercopias-frontend/.htaccess
 - ✅ Incluido en impresión
 
 **Script**: `backend/scripts/add-turno-empleados.sql`
+
+### [2025-11-30] - Módulo de Gestión de Equipos
+
+**Base de Datos**:
+- ✅ Tabla `equipos` - Datos generales de equipos electrónicos
+- ✅ Tabla `equipos_caracteristicas` - Características específicas (JSON flexible)
+- ✅ Tabla `equipos_historial_contador` - Historial de lecturas de contador
+- ✅ Tabla `equipos_mantenimiento` - Historial de servicios y mantenimientos
+- ✅ Tabla `equipos_consumibles` - Control de consumibles instalados
+- ✅ Índices optimizados para búsqueda y filtrado
+
+**Backend**:
+- ✅ Controlador `equiposController.js` con CRUD completo
+- ✅ Rutas en `/api/equipos` con autenticación
+- ✅ Endpoints para historial de contador, mantenimiento y consumibles
+- ✅ Filtros por tipo, estatus, cliente y búsqueda de texto
+- ✅ Endpoint de estadísticas generales
+- ✅ Estándar API aplicado a todas las respuestas
+
+**Frontend**:
+- ✅ Servicio `equipos.service.ts` con tipado completo
+- ✅ Módulo lazy-loaded en `/admin/equipos`
+- ✅ Componente de listado con filtros y paginación
+- ✅ Formulario dinámico según tipo de equipo
+- ✅ Vista de detalle con tabs para información, contador, mantenimiento y consumibles
+- ✅ Formularios inline para agregar registros de historial
+- ✅ UI consistente con Bootstrap 5 y FontAwesome
+
+**Características**:
+- 📋 Gestión de 8 tipos de equipos: Fotocopiadora, Impresora, PC, Laptop, Monitor, Router, Escáner, Otro
+- 🔧 Campos específicos según tipo (contador para impresoras, especificaciones para PCs, etc.)
+- 📊 Historial cronológico de contadores para fotocopiadoras/impresoras
+- 🛠️ Bitácora completa de mantenimientos con costos y técnicos
+- 🖨️ Control de consumibles (toner, cilindros, reveladores)
+- 🏷️ Asociación con clientes y ubicaciones
+- 🔄 Estatus: Activo, Inactivo, En Reparación, Dado de Baja
+
+**Permisos**:
+- Módulo `equipos` integrado en sistema de roles
+- CRUD disponible para administradores y gestores de inventarios
 
 ### [2025-11-24] - Segundo Email en Clientes
 

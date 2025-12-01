@@ -14,7 +14,7 @@ Este directorio contiene scripts esenciales para la gestión de la base de datos
 **Funcionalidad:**
 - Crea la estructura completa de la base de datos
 - Inicializa catálogos SAT (Regímenes Fiscales, Usos CFDI, Formas de Pago, etc.)
-- Crea tablas: usuarios, empleados, clientes, proveedores, módulos
+- Crea tablas: usuarios, empleados, clientes, proveedores, módulos, equipos
 - Ejecuta automáticamente el script `insertar-modulos.sql`
 
 **Uso:**
@@ -34,6 +34,7 @@ node scripts/migrate-to-postgres.js
 - Clientes
 - Empleados  
 - Proveedores
+- Equipos (Gestión de Inventario)
 - Administración
 
 **Uso:** Se ejecuta automáticamente con `migrate-to-postgres.js`
@@ -42,6 +43,31 @@ node scripts/migrate-to-postgres.js
 ```bash
 psql -U postgres -d supercopias -f scripts/insertar-modulos.sql
 ```
+
+---
+
+#### `migrate-equipos-independiente.sql` ⭐ NUEVO
+**Descripción:** Migración para convertir el módulo de equipos de diseño relacional a módulo independiente.
+
+**Funcionalidad:**
+- Agrega columnas de nombres (`cliente_nombre`, `responsable_nombre`, `tecnico_nombre`, `proveedor_nombre`)
+- Migra datos de IDs a nombres automáticamente (si existen foreign keys)
+- Elimina foreign keys hacia `clientes`, `empleados` y `proveedores`
+- Elimina columnas de IDs (`cliente_id`, `responsable_id`, `tecnico_id`, `proveedor_id`)
+- Crea índices para búsquedas por nombre
+- Verifica migración exitosa
+
+**Uso:**
+```bash
+# Si ya tienes tablas de equipos con foreign keys
+psql -U postgres -d supercopias -f scripts/migrate-equipos-independiente.sql
+```
+
+**Cuándo usar:**
+- Si instalaste el módulo de equipos con la versión anterior (con foreign keys)
+- Si quieres convertir el módulo a independiente sin afectar otros módulos
+
+**Nota:** Es idempotente, puedes ejecutarlo múltiples veces sin problemas.
 
 ---
 

@@ -1,0 +1,336 @@
+<div class="container-fluid py-4">
+  <div class="card shadow-sm" *ngIf="!loading && equipo">
+    <!-- Header -->
+    <div class="card-header bg-white">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-1">
+            <i class="fas fa-laptop me-2"></i>
+            {{equipo.marca}} {{equipo.modelo}}
+          </h5>
+          <small class="text-muted">Serie: {{equipo.numero_serie || 'N/A'}}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-secondary btn-sm" (click)="onVolver()">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="onEditar()">
+            <i class="fas fa-edit me-2"></i>Editar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card-body">
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'info'" (click)="setTab('info')" style="cursor: pointer;">
+            <i class="fas fa-info-circle me-1"></i>Información
+          </a>
+        </li>
+        <li class="nav-item" *ngIf="esImpresora">
+          <a class="nav-link" [class.active]="activeTab === 'contador'" (click)="setTab('contador')" style="cursor: pointer;">
+            <i class="fas fa-tachometer-alt me-1"></i>Contador
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'mantenimiento'" (click)="setTab('mantenimiento')" style="cursor: pointer;">
+            <i class="fas fa-tools me-1"></i>Mantenimiento
+          </a>
+        </li>
+        <li class="nav-item" *ngIf="esImpresora">
+          <a class="nav-link" [class.active]="activeTab === 'consumibles'" (click)="setTab('consumibles')" style="cursor: pointer;">
+            <i class="fas fa-fill-drip me-1"></i>Consumibles
+          </a>
+        </li>
+      </ul>
+
+      <!-- Tab: Información -->
+      <div *ngIf="activeTab === 'info'">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="mb-3">Datos Generales</h6>
+            <table class="table table-sm">
+              <tr>
+                <th width="150">Tipo:</th>
+                <td>{{equipo.tipo_equipo}}</td>
+              </tr>
+              <tr>
+                <th>Marca:</th>
+                <td>{{equipo.marca || '-'}}</td>
+              </tr>
+              <tr>
+                <th>Modelo:</th>
+                <td>{{equipo.modelo || '-'}}</td>
+              </tr>
+              <tr>
+                <th>Serie:</th>
+                <td>{{equipo.numero_serie || '-'}}</td>
+              </tr>
+              <tr>
+                <th>Ubicación:</th>
+                <td>{{equipo.area_ubicacion || '-'}}</td>
+              </tr>
+              <tr>
+                <th>Cliente:</th>
+                <td>{{equipo.cliente_nombre || '-'}}</td>
+              </tr>
+              <tr>
+                <th>Estatus:</th>
+                <td>
+                  <span class="badge bg-success" *ngIf="equipo.estatus === 'activo'">Activo</span>
+                  <span class="badge bg-secondary" *ngIf="equipo.estatus === 'inactivo'">Inactivo</span>
+                  <span class="badge bg-warning text-dark" *ngIf="equipo.estatus === 'en_reparacion'">En Reparación</span>
+                  <span class="badge bg-danger" *ngIf="equipo.estatus === 'baja'">Baja</span>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6 class="mb-3">Características</h6>
+            <div *ngIf="equipo.caracteristicas && hasCaracteristicas()">
+              <ul class="list-unstyled">
+                <li *ngFor="let item of getCaracteristicasArray()" class="mb-2">
+                  <i class="fas fa-check-circle text-primary me-2"></i>
+                  <strong>{{item.key}}:</strong> {{item.value}}
+                </li>
+              </ul>
+            </div>
+            <div *ngIf="!equipo.caracteristicas || !hasCaracteristicas()" class="text-center py-4">
+              <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+              <p class="text-muted mb-0">Sin características registradas</p>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3" *ngIf="equipo.observaciones">
+          <div class="col-12">
+            <h6>Observaciones</h6>
+            <p class="bg-light p-3 rounded">{{equipo.observaciones}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Contador -->
+      <div *ngIf="activeTab === 'contador'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Historial de Contadores</h6>
+          <button class="btn btn-primary btn-sm" (click)="onAgregarContador()" *ngIf="!showFormContador">
+            <i class="fas fa-plus me-2"></i>Agregar Lectura
+          </button>
+        </div>
+
+        <!-- Formulario contador -->
+        <div class="card mb-3" *ngIf="showFormContador">
+          <div class="card-body">
+            <h6>Nueva Lectura de Contador</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Contador Actual *</label>
+                <input type="number" class="form-control" [(ngModel)]="formContador.contador_actual">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Técnico</label>
+                <input type="text" class="form-control" [(ngModel)]="formContador.tecnico_nombre" 
+                       placeholder="Nombre del técnico (opcional)">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Observaciones</label>
+                <textarea class="form-control" rows="2" [(ngModel)]="formContador.observaciones"></textarea>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-primary btn-sm" (click)="onGuardarContador()">
+                <i class="fas fa-save me-2"></i>Guardar
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="onCancelarContador()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla historial -->
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Contador</th>
+                <th>Técnico</th>
+                <th>Observaciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of historialContador">
+                <td>{{item.fecha_lectura | date:'dd/MM/yyyy HH:mm'}}</td>
+                <td><strong>{{item.contador_actual}}</strong></td>
+                <td>{{item.tecnico_nombre || '-'}}</td>
+                <td>{{item.observaciones || '-'}}</td>
+              </tr>
+              <tr *ngIf="historialContador.length === 0">
+                <td colspan="4" class="text-center text-muted">No hay registros</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Mantenimiento -->
+      <div *ngIf="activeTab === 'mantenimiento'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Historial de Mantenimientos</h6>
+          <button class="btn btn-primary btn-sm" (click)="onAgregarMantenimiento()" *ngIf="!showFormMantenimiento">
+            <i class="fas fa-plus me-2"></i>Agregar Servicio
+          </button>
+        </div>
+
+        <!-- Formulario mantenimiento -->
+        <div class="card mb-3" *ngIf="showFormMantenimiento">
+          <div class="card-body">
+            <h6>Nuevo Mantenimiento</h6>
+            <div class="row g-3">
+              <div class="col-md-12">
+                <label class="form-label">Descripción del Servicio *</label>
+                <textarea class="form-control" rows="3" [(ngModel)]="formMantenimiento.descripcion" 
+                          placeholder="Ej: Cambio de unidad de cilindro, limpieza general..."></textarea>
+              </div>
+              <div class="col-md-4" *ngIf="esImpresora">
+                <label class="form-label">Contador al Servicio</label>
+                <input type="number" class="form-control" [(ngModel)]="formMantenimiento.contador_servicio">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Costo</label>
+                <input type="number" class="form-control" [(ngModel)]="formMantenimiento.costo" step="0.01">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Técnico</label>
+                <input type="text" class="form-control" [(ngModel)]="formMantenimiento.tecnico_nombre" 
+                       placeholder="Nombre del técnico">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Proveedor</label>
+                <input type="text" class="form-control" [(ngModel)]="formMantenimiento.proveedor_nombre" 
+                       placeholder="Nombre del proveedor (opcional)">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Observaciones</label>
+                <textarea class="form-control" rows="2" [(ngModel)]="formMantenimiento.observaciones"></textarea>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-primary btn-sm" (click)="onGuardarMantenimiento()">
+                <i class="fas fa-save me-2"></i>Guardar
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="onCancelarMantenimiento()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla historial -->
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th>Contador</th>
+                <th>Costo</th>
+                <th>Técnico</th>
+                <th>Proveedor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of historialMantenimiento">
+                <td>{{item.fecha_servicio | date:'dd/MM/yyyy'}}</td>
+                <td>{{item.descripcion}}</td>
+                <td>{{item.contador_servicio || '-'}}</td>
+                <td>{{item.costo ? (item.costo | currency) : '-'}}</td>
+                <td>{{item.tecnico_nombre || '-'}}</td>
+                <td>{{item.proveedor_nombre || '-'}}</td>
+              </tr>
+              <tr *ngIf="historialMantenimiento.length === 0">
+                <td colspan="6" class="text-center text-muted">No hay registros</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Consumibles -->
+      <div *ngIf="activeTab === 'consumibles'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Consumibles Instalados</h6>
+          <button class="btn btn-primary btn-sm" (click)="onAgregarConsumible()" *ngIf="!showFormConsumible">
+            <i class="fas fa-plus me-2"></i>Agregar Consumible
+          </button>
+        </div>
+
+        <!-- Formulario consumible -->
+        <div class="card mb-3" *ngIf="showFormConsumible">
+          <div class="card-body">
+            <h6>Nuevo Consumible</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Tipo de Consumible *</label>
+                <input type="text" class="form-control" [(ngModel)]="formConsumible.tipo_consumible" 
+                       placeholder="Ej: Toner Negro, Cilindro, Revelador">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Contador Instalación</label>
+                <input type="number" class="form-control" [(ngModel)]="formConsumible.contador_instalacion">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Rendimiento Estimado</label>
+                <input type="number" class="form-control" [(ngModel)]="formConsumible.rendimiento_estimado">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Observaciones</label>
+                <textarea class="form-control" rows="2" [(ngModel)]="formConsumible.observaciones"></textarea>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-primary btn-sm" (click)="onGuardarConsumible()">
+                <i class="fas fa-save me-2"></i>Guardar
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="onCancelarConsumible()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla consumibles -->
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha Instalación</th>
+                <th>Tipo</th>
+                <th>Contador Inst.</th>
+                <th>Rendimiento</th>
+                <th>Próximo Cambio</th>
+                <th>Observaciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of consumibles">
+                <td>{{item.fecha_instalacion | date:'dd/MM/yyyy'}}</td>
+                <td>{{item.tipo_consumible}}</td>
+                <td>{{item.contador_instalacion || '-'}}</td>
+                <td>{{item.rendimiento_estimado || '-'}}</td>
+                <td>{{item.contador_proximo_cambio || '-'}}</td>
+                <td>{{item.observaciones || '-'}}</td>
+              </tr>
+              <tr *ngIf="consumibles.length === 0">
+                <td colspan="6" class="text-center text-muted">No hay registros</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <i class="fas fa-spinner fa-spin fa-2x"></i>
+    <p class="mt-2">Cargando equipo...</p>
+  </div>
+</div>
