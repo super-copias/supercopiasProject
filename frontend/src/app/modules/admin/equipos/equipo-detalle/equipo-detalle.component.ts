@@ -229,10 +229,16 @@ export class EquipoDetalleComponent implements OnInit {
 
   getCaracteristicasArray(): Array<{key: string, value: any}> {
     if (!this.equipo || !this.equipo.caracteristicas) return [];
-    return Object.keys(this.equipo.caracteristicas).map(key => ({
-      key: this.formatearNombreCampo(key),
-      value: this.equipo.caracteristicas[key]
-    }));
+    return Object.keys(this.equipo.caracteristicas)
+      .filter(key => {
+        const value = this.equipo.caracteristicas[key];
+        // Filtrar solo valores que no sean null, undefined, vacíos o strings vacíos
+        return value !== null && value !== undefined && value !== '' && value !== 0 && !(Array.isArray(value) && value.length === 0);
+      })
+      .map(key => ({
+        key: this.formatearNombreCampo(key),
+        value: this.equipo.caracteristicas[key]
+      }));
   }
 
   private formatearNombreCampo(key: string): string {

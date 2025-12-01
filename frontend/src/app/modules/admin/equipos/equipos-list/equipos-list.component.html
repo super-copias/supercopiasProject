@@ -109,6 +109,7 @@
         <thead>
           <tr>
             <th>ID</th>
+            <th>NOMBRE</th>
             <th>TIPO</th>
             <th>MARCA/MODELO</th>
             <th>SERIE</th>
@@ -120,17 +121,20 @@
         </thead>
         <tbody>
           <tr *ngIf="loading">
-            <td colspan="8" class="text-center py-3">
+            <td colspan="9" class="text-center py-3">
               <i class="fas fa-spinner fa-spin me-2"></i>Cargando...
             </td>
           </tr>
           <tr *ngIf="!loading && equipos.length === 0">
-            <td colspan="8" class="text-center py-3 text-muted">
+            <td colspan="9" class="text-center py-3 text-muted">
               <i class="fas fa-inbox me-2"></i>No se encontraron equipos
             </td>
           </tr>
           <tr *ngFor="let equipo of equipos">
             <td>{{equipo.id}}</td>
+            <td>
+              <strong>{{equipo.nombre_equipo || '-'}}</strong>
+            </td>
             <td>
               <span class="badge bg-primary">{{getTipoNombre(equipo.tipo_equipo)}}</span>
             </td>
