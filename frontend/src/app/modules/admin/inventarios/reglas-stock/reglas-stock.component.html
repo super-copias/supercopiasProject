@@ -1,0 +1,396 @@
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-0">
+              <i class="fas fa-sliders-h me-2"></i>
+              Configurar Reglas de Stock
+            </h5>
+            <small class="text-muted">Personaliza los umbrales de alerta para este artículo</small>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" (click)="volver()">
+            <i class="fas fa-arrow-left me-1"></i> Volver
+          </button>
+        </div>
+      </div>
+
+      <!-- Alertas -->
+      <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+        <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+      </div>
+
+      <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>{{ successMessage }}
+        <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted">Cargando reglas...</p>
+      </div>
+
+      <!-- Formulario -->
+      <div *ngIf="!loading" class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="fas fa-cog me-2"></i>
+                Configuración de Umbrales
+              </h6>
+            </div>
+            <div class="card-body">
+              <!-- Info Stock Actual -->
+              <div class="alert alert-info mb-4">
+                <div class="row">
+                  <div class="col-md-4">
+                    <strong>Stock Mínimo:</strong> {{ stockMinimo }} unidades
+                  </div>
+                  <div class="col-md-4">
+                    <strong>Stock Máximo:</strong> {{ stockMaximo || 'No definido' }}
+                  </div>
+                  <div class="col-md-4">
+                    <span *ngIf="tieneReglasPersonalizadas" class="badge bg-success">
+                      <i class="fas fa-check me-1"></i>Reglas personalizadas
+                    </span>
+                    <span *ngIf="!tieneReglasPersonalizadas" class="badge bg-secondary">
+                      <i class="fas fa-info-circle me-1"></i>Reglas por defecto
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modo de Cálculo -->
+              <div class="mb-4">
+                <label class="form-label fw-bold">
+                  <i class="fas fa-calculator me-2"></i>
+                  Modo de Cálculo
+                </label>
+                <div class="form-check">
+                  <input 
+                    class="form-check-input" 
+                    type="radio" 
+                    name="modoCalculo" 
+                    id="modoMinimo"
+                    [value]="false"
+                    [(ngModel)]="reglas.usar_stock_maximo"
+                    (change)="onCambioModo()"
+                  >
+                  <label class="form-check-label" for="modoMinimo">
+                    Usar solo stock mínimo (porcentajes fijos)
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input 
+                    class="form-check-input" 
+                    type="radio" 
+                    name="modoCalculo" 
+                    id="modoRango"
+                    [value]="true"
+                    [(ngModel)]="reglas.usar_stock_maximo"
+                    (change)="onCambioModo()"
+                    [disabled]="!stockMaximo"
+                  >
+                  <label class="form-check-label" for="modoRango">
+                    Usar rango completo (mínimo - máximo) 
+                    <span class="badge bg-primary ms-2">Recomendado</span>
+                  </label>
+                  <small *ngIf="!stockMaximo" class="text-danger d-block ms-4">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Requiere tener stock_maximo definido
+                  </small>
+                </div>
+              </div>
+
+              <hr>
+
+              <!-- Umbrales Personalizados -->
+              <h6 class="mb-3">
+                <i class="fas fa-chart-line me-2"></i>
+                Umbrales Personalizados
+              </h6>
+
+              <!-- Nivel Crítico -->
+              <div class="mb-4">
+                <label class="form-label">
+                  <span class="badge bg-danger me-2">🔴</span>
+                  Nivel Crítico
+                </label>
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    [(ngModel)]="reglas.nivel_critico_porcentaje"
+                    (ngModelChange)="onCambioPorcentaje()"
+                    min="0"
+                    max="100"
+                    step="1"
+                  >
+                  <span class="input-group-text">% sobre mínimo</span>
+                </div>
+                <small class="text-muted d-block mt-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Cuando stock &lt; {{ stockMinimo }} unidades
+                </small>
+              </div>
+
+              <!-- Nivel Bajo -->
+              <div class="mb-4">
+                <label class="form-label">
+                  <span class="badge bg-warning text-dark me-2">🟡</span>
+                  Nivel Bajo
+                </label>
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    [(ngModel)]="reglas.nivel_bajo_porcentaje"
+                    (ngModelChange)="onCambioPorcentaje()"
+                    min="0"
+                    max="100"
+                    step="1"
+                  >
+                  <span class="input-group-text">% sobre mínimo</span>
+                </div>
+                <small class="text-muted d-block mt-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Cuando stock entre {{ stockMinimo }} - {{ umbralBajo.toFixed(1) }} unidades
+                </small>
+              </div>
+
+              <!-- Nivel Normal -->
+              <div class="mb-4">
+                <label class="form-label">
+                  <span class="badge bg-success me-2">🟢</span>
+                  Nivel Normal
+                </label>
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    [(ngModel)]="reglas.nivel_normal_porcentaje"
+                    (ngModelChange)="onCambioPorcentaje()"
+                    min="0"
+                    max="100"
+                    step="1"
+                  >
+                  <span class="input-group-text">% sobre mínimo</span>
+                </div>
+                <small class="text-muted d-block mt-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Cuando stock entre {{ umbralBajo.toFixed(1) }} - {{ stockMaximo || umbralNormal.toFixed(1) }} unidades
+                </small>
+              </div>
+
+              <!-- Sobrestock (solo si usa stock_maximo) -->
+              <div class="mb-4" *ngIf="reglas.usar_stock_maximo && stockMaximo">
+                <label class="form-label">
+                  <span class="badge bg-info me-2">🟠</span>
+                  Sobrestock
+                </label>
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    [(ngModel)]="reglas.umbral_sobrestock_porcentaje"
+                    (ngModelChange)="onCambioPorcentaje()"
+                    min="0"
+                    max="100"
+                    step="1"
+                  >
+                  <span class="input-group-text">% sobre máximo</span>
+                </div>
+                <small class="text-muted d-block mt-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Cuando stock &gt; {{ stockMaximo }} unidades
+                </small>
+              </div>
+
+              <hr>
+
+              <!-- Alertas Activas -->
+              <h6 class="mb-3">
+                <i class="fas fa-bell me-2"></i>
+                Alertas Activas
+              </h6>
+
+              <div class="form-check form-switch mb-2">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  id="alertaCritico"
+                  [(ngModel)]="reglas.alerta_critico_activa"
+                >
+                <label class="form-check-label" for="alertaCritico">
+                  <span class="badge bg-danger me-2">🔴</span>
+                  Alertar en nivel crítico
+                </label>
+              </div>
+
+              <div class="form-check form-switch mb-2">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  id="alertaBajo"
+                  [(ngModel)]="reglas.alerta_bajo_activa"
+                >
+                <label class="form-check-label" for="alertaBajo">
+                  <span class="badge bg-warning text-dark me-2">🟡</span>
+                  Alertar en nivel bajo
+                </label>
+              </div>
+
+              <div class="form-check form-switch mb-2" *ngIf="reglas.usar_stock_maximo && stockMaximo">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  id="alertaSobrestock"
+                  [(ngModel)]="reglas.alerta_sobrestock_activa"
+                >
+                <label class="form-check-label" for="alertaSobrestock">
+                  <span class="badge bg-info me-2">🟠</span>
+                  Alertar en sobrestock
+                </label>
+              </div>
+
+              <hr>
+
+              <!-- Observaciones -->
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="fas fa-comment me-2"></i>
+                  Observaciones
+                </label>
+                <textarea 
+                  class="form-control" 
+                  rows="3"
+                  [(ngModel)]="reglas.observaciones"
+                  placeholder="Notas adicionales sobre esta configuración..."
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna de Vista Previa -->
+        <div class="col-lg-4">
+          <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white">
+              <h6 class="mb-0">
+                <i class="fas fa-eye me-2"></i>
+                Vista Previa
+              </h6>
+            </div>
+            <div class="card-body">
+              <h6 class="mb-3">Niveles Calculados:</h6>
+              
+              <div class="mb-3 p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-danger">🔴 CRÍTICO</span>
+                  <strong>&lt; {{ stockMinimo }}</strong>
+                </div>
+                <small class="text-muted">
+                  {{ reglas.alerta_critico_activa ? '🔔 Alerta activa' : '🔕 Sin alerta' }}
+                </small>
+              </div>
+
+              <div class="mb-3 p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-warning text-dark">🟡 BAJO</span>
+                  <strong>{{ stockMinimo }} - {{ umbralBajo.toFixed(1) }}</strong>
+                </div>
+                <small class="text-muted">
+                  {{ reglas.alerta_bajo_activa ? '🔔 Alerta activa' : '🔕 Sin alerta' }}
+                </small>
+              </div>
+
+              <div class="mb-3 p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-success">🟢 NORMAL</span>
+                  <strong>{{ umbralBajo.toFixed(1) }} - {{ stockMaximo || umbralNormal.toFixed(1) }}</strong>
+                </div>
+                <small class="text-muted">Stock óptimo</small>
+              </div>
+
+              <div *ngIf="reglas.usar_stock_maximo && stockMaximo" class="mb-3 p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-info">🟠 SOBRESTOCK</span>
+                  <strong>&gt; {{ stockMaximo }}</strong>
+                </div>
+                <small class="text-muted">
+                  {{ reglas.alerta_sobrestock_activa ? '🔔 Alerta activa' : '🔕 Sin alerta' }}
+                </small>
+              </div>
+
+              <hr>
+
+              <div class="alert alert-info mb-0">
+                <small>
+                  <i class="fas fa-lightbulb me-1"></i>
+                  <strong>Tip:</strong> Ajusta los porcentajes según la rotación del producto.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="card" *ngIf="!loading">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <button 
+                class="btn btn-outline-secondary me-2" 
+                (click)="volver()"
+                [disabled]="saving"
+              >
+                <i class="fas fa-times me-1"></i>
+                Cancelar
+              </button>
+              <button 
+                class="btn btn-outline-warning me-2" 
+                (click)="restaurarValores()"
+                [disabled]="saving"
+              >
+                <i class="fas fa-undo me-1"></i>
+                Restaurar Valores
+              </button>
+              <button 
+                *ngIf="tieneReglasPersonalizadas"
+                class="btn btn-outline-danger" 
+                (click)="eliminarReglas()"
+                [disabled]="saving"
+              >
+                <i class="fas fa-trash me-1"></i>
+                Eliminar Reglas
+              </button>
+            </div>
+            <button 
+              class="btn btn-primary btn-lg" 
+              (click)="guardarReglas()"
+              [disabled]="saving"
+            >
+              <span *ngIf="!saving">
+                <i class="fas fa-save me-2"></i>
+                Guardar Reglas
+              </span>
+              <span *ngIf="saving">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Guardando...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

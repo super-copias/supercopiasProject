@@ -93,9 +93,15 @@ try {
         Write-Success "Base de datos anterior eliminada"
     }
     
-    # Crear nueva base de datos
-    $createCmd = "CREATE DATABASE $DB_NAME;"
+    # Crear nueva base de datos con encoding UTF-8
+    $createCmd = "CREATE DATABASE $DB_NAME WITH ENCODING 'UTF8' LC_COLLATE='es_ES.UTF-8' LC_CTYPE='es_ES.UTF-8' TEMPLATE=template0;"
     & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d postgres -c $createCmd 2>&1 | Out-Null
+    
+    if ($LASTEXITCODE -ne 0) {
+        # Si falla con locale español, intentar sin especificar locale
+        $createCmd = "CREATE DATABASE $DB_NAME WITH ENCODING 'UTF8' TEMPLATE=template0;"
+        & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d postgres -c $createCmd 2>&1 | Out-Null
+    }
     
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Nueva base de datos creada"
@@ -105,11 +111,14 @@ try {
     }
     Write-Host ""
 
-    # Paso 4: Restaurar desde el archivo SQL
+    # Paso 4: Restaurar desde el archivo SQL con encoding UTF-8
     Write-Step "Paso 4/5: Restaurando datos desde BD_SUPERCOPIAS.sql..."
     Write-Info "Esto puede tardar unos momentos..."
     
-    & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -f $SQL_FILE 2>&1 | Out-Null
+    # Configurar encoding UTF-8 para el cliente
+    $env:PGCLIENTENCODING = "UTF8"
+    
+    & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -f $SQL_FILE --set=client_encoding=UTF8 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Datos restaurados correctamente"
@@ -120,15 +129,31 @@ try {
     }
     Write-Host ""
 
-    # Paso 5: Verificar restauración
-    Write-Step "Paso 5/5: Verificando restauracion..."
+    # Paso 5: Verificar restauración y encoding
+    Write-Step "Paso 5/5: Verificando restauracion y encoding..."
     
-    $verifyQuery = "SELECT (SELECT COUNT(*) FROM clientes) as clientes, (SELECT COUNT(*) FROM empleados) as empleados, (SELECT COUNT(*) FROM proveedores) as proveedores, (SELECT COUNT(*) FROM cat_tipos_proveedor) as tipos_proveedor, (SELECT COUNT(*) FROM cat_metodos_pago_proveedor) as metodos_pago;"
+    # Verificar encoding
+    $encodingQuery = "SELECT pg_encoding_to_char(encoding) as encoding FROM pg_database WHERE datname = '$DB_NAME';"
+    $encoding = & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d postgres -t -c $encodingQuery 2>&1
+    
+    Write-Success "Encoding de la base de datos: $($encoding.Trim())"
+    
+    # Verificar datos con acentos
+    $accentQuery = "SELECT nombre FROM regimenes_fiscales WHERE nombre LIKE '%Físicas%' LIMIT 1;"
+    $accentTest = & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -t -c $accentQuery 2>&1
+    
+    if ($accentTest -match "Físicas") {
+        Write-Success "Caracteres especiales (acentos) verificados correctamente"
+    } else {
+        Write-ErrorMsg "Posible problema con caracteres especiales"
+    }
+    
+    # Resumen de tablas
+    $verifyQuery = "SELECT (SELECT COUNT(*) FROM clientes) as clientes, (SELECT COUNT(*) FROM empleados) as empleados, (SELECT COUNT(*) FROM proveedores) as proveedores, (SELECT COUNT(*) FROM equipos) as equipos, (SELECT COUNT(*) FROM inventarios) as inventarios, (SELECT COUNT(*) FROM modulos) as modulos;"
     
     $result = & psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -t -c $verifyQuery 2>&1
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Success "Verificacion completada"
         Write-Host ""
         Write-Host "Resumen de datos restaurados:" -ForegroundColor Cyan
         Write-Host $result -ForegroundColor White

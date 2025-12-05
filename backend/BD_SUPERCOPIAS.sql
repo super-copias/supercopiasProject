@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TYfcC3CdsS9LcJCJPSUCvHvD11KjI7kyw9mraY6rKoirMJNWe2eUnQ4h7oXzYKu
+\restrict mvqFOyOZ4ZFjclDwejKGyxOlKv3WlFqNHoCkIagyWtwh8V0aa2Lqficu4aS9Mni
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.14
@@ -18,6 +18,256 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS fk_usuarios_empleado;
+ALTER TABLE IF EXISTS ONLY public.equipos_mantenimiento DROP CONSTRAINT IF EXISTS fk_mantenimiento_equipo;
+ALTER TABLE IF EXISTS ONLY public.inventarios_reglas_stock DROP CONSTRAINT IF EXISTS fk_inventarios_reglas_stock_inventario;
+ALTER TABLE IF EXISTS ONLY public.inventarios DROP CONSTRAINT IF EXISTS fk_inventarios_proveedor;
+ALTER TABLE IF EXISTS ONLY public.inventarios_movimientos DROP CONSTRAINT IF EXISTS fk_inventarios_movimientos_inventario;
+ALTER TABLE IF EXISTS ONLY public.inventarios_caracteristicas DROP CONSTRAINT IF EXISTS fk_inventarios_caracteristicas_inventario;
+ALTER TABLE IF EXISTS ONLY public.equipos_historial_contador DROP CONSTRAINT IF EXISTS fk_historial_equipo;
+ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS fk_empleados_sucursal;
+ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS fk_empleados_puesto;
+ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS fk_empleados_modulos_empleado;
+ALTER TABLE IF EXISTS ONLY public.equipos_consumibles DROP CONSTRAINT IF EXISTS fk_consumibles_equipo;
+ALTER TABLE IF EXISTS ONLY public.equipos_caracteristicas DROP CONSTRAINT IF EXISTS fk_caracteristicas_equipo;
+ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_registrado_por_fkey;
+ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_empleado_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_aprobado_por_fkey;
+DROP TRIGGER IF EXISTS trg_usuarios_updated_at ON public.usuarios;
+DROP TRIGGER IF EXISTS trg_usuarios_auditoria ON public.usuarios;
+DROP TRIGGER IF EXISTS trg_sucursales_updated_at ON public.sucursales;
+DROP TRIGGER IF EXISTS trg_puestos_updated_at ON public.puestos;
+DROP TRIGGER IF EXISTS trg_proveedores_updated_at ON public.proveedores;
+DROP TRIGGER IF EXISTS trg_proveedores_auditoria ON public.proveedores;
+DROP TRIGGER IF EXISTS trg_eventos_updated_at ON public.eventos_personal;
+DROP TRIGGER IF EXISTS trg_empleados_updated_at ON public.empleados;
+DROP TRIGGER IF EXISTS trg_empleados_auditoria ON public.empleados;
+DROP TRIGGER IF EXISTS trg_clientes_updated_at ON public.clientes;
+DROP TRIGGER IF EXISTS trg_clientes_auditoria ON public.clientes;
+DROP INDEX IF EXISTS public.idx_usuarios_username;
+DROP INDEX IF EXISTS public.idx_usuarios_role;
+DROP INDEX IF EXISTS public.idx_usuarios_empleado_id;
+DROP INDEX IF EXISTS public.idx_usuarios_email;
+DROP INDEX IF EXISTS public.idx_usuarios_activo;
+DROP INDEX IF EXISTS public.idx_usos_cfdi_codigo;
+DROP INDEX IF EXISTS public.idx_sucursales_nombre;
+DROP INDEX IF EXISTS public.idx_sucursales_activa;
+DROP INDEX IF EXISTS public.idx_regimenes_fiscales_codigo;
+DROP INDEX IF EXISTS public.idx_puestos_nombre;
+DROP INDEX IF EXISTS public.idx_puestos_activo;
+DROP INDEX IF EXISTS public.idx_proveedores_tipo;
+DROP INDEX IF EXISTS public.idx_proveedores_rfc;
+DROP INDEX IF EXISTS public.idx_proveedores_email;
+DROP INDEX IF EXISTS public.idx_proveedores_activo;
+DROP INDEX IF EXISTS public.idx_modulos_clave;
+DROP INDEX IF EXISTS public.idx_modulos_activo;
+DROP INDEX IF EXISTS public.idx_metodos_pago_codigo;
+DROP INDEX IF EXISTS public.idx_mantenimiento_fecha;
+DROP INDEX IF EXISTS public.idx_mantenimiento_equipo;
+DROP INDEX IF EXISTS public.idx_inventarios_tipo;
+DROP INDEX IF EXISTS public.idx_inventarios_reglas_stock_inventario;
+DROP INDEX IF EXISTS public.idx_inventarios_reglas_stock_activo;
+DROP INDEX IF EXISTS public.idx_inventarios_proveedor;
+DROP INDEX IF EXISTS public.idx_inventarios_nombre;
+DROP INDEX IF EXISTS public.idx_inventarios_movimientos_tipo;
+DROP INDEX IF EXISTS public.idx_inventarios_movimientos_inventario;
+DROP INDEX IF EXISTS public.idx_inventarios_movimientos_fecha;
+DROP INDEX IF EXISTS public.idx_inventarios_estatus;
+DROP INDEX IF EXISTS public.idx_inventarios_codigo_sku;
+DROP INDEX IF EXISTS public.idx_inventarios_categorias_tipo;
+DROP INDEX IF EXISTS public.idx_inventarios_categorias_activo;
+DROP INDEX IF EXISTS public.idx_inventarios_categoria;
+DROP INDEX IF EXISTS public.idx_inventarios_caracteristicas_inventario;
+DROP INDEX IF EXISTS public.idx_inventarios_activo;
+DROP INDEX IF EXISTS public.idx_historial_contador_fecha;
+DROP INDEX IF EXISTS public.idx_historial_contador_equipo;
+DROP INDEX IF EXISTS public.idx_formas_pago_codigo;
+DROP INDEX IF EXISTS public.idx_eventos_tipo;
+DROP INDEX IF EXISTS public.idx_eventos_fecha;
+DROP INDEX IF EXISTS public.idx_eventos_estado;
+DROP INDEX IF EXISTS public.idx_eventos_empleado;
+DROP INDEX IF EXISTS public.idx_estados_codigo;
+DROP INDEX IF EXISTS public.idx_equipos_tipo;
+DROP INDEX IF EXISTS public.idx_equipos_serie;
+DROP INDEX IF EXISTS public.idx_equipos_estatus;
+DROP INDEX IF EXISTS public.idx_equipos_cliente_nombre;
+DROP INDEX IF EXISTS public.idx_empleados_nombre;
+DROP INDEX IF EXISTS public.idx_empleados_modulos_modulo;
+DROP INDEX IF EXISTS public.idx_empleados_modulos_empleado_id;
+DROP INDEX IF EXISTS public.idx_empleados_modulos_acceso;
+DROP INDEX IF EXISTS public.idx_empleados_fecha_ingreso;
+DROP INDEX IF EXISTS public.idx_empleados_email;
+DROP INDEX IF EXISTS public.idx_empleados_activo;
+DROP INDEX IF EXISTS public.idx_consumibles_tipo;
+DROP INDEX IF EXISTS public.idx_consumibles_equipo;
+DROP INDEX IF EXISTS public.idx_clientes_razon_social;
+DROP INDEX IF EXISTS public.idx_clientes_email;
+DROP INDEX IF EXISTS public.idx_clientes_codigo_postal;
+DROP INDEX IF EXISTS public.idx_clientes_activo;
+DROP INDEX IF EXISTS public.idx_cat_tipos_proveedor_clave;
+DROP INDEX IF EXISTS public.idx_cat_tipos_proveedor_activo;
+DROP INDEX IF EXISTS public.idx_cat_tipos_equipo_codigo;
+DROP INDEX IF EXISTS public.idx_cat_tipos_equipo_activo;
+DROP INDEX IF EXISTS public.idx_cat_metodos_pago_proveedor_clave;
+DROP INDEX IF EXISTS public.idx_cat_metodos_pago_proveedor_activo;
+DROP INDEX IF EXISTS public.idx_cat_marcas_equipo_nombre;
+DROP INDEX IF EXISTS public.idx_cat_marcas_equipo_activo;
+DROP INDEX IF EXISTS public.idx_cat_estatus_equipo_codigo;
+DROP INDEX IF EXISTS public.idx_cat_estatus_equipo_activo;
+DROP INDEX IF EXISTS public.idx_caracteristicas_equipo;
+DROP INDEX IF EXISTS public.idx_auditoria_usuario_id;
+DROP INDEX IF EXISTS public.idx_auditoria_tabla;
+DROP INDEX IF EXISTS public.idx_auditoria_registro_id;
+DROP INDEX IF EXISTS public.idx_auditoria_operacion;
+DROP INDEX IF EXISTS public.idx_auditoria_fecha;
+ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS usuarios_username_key;
+ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS usuarios_pkey;
+ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS usuarios_email_key;
+ALTER TABLE IF EXISTS ONLY public.usos_cfdi DROP CONSTRAINT IF EXISTS usos_cfdi_pkey;
+ALTER TABLE IF EXISTS ONLY public.usos_cfdi DROP CONSTRAINT IF EXISTS usos_cfdi_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.sucursales DROP CONSTRAINT IF EXISTS unique_sucursal_nombre;
+ALTER TABLE IF EXISTS ONLY public.puestos DROP CONSTRAINT IF EXISTS unique_puesto_nombre;
+ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS uk_empleados_modulos;
+ALTER TABLE IF EXISTS ONLY public.sucursales DROP CONSTRAINT IF EXISTS sucursales_pkey;
+ALTER TABLE IF EXISTS ONLY public.regimenes_fiscales DROP CONSTRAINT IF EXISTS regimenes_fiscales_pkey;
+ALTER TABLE IF EXISTS ONLY public.regimenes_fiscales DROP CONSTRAINT IF EXISTS regimenes_fiscales_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.puestos DROP CONSTRAINT IF EXISTS puestos_pkey;
+ALTER TABLE IF EXISTS ONLY public.proveedores DROP CONSTRAINT IF EXISTS proveedores_pkey;
+ALTER TABLE IF EXISTS ONLY public.modulos DROP CONSTRAINT IF EXISTS modulos_pkey;
+ALTER TABLE IF EXISTS ONLY public.modulos DROP CONSTRAINT IF EXISTS modulos_clave_key;
+ALTER TABLE IF EXISTS ONLY public.metodos_pago DROP CONSTRAINT IF EXISTS metodos_pago_pkey;
+ALTER TABLE IF EXISTS ONLY public.metodos_pago DROP CONSTRAINT IF EXISTS metodos_pago_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.inventarios_reglas_stock DROP CONSTRAINT IF EXISTS inventarios_reglas_stock_pkey;
+ALTER TABLE IF EXISTS ONLY public.inventarios_reglas_stock DROP CONSTRAINT IF EXISTS inventarios_reglas_stock_inventario_id_key;
+ALTER TABLE IF EXISTS ONLY public.inventarios DROP CONSTRAINT IF EXISTS inventarios_pkey;
+ALTER TABLE IF EXISTS ONLY public.inventarios_movimientos DROP CONSTRAINT IF EXISTS inventarios_movimientos_pkey;
+ALTER TABLE IF EXISTS ONLY public.inventarios_categorias DROP CONSTRAINT IF EXISTS inventarios_categorias_pkey;
+ALTER TABLE IF EXISTS ONLY public.inventarios_caracteristicas DROP CONSTRAINT IF EXISTS inventarios_caracteristicas_pkey;
+ALTER TABLE IF EXISTS ONLY public.formas_pago DROP CONSTRAINT IF EXISTS formas_pago_pkey;
+ALTER TABLE IF EXISTS ONLY public.formas_pago DROP CONSTRAINT IF EXISTS formas_pago_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_pkey;
+ALTER TABLE IF EXISTS ONLY public.estados DROP CONSTRAINT IF EXISTS estados_pkey;
+ALTER TABLE IF EXISTS ONLY public.estados DROP CONSTRAINT IF EXISTS estados_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.equipos DROP CONSTRAINT IF EXISTS equipos_pkey;
+ALTER TABLE IF EXISTS ONLY public.equipos_mantenimiento DROP CONSTRAINT IF EXISTS equipos_mantenimiento_pkey;
+ALTER TABLE IF EXISTS ONLY public.equipos_historial_contador DROP CONSTRAINT IF EXISTS equipos_historial_contador_pkey;
+ALTER TABLE IF EXISTS ONLY public.equipos_consumibles DROP CONSTRAINT IF EXISTS equipos_consumibles_pkey;
+ALTER TABLE IF EXISTS ONLY public.equipos_caracteristicas DROP CONSTRAINT IF EXISTS equipos_caracteristicas_pkey;
+ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS empleados_pkey;
+ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS empleados_modulos_pkey;
+ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS empleados_email_key;
+ALTER TABLE IF EXISTS ONLY public.clientes DROP CONSTRAINT IF EXISTS clientes_pkey;
+ALTER TABLE IF EXISTS ONLY public.cat_tipos_proveedor DROP CONSTRAINT IF EXISTS cat_tipos_proveedor_pkey;
+ALTER TABLE IF EXISTS ONLY public.cat_tipos_proveedor DROP CONSTRAINT IF EXISTS cat_tipos_proveedor_clave_key;
+ALTER TABLE IF EXISTS ONLY public.cat_tipos_equipo DROP CONSTRAINT IF EXISTS cat_tipos_equipo_pkey;
+ALTER TABLE IF EXISTS ONLY public.cat_tipos_equipo DROP CONSTRAINT IF EXISTS cat_tipos_equipo_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.cat_metodos_pago_proveedor DROP CONSTRAINT IF EXISTS cat_metodos_pago_proveedor_pkey;
+ALTER TABLE IF EXISTS ONLY public.cat_metodos_pago_proveedor DROP CONSTRAINT IF EXISTS cat_metodos_pago_proveedor_clave_key;
+ALTER TABLE IF EXISTS ONLY public.cat_marcas_equipo DROP CONSTRAINT IF EXISTS cat_marcas_equipo_pkey;
+ALTER TABLE IF EXISTS ONLY public.cat_marcas_equipo DROP CONSTRAINT IF EXISTS cat_marcas_equipo_nombre_key;
+ALTER TABLE IF EXISTS ONLY public.cat_estatus_equipo DROP CONSTRAINT IF EXISTS cat_estatus_equipo_pkey;
+ALTER TABLE IF EXISTS ONLY public.cat_estatus_equipo DROP CONSTRAINT IF EXISTS cat_estatus_equipo_codigo_key;
+ALTER TABLE IF EXISTS ONLY public.auditoria DROP CONSTRAINT IF EXISTS auditoria_pkey;
+ALTER TABLE IF EXISTS public.usuarios ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.usos_cfdi ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.sucursales ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.regimenes_fiscales ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.puestos ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.proveedores ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.modulos ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.metodos_pago ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.inventarios_reglas_stock ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.inventarios_movimientos ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.inventarios_categorias ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.inventarios_caracteristicas ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.inventarios ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.formas_pago ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.eventos_personal ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.estados ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.equipos_mantenimiento ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.equipos_historial_contador ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.equipos_consumibles ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.equipos_caracteristicas ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.equipos ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.empleados_modulos ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.empleados ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.clientes ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.cat_tipos_proveedor ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.cat_tipos_equipo ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.cat_metodos_pago_proveedor ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.cat_marcas_equipo ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.cat_estatus_equipo ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.auditoria ALTER COLUMN id DROP DEFAULT;
+DROP VIEW IF EXISTS public.vista_empleados_completa;
+DROP VIEW IF EXISTS public.vista_clientes_activos;
+DROP VIEW IF EXISTS public.vacaciones_resumen;
+DROP SEQUENCE IF EXISTS public.usuarios_id_seq;
+DROP TABLE IF EXISTS public.usuarios;
+DROP SEQUENCE IF EXISTS public.usos_cfdi_id_seq;
+DROP TABLE IF EXISTS public.usos_cfdi;
+DROP SEQUENCE IF EXISTS public.sucursales_id_seq;
+DROP TABLE IF EXISTS public.sucursales;
+DROP SEQUENCE IF EXISTS public.regimenes_fiscales_id_seq;
+DROP TABLE IF EXISTS public.regimenes_fiscales;
+DROP SEQUENCE IF EXISTS public.puestos_id_seq;
+DROP TABLE IF EXISTS public.puestos;
+DROP SEQUENCE IF EXISTS public.proveedores_id_seq;
+DROP TABLE IF EXISTS public.proveedores;
+DROP SEQUENCE IF EXISTS public.modulos_id_seq;
+DROP TABLE IF EXISTS public.modulos;
+DROP SEQUENCE IF EXISTS public.metodos_pago_id_seq;
+DROP TABLE IF EXISTS public.metodos_pago;
+DROP SEQUENCE IF EXISTS public.inventarios_reglas_stock_id_seq;
+DROP TABLE IF EXISTS public.inventarios_reglas_stock;
+DROP SEQUENCE IF EXISTS public.inventarios_movimientos_id_seq;
+DROP TABLE IF EXISTS public.inventarios_movimientos;
+DROP SEQUENCE IF EXISTS public.inventarios_id_seq;
+DROP SEQUENCE IF EXISTS public.inventarios_categorias_id_seq;
+DROP TABLE IF EXISTS public.inventarios_categorias;
+DROP SEQUENCE IF EXISTS public.inventarios_caracteristicas_id_seq;
+DROP TABLE IF EXISTS public.inventarios_caracteristicas;
+DROP TABLE IF EXISTS public.inventarios;
+DROP SEQUENCE IF EXISTS public.formas_pago_id_seq;
+DROP TABLE IF EXISTS public.formas_pago;
+DROP SEQUENCE IF EXISTS public.eventos_personal_id_seq;
+DROP TABLE IF EXISTS public.eventos_personal;
+DROP SEQUENCE IF EXISTS public.estados_id_seq;
+DROP TABLE IF EXISTS public.estados;
+DROP SEQUENCE IF EXISTS public.equipos_mantenimiento_id_seq;
+DROP TABLE IF EXISTS public.equipos_mantenimiento;
+DROP SEQUENCE IF EXISTS public.equipos_id_seq;
+DROP SEQUENCE IF EXISTS public.equipos_historial_contador_id_seq;
+DROP TABLE IF EXISTS public.equipos_historial_contador;
+DROP SEQUENCE IF EXISTS public.equipos_consumibles_id_seq;
+DROP TABLE IF EXISTS public.equipos_consumibles;
+DROP SEQUENCE IF EXISTS public.equipos_caracteristicas_id_seq;
+DROP TABLE IF EXISTS public.equipos_caracteristicas;
+DROP TABLE IF EXISTS public.equipos;
+DROP SEQUENCE IF EXISTS public.empleados_modulos_id_seq;
+DROP TABLE IF EXISTS public.empleados_modulos;
+DROP SEQUENCE IF EXISTS public.empleados_id_seq;
+DROP TABLE IF EXISTS public.empleados;
+DROP SEQUENCE IF EXISTS public.clientes_id_seq;
+DROP TABLE IF EXISTS public.clientes;
+DROP SEQUENCE IF EXISTS public.cat_tipos_proveedor_id_seq;
+DROP TABLE IF EXISTS public.cat_tipos_proveedor;
+DROP SEQUENCE IF EXISTS public.cat_tipos_equipo_id_seq;
+DROP TABLE IF EXISTS public.cat_tipos_equipo;
+DROP SEQUENCE IF EXISTS public.cat_metodos_pago_proveedor_id_seq;
+DROP TABLE IF EXISTS public.cat_metodos_pago_proveedor;
+DROP SEQUENCE IF EXISTS public.cat_marcas_equipo_id_seq;
+DROP TABLE IF EXISTS public.cat_marcas_equipo;
+DROP SEQUENCE IF EXISTS public.cat_estatus_equipo_id_seq;
+DROP TABLE IF EXISTS public.cat_estatus_equipo;
+DROP SEQUENCE IF EXISTS public.auditoria_id_seq;
+DROP TABLE IF EXISTS public.auditoria;
+DROP FUNCTION IF EXISTS public.trigger_updated_at();
+DROP FUNCTION IF EXISTS public.trigger_eventos_updated_at();
+DROP FUNCTION IF EXISTS public.trigger_auditoria();
+DROP FUNCTION IF EXISTS public.obtener_estadisticas_generales();
+DROP FUNCTION IF EXISTS public.generar_username(p_nombre character varying);
+DROP EXTENSION IF EXISTS "uuid-ossp";
+DROP EXTENSION IF EXISTS pgcrypto;
 --
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
@@ -683,8 +933,8 @@ CREATE TABLE public.equipos (
     mantenimiento_intervalo_dias integer,
     mantenimiento_fecha_inicio date,
     mantenimiento_dias_alerta integer DEFAULT 7,
-    CONSTRAINT chk_equipos_estatus CHECK (((estatus)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying, 'en_reparacion'::character varying, 'baja'::character varying])::text[]))),
-    CONSTRAINT chk_equipos_tipo CHECK (((tipo_equipo)::text = ANY ((ARRAY['fotocopiadora'::character varying, 'impresora'::character varying, 'pc'::character varying, 'laptop'::character varying, 'monitor'::character varying, 'router'::character varying, 'escaner'::character varying, 'otro'::character varying])::text[])))
+    CONSTRAINT chk_equipos_estatus CHECK (((estatus)::text = ANY (ARRAY[('activo'::character varying)::text, ('inactivo'::character varying)::text, ('en_reparacion'::character varying)::text, ('baja'::character varying)::text]))),
+    CONSTRAINT chk_equipos_tipo CHECK (((tipo_equipo)::text = ANY (ARRAY[('fotocopiadora'::character varying)::text, ('impresora'::character varying)::text, ('pc'::character varying)::text, ('laptop'::character varying)::text, ('monitor'::character varying)::text, ('router'::character varying)::text, ('escaner'::character varying)::text, ('otro'::character varying)::text])))
 );
 
 
@@ -1023,6 +1273,341 @@ ALTER SEQUENCE public.formas_pago_id_seq OWNED BY public.formas_pago.id;
 
 
 --
+-- Name: inventarios; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventarios (
+    id integer NOT NULL,
+    tipo character varying(30) NOT NULL,
+    nombre character varying(255) NOT NULL,
+    categoria character varying(100) NOT NULL,
+    marca character varying(100),
+    modelo character varying(150),
+    codigo_sku character varying(50),
+    proveedor_id integer,
+    proveedor_nombre character varying(255),
+    estatus character varying(20) DEFAULT 'activo'::character varying,
+    existencia_actual numeric(10,2) DEFAULT 0 NOT NULL,
+    unidad_medida character varying(50) NOT NULL,
+    stock_minimo numeric(10,2) DEFAULT 0 NOT NULL,
+    stock_maximo numeric(10,2),
+    ubicacion_fisica character varying(200),
+    costo_compra numeric(12,2),
+    precio_venta numeric(12,2),
+    costo_promedio numeric(12,2),
+    observaciones text,
+    foto_url character varying(500),
+    fecha_alta timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    activo boolean DEFAULT true,
+    CONSTRAINT chk_inventarios_estatus CHECK (((estatus)::text = ANY (ARRAY[('activo'::character varying)::text, ('inactivo'::character varying)::text]))),
+    CONSTRAINT chk_inventarios_tipo CHECK (((tipo)::text = ANY (ARRAY[('venta'::character varying)::text, ('insumo'::character varying)::text, ('generico'::character varying)::text])))
+);
+
+
+--
+-- Name: TABLE inventarios; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inventarios IS 'Tabla principal de inventarios - Productos para venta, insumos operativos e items genéricos';
+
+
+--
+-- Name: COLUMN inventarios.tipo; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios.tipo IS 'Tipo de artículo: venta, insumo, generico';
+
+
+--
+-- Name: COLUMN inventarios.categoria; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios.categoria IS 'Categoría del artículo (Papel, Consumibles, Engargolado, etc.)';
+
+
+--
+-- Name: COLUMN inventarios.proveedor_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios.proveedor_id IS 'Referencia al proveedor del artículo (FK a proveedores)';
+
+
+--
+-- Name: COLUMN inventarios.stock_maximo; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios.stock_maximo IS 'Cantidad máxima de existencias permitidas para alertas';
+
+
+--
+-- Name: inventarios_caracteristicas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventarios_caracteristicas (
+    id integer NOT NULL,
+    inventario_id integer NOT NULL,
+    caracteristicas jsonb DEFAULT '{}'::jsonb,
+    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: TABLE inventarios_caracteristicas; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inventarios_caracteristicas IS 'Características específicas por categoría de inventario (campos dinámicos)';
+
+
+--
+-- Name: inventarios_caracteristicas_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventarios_caracteristicas_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventarios_caracteristicas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventarios_caracteristicas_id_seq OWNED BY public.inventarios_caracteristicas.id;
+
+
+--
+-- Name: inventarios_categorias; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventarios_categorias (
+    id integer NOT NULL,
+    tipo character varying(30) NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion text,
+    campos_requeridos jsonb,
+    activo boolean DEFAULT true,
+    orden integer DEFAULT 0,
+    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: TABLE inventarios_categorias; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inventarios_categorias IS 'Catálogo de categorías de inventario por tipo';
+
+
+--
+-- Name: COLUMN inventarios_categorias.campos_requeridos; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_categorias.campos_requeridos IS 'Definición JSON de campos personalizados requeridos para esta categoría';
+
+
+--
+-- Name: COLUMN inventarios_categorias.fecha_modificacion; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_categorias.fecha_modificacion IS 'Fecha y hora de la última modificación de la categoría';
+
+
+--
+-- Name: inventarios_categorias_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventarios_categorias_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventarios_categorias_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventarios_categorias_id_seq OWNED BY public.inventarios_categorias.id;
+
+
+--
+-- Name: inventarios_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventarios_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventarios_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventarios_id_seq OWNED BY public.inventarios.id;
+
+
+--
+-- Name: inventarios_movimientos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventarios_movimientos (
+    id integer NOT NULL,
+    inventario_id integer NOT NULL,
+    tipo_movimiento character varying(30) NOT NULL,
+    concepto character varying(50) NOT NULL,
+    cantidad numeric(10,2) NOT NULL,
+    saldo_anterior numeric(10,2) NOT NULL,
+    saldo_nuevo numeric(10,2) NOT NULL,
+    usuario_nombre character varying(255),
+    area_servicio character varying(200),
+    notas text,
+    evidencia_url character varying(500),
+    fecha_movimiento timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_movimientos_concepto CHECK (((concepto)::text = ANY (ARRAY[('compra'::character varying)::text, ('devolucion'::character varying)::text, ('ajuste_entrada'::character varying)::text, ('venta'::character varying)::text, ('uso_operativo'::character varying)::text, ('servicio_tecnico'::character varying)::text, ('merma'::character varying)::text, ('ajuste_salida'::character varying)::text, ('transferencia'::character varying)::text]))),
+    CONSTRAINT chk_movimientos_tipo CHECK (((tipo_movimiento)::text = ANY (ARRAY[('entrada'::character varying)::text, ('salida'::character varying)::text, ('ajuste'::character varying)::text])))
+);
+
+
+--
+-- Name: TABLE inventarios_movimientos; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inventarios_movimientos IS 'Historial completo de movimientos de inventario (entradas, salidas y ajustes)';
+
+
+--
+-- Name: COLUMN inventarios_movimientos.tipo_movimiento; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_movimientos.tipo_movimiento IS 'Tipo: entrada, salida, ajuste';
+
+
+--
+-- Name: COLUMN inventarios_movimientos.concepto; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_movimientos.concepto IS 'Concepto específico del movimiento';
+
+
+--
+-- Name: inventarios_movimientos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventarios_movimientos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventarios_movimientos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventarios_movimientos_id_seq OWNED BY public.inventarios_movimientos.id;
+
+
+--
+-- Name: inventarios_reglas_stock; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventarios_reglas_stock (
+    id integer NOT NULL,
+    inventario_id integer NOT NULL,
+    nivel_critico_porcentaje numeric(5,2) DEFAULT 0,
+    nivel_bajo_porcentaje numeric(5,2) DEFAULT 10,
+    nivel_normal_porcentaje numeric(5,2) DEFAULT 30,
+    usar_stock_maximo boolean DEFAULT true,
+    alerta_critico_activa boolean DEFAULT true,
+    alerta_bajo_activa boolean DEFAULT true,
+    alerta_sobrestock_activa boolean DEFAULT false,
+    umbral_sobrestock_porcentaje numeric(5,2) DEFAULT 0,
+    notificar_usuarios jsonb,
+    observaciones text,
+    activo boolean DEFAULT true,
+    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_reglas_porcentajes_validos CHECK (((nivel_critico_porcentaje >= (0)::numeric) AND (nivel_bajo_porcentaje >= (0)::numeric) AND (nivel_normal_porcentaje >= (0)::numeric) AND (umbral_sobrestock_porcentaje >= (0)::numeric) AND (nivel_critico_porcentaje <= nivel_bajo_porcentaje) AND (nivel_bajo_porcentaje <= nivel_normal_porcentaje)))
+);
+
+
+--
+-- Name: TABLE inventarios_reglas_stock; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inventarios_reglas_stock IS 'Reglas personalizadas de niveles de stock por artículo de inventario';
+
+
+--
+-- Name: COLUMN inventarios_reglas_stock.nivel_critico_porcentaje; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_reglas_stock.nivel_critico_porcentaje IS 'Porcentaje sobre stock_minimo para considerar nivel crítico (default: 0% = justo en el mínimo)';
+
+
+--
+-- Name: COLUMN inventarios_reglas_stock.nivel_bajo_porcentaje; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_reglas_stock.nivel_bajo_porcentaje IS 'Porcentaje sobre stock_minimo para considerar nivel bajo (default: 10%)';
+
+
+--
+-- Name: COLUMN inventarios_reglas_stock.nivel_normal_porcentaje; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_reglas_stock.nivel_normal_porcentaje IS 'Porcentaje sobre stock_minimo para considerar nivel normal (default: 30%)';
+
+
+--
+-- Name: COLUMN inventarios_reglas_stock.usar_stock_maximo; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_reglas_stock.usar_stock_maximo IS 'Si es true, usa stock_maximo para calcular rangos; si es false, usa porcentajes sobre stock_minimo';
+
+
+--
+-- Name: COLUMN inventarios_reglas_stock.notificar_usuarios; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_reglas_stock.notificar_usuarios IS 'Array JSON de IDs de usuarios a notificar cuando se active alguna alerta';
+
+
+--
+-- Name: inventarios_reglas_stock_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventarios_reglas_stock_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventarios_reglas_stock_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventarios_reglas_stock_id_seq OWNED BY public.inventarios_reglas_stock.id;
+
+
+--
 -- Name: metodos_pago; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1353,60 +1938,6 @@ ALTER SEQUENCE public.usuarios_id_seq OWNED BY public.usuarios.id;
 
 
 --
--- Name: equipos_alertas_mantenimiento; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.equipos_alertas_mantenimiento AS
- SELECT e.id,
-    e.nombre_equipo,
-    e.marca,
-    e.modelo,
-    e.tipo_equipo,
-    e.area_ubicacion,
-    e.estatus,
-    e.mantenimiento_intervalo_dias,
-    e.mantenimiento_fecha_inicio,
-    e.mantenimiento_dias_alerta,
-    ( SELECT max(em.fecha_servicio) AS max
-           FROM equipos_mantenimiento em
-          WHERE (em.equipo_id = e.id)) AS ultimo_mantenimiento,
-        CASE
-            WHEN (e.mantenimiento_intervalo_dias IS NOT NULL) THEN ((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
-               FROM equipos_mantenimiento
-              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date
-            ELSE NULL::date
-        END AS proximo_mantenimiento,
-        CASE
-            WHEN (e.mantenimiento_intervalo_dias IS NOT NULL) THEN (((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
-               FROM equipos_mantenimiento
-              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date - CURRENT_DATE)
-            ELSE NULL::integer
-        END AS dias_restantes,
-        CASE
-            WHEN (e.mantenimiento_intervalo_dias IS NULL) THEN 'sin_configurar'::text
-            WHEN (((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
-               FROM equipos_mantenimiento
-              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date < CURRENT_DATE) THEN 'vencido'::text
-            WHEN ((((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
-               FROM equipos_mantenimiento
-              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date - CURRENT_DATE) <= e.mantenimiento_dias_alerta) THEN 'urgente'::text
-            WHEN ((((COALESCE(( SELECT max(equipos_mantenimiento.fecha_servicio) AS max
-               FROM equipos_mantenimiento
-              WHERE (equipos_mantenimiento.equipo_id = e.id)), (e.mantenimiento_fecha_inicio)::timestamp with time zone, (CURRENT_DATE)::timestamp with time zone) + ((e.mantenimiento_intervalo_dias || ' days'::text))::interval))::date - CURRENT_DATE) <= (e.mantenimiento_dias_alerta * 2)) THEN 'proximo'::text
-            ELSE 'ok'::text
-        END AS estado_alerta
-   FROM equipos e
-  WHERE ((e.activo = true) AND ((e.estatus)::text = 'activo'::text) AND (e.mantenimiento_intervalo_dias IS NOT NULL));
-
-
---
--- Name: VIEW equipos_alertas_mantenimiento; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON VIEW public.equipos_alertas_mantenimiento IS 'Vista que calcula automáticamente las próximas fechas de mantenimiento y el estado de alertas';
-
-
---
 -- Name: vacaciones_resumen; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -1604,6 +2135,41 @@ ALTER TABLE ONLY public.eventos_personal ALTER COLUMN id SET DEFAULT nextval('pu
 --
 
 ALTER TABLE ONLY public.formas_pago ALTER COLUMN id SET DEFAULT nextval('public.formas_pago_id_seq'::regclass);
+
+
+--
+-- Name: inventarios id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios ALTER COLUMN id SET DEFAULT nextval('public.inventarios_id_seq'::regclass);
+
+
+--
+-- Name: inventarios_caracteristicas id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_caracteristicas ALTER COLUMN id SET DEFAULT nextval('public.inventarios_caracteristicas_id_seq'::regclass);
+
+
+--
+-- Name: inventarios_categorias id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_categorias ALTER COLUMN id SET DEFAULT nextval('public.inventarios_categorias_id_seq'::regclass);
+
+
+--
+-- Name: inventarios_movimientos id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_movimientos ALTER COLUMN id SET DEFAULT nextval('public.inventarios_movimientos_id_seq'::regclass);
+
+
+--
+-- Name: inventarios_reglas_stock id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_reglas_stock ALTER COLUMN id SET DEFAULT nextval('public.inventarios_reglas_stock_id_seq'::regclass);
 
 
 --
@@ -1821,7 +2387,7 @@ COPY public.empleados_modulos (id, empleado_id, modulo, acceso, fecha_asignacion
 -- Data for Name: equipos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.equipos (id, tipo_equipo, marca, modelo, numero_serie, nombre_equipo, area_ubicacion, cliente_nombre, estatus, responsable_nombre, observaciones, foto_url, fecha_alta, fecha_modificacion, activo) FROM stdin;
+COPY public.equipos (id, tipo_equipo, marca, modelo, numero_serie, nombre_equipo, area_ubicacion, cliente_nombre, estatus, responsable_nombre, observaciones, foto_url, fecha_alta, fecha_modificacion, activo, mantenimiento_intervalo_dias, mantenimiento_fecha_inicio, mantenimiento_dias_alerta) FROM stdin;
 \.
 
 
@@ -1934,6 +2500,66 @@ COPY public.formas_pago (id, codigo, descripcion, activo, fecha_creacion) FROM s
 20	30	Aplicaci├│n de anticipos	t	2025-10-11 23:12:28.285579-06
 21	31	Intermediario pagos	t	2025-10-11 23:12:28.285824-06
 22	99	Por definir	t	2025-10-11 23:12:28.286069-06
+\.
+
+
+--
+-- Data for Name: inventarios; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventarios (id, tipo, nombre, categoria, marca, modelo, codigo_sku, proveedor_id, proveedor_nombre, estatus, existencia_actual, unidad_medida, stock_minimo, stock_maximo, ubicacion_fisica, costo_compra, precio_venta, costo_promedio, observaciones, foto_url, fecha_alta, fecha_modificacion, activo) FROM stdin;
+\.
+
+
+--
+-- Data for Name: inventarios_caracteristicas; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventarios_caracteristicas (id, inventario_id, caracteristicas, fecha_creacion, fecha_modificacion) FROM stdin;
+\.
+
+
+--
+-- Data for Name: inventarios_categorias; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventarios_categorias (id, tipo, nombre, descripcion, campos_requeridos, activo, orden, fecha_creacion, fecha_modificacion) FROM stdin;
+1	venta	Papel	Papel para venta al público (resmas, paquetes)	\N	t	1	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+2	venta	Consumibles	Toners, cartuchos, tintas para venta	\N	t	2	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+3	venta	Engargolado	Pastas, arillos y material de engargolado para venta	\N	t	3	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+4	venta	Acetatos	Hojas para transparencias	\N	t	4	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+5	venta	Papelería	Artículos de papelería variados	\N	t	5	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+6	venta	Oficina	Artículos de oficina diversos	\N	t	6	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+7	venta	Otros Productos	Otros productos para venta	\N	t	99	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+8	insumo	Papel Operativo	Papel para servicios de copias e impresiones	\N	t	1	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+9	insumo	Toner/Revelador	Toner, revelador y recarga para equipos	\N	t	2	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+10	insumo	Refacciones Copiadoras	Cuchillas, cilindros, rodillos y refacciones	\N	t	3	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+11	insumo	Material Engargolado	Arillos y pastas para servicio	\N	t	4	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+12	insumo	Hojas Especiales	Papel fotográfico, etiquetas, adhesivos	\N	t	5	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+13	insumo	Acabados	Material para corte, pegado, laminado	\N	t	6	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+14	insumo	Otros Insumos	Otros insumos operativos	\N	t	99	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+15	generico	Herramientas	Desarmadores, pinzas, llaves	\N	t	1	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+16	generico	Cables y Conectores	Cables, extensiones, adaptadores	\N	t	2	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+17	generico	Electrónica	Componentes electrónicos y accesorios	\N	t	3	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+18	generico	Tornillería	Tornillos, tuercas, rondanas	\N	t	4	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+19	generico	Material Diverso	Artículos sin clasificación específica	\N	t	5	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+20	generico	Otros Genéricos	Otros items genéricos	\N	t	99	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+\.
+
+
+--
+-- Data for Name: inventarios_movimientos; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventarios_movimientos (id, inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo, usuario_nombre, area_servicio, notas, evidencia_url, fecha_movimiento) FROM stdin;
+\.
+
+
+--
+-- Data for Name: inventarios_reglas_stock; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventarios_reglas_stock (id, inventario_id, nivel_critico_porcentaje, nivel_bajo_porcentaje, nivel_normal_porcentaje, usar_stock_maximo, alerta_critico_activa, alerta_bajo_activa, alerta_sobrestock_activa, umbral_sobrestock_porcentaje, notificar_usuarios, observaciones, activo, fecha_creacion, fecha_modificacion) FROM stdin;
 \.
 
 
@@ -2193,6 +2819,41 @@ SELECT pg_catalog.setval('public.formas_pago_id_seq', 44, true);
 
 
 --
+-- Name: inventarios_caracteristicas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventarios_caracteristicas_id_seq', 1, false);
+
+
+--
+-- Name: inventarios_categorias_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventarios_categorias_id_seq', 20, true);
+
+
+--
+-- Name: inventarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventarios_id_seq', 1, false);
+
+
+--
+-- Name: inventarios_movimientos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventarios_movimientos_id_seq', 1, false);
+
+
+--
+-- Name: inventarios_reglas_stock_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventarios_reglas_stock_id_seq', 1, false);
+
+
+--
 -- Name: metodos_pago_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -2446,6 +3107,54 @@ ALTER TABLE ONLY public.formas_pago
 
 ALTER TABLE ONLY public.formas_pago
     ADD CONSTRAINT formas_pago_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventarios_caracteristicas inventarios_caracteristicas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_caracteristicas
+    ADD CONSTRAINT inventarios_caracteristicas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventarios_categorias inventarios_categorias_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_categorias
+    ADD CONSTRAINT inventarios_categorias_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventarios_movimientos inventarios_movimientos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_movimientos
+    ADD CONSTRAINT inventarios_movimientos_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventarios inventarios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios
+    ADD CONSTRAINT inventarios_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventarios_reglas_stock inventarios_reglas_stock_inventario_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_reglas_stock
+    ADD CONSTRAINT inventarios_reglas_stock_inventario_id_key UNIQUE (inventario_id);
+
+
+--
+-- Name: inventarios_reglas_stock inventarios_reglas_stock_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_reglas_stock
+    ADD CONSTRAINT inventarios_reglas_stock_pkey PRIMARY KEY (id);
 
 
 --
@@ -2872,6 +3581,111 @@ CREATE INDEX idx_historial_contador_fecha ON public.equipos_historial_contador U
 
 
 --
+-- Name: idx_inventarios_activo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_activo ON public.inventarios USING btree (activo);
+
+
+--
+-- Name: idx_inventarios_caracteristicas_inventario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_caracteristicas_inventario ON public.inventarios_caracteristicas USING btree (inventario_id);
+
+
+--
+-- Name: idx_inventarios_categoria; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_categoria ON public.inventarios USING btree (categoria);
+
+
+--
+-- Name: idx_inventarios_categorias_activo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_categorias_activo ON public.inventarios_categorias USING btree (activo);
+
+
+--
+-- Name: idx_inventarios_categorias_tipo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_categorias_tipo ON public.inventarios_categorias USING btree (tipo);
+
+
+--
+-- Name: idx_inventarios_codigo_sku; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_codigo_sku ON public.inventarios USING btree (codigo_sku);
+
+
+--
+-- Name: idx_inventarios_estatus; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_estatus ON public.inventarios USING btree (estatus);
+
+
+--
+-- Name: idx_inventarios_movimientos_fecha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_movimientos_fecha ON public.inventarios_movimientos USING btree (fecha_movimiento DESC);
+
+
+--
+-- Name: idx_inventarios_movimientos_inventario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_movimientos_inventario ON public.inventarios_movimientos USING btree (inventario_id);
+
+
+--
+-- Name: idx_inventarios_movimientos_tipo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_movimientos_tipo ON public.inventarios_movimientos USING btree (tipo_movimiento);
+
+
+--
+-- Name: idx_inventarios_nombre; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_nombre ON public.inventarios USING btree (nombre);
+
+
+--
+-- Name: idx_inventarios_proveedor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_proveedor ON public.inventarios USING btree (proveedor_id);
+
+
+--
+-- Name: idx_inventarios_reglas_stock_activo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_reglas_stock_activo ON public.inventarios_reglas_stock USING btree (activo);
+
+
+--
+-- Name: idx_inventarios_reglas_stock_inventario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_reglas_stock_inventario ON public.inventarios_reglas_stock USING btree (inventario_id);
+
+
+--
+-- Name: idx_inventarios_tipo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_tipo ON public.inventarios USING btree (tipo);
+
+
+--
 -- Name: idx_mantenimiento_equipo; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3161,6 +3975,38 @@ ALTER TABLE ONLY public.equipos_historial_contador
 
 
 --
+-- Name: inventarios_caracteristicas fk_inventarios_caracteristicas_inventario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_caracteristicas
+    ADD CONSTRAINT fk_inventarios_caracteristicas_inventario FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventarios_movimientos fk_inventarios_movimientos_inventario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_movimientos
+    ADD CONSTRAINT fk_inventarios_movimientos_inventario FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventarios fk_inventarios_proveedor; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios
+    ADD CONSTRAINT fk_inventarios_proveedor FOREIGN KEY (proveedor_id) REFERENCES public.proveedores(id) ON DELETE SET NULL;
+
+
+--
+-- Name: inventarios_reglas_stock fk_inventarios_reglas_stock_inventario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventarios_reglas_stock
+    ADD CONSTRAINT fk_inventarios_reglas_stock_inventario FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE CASCADE;
+
+
+--
 -- Name: equipos_mantenimiento fk_mantenimiento_equipo; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3180,5 +4026,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TYfcC3CdsS9LcJCJPSUCvHvD11KjI7kyw9mraY6rKoirMJNWe2eUnQ4h7oXzYKu
+\unrestrict mvqFOyOZ4ZFjclDwejKGyxOlKv3WlFqNHoCkIagyWtwh8V0aa2Lqficu4aS9Mni
 

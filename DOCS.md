@@ -952,6 +952,88 @@ dist/supercopias-frontend/.htaccess
 - Módulo `equipos` integrado en sistema de roles
 - CRUD disponible para administradores y gestores de inventarios
 
+### [2025-12-04] - Módulo de Inventarios y Reglas de Stock
+
+**Base de Datos**:
+- ✅ Tabla `inventarios` - Gestión completa de artículos (ventas, insumos, genéricos)
+- ✅ Tabla `inventarios_categorias` - Categorías personalizadas con campos dinámicos (JSONB)
+- ✅ Tabla `inventarios_reglas_stock` - Configuración de umbrales de alertas por artículo
+- ✅ Catálogos: `cat_tipos_inventario`, `cat_unidades_medida`, `cat_ubicaciones`
+- ✅ Foreign Keys con proveedores, categorías
+- ✅ Constraints: CHECK de orden de porcentajes, validaciones de stock
+- ✅ Índices optimizados: proveedor_id, categoria_id, tipo, activo
+
+**Backend**:
+- ✅ Controlador `inventariosController.js` con CRUD completo
+- ✅ Endpoints para gestión de inventarios: list, create, update, delete, detalle
+- ✅ Endpoints de catálogos: tipos, unidades, ubicaciones
+- ✅ Sistema de alertas: `getAlertas()` con respeto a flags de activación
+- ✅ CRUD de categorías personalizadas con validaciones
+- ✅ Submódulo de reglas de stock:
+  - GET/POST/PUT/DELETE `/api/inventarios/:id/reglas-stock`
+  - Dual-mode calculation (con/sin stock_maximo)
+  - Validaciones triple capa (BD, Backend, Frontend)
+- ✅ Queries optimizados con LEFT JOIN para reglas personalizadas
+- ✅ Cálculo dinámico de nivel_stock según reglas configuradas
+
+**Frontend**:
+- ✅ Módulo lazy-loaded en `/admin/inventarios`
+- ✅ Servicio `inventarios.service.ts` con interfaces completas
+- ✅ Componente de listado con filtros por tipo, categoría, nivel de stock
+- ✅ Dashboard de alertas de stock bajo/crítico/sobrestock
+- ✅ Formulario dinámico con validaciones
+- ✅ Vista de detalle con información completa
+- ✅ Gestión de categorías personalizadas:
+  - Dashboard con contadores por tipo
+  - Editor de campos dinámicos (texto, número, fecha, select)
+  - Validación de categorías en uso antes de eliminar
+- ✅ Componente de reglas de stock (`ReglasStockComponent`):
+  - Formulario con selección de modo de cálculo
+  - Configuración de 4 niveles: crítico, bajo, normal, sobrestock
+  - Vista previa en tiempo real de umbrales calculados
+  - Switches para activar/desactivar alertas por nivel
+  - Confirmaciones para acciones destructivas
+- ✅ UI consistente con estilos corporativos (thead azul con gradiente)
+
+**Características Inventarios**:
+- 📦 3 tipos de artículos: Venta, Insumo, Genérico
+- 🏷️ Categorías personalizadas con campos dinámicos ilimitados
+- 📊 Control de stock con mínimo/máximo configurable
+- 💰 Gestión de precios (compra, venta, descuentos)
+- 📍 Ubicación física en almacén
+- 🔗 Asociación con proveedores
+- ⚠️ Sistema de alertas de stock (3 niveles configurables)
+- 🔄 Estatus: Activo, Inactivo
+
+**Características Reglas de Stock**:
+- 🎯 Configuración personalizada por artículo
+- 📐 Dual-mode calculation:
+  - Modo 1: Porcentaje del rango (min-max) - Recomendado
+  - Modo 2: Porcentaje sobre mínimo
+- 🔔 Control granular de alertas (3 flags independientes)
+- 🔙 Backward compatible: artículos sin reglas usan defaults del sistema (10%)
+- 📈 Vista previa en tiempo real de umbrales calculados
+- ✅ Triple validación: BD CHECK constraints + Backend + Frontend
+- 🗑️ Eliminación de reglas para volver a defaults del sistema
+
+**Defaults del Sistema**:
+- Nivel crítico: 0% (stock < mínimo)
+- Nivel bajo: 10% sobre mínimo
+- Nivel normal: 30% sobre mínimo
+- Usar stock_maximo: true
+- Todas las alertas activas excepto sobrestock
+
+**Scripts**:
+- `backend/scripts/add-inventarios-module.sql` - Migración de inventarios
+- `backend/scripts/add-reglas-stock.sql` - Migración de reglas de stock
+- `backend/scripts/update-categorias-personalizadas.sql` - Actualización de categorías
+
+**Archivos**:
+- `backend/controllers/inventariosController.js`
+- `backend/routes/inventarios.js`
+- `frontend/src/app/modules/admin/inventarios/*`
+- `frontend/src/app/services/inventarios.service.ts`
+
 ### [2025-11-24] - Segundo Email en Clientes
 
 **Base de Datos**:

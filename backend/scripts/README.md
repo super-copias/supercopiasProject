@@ -4,26 +4,256 @@ Este directorio contiene scripts esenciales para la gestión de la base de datos
 
 ---
 
-## 📂 Scripts Disponibles
+## 📂 Archivos Disponibles
 
-### 🔧 Scripts de Migración y Setup
+### 🔧 `db-manager.ps1`
+**Descripción:** Script unificado para gestionar la base de datos PostgreSQL
 
-#### `migrate-to-postgres.js`
-**Descripción:** Script principal de migración e inicialización de la base de datos PostgreSQL.
+**Comandos disponibles:**
+
+#### Restaurar base de datos
+```powershell
+.\db-manager.ps1 restore
+```
+- Elimina y recrea la base de datos con encoding UTF-8
+- Restaura desde BD_SUPERCOPIAS.sql
+- Verifica encoding y datos
+- Muestra resumen de tablas
+
+#### Exportar base de datos
+```powershell
+.\db-manager.ps1 export
+```
+- Exporta la BD actual con encoding UTF-8
+- Crea backup automático (BD_SUPERCOPIAS_backup.sql)
+- Actualiza BD_SUPERCOPIAS.sql
+
+#### Mostrar ayuda
+```powershell
+.\db-manager.ps1 help
+```
+
+**Características:**
+- ✅ Manejo correcto de UTF-8 (acentos, ñ, etc.)
+- ✅ Confirmación antes de acciones destructivas
+- ✅ Backups automáticos al exportar
+- ✅ Verificación de PostgreSQL y archivos
+- ✅ Mensajes de progreso claros
+
+---
+**Descripción:** Inserta los módulos del sistema en la base de datos.
+
+**Módulos incluidos:**
+- Clientes
+- Empleados  
+- Proveedores
+- Equipos
+- Inventarios
+- Administración
+
+**Uso:** 
+```bash
+# Ejecutar después de crear la estructura base con BD_SUPERCOPIAS.sql
+psql -U postgres -d supercopias -f scripts/insertar-modulos.sql
+```
+
+**Nota:** Este script es necesario solo si no se ejecutó durante la creación inicial de la base de datos.
+
+---
+
+### 🔄 `restore-database.ps1`
+**Descripción:** Script PowerShell para restaurar la base de datos completa desde BD_SUPERCOPIAS.sql
 
 **Funcionalidad:**
-- Crea la estructura completa de la base de datos
-- Inicializa catálogos SAT (Regímenes Fiscales, Usos CFDI, Formas de Pago, etc.)
-- Crea tablas: usuarios, empleados, clientes, proveedores, módulos, equipos
-- Ejecuta automáticamente el script `insertar-modulos.sql`
+- Elimina y recrea la base de datos supercopias con encoding UTF-8
+- Ejecuta el archivo BD_SUPERCOPIAS.sql principal
+- Restaura toda la estructura y datos iniciales
+- Verifica encoding y caracteres especiales (acentos, ñ, etc.)
+
+**Uso:**
+```powershell
+# Desde el directorio backend
+.\scripts\restore-database.ps1
+```
+
+**Requisitos:**
+- PostgreSQL instalado y en PATH
+- Permisos de superusuario (postgres)
+- Variable de entorno PGPASSWORD configurada (opcional)
+
+---
+
+### 🚀 `migrate-database.ps1`
+**Descripción:** Script simplificado de migración con verificación de encoding
+
+**Funcionalidad:**
+- Termina conexiones activas
+- Elimina y recrea DB con encoding UTF-8 explícito
+- Restaura estructura y datos
+- Verifica caracteres especiales automáticamente
+- Muestra resumen de tablas y registros
+
+**Uso:**
+```powershell
+# Desde el directorio backend/scripts
+.\migrate-database.ps1
+```
+
+---
+
+### 📤 `export-utf8.ps1`
+**Descripción:** Exporta la base de datos actual con encoding UTF-8 correcto
+
+**Funcionalidad:**
+- Exporta usando pg_dump con --encoding=UTF8
+- Crea backup del archivo anterior
+- Reemplaza BD_SUPERCOPIAS.sql con versión UTF-8
+
+**Uso:**
+```powershell
+# Desde el directorio backend/scripts
+.\export-utf8.ps1
+```
+
+**Cuándo usar:**
+- Después de cambios estructurales en la BD
+- Para regenerar BD_SUPERCOPIAS.sql con datos actuales
+- Cuando hay problemas de encoding
+
+---
+
+### 📋 `CHANGELOG.md`
+**Descripción:** Historial completo de cambios estructurales en la base de datos.
+
+**Contenido:**
+- Registro cronológico de todas las migraciones aplicadas
+- Cambios en tablas, columnas, índices y constraints
+- Nuevas funcionalidades agregadas
+- Scripts de migración ejecutados
+
+**Uso:** Consultar antes de aplicar cambios para entender el historial del proyecto.
+
+---
+
+## 📚 Estructura de la Base de Datos
+
+### 🗄️ Archivo Principal: `BD_SUPERCOPIAS.sql`
+**Ubicación:** `backend/BD_SUPERCOPIAS.sql`
+
+Este es el archivo **MAESTRO** que contiene:
+- ✅ Estructura completa de todas las tablas
+- ✅ Todos los catálogos SAT
+- ✅ Índices y constraints
+- ✅ Foreign keys
+- ✅ Triggers y funciones
+- ✅ Datos iniciales
+
+**Tablas Principales:**
+- `usuarios` - Autenticación y acceso
+- `empleados` - Gestión de personal
+- `clientes` - Gestión de clientes
+- `proveedores` - Gestión de proveedores
+- `equipos` - Inventario de equipos electrónicos
+- `equipos_caracteristicas` - Datos específicos por tipo de equipo
+- `equipos_historial_contador` - Lecturas de contadores
+- `equipos_mantenimiento` - Historial de servicios
+- `equipos_consumibles` - Control de toner, cilindros, etc.
+- `inventarios` - Gestión de artículos (ventas, insumos, genéricos)
+- `inventarios_categorias` - Categorías personalizadas con campos dinámicos
+- `inventarios_reglas_stock` - Configuración de alertas por artículo
+- `eventos_personal` - Vacaciones, faltas, permisos
+- `modulos` - Módulos del sistema
+- `empleados_modulos` - Permisos por empleado
+
+**Catálogos SAT:**
+- `regimenes_fiscales` (32 registros)
+- `usos_cfdi` (28 registros)
+- `formas_pago` (18 registros)
+- `metodos_pago` (4 registros)
+- `estados` (32 registros)
+
+**Catálogos del Sistema:**
+- `cat_tipos_inventario` (Venta, Insumo, Genérico)
+- `cat_unidades_medida` (Pieza, Caja, Litro, etc.)
+- `cat_ubicaciones` (Almacén Principal, Bodega, etc.)
+- `cat_tipos_proveedor` (Servicios, Productos, Ambos)
+- `cat_metodos_pago_proveedor` (Efectivo, Transferencia, etc.)
+
+---
+
+## 🚀 Guía de Uso
+
+### Instalación Inicial (Nueva Base de Datos)
+
+```powershell
+# 1. Crear la base de datos
+createdb -U postgres supercopias
+
+# 2. Restaurar estructura completa
+cd backend
+psql -U postgres -d supercopias -f BD_SUPERCOPIAS.sql
+
+# 3. (Opcional) Verificar que los módulos estén insertados
+psql -U postgres -d supercopias -c "SELECT * FROM modulos;"
+```
+
+### Restauración Rápida
+
+```powershell
+# Usar el script automatizado
+cd backend
+.\scripts\restore-database.ps1
+```
+
+---
+
+## ⚠️ Notas Importantes
+
+1. **BD_SUPERCOPIAS.sql es la fuente de verdad**
+   - Todos los cambios estructurales deben reflejarse ahí
+   - Los scripts de migración individuales se eliminaron tras consolidación
+   - Mantener este archivo actualizado en cada cambio
+
+2. **CHANGELOG.md**
+   - Documentar cada cambio estructural
+   - Incluir fecha, descripción y archivos afectados
+   - Facilita el seguimiento de evolución del proyecto
+
+3. **Backups**
+   - Hacer backup antes de cambios estructurales importantes
+   - Guardar dumps con: `pg_dump -U postgres supercopias > backup_YYYYMMDD.sql`
+
+4. **Migraciones en Producción**
+   - Probar primero en entorno de desarrollo
+   - Ejecutar scripts de migración en horarios de bajo tráfico
+   - Tener plan de rollback preparado
+
+---
+
+## 📞 Soporte
+
+Para dudas sobre scripts o estructura de base de datos, consultar:
+- `DOCS.md` en la raíz del proyecto
+- `CHANGELOG.md` en este directorio
+- Comentarios dentro de `BD_SUPERCOPIAS.sql`
+
+---
+
+**Última actualización:** 4 de diciembre de 2025  
+**Mantenido por:** Equipo de Desarrollo SuperCopias
+- Validaciones para prevenir inconsistencias
+- Migración segura con IF NOT EXISTS
 
 **Uso:**
 ```bash
-# Desde el directorio backend
-node scripts/migrate-to-postgres.js
+psql -U postgres -d supercopias -f scripts/update-categorias-personalizadas.sql
 ```
 
-**Nota:** Este script debe ejecutarse solo una vez al configurar el proyecto por primera vez.
+**Verificación:**
+```sql
+-- El script incluye verificación automática al final
+-- Muestra qué campos fueron agregados exitosamente
+```
 
 ---
 
@@ -35,6 +265,7 @@ node scripts/migrate-to-postgres.js
 - Empleados  
 - Proveedores
 - Equipos (Gestión de Inventario)
+- Inventarios (Gestión de Stock) 📦 NUEVO
 - Administración
 
 **Uso:** Se ejecuta automáticamente con `migrate-to-postgres.js`
@@ -43,11 +274,6 @@ node scripts/migrate-to-postgres.js
 ```bash
 psql -U postgres -d supercopias -f scripts/insertar-modulos.sql
 ```
-
----
-
-#### `migrate-equipos-independiente.sql` ⭐ NUEVO
-**Descripción:** Migración para convertir el módulo de equipos de diseño relacional a módulo independiente.
 
 **Funcionalidad:**
 - Agrega columnas de nombres (`cliente_nombre`, `responsable_nombre`, `tecnico_nombre`, `proveedor_nombre`)

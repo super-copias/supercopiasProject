@@ -4,6 +4,352 @@ Este archivo registra todos los cambios estructurales aplicados a la base de dat
 
 ---
 
+## [2025-12-04] Submódulo de Reglas de Stock Personalizadas
+
+### Cambios en Base de Datos
+- ✅ **NUEVA TABLA**: `inventarios_reglas_stock`
+  - `id` SERIAL PRIMARY KEY
+  - `inventario_id` INTEGER NOT NULL UNIQUE
+  - `nivel_critico_porcentaje` DECIMAL(5,2) DEFAULT 0
+  - `nivel_bajo_porcentaje` DECIMAL(5,2) DEFAULT 10
+  - `nivel_normal_porcentaje` DECIMAL(5,2) DEFAULT 30
+  - `usar_stock_maximo` BOOLEAN DEFAULT true
+  - `alerta_critico_activa` BOOLEAN DEFAULT true
+  - `alerta_bajo_activa` BOOLEAN DEFAULT true
+  - `alerta_sobrestock_activa` BOOLEAN DEFAULT false
+  - `umbral_sobrestock_porcentaje` DECIMAL(5,2) DEFAULT 0
+  - `notificar_usuarios` JSONB (para futuro sistema de notificaciones)
+  - `observaciones` TEXT
+  - `activo` BOOLEAN DEFAULT true
+  - `fecha_creacion` TIMESTAMP DEFAULT NOW()
+  - `fecha_modificacion` TIMESTAMP DEFAULT NOW()
+- ✅ **Constraints**:
+  - `UNIQUE(inventario_id)` - Un inventario solo puede tener una configuración activa
+  - `CHECK` - Valida orden: `nivel_critico ≤ nivel_bajo ≤ nivel_normal`
+  - `CHECK` - Valida que porcentajes sean >= 0
+- ✅ **Foreign Key**:
+  - `fk_inventarios_reglas_stock_inventario` → inventarios(id) ON DELETE CASCADE
+- ✅ **Índices**:
+  - `idx_inventarios_reglas_stock_inventario` - Acelera JOIN con inventarios
+  - `idx_inventarios_reglas_stock_activo` - Filtrado por estado activo
+- ✅ **Script de Migración**: `backend/scripts/add-reglas-stock.sql`
+
+### Motivación del Cambio
+- 🎯 **Personalización por producto**: Cada artículo puede tener umbrales de alerta diferentes
+- 🔄 **Flexibilidad de rotación**: Productos de alta rotación vs baja rotación necesitan reglas distintas
+- 📊 **Dual-mode calculation**:
+  - **Modo 1**: Porcentaje del rango (mínimo - máximo) - recomendado
+  - **Modo 2**: Porcentaje sobre mínimo solamente
+- 🔔 **Control de alertas**: Activar/desactivar alertas por nivel independientemente
+- ⚙️ **Sin código**: Todo configurable desde interfaz web
+- 🔙 **Backward compatible**: Si no hay reglas personalizadas, usa defaults del sistema (10%)
+
+### Cambios en Backend (`inventariosController.js`)
+- ✅ **4 Nuevos Endpoints CRUD**:
+  - `getReglasStock()` - GET /api/inventarios/:id/reglas-stock
+    - Retorna reglas personalizadas o defaults del sistema
+    - Incluye contexto: `stock_minimo`, `stock_maximo`, `tiene_reglas_personalizadas`
+  - `createReglasStock()` - POST /api/inventarios/:id/reglas-stock
+    - Validaciones: orden de porcentajes, valores negativos, duplicados
+    - Usa COALESCE para defaults (0%, 10%, 30%, true, true, true, false, 0)
+  - `updateReglasStock()` - PUT /api/inventarios/:id/reglas-stock
+    - Actualiza solo campos enviados (PATCH-like behavior)
+    - Valida existencia de reglas antes de actualizar
+  - `deleteReglasStock()` - DELETE /api/inventarios/:id/reglas-stock
+    - Hard delete para permitir volver a reglas por defecto
+- ✅ **Modificación de `listInventarios()`**:
+  - LEFT JOIN con `inventarios_reglas_stock`
+  - CASE statement complejo con 2 modos de cálculo:
+    - Con `usar_stock_maximo` = true: calcula umbrales como % del rango (min-max)
+    - Con `usar_stock_maximo` = false: calcula umbrales como % sobre mínimo
+  - Agrega campo calculado `tiene_reglas_personalizadas`
+- ✅ **Modificación de `getAlertas()`**:
+  - Respeta flags de activación: `alerta_critico_activa`, `alerta_bajo_activa`, `alerta_sobrestock_activa`
+  - Solo genera alertas si el flag correspondiente = true
+  - LEFT JOIN con reglas personalizadas
+
+### Cambios en Backend (`routes/inventarios.js`)
+- ✅ 4 nuevas rutas:
+  - GET /:id/reglas-stock
+  - POST /:id/reglas-stock
+  - PUT /:id/reglas-stock
+  - DELETE /:id/reglas-stock
+
+### Cambios en Frontend (`inventarios.service.ts`)
+- ✅ **Nueva Interface**: `ReglasStock` (18 propiedades)
+  - Mapea 1:1 con tabla BD + campos calculados
+- ✅ **4 Nuevos Métodos HTTP**:
+  - `getReglasStock(inventarioId: number): Observable<ReglasStock>`
+  - `createReglasStock(inventarioId, reglas): Observable<any>`
+  - `updateReglasStock(inventarioId, reglas): Observable<any>`
+  - `deleteReglasStock(inventarioId): Observable<any>`
+
+### Cambios en Frontend (Nuevo Componente)
+- ✅ **ReglasStockComponent** (`reglas-stock/reglas-stock.component.*`):
+  - **TypeScript** (200 líneas):
+    - `cargarReglas()` - Carga desde API o defaults
+    - `calcularUmbrales()` - Calcula umbrales en tiempo real con dual-mode logic
+    - `guardarReglas()` - Validación de orden + CREATE o UPDATE según existan reglas
+    - `restaurarValores()` - Reset a defaults con confirmación
+    - `eliminarReglas()` - DELETE con confirmación
+    - `onCambioModo()`, `onCambioPorcentaje()` - Recalculo automático de umbrales
+  - **HTML** (300 líneas):
+    - Display de stock_minimo/stock_maximo
+    - Radio buttons para modo de cálculo
+    - Inputs numéricos para 4 porcentajes (crítico, bajo, normal, sobrestock)
+    - Switches para activar/desactivar alertas por nivel
+    - Textarea para observaciones
+    - Vista previa lateral con umbrales calculados en tiempo real
+    - Badges de colores por nivel (rojo/amarillo/verde/azul)
+    - Botones: Guardar, Restaurar, Eliminar, Cancelar
+  - **SCSS**: Estilos para badges, sticky sidebar, animaciones fadeIn
+
+### Cambios en Módulo (`inventarios.module.ts`)
+- ✅ Importación de `ReglasStockComponent`
+- ✅ Declaración en `@NgModule`
+- ✅ Nueva ruta: `{ path: ':id/reglas-stock', component: ReglasStockComponent }`
+
+### Validación de Consistencia
+- ✅ **Documento completo**: `VALIDACION-REGLAS-STOCK.md`
+  - Tabla comparativa de 18 campos: BD ↔ Backend ↔ Frontend
+  - Validación de los 4 endpoints con ejemplos de Request/Response
+  - Explicación detallada del dual-mode calculation
+  - Comparación de queries SQL vs lógica TypeScript
+  - 4 casos de uso validados end-to-end
+  - Triple capa de validaciones (BD CHECK + Backend + Frontend)
+
+### Testing Recomendado
+- [ ] Crear reglas personalizadas para producto de alta rotación (20% bajo, 50% normal)
+- [ ] Crear reglas para producto de baja rotación (5% bajo, 15% normal)
+- [ ] Verificar cálculo de umbrales en modo 1 (con stock_maximo)
+- [ ] Verificar cálculo de umbrales en modo 2 (sin stock_maximo)
+- [ ] Desactivar alerta de nivel bajo y verificar que no aparezca en `getAlertas()`
+- [ ] Eliminar reglas y verificar fallback a defaults del sistema (10%)
+- [ ] Actualizar solo observaciones y verificar que no afecte otros campos
+
+### Archivos Modificados/Creados
+**Backend:**
+- `BD_SUPERCOPIAS.sql` - Agregada tabla completa
+- `scripts/add-reglas-stock.sql` - Script de migración
+- `controllers/inventariosController.js` - 4 funciones + 2 queries modificados (270 líneas)
+- `routes/inventarios.js` - 4 rutas nuevas
+
+**Frontend:**
+- `services/inventarios.service.ts` - Interface + 4 métodos (50 líneas)
+- `modules/admin/inventarios/reglas-stock/reglas-stock.component.ts` - 200 líneas
+- `modules/admin/inventarios/reglas-stock/reglas-stock.component.html` - 300 líneas
+- `modules/admin/inventarios/reglas-stock/reglas-stock.component.scss` - 30 líneas
+- `modules/admin/inventarios/inventarios.module.ts` - Import + declaración + ruta
+
+**Documentación:**
+- `SUBMODULO-REGLAS-STOCK.md` - Diseño completo del submódulo
+- `VALIDACION-REGLAS-STOCK.md` - Validación BD-Backend-Frontend
+
+---
+
+## [2025-12-04] Gestión de Categorías Personalizadas - Inventarios
+
+### Cambios en Base de Datos
+- ✅ **NUEVA FUNCIONALIDAD**: Sistema de categorías personalizadas con campos dinámicos
+- ✅ Actualización tabla `inventarios_categorias`:
+  - `campos_requeridos JSONB` - Definición de campos personalizados por categoría
+  - `fecha_modificacion TIMESTAMP` - Control de cambios
+- ✅ Actualización tabla `inventarios`:
+  - `stock_maximo NUMERIC(10,2)` - Stock máximo recomendado
+  - `proveedor_id INTEGER` - Relación con tabla proveedores (FK)
+- ✅ Nuevos índices:
+  - `idx_inventarios_proveedor` - Para búsqueda por proveedor
+  - `idx_inventarios_categorias_tipo` - Para filtrado por tipo
+  - `idx_inventarios_categorias_activo` - Para filtrado de activos
+- ✅ Foreign key constraint:
+  - `fk_inventarios_proveedor` - inventarios.proveedor_id → proveedores.id (ON DELETE SET NULL)
+
+### Motivación del Cambio
+- 🏷️ **Personalización**: Usuarios pueden crear sus propias categorías
+- 🔧 **Flexibilidad total**: Cada categoría puede tener campos específicos (JSONB)
+- 📊 **Sin límites**: El sistema crece sin necesidad de programación
+- 🔒 **Validaciones**: Previene eliminación de categorías con artículos asociados
+- 🎯 **Usabilidad**: Todo desde interfaz web, sin tocar código
+
+### Cambios en Backend
+- ✅ `inventariosController.js` - Nuevas funciones CRUD:
+  - `createCategoria()` - POST /api/inventarios/categorias
+  - `updateCategoria()` - PUT /api/inventarios/categorias/:id
+  - `deleteCategoria()` - DELETE /api/inventarios/categorias/:id (con validación)
+- ✅ Validaciones implementadas:
+  - Nombre único por tipo
+  - No permite eliminar categorías con artículos asociados
+  - Auto-asignación de orden
+  - Verificación de tipos válidos (venta, insumo, generico)
+
+### Cambios en Frontend
+- ✅ Nuevo componente `categorias-list.component`:
+  - Dashboard con contadores por tipo
+  - Formulario inline para crear/editar categorías
+  - Sistema de campos dinámicos (texto, número, fecha, select)
+  - Tabla con filtros y CRUD completo
+- ✅ `inventarios.service.ts` - Nuevos métodos:
+  - `createCategoria()`
+  - `updateCategoriaById()`
+  - `deleteCategoria()`
+- ✅ Navegación actualizada:
+  - Botón "Categorías" en listado de inventarios
+  - Ruta: /admin/inventarios/categorias
+
+### Script de Migración
+- 📄 `update-categorias-personalizadas.sql` - Migración segura con:
+  - Validaciones IF NOT EXISTS
+  - Creación de índices
+  - Foreign keys condicionales
+  - Comentarios en columnas
+  - Verificación de resultados
+
+### Documentación
+- ✅ `MODULO-INVENTARIOS.md` - Nueva sección completa:
+  - Gestión de Categorías Personalizadas
+  - Mockups de interfaz
+  - Flujo de uso
+  - Ejemplos prácticos
+  - Ventajas del sistema
+
+---
+
+## [2025-12-04] Módulo de Inventarios - Sistema Completo de Gestión
+
+### Cambios en Base de Datos
+- ✅ **NUEVO MÓDULO**: Sistema completo de gestión de inventarios
+- ✅ Tabla `inventarios` - Tabla principal:
+  - `tipo VARCHAR(30)` - Tipo: venta, insumo, generico
+  - `nombre VARCHAR(255)` - Nombre del artículo
+  - `categoria VARCHAR(100)` - Categoría del artículo
+  - `existencia_actual NUMERIC(10,2)` - Stock actual
+  - `stock_minimo NUMERIC(10,2)` - Stock mínimo configurable
+  - `costo_compra, precio_venta, costo_promedio` - Control de costos
+  - `unidad_medida VARCHAR(50)` - Unidad flexible (pieza, caja, resma, etc.)
+  - Campos adicionales: marca, modelo, SKU, proveedor, ubicación
+- ✅ Tabla `inventarios_caracteristicas` - Campos dinámicos JSONB:
+  - Para papel: tamaño, gramaje, color, presentación
+  - Para engargolado: tipo arillo, tamaño, color, tipo pasta
+  - Para consumibles: compatibilidad, rendimiento, tipo
+- ✅ Tabla `inventarios_movimientos` - Trazabilidad completa:
+  - `tipo_movimiento` - entrada, salida, ajuste
+  - `concepto` - compra, venta, uso_operativo, merma, etc.
+  - `saldo_anterior, saldo_nuevo` - Control de existencias
+  - `usuario_nombre, area_servicio, notas` - Información completa
+  - `evidencia_url` - Soporte para adjuntar fotos
+- ✅ Tabla `inventarios_categorias` - Catálogo extensible:
+  - 7 categorías de productos para venta
+  - 7 categorías de insumos operativos
+  - 6 categorías de items genéricos
+  - Total: 20 categorías predefinidas
+- ✅ Índices optimizados para búsqueda, filtrado y reportes
+- ✅ Foreign keys con CASCADE para integridad referencial
+
+### Motivación del Cambio
+- 📦 **Versatilidad**: Maneja productos de venta, insumos operativos e items genéricos
+- 🔄 **Flexibilidad**: Campos dinámicos según categoría (JSONB)
+- 📊 **Control**: Sistema de alertas automáticas de stock bajo/crítico
+- 📝 **Trazabilidad**: Historial completo de todos los movimientos
+- 💰 **Costos**: Control de precios, costos y márgenes de utilidad
+- 🎨 **Intuitividad**: Diseño simple para personal administrativo y operativo
+
+### Cambios en Backend
+- ✅ `inventariosController.js` - Controlador completo:
+  - `listInventarios()` - GET /api/inventarios (con filtros avanzados)
+  - `getInventarioById()` - GET /api/inventarios/:id
+  - `createInventario()` - POST /api/inventarios
+  - `updateInventario()` - PUT /api/inventarios/:id
+  - `deleteInventario()` - DELETE /api/inventarios/:id (soft delete)
+  - `addMovimiento()` - POST /api/inventarios/:id/movimientos
+  - `getHistorialMovimientos()` - GET /api/inventarios/:id/movimientos
+  - `getAlertas()` - GET /api/inventarios/alertas
+  - `getStats()` - GET /api/inventarios/stats
+  - `getCategorias()` - GET /api/inventarios/categorias
+- ✅ `routes/inventarios.js` - Rutas RESTful completas
+- ✅ `index.js` - Integración del módulo al servidor
+- ✅ Validación automática de existencias en salidas
+- ✅ Cálculo automático de niveles de stock (crítico/bajo/normal)
+- ✅ Registro automático de usuario en movimientos
+
+### Cambios en Frontend
+- ✅ `inventarios.service.ts` - Servicio Angular completo:
+  - Métodos CRUD completos
+  - Gestión de movimientos
+  - Obtención de alertas y estadísticas
+  - Métodos auxiliares para catálogos
+  - Helpers para UI (badges, iconos, etiquetas)
+- ✅ Módulo `InventariosModule` creado:
+  - `InventariosComponent` - Componente raíz
+  - `InventariosListComponent` - Lista con filtros avanzados
+  - `InventarioFormComponent` - Formulario dinámico crear/editar
+  - `InventarioDetalleComponent` - Vista detallada con pestañas
+- ✅ Rutas configuradas: lista, nuevo, editar, detalle
+- ✅ Integración con sistema de permisos existente
+
+### Características del Módulo
+- 🎯 **Filtros Avanzados**:
+  - Por texto (nombre, marca, SKU)
+  - Por tipo (venta, insumo, genérico)
+  - Por categoría
+  - Por nivel de stock (crítico, bajo, normal)
+  - Por estatus (activo, inactivo)
+- 📊 **Dashboard de Inventario**:
+  - Total de artículos por tipo
+  - Alertas críticas y bajas
+  - Valor total del inventario
+  - Estadísticas en tiempo real
+- ⚠️ **Sistema de Alertas**:
+  - Código de colores: 🔴 Crítico, 🟡 Bajo, 🟢 Normal
+  - Cálculo automático: crítico < mínimo, bajo ≤ mínimo * 1.1
+  - Listado priorizado de artículos con stock bajo
+- 📝 **Movimientos**:
+  - Entradas: compra, devolución, ajuste, transferencia
+  - Salidas: venta, uso operativo, servicio técnico, merma
+  - Ajustes: corrección de inventario
+  - Historial completo con paginación
+- 🎨 **Formularios Dinámicos**:
+  - Campos específicos según categoría
+  - Validaciones automáticas
+  - Soporte para imágenes
+  - Características personalizadas en JSONB
+
+### Archivos Modificados/Creados
+**Base de Datos:**
+- `backend/BD_SUPERCOPIAS.sql` - Estructura actualizada con 4 tablas nuevas
+- `backend/scripts/add-inventarios-module.sql` - Script de migración
+
+**Backend:**
+- `backend/controllers/inventariosController.js` - ✨ NUEVO
+- `backend/routes/inventarios.js` - ✨ NUEVO
+- `backend/index.js` - Integración de rutas
+
+**Frontend:**
+- `frontend/src/app/services/inventarios.service.ts` - ✨ NUEVO
+- `frontend/src/app/modules/admin/inventarios/` - ✨ NUEVO MÓDULO
+  - `inventarios.module.ts`
+  - `inventarios.component.ts`
+  - `inventarios-list/` - Componente lista
+  - `inventario-form/` - Componente formulario
+  - `inventario-detalle/` - Componente detalle
+
+**Documentación:**
+- `MODULO-INVENTARIOS.md` - ✨ Documentación completa del módulo
+
+### Script de Migración
+- ✅ Archivo: `backend/scripts/add-inventarios-module.sql`
+- ✅ Incluye: Creación de tablas, índices, categorías y módulo
+- ✅ Safe: Verifica existencia antes de insertar
+- ✅ Mensajes informativos de progreso
+
+### Próximos Pasos
+- 🔜 Implementar componentes visuales de lista y detalle
+- 🔜 Agregar gráficas de movimientos
+- 🔜 Exportación de reportes (Excel, PDF)
+- 🔜 Integración con punto de venta
+- 🔜 Códigos de barras y lectores
+
+---
+
 ## [2025-12-01] Sistema de Mantenimiento Preventivo con Alertas Automáticas
 
 ### Cambios en Base de Datos

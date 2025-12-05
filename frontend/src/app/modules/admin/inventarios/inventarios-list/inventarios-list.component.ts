@@ -1,0 +1,253 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, finalize, switchMap, takeUntil } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { InventariosService } from '../../../../services/inventarios.service';
+import { NotificationService } from '../../../../services/notification.service';
+
+@Component({
+  selector: 'app-inventarios-list',
+  templateUrl: './inventarios-list.component.html',
+  styleUrls: ['./inventarios-list.component.scss']
+})
+export class InventariosListComponent implements OnInit, OnDestroy {
+  inventarios: any[] = [];
+  alertas: any[] = [];
+  estadisticas: any = null;
+  mostrarAlertas = true;
+  Math = Math;
+  q = '';
+  searchTerm = '';
+  loading = false;
+  loadingStats = false;
+  pageChange$ = new Subject<number>();
+  private destroy$ = new Subject<void>();
+  private pageSub: Subscription | null = null;
+  page = 1;
+  limit = 10;
+  total = 0;
+  pages = 1;
+  
+  // Filtros
+  filtroTipo = '';
+  filtroCategoria = '';
+  filtroStockNivel = '';
+  
+  // Catálogos
+  categorias: any[] = [];
+  
+  constructor(
+    private inventariosService: InventariosService,
+    private router: Router,
+    private notificationService: NotificationService
+  ) { }
+  
+  ngOnInit() {
+    // Cargar estadísticas
+    this.loadEstadisticas();
+    
+    // Cargar alertas
+    this.loadAlertas();
+    
+    this.pageSub = this.pageChange$.pipe(
+      debounceTime(150),
+      switchMap(page => {
+        this.page = page;
+        return this.loadData();
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (r: any) => { 
+        this.handleResponse(r);
+      },
+      error: (error) => {
+        this.handleError(error);
+      }
+    });
+
+    this.load();
+  }
+  
+  ngOnDestroy() { 
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.pageSub) this.pageSub.unsubscribe();
+  }
+  
+  private loadData() {
+    this.loading = true;
+    const filters = {
+      q: this.q,
+      tipo: this.filtroTipo,
+      categoria: this.filtroCategoria,
+      stockNivel: this.filtroStockNivel,
+      page: this.page,
+      limit: this.limit
+    };
+    
+    return this.inventariosService.getInventarios(filters).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.loading = false)
+    );
+  }
+  
+  private handleResponse(r: any) {
+    if (r.success) {
+      this.inventarios = r.data || [];
+      this.total = r.pagination?.total || 0;
+      this.pages = r.pagination?.pages || 1;
+    } else {
+      this.inventarios = [];
+      this.total = 0;
+      this.pages = 1;
+    }
+  }
+  
+  private handleError(error: any) {
+    console.error('Error al cargar inventarios:', error);
+    this.notificationService.error('Error al cargar inventarios');
+    this.inventarios = [];
+    this.total = 0;
+    this.pages = 1;
+  }
+  
+  loadEstadisticas() {
+    this.loadingStats = true;
+    this.inventariosService.getStats().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.estadisticas = response.data;
+        }
+        this.loadingStats = false;
+      },
+      error: (err) => {
+        console.error('Error al cargar estadísticas:', err);
+        this.loadingStats = false;
+      }
+    });
+  }
+
+  loadAlertas() {
+    this.inventariosService.getAlertas().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.alertas = response.data;
+          this.mostrarAlertas = this.alertas.length > 0;
+        }
+      },
+      error: (err) => {
+        console.error('Error al cargar alertas:', err);
+        this.alertas = [];
+      }
+    });
+  }
+  
+  loadCategorias() {
+    if (!this.filtroTipo) {
+      this.categorias = [];
+      return;
+    }
+    
+    this.inventariosService.getCategorias(this.filtroTipo).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.categorias = response.data;
+        }
+      },
+      error: (err) => {
+        console.error('Error al cargar categorías:', err);
+        this.categorias = [];
+      }
+    });
+  }
+  
+  ocultarAlertas() {
+    this.mostrarAlertas = false;
+  }
+
+  onVerAlerta(alerta: any) {
+    this.router.navigate(['/admin/inventarios/detalle', alerta.id]);
+  }
+  
+  load() {
+    this.page = 1;
+    this.loadData().subscribe({
+      next: r => this.handleResponse(r),
+      error: e => this.handleError(e)
+    });
+  }
+  
+  onSearch() {
+    this.q = this.searchTerm.trim();
+    this.load();
+  }
+  
+  onClearSearch() {
+    this.searchTerm = '';
+    this.q = '';
+    this.load();
+  }
+  
+  onFilterChange() {
+    if (this.filtroTipo) {
+      this.loadCategorias();
+    } else {
+      this.filtroCategoria = '';
+      this.categorias = [];
+    }
+    this.load();
+  }
+  
+  go(p: number) {
+    if (p >= 1 && p <= this.pages) {
+      this.pageChange$.next(p);
+    }
+  }
+  
+  onNuevo() {
+    this.router.navigate(['/admin/inventarios/nuevo']);
+  }
+  
+  onVer(inventario: any) {
+    this.router.navigate(['/admin/inventarios/detalle', inventario.id]);
+  }
+  
+  onEditar(inventario: any) {
+    this.router.navigate(['/admin/inventarios/editar', inventario.id]);
+  }
+  
+  onEliminar(inventario: any) {
+    if (!confirm(`¿Está seguro de eliminar el artículo "${inventario.nombre}"?`)) {
+      return;
+    }
+    
+    this.inventariosService.deleteInventario(inventario.id).subscribe({
+      next: () => {
+        this.notificationService.success('Artículo eliminado exitosamente');
+        this.load();
+        this.loadEstadisticas();
+        this.loadAlertas();
+      },
+      error: (err) => {
+        console.error('Error al eliminar artículo:', err);
+        this.notificationService.error('Error al eliminar artículo');
+      }
+    });
+  }
+  
+  getStockBadge(inventario: any): string {
+    return this.inventariosService.getStockBadgeClass(inventario.nivel_stock);
+  }
+  
+  getStockLabel(inventario: any): string {
+    return this.inventariosService.getStockLabel(inventario.nivel_stock);
+  }
+  
+  getTipoIcon(tipo: string): string {
+    return this.inventariosService.getTipoIcon(tipo);
+  }
+  
+  formatCurrency(value: number): string {
+    return value ? `$${value.toFixed(2)}` : 'N/A';
+  }
+}

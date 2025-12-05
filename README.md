@@ -33,7 +33,7 @@ cd supercopiasProject
 # Configurar base de datos
 createdb -U postgres supercopias
 cd backend
-psql -U postgres -d supercopias -f BD_SUPERCOPIAS_UTF8.sql
+psql -U postgres -d supercopias -f BD_SUPERCOPIAS.sql
 
 # Configurar variables de entorno
 cp .env.example .env
@@ -83,7 +83,7 @@ supercopiasProject/
 │   ├── scripts/                  # Scripts de BD
 │   │   ├── CHANGELOG.md          # Historial de cambios BD
 │   │   └── restore-database.ps1  # Script de restauración
-│   ├── BD_SUPERCOPIAS_UTF8.sql   # Dump completo de BD
+│   ├── BD_SUPERCOPIAS.sql        # Dump completo de BD (UTF-8)
 │   └── index.js                  # Punto de entrada
 │
 ├── frontend/                     # Aplicación Angular
@@ -176,7 +176,7 @@ cd backend\scripts
 .\restore-database.ps1
 
 # Linux/Mac
-psql -U postgres -d supercopias -f backend/BD_SUPERCOPIAS_UTF8.sql
+psql -U postgres -d supercopias -f backend/BD_SUPERCOPIAS.sql
 ```
 
 ---

@@ -1,0 +1,99 @@
+/* Estilos para el componente de lista de inventarios */
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+}
+
+.table-responsive {
+  max-height: 600px;
+}
+
+/* Tabla con estilo corporativo azul */
+.table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+  
+  thead th {
+    background: linear-gradient(90deg, var(--color-deep-blue) 0%, var(--color-dark-blue) 100%);
+    color: white;
+    border-top: none;
+    border-bottom: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    white-space: nowrap;
+  }
+  
+  tbody tr {
+    transition: all 0.15s ease;
+    
+    &:hover {
+      background-color: rgba(255, 221, 2, 0.05);
+      transform: scale(1.002);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    &:nth-child(even) {
+      background-color: rgba(243, 243, 242, 0.3);
+    }
+  }
+  
+  td {
+    padding: 0.75rem 0.5rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
+  }
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Colores de stock */
+.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.bg-success {
+  background-color: #28a745 !important;
+}
+
+.text-dark {
+  color: #212529 !important;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-25 {
+  opacity: 0.25;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.875rem;
+  }
+  
+  .btn-group-sm .btn {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.75rem;
+  }
+}
