@@ -712,6 +712,93 @@ CODIGOS_ERROR = {
 - Servicios para lógica de negocio
 - Componentes pequeños y reutilizables
 
+### Optimizaciones de Rendimiento
+
+#### Caché en Servicios (shareReplay)
+
+Para evitar llamadas HTTP duplicadas, los servicios implementan caché usando RxJS `shareReplay`:
+
+```typescript
+// auth.service.ts - Caché de verificación de token
+private verifyTokenCache$: Observable<ApiResponse> | null = null;
+private lastVerifyTime = 0;
+private readonly CACHE_DURATION = 5000; // 5 segundos
+
+verifyToken(forceRefresh = false): Observable<ApiResponse> {
+  const now = Date.now();
+  
+  // Retornar caché si es válido
+  if (!forceRefresh && this.verifyTokenCache$ && 
+      (now - this.lastVerifyTime < this.CACHE_DURATION)) {
+    return this.verifyTokenCache$;
+  }
+  
+  // Crear nueva petición y cachearla
+  this.lastVerifyTime = now;
+  this.verifyTokenCache$ = this.http.get(`${this.base}/verify`)
+    .pipe(
+      shareReplay({ bufferSize: 1, refCount: true }),
+      // ... manejo de respuesta
+    );
+  
+  return this.verifyTokenCache$;
+}
+```
+
+**Servicios optimizados con caché**:
+- ✅ `AuthService.verifyToken()` - Verificación de token (5s)
+- ✅ `EmpleadosService.getPuestos()` - Catálogo de puestos
+- ✅ `EmpleadosService.getModulos()` - Catálogo de módulos
+- ✅ `CatalogosService` - Todos los catálogos estáticos (estados, regímenes, etc.)
+
+#### Optimización de Guards
+
+**Problema**: Múltiples guards en rutas anidadas causaban 6+ llamadas al mismo endpoint.
+
+**Solución implementada**:
+1. Eliminado `canActivateChild` redundante en rutas padre
+2. Eliminado guards duplicados en módulos hijo
+3. Implementado caché compartido en `AuthService.verifyToken()`
+
+**Configuración optimizada**:
+```typescript
+// admin.module.ts - ANTES ❌
+{
+  path: '',
+  component: AdminComponent,
+  canActivate: [AuthGuard],
+  canActivateChild: [AuthGuard], // ❌ Duplicado
+  children: [
+    { path: 'inventarios', 
+      canLoad: [ModuleGuard], 
+      canActivateChild: [ModuleGuard] // ❌ Duplicado
+    }
+  ]
+}
+
+// admin.module.ts - DESPUÉS ✅
+{
+  path: '',
+  component: AdminComponent,
+  canActivate: [AuthGuard], // ✅ Solo en padre
+  children: [
+    { path: 'inventarios', 
+      canLoad: [ModuleGuard] // ✅ Solo canLoad
+    }
+  ]
+}
+```
+
+**Resultado**: Reducción de 6 llamadas a 1 llamada HTTP por navegación.
+
+#### Buenas Prácticas
+
+1. **Usar caché para datos estáticos**: Catálogos, configuraciones
+2. **shareReplay con refCount: true**: Libera memoria cuando no hay suscriptores
+3. **Limpiar caché en errores**: Evitar datos obsoletos
+4. **Guards mínimos**: Solo donde sea estrictamente necesario
+5. **Verificar en consola**: Usar `HttpLoggerInterceptor` para detectar duplicados
+
 ### Mapeo snake_case ↔ camelCase
 
 El backend convierte automáticamente:
