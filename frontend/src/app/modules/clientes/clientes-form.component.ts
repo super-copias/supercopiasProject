@@ -142,7 +142,8 @@ export class ClientesFormComponent implements OnInit {
   // Catálogos SAT
   usosCFDI: any[] = [];
   regimenesFiscales: any[] = [];
-  catalogosCargados = false;
+  regimenesCargados = false;
+  usosCfdiCargados = false;
   
   // Variables para el selector de mapa (accordion expandible)
   showMapSelector = false;
@@ -182,10 +183,13 @@ export class ClientesFormComponent implements OnInit {
    * Cargar catálogo de Regímenes Fiscales desde el backend
    */
   loadRegimenesFiscales() {
-    if (this.catalogosCargados) return;
+    if (this.regimenesCargados) return;
     this.catalogosService.getRegimenesFiscales().subscribe({
       next: (regimenes) => {
-        if (regimenes) this.regimenesFiscales = regimenes;
+        if (regimenes) {
+          this.regimenesFiscales = regimenes;
+          this.regimenesCargados = true;
+        }
       },
       error: (error) => {
         console.error('Error cargando regímenes fiscales:', error);
@@ -197,13 +201,16 @@ export class ClientesFormComponent implements OnInit {
    * Cargar catálogo de Usos CFDI desde el backend
    */
   loadUsosCFDI() {
-    if (this.catalogosCargados) return;
+    if (this.usosCfdiCargados) return;
     this.catalogosService.getUsosCFDI().subscribe({
       next: (usos) => {
-        if (usos) this.usosCFDI = usos;
-        this.catalogosCargados = true;
+        if (usos) {
+          this.usosCFDI = usos;
+          this.usosCfdiCargados = true;
+        }
       },
       error: (error) => {
+        console.error('Error cargando usos CFDI:', error);
       }
     });
   }
@@ -231,10 +238,10 @@ export class ClientesFormComponent implements OnInit {
               direccionEntrega: clienteData.direccionEntrega || '',
               razonSocial: clienteData.razonSocial || '',
               rfc: clienteData.rfc || '',
-              regimenFiscal: clienteData.regimenFiscal || '',
+              regimenFiscal: this.extractCode(clienteData.regimenFiscal) || '',
               direccionFacturacion: clienteData.direccionFacturacion || '',
               direccionCodigoPostal: clienteData.direccionCodigoPostal || '',
-              usoCfdi: clienteData.usoCfdi || ''
+              usoCfdi: this.extractCode(clienteData.usoCfdi) || ''
             };
             this.cdr.detectChanges();
           } else {
@@ -299,9 +306,18 @@ export class ClientesFormComponent implements OnInit {
     }
 
     this.loading = true;
+    
+    // Preparar datos para enviar al backend
+    // Extraer solo el código de regimenFiscal y usoCfdi si vienen con formato "CODIGO - Descripción"
+    const dataToSend = {
+      ...this.model,
+      regimenFiscal: this.extractCode(this.model.regimenFiscal),
+      usoCfdi: this.extractCode(this.model.usoCfdi)
+    };
+    
     const request$ = this.isEdit && this.clienteId
-      ? this.svc.update(this.clienteId, this.model)
-      : this.svc.create(this.model);
+      ? this.svc.update(this.clienteId, dataToSend)
+      : this.svc.create(dataToSend);
       
     request$.subscribe({
       next: (response) => {
@@ -334,6 +350,18 @@ export class ClientesFormComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+  
+  /**
+   * Extraer solo el código de un valor que puede venir en formato "CODIGO - Descripción" o solo "CODIGO"
+   */
+  private extractCode(value: string | undefined): string {
+    if (!value || value.trim().length === 0) {
+      return '';
+    }
+    // Si tiene el formato "CODIGO - Descripción", extraer solo el código
+    const match = value.match(/^([A-Z0-9]+)\s*-/);
+    return match ? match[1] : value.trim();
   }
   
   /**
