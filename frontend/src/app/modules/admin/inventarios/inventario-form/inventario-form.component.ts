@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { InventariosService } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
+import { ProveedoresService } from '../../../../services/proveedores.service';
 
 @Component({
   selector: 'app-inventario-form',
@@ -67,7 +68,8 @@ export class InventarioFormComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private inventariosService: InventariosService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private proveedoresService: ProveedoresService
   ) {}
 
   ngOnInit(): void {
@@ -78,7 +80,11 @@ export class InventarioFormComponent implements OnInit {
       if (params['id']) {
         this.isEditMode = true;
         this.inventarioId = +params['id'];
-        this.loadInventario(this.inventarioId);
+        // SOLO cargar el inventario si ya tenemos las categorías
+        if (this.categorias.length > 0) {
+          this.loadInventario(this.inventarioId);
+        }
+        // Si no, se cargará después cuando lleguen las categorías
       }
     });
   }
@@ -88,7 +94,11 @@ export class InventarioFormComponent implements OnInit {
       next: (response) => {
         if (response.success) {
           this.categorias = response.data || [];
-          console.log('Categorías cargadas:', this.categorias);
+          
+          // Si estamos en modo edición y el inventario aún no se ha cargado, cargarlo ahora
+          if (this.isEditMode && this.inventarioId && !this.inventario.id) {
+            this.loadInventario(this.inventarioId);
+          }
         }
       },
       error: (error) => {
@@ -98,9 +108,18 @@ export class InventarioFormComponent implements OnInit {
   }
 
   loadProveedores(): void {
-    // Aquí deberías tener un servicio de proveedores
-    // Por ahora dejamos el array vacío
-    this.proveedores = [];
+    this.proveedoresService.getList({ activo: true, limit: 1000 }).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.proveedores = response.data;
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando proveedores:', error);
+        this.notificationService.error('Error al cargar proveedores');
+        this.proveedores = [];
+      }
+    });
   }
 
   loadInventario(id: number): void {
@@ -110,9 +129,27 @@ export class InventarioFormComponent implements OnInit {
         this.loading = false;
         if (response.success) {
           this.inventario = response.data;
+          
+          // Si características es string JSON, parsearlo
+          if (this.inventario.caracteristicas && typeof this.inventario.caracteristicas === 'string') {
+            try {
+              this.inventario.caracteristicas = JSON.parse(this.inventario.caracteristicas);
+            } catch (e) {
+              console.error('Error al parsear características:', e);
+              this.inventario.caracteristicas = {};
+            }
+          }
+          
+          // Si no hay características, inicializar como objeto vacío
+          if (!this.inventario.caracteristicas) {
+            this.inventario.caracteristicas = {};
+          }
+          
           // Formatear precios al cargar
           this.formatPrecio('costo_compra');
           this.formatPrecio('precio_venta');
+          
+          // Cargar los campos de la categoría
           this.onCategoriaChange();
         }
       },
@@ -137,9 +174,6 @@ export class InventarioFormComponent implements OnInit {
       c => c.nombre === this.inventario.categoria
     );
     
-    console.log('Categoría seleccionada:', categoriaSeleccionada);
-    console.log('Campos requeridos:', categoriaSeleccionada?.campos_requeridos);
-    
     if (categoriaSeleccionada && categoriaSeleccionada.campos_requeridos) {
       this.camposCategoria = categoriaSeleccionada.campos_requeridos;
       
@@ -148,7 +182,7 @@ export class InventarioFormComponent implements OnInit {
         this.inventario.caracteristicas = {};
       }
       
-      // Agregar campos faltantes
+      // Agregar campos faltantes SOLO si no existen (preserva valores existentes)
       this.camposCategoria.forEach(campo => {
         if (!(campo.nombre in this.inventario.caracteristicas)) {
           this.inventario.caracteristicas[campo.nombre] = '';

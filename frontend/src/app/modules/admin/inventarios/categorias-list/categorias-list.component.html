@@ -48,7 +48,12 @@
   <div class="card mb-4">
     <div class="card-header">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-        <h5 class="mb-0">Categorías de Inventario</h5>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-outline-secondary btn-sm" (click)="volver()">
+            <i class="fas fa-arrow-left me-1"></i> Volver
+          </button>
+          <h5 class="mb-0">Categorías de Inventario</h5>
+        </div>
         <div class="d-flex gap-2">
           <button class="btn btn-primary btn-sm" (click)="onNueva()" [disabled]="showForm">
             <i class="fas fa-plus me-1"></i> Nueva Categoría
@@ -129,7 +134,6 @@
                   <table class="table table-sm table-bordered">
                     <thead class="table-light">
                       <tr>
-                        <th>Nombre</th>
                         <th>Etiqueta</th>
                         <th>Tipo</th>
                         <th>Requerido</th>
@@ -139,7 +143,6 @@
                     </thead>
                     <tbody>
                       <tr *ngFor="let campo of categoriaForm.campos_requeridos; let i = index">
-                        <td>{{campo.nombre}}</td>
                         <td>{{campo.etiqueta}}</td>
                         <td>{{campo.tipo}}</td>
                         <td>
@@ -167,19 +170,15 @@
               <div class="card bg-light">
                 <div class="card-body">
                   <div class="row g-2">
-                    <div class="col-md-3">
-                      <input type="text" 
-                             class="form-control form-control-sm" 
-                             [(ngModel)]="campoDinamico.nombre"
-                             [ngModelOptions]="{standalone: true}"
-                             placeholder="Nombre del campo">
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <input type="text" 
                              class="form-control form-control-sm" 
                              [(ngModel)]="campoDinamico.etiqueta"
                              [ngModelOptions]="{standalone: true}"
-                             placeholder="Etiqueta">
+                             placeholder="Etiqueta del campo (ej: Número de Arillo)">
+                      <small class="text-muted" *ngIf="campoDinamico.etiqueta">
+                        Nombre técnico: <code>{{generarNombreTecnico(campoDinamico.etiqueta)}}</code>
+                      </small>
                     </div>
                     <div class="col-md-2">
                       <select class="form-select form-select-sm" 

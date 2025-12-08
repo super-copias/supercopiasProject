@@ -43,6 +43,16 @@ function parseNumericFields(row) {
     }
   });
   
+  // Parsear características JSON si existe
+  if (parsed.caracteristicas && typeof parsed.caracteristicas === 'string') {
+    try {
+      parsed.caracteristicas = JSON.parse(parsed.caracteristicas);
+    } catch (e) {
+      console.error('Error parseando características:', e);
+      parsed.caracteristicas = {};
+    }
+  }
+  
   return parsed;
 }
 
@@ -65,6 +75,7 @@ async function listInventarios(req, res) {
     let baseQuery = `
       SELECT 
         i.*,
+        ic.caracteristicas,
         CASE 
           WHEN r.id IS NOT NULL THEN
             -- Usar reglas personalizadas si existen
@@ -96,6 +107,7 @@ async function listInventarios(req, res) {
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END AS tiene_reglas_personalizadas
       FROM inventarios i
       LEFT JOIN inventarios_reglas_stock r ON r.inventario_id = i.id AND r.activo = true
+      LEFT JOIN inventarios_caracteristicas ic ON ic.inventario_id = i.id
       WHERE 1=1
     `;
     
@@ -103,6 +115,7 @@ async function listInventarios(req, res) {
       SELECT COUNT(*) 
       FROM inventarios i 
       LEFT JOIN inventarios_reglas_stock r ON r.inventario_id = i.id AND r.activo = true
+      LEFT JOIN inventarios_caracteristicas ic ON ic.inventario_id = i.id
       WHERE 1=1
     `;
     let queryParams = [];
@@ -678,6 +691,7 @@ async function getAlertas(req, res) {
     const alertasQuery = `
       SELECT 
         i.*,
+        ic.caracteristicas,
         CASE 
           WHEN r.id IS NOT NULL THEN
             -- Usar reglas personalizadas si existen y la alerta está activa
@@ -708,6 +722,7 @@ async function getAlertas(req, res) {
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END AS tiene_reglas_personalizadas
       FROM inventarios i
       LEFT JOIN inventarios_reglas_stock r ON r.inventario_id = i.id AND r.activo = true
+      LEFT JOIN inventarios_caracteristicas ic ON ic.inventario_id = i.id
       WHERE i.activo = true 
         AND i.estatus = 'activo'
         AND (

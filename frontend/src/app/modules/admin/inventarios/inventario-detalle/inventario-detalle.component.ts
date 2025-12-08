@@ -89,6 +89,16 @@ export class InventarioDetalleComponent implements OnInit {
         this.loading = false;
         if (response.success) {
           this.inventario = response.data;
+          
+          // Si características es un string JSON, parsearlo
+          if (this.inventario.caracteristicas && typeof this.inventario.caracteristicas === 'string') {
+            try {
+              this.inventario.caracteristicas = JSON.parse(this.inventario.caracteristicas);
+            } catch (e) {
+              console.error('Error al parsear características:', e);
+              this.inventario.caracteristicas = {};
+            }
+          }
         }
       },
       error: (error) => {

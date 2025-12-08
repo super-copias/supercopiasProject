@@ -193,13 +193,13 @@ export class CategoriasListComponent implements OnInit {
 
   // Gestión de campos dinámicos
   agregarCampoDinamico(): void {
-    if (!this.campoDinamico.nombre || !this.campoDinamico.etiqueta) {
-      this.notificationService.warning('Complete el nombre y etiqueta del campo');
+    if (!this.campoDinamico.etiqueta) {
+      this.notificationService.warning('La etiqueta del campo es requerida');
       return;
     }
 
     const campo: any = {
-      nombre: this.campoDinamico.nombre,
+      nombre: this.generarNombreTecnico(this.campoDinamico.etiqueta), // Generar automáticamente
       etiqueta: this.campoDinamico.etiqueta,
       tipo: this.campoDinamico.tipo,
       requerido: this.campoDinamico.requerido
@@ -224,6 +224,21 @@ export class CategoriasListComponent implements OnInit {
 
   eliminarCampoDinamico(index: number): void {
     this.categoriaForm.campos_requeridos.splice(index, 1);
+  }
+
+  volver(): void {
+    this.router.navigate(['/admin/inventarios']);
+  }
+
+  // Generar nombre técnico desde etiqueta
+  generarNombreTecnico(etiqueta: string): string {
+    if (!etiqueta) return '';
+    return etiqueta
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Quitar tildes
+      .replace(/[^a-z0-9\s]/g, '') // Quitar caracteres especiales
+      .trim()
+      .replace(/\s+/g, '_'); // Reemplazar espacios por guiones bajos
   }
 
   // Helpers

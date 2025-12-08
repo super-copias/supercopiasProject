@@ -248,14 +248,18 @@
               </div>
               
               <div class="col-12 col-md-4 mb-3">
-                <label for="proveedor_id" class="form-label">Proveedor</label>
+                <label for="proveedor_id" class="form-label">
+                  Proveedor <small class="text-muted">(Opcional)</small>
+                </label>
                 <select class="form-select" 
                         id="proveedor_id" 
                         name="proveedor_id" 
                         [(ngModel)]="inventario.proveedor_id"
                         [disabled]="loading">
-                  <option [ngValue]="null">Sin proveedor</option>
-                  <option *ngFor="let prov of proveedores" [value]="prov.id">{{prov.nombre}}</option>
+                  <option [ngValue]="null">-- Seleccione un proveedor (opcional) --</option>
+                  <option *ngFor="let prov of proveedores" [value]="prov.id">
+                    {{prov.nombre_comercial}}
+                  </option>
                 </select>
               </div>
             </div>

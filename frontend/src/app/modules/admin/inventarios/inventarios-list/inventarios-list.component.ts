@@ -44,6 +44,9 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   ) { }
   
   ngOnInit() {
+    // Cargar categorías primero
+    this.loadCategorias();
+    
     // Cargar estadísticas
     this.loadEstadisticas();
     
@@ -145,12 +148,8 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   }
   
   loadCategorias() {
-    if (!this.filtroTipo) {
-      this.categorias = [];
-      return;
-    }
-    
-    this.inventariosService.getCategorias(this.filtroTipo).subscribe({
+    // Cargar todas las categorías (sin filtro de tipo)
+    this.inventariosService.getCategorias('').subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.categorias = response.data;
@@ -319,5 +318,39 @@ export class InventariosListComponent implements OnInit, OnDestroy {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  }
+
+  getCaracteristicasArray(item: any): Array<{key: string, value: string}> {
+    if (!item.caracteristicas) return [];
+    
+    let caracteristicas = item.caracteristicas;
+    
+    // Si es string JSON, parsearlo
+    if (typeof caracteristicas === 'string') {
+      try {
+        caracteristicas = JSON.parse(caracteristicas);
+      } catch (e) {
+        console.error('Error parseando caracteristicas:', e);
+        return [];
+      }
+    }
+    
+    // Buscar la categoría del item para obtener las etiquetas
+    const categoria = this.categorias.find(c => c.nombre === item.categoria);
+    const camposCategoria = categoria?.campos_requeridos || [];
+    
+    // Convertir objeto a array de key-value, usando etiquetas reales
+    return Object.keys(caracteristicas)
+      .filter(key => caracteristicas[key] && caracteristicas[key].toString().trim() !== '')
+      .map(key => {
+        // Buscar la etiqueta real del campo en la categoría
+        const campoInfo = camposCategoria.find((campo: any) => campo.nombre === key);
+        const etiqueta = campoInfo?.etiqueta || this.formatLabel(key);
+        
+        return {
+          key: etiqueta,
+          value: caracteristicas[key]
+        };
+      });
   }
 }
