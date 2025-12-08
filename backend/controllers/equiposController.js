@@ -633,9 +633,93 @@ async function configurarMantenimientoPreventivo(req, res) {
  */
 async function getAlertasMantenimiento(req, res) {
   try {
-    // Por ahora retornar array vacío hasta que se implemente la funcionalidad completa
-    // TODO: Crear vista equipos_alertas_mantenimiento o implementar lógica de alertas
-    return res.json(createResponse(true, [], 'Alertas obtenidas correctamente'));
+    const querySQL = `
+      WITH ultimo_mantenimiento AS (
+        SELECT 
+          equipo_id,
+          MAX(fecha_servicio) as fecha_ultimo_servicio
+        FROM equipos_mantenimiento
+        GROUP BY equipo_id
+      )
+      SELECT 
+        e.id,
+        e.nombre_equipo,
+        e.tipo_equipo,
+        e.marca,
+        e.modelo,
+        e.cliente_nombre,
+        e.area_ubicacion,
+        e.mantenimiento_intervalo_dias,
+        e.mantenimiento_fecha_inicio,
+        e.mantenimiento_dias_alerta,
+        COALESCE(um.fecha_ultimo_servicio, e.mantenimiento_fecha_inicio::timestamp with time zone) as fecha_referencia,
+        CASE 
+          WHEN um.fecha_ultimo_servicio IS NOT NULL THEN
+            (um.fecha_ultimo_servicio::date + e.mantenimiento_intervalo_dias)::date
+          ELSE
+            (e.mantenimiento_fecha_inicio + e.mantenimiento_intervalo_dias)::date
+        END as proxima_fecha_mantenimiento,
+        CASE 
+          WHEN um.fecha_ultimo_servicio IS NOT NULL THEN
+            CURRENT_DATE - (um.fecha_ultimo_servicio::date + e.mantenimiento_intervalo_dias)::date
+          ELSE
+            CURRENT_DATE - (e.mantenimiento_fecha_inicio + e.mantenimiento_intervalo_dias)::date
+        END as dias_diferencia
+      FROM equipos e
+      LEFT JOIN ultimo_mantenimiento um ON e.id = um.equipo_id
+      WHERE 
+        e.activo = true
+        AND e.estatus = 'activo'
+        AND e.mantenimiento_intervalo_dias IS NOT NULL
+        AND e.mantenimiento_fecha_inicio IS NOT NULL
+        AND (
+          -- Mantenimiento vencido (fecha pasada)
+          CASE 
+            WHEN um.fecha_ultimo_servicio IS NOT NULL THEN
+              (um.fecha_ultimo_servicio::date + e.mantenimiento_intervalo_dias) <= CURRENT_DATE
+            ELSE
+              (e.mantenimiento_fecha_inicio + e.mantenimiento_intervalo_dias) <= CURRENT_DATE
+          END
+          OR
+          -- Mantenimiento próximo (dentro del rango de alerta)
+          CASE 
+            WHEN um.fecha_ultimo_servicio IS NOT NULL THEN
+              (um.fecha_ultimo_servicio::date + e.mantenimiento_intervalo_dias) <= CURRENT_DATE + COALESCE(e.mantenimiento_dias_alerta, 7)
+            ELSE
+              (e.mantenimiento_fecha_inicio + e.mantenimiento_intervalo_dias) <= CURRENT_DATE + COALESCE(e.mantenimiento_dias_alerta, 7)
+          END
+        )
+      ORDER BY proxima_fecha_mantenimiento ASC
+    `;
+
+    const result = await query(querySQL);
+    
+    // Formatear las alertas con información adicional
+    const alertas = result.rows.map(equipo => {
+      const diasDiferencia = equipo.dias_diferencia;
+      const tipo = diasDiferencia >= 0 ? 'vencido' : 'proximo';
+      const prioridad = diasDiferencia >= 0 ? 'alta' : 
+                       diasDiferencia >= -3 ? 'media' : 'baja';
+      
+      return {
+        id: equipo.id,
+        nombre_equipo: equipo.nombre_equipo,
+        tipo_equipo: equipo.tipo_equipo,
+        marca: equipo.marca,
+        modelo: equipo.modelo,
+        cliente_nombre: equipo.cliente_nombre,
+        area_ubicacion: equipo.area_ubicacion,
+        proxima_fecha_mantenimiento: equipo.proxima_fecha_mantenimiento,
+        dias_diferencia: Math.abs(diasDiferencia),
+        tipo_alerta: tipo,
+        prioridad: prioridad,
+        mensaje: tipo === 'vencido' 
+          ? `Mantenimiento vencido hace ${Math.abs(diasDiferencia)} día${Math.abs(diasDiferencia) !== 1 ? 's' : ''}`
+          : `Mantenimiento en ${Math.abs(diasDiferencia)} día${Math.abs(diasDiferencia) !== 1 ? 's' : ''}`
+      };
+    });
+
+    return res.json(createResponse(true, alertas, 'Alertas obtenidas correctamente'));
     
   } catch (error) {
     console.error('Error al obtener alertas:', error);
