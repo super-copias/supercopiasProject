@@ -23,8 +23,8 @@ import { NotificationService } from '../../services/notification.service';
     
     <form (ngSubmit)="save()" *ngIf="!loading">
       <div class="mb-2">
-        <label>Nombre completo <span class="text-danger">*</span></label>
-        <input class="form-control" [(ngModel)]="model.nombre" name="nombre" required />
+        <label>Nombre comercial <span class="text-danger">*</span></label>
+        <input class="form-control" [(ngModel)]="model.nombreComercial" name="nombreComercial" required />
       </div>
       <div class="mb-2">
         <label>Teléfono <span class="text-danger">*</span></label>
@@ -89,22 +89,22 @@ import { NotificationService } from '../../services/notification.service';
       </div>
       
       <h5>Datos de facturación</h5>
-      <div class="mb-2"><label>Razón social</label><input class="form-control" [(ngModel)]="model.razon" name="razon" /></div>
+      <div class="mb-2"><label>Razón social</label><input class="form-control" [(ngModel)]="model.razonSocial" name="razonSocial" /></div>
       <div class="mb-2"><label>RFC</label><input class="form-control" [(ngModel)]="model.rfc" name="rfc" maxlength="13" placeholder="XAXX010101000" /></div>
       <div class="mb-2">
         <label>Régimen Fiscal</label>
-        <select class="form-select" [(ngModel)]="model.regimen" name="regimen">
+        <select class="form-select" [(ngModel)]="model.regimenFiscal" name="regimenFiscal">
           <option value="">Seleccione un régimen fiscal...</option>
           <option *ngFor="let regimen of regimenesFiscales" [value]="regimen.codigo">
             {{regimen.codigo}} - {{regimen.descripcion}}
           </option>
         </select>
       </div>
-      <div class="mb-2"><label>Dirección de facturación</label><input class="form-control" [(ngModel)]="model.direccion" name="direccion" placeholder="Dirección para facturación" /></div>
-      <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.cp" name="cp" maxlength="5" placeholder="29000" /></div>
+      <div class="mb-2"><label>Dirección de facturación</label><input class="form-control" [(ngModel)]="model.direccionFacturacion" name="direccionFacturacion" placeholder="Dirección para facturación" /></div>
+      <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.direccionCodigoPostal" name="direccionCodigoPostal" maxlength="5" placeholder="29000" /></div>
       <div class="mb-2">
         <label>Uso CFDI</label>
-        <select class="form-select" [(ngModel)]="model.cfdi" name="cfdi">
+        <select class="form-select" [(ngModel)]="model.usoCfdi" name="usoCfdi">
           <option value="">Seleccione un uso CFDI...</option>
           <option *ngFor="let uso of usosCFDI" [value]="uso.codigo">
             {{uso.codigo}} - {{uso.descripcion}}
@@ -122,18 +122,18 @@ import { NotificationService } from '../../services/notification.service';
 export class ClientesFormComponent implements OnInit {
   // Modelo de datos del cliente
   model: any = {
-    nombre: '',
+    nombreComercial: '',
     telefono: '',
     segundoTelefono: '',
     email: '',
     segundoEmail: '',
     direccionEntrega: '',
-    razon: '',
+    razonSocial: '',
     rfc: '',
-    regimen: '',
-    direccion: '',
-    cp: '',
-    cfdi: ''
+    regimenFiscal: '',
+    direccionFacturacion: '',
+    direccionCodigoPostal: '',
+    usoCfdi: ''
   };
   isEdit = false;
   clienteId: number | null = null;
@@ -217,18 +217,18 @@ export class ClientesFormComponent implements OnInit {
           if (response && response.success && response.data) {
             const clienteData = response.data;
             this.model = {
-              nombre: clienteData.nombre || '',
+              nombreComercial: clienteData.nombreComercial || '',
               telefono: clienteData.telefono || '',
               segundoTelefono: clienteData.segundoTelefono || '',
               email: clienteData.email || '',
               segundoEmail: clienteData.segundoEmail || '',
               direccionEntrega: clienteData.direccionEntrega || '',
-              razon: clienteData.razon || '',
+              razonSocial: clienteData.razonSocial || '',
               rfc: clienteData.rfc || '',
-              regimen: clienteData.regimen || '',
-              direccion: clienteData.direccion || '',
-              cp: clienteData.cp || '',
-              cfdi: clienteData.cfdi || ''
+              regimenFiscal: clienteData.regimenFiscal || '',
+              direccionFacturacion: clienteData.direccionFacturacion || '',
+              direccionCodigoPostal: clienteData.direccionCodigoPostal || '',
+              usoCfdi: clienteData.usoCfdi || ''
             };
             this.cdr.detectChanges();
           } else {
@@ -257,8 +257,8 @@ export class ClientesFormComponent implements OnInit {
    */
   save() {
     // Validaciones del lado del cliente
-    if (!this.model.nombre || this.model.nombre.trim().length === 0) {
-      this.notificationService.warning('El nombre del cliente es requerido', 'Campo requerido');
+    if (!this.model.nombreComercial || this.model.nombreComercial.trim().length === 0) {
+      this.notificationService.warning('El nombre comercial del cliente es requerido', 'Campo requerido');
       return;
     }
 

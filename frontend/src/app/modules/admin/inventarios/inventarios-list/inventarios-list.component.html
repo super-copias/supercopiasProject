@@ -186,7 +186,7 @@
       <!-- Filtros -->
       <div class="row g-2 mb-3">
         <div class="col-md-3">
-          <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()">
+          <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()" (focus)="loadCategorias()">
             <option value="">Todos los tipos</option>
             <option value="venta">Productos para Venta</option>
             <option value="insumo">Insumos Operativos</option>
@@ -194,7 +194,7 @@
           </select>
         </div>
         <div class="col-md-3">
-          <select class="form-select form-select-sm" [(ngModel)]="filtroCategoria" (change)="onFilterChange()" [disabled]="!filtroTipo">
+          <select class="form-select form-select-sm" [(ngModel)]="filtroCategoria" (change)="onFilterChange()" [disabled]="!filtroTipo" (focus)="loadCategorias()">
             <option value="">Todas las categorías</option>
             <option *ngFor="let cat of categorias" [value]="cat.nombre">{{cat.nombre}}</option>
           </select>

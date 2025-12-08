@@ -73,21 +73,21 @@ async function listClientes(req, res) {
     // Mapear campos de BD a formato del frontend
     const items = clientesDB.map(c => ({
       id: c.id,
-      nombre: c.nombre_comercial || c.razon_social,
+      nombreComercial: c.nombre_comercial,
+      razonSocial: c.razon_social,
+      rfc: c.rfc,
+      regimenFiscal: c.regimen_fiscal,
+      usoCfdi: c.uso_cfdi,
       telefono: c.telefono,
       segundoTelefono: c.segundo_telefono,
       email: c.email,
       segundoEmail: c.segundo_email,
       direccionEntrega: c.direccion_entrega,
-      razon: c.razon_social,
-      rfc: c.rfc,
-      regimen: c.regimen_fiscal,
-      direccion: c.direccion_facturacion,
-      cp: c.direccion_codigo_postal,
-      cfdi: c.uso_cfdi,
+      direccionFacturacion: c.direccion_facturacion,
+      direccionCodigoPostal: c.direccion_codigo_postal,
       activo: c.activo,
-      fecha_registro: c.fecha_registro,
-      fecha_modificacion: c.fecha_modificacion
+      fechaRegistro: c.fecha_registro,
+      fechaModificacion: c.fecha_modificacion
     }));
     
     return res.json(
@@ -158,21 +158,21 @@ async function getCliente(req, res) {
     // Mapear campos de BD a formato del frontend
     const cliente = {
       id: clienteDB.id,
-      nombre: clienteDB.nombre_comercial || clienteDB.razon_social || '',
+      nombreComercial: clienteDB.nombre_comercial || '',
+      razonSocial: clienteDB.razon_social || '',
+      rfc: clienteDB.rfc || '',
+      regimenFiscal: clienteDB.regimen_fiscal || '',
+      usoCfdi: clienteDB.uso_cfdi || '',
       telefono: clienteDB.telefono || '',
       segundoTelefono: clienteDB.segundo_telefono || '',
       email: clienteDB.email || '',
       segundoEmail: clienteDB.segundo_email || '',
       direccionEntrega: clienteDB.direccion_entrega || '',
-      razon: clienteDB.razon_social || '',
-      rfc: clienteDB.rfc || '',
-      regimen: clienteDB.regimen_fiscal || '',
-      direccion: clienteDB.direccion_facturacion || '',
-      cp: clienteDB.direccion_codigo_postal || '',
-      cfdi: clienteDB.uso_cfdi || '',
+      direccionFacturacion: clienteDB.direccion_facturacion || '',
+      direccionCodigoPostal: clienteDB.direccion_codigo_postal || '',
       activo: clienteDB.activo,
-      fecha_registro: clienteDB.fecha_registro,
-      fecha_modificacion: clienteDB.fecha_modificacion
+      fechaRegistro: clienteDB.fecha_registro,
+      fechaModificacion: clienteDB.fecha_modificacion
     };
     
     res.json(createResponse(true, cliente, 'Cliente obtenido exitosamente'));

@@ -90,13 +90,13 @@
     <!-- Filtros -->
     <div class="row g-2 mb-3">
       <div class="col-md-6">
-        <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()">
+        <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()" (focus)="loadCatalogos()">
           <option value="">Todos los tipos</option>
           <option *ngFor="let tipo of tiposEquipo" [value]="tipo.codigo">{{tipo.nombre}}</option>
         </select>
       </div>
       <div class="col-md-6">
-        <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus" (change)="onFilterChange()">
+        <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus" (change)="onFilterChange()" (focus)="loadCatalogos()">
           <option value="">Todos los estatus</option>
           <option *ngFor="let est of estatusEquipo" [value]="est.codigo">{{est.nombre}}</option>
         </select>

@@ -214,7 +214,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
       next: (response) => {
         if (response?.success) {
           this.notificationService.success(
-            `El cliente "${cliente.nombre}" ha sido desactivado correctamente`,
+            `El cliente "${cliente.nombreComercial}" ha sido desactivado correctamente`,
             'Cliente desactivado'
           );
           this.load(); // Recargar la lista

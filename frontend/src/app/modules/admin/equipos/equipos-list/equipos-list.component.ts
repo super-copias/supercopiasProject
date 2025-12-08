@@ -33,6 +33,7 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   // Catálogos
   tiposEquipo: any[] = [];
   estatusEquipo: any[] = [];
+  catalogosCargados = false;
   
   constructor(
     private equiposService: EquiposService,
@@ -41,9 +42,6 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   ) { }
   
   ngOnInit() {
-    // Cargar catálogos
-    this.loadCatalogos();
-    
     // Cargar alertas de mantenimiento
     this.loadAlertas();
     
@@ -109,11 +107,14 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   }
   
   loadCatalogos() {
+    if (this.catalogosCargados) return;
+    
     this.equiposService.getCatalogosCompletos().subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.tiposEquipo = response.data.tipos || [];
           this.estatusEquipo = response.data.estatus || [];
+          this.catalogosCargados = true;
         }
       },
       error: (err) => {

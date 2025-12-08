@@ -23,10 +23,14 @@ export interface Equipo {
   responsable_nombre?: string;
   observaciones?: string;
   foto_url?: string;
+  mantenimiento_intervalo_dias?: number;
+  mantenimiento_fecha_inicio?: string;
+  mantenimiento_dias_alerta?: number;
   caracteristicas?: any;
   fecha_alta?: Date;
   fecha_modificacion?: Date;
   activo?: boolean;
+  // Datos calculados de joins
   ultimo_contador?: number;
   ultimo_mantenimiento?: Date;
 }

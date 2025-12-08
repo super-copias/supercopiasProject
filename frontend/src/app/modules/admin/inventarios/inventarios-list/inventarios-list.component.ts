@@ -36,6 +36,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   
   // Catálogos
   categorias: any[] = [];
+  categoriasCargadas = false;
   
   constructor(
     private inventariosService: InventariosService,
@@ -44,9 +45,6 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   ) { }
   
   ngOnInit() {
-    // Cargar categorías primero
-    this.loadCategorias();
-    
     // Cargar estadísticas
     this.loadEstadisticas();
     
@@ -148,11 +146,14 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   }
   
   loadCategorias() {
+    if (this.categoriasCargadas) return;
+    
     // Cargar todas las categorías (sin filtro de tipo)
     this.inventariosService.getCategorias('').subscribe({
       next: (response) => {
         if (response.success && response.data) {
           this.categorias = response.data;
+          this.categoriasCargadas = true;
         }
       },
       error: (err) => {
