@@ -461,18 +461,22 @@ export class EmpleadosFormComponent implements OnInit {
     this.catalogosService.clearCache();
     
     // Cargar módulos del sistema (sin caché)
+    // getModulos retorna Modulo[] directamente, no ApiResponse
     this.catalogosService.getModulos(false).subscribe({
       next: (modulos) => {
+        console.log('Módulos cargados:', modulos);
         this.modulos = modulos.filter(m => m.activo);
       },
       error: (error) => {
+        console.error('Error cargando módulos:', error);
         this.modulos = [];
       }
     });
 
-    // Cargar sucursales
+    // Cargar sucursales - retorna ApiResponse<Sucursal[]>
     this.catalogosService.getSucursales().subscribe({
       next: (response) => {
+        console.log('Sucursales cargadas:', response);
         if (response && response.success && Array.isArray(response.data)) {
           this.sucursales = response.data.filter(s => s.activa);
         } else {
@@ -480,13 +484,15 @@ export class EmpleadosFormComponent implements OnInit {
         }
       },
       error: (error) => {
+        console.error('Error cargando sucursales:', error);
         this.sucursales = [];
       }
     });
 
-    // Cargar puestos
+    // Cargar puestos - retorna ApiResponse<Puesto[]>
     this.catalogosService.getPuestos().subscribe({
       next: (response) => {
+        console.log('Puestos cargados:', response);
         if (response && response.success && Array.isArray(response.data)) {
           this.puestos = response.data.filter(p => p.activo);
         } else {
@@ -494,6 +500,7 @@ export class EmpleadosFormComponent implements OnInit {
         }
       },
       error: (error) => {
+        console.error('Error cargando puestos:', error);
         this.puestos = [];
       }
     });

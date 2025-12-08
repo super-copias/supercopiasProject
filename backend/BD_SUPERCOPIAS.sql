@@ -2531,15 +2531,15 @@ COPY public.metodos_pago (id, codigo, descripcion, activo, fecha_creacion) FROM 
 --
 
 COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FROM stdin;
-1	dashboard	Dashboard	fas fa-tachometer-alt	t	0	2025-10-11 23:12:28.28835-06
-2	empleados	Empleados	fas fa-users	t	0	2025-10-11 23:12:28.290377-06
-3	clientes	Clientes	fas fa-user-friends	t	0	2025-10-11 23:12:28.290694-06
-4	proveedores	Proveedores	fas fa-truck	t	0	2025-10-11 23:12:28.29097-06
-5	inventarios	Inventarios	fas fa-boxes	t	0	2025-10-11 23:12:28.291232-06
-6	equipos	Equipos	fas fa-tools	t	0	2025-10-11 23:12:28.291492-06
-7	reportes	Reportes	fas fa-chart-bar	t	0	2025-10-11 23:12:28.29175-06
-8	punto_venta	Punto de Venta	fas fa-cash-register	t	0	2025-10-11 23:12:28.292027-06
-9	configuracion	Configuración	fas fa-cogs	f	0	2025-10-11 23:12:28.292289-06
+1	dashboard	Dashboard	fas fa-tachometer-alt	t	1	2025-12-08 00:00:00-06
+2	empleados	Empleados	fas fa-users	t	2	2025-12-08 00:00:00-06
+3	clientes	Clientes	fas fa-user-tie	t	3	2025-12-08 00:00:00-06
+4	proveedores	Proveedores	fas fa-truck	t	4	2025-12-08 00:00:00-06
+5	inventarios	Inventarios	fas fa-boxes	t	5	2025-12-08 00:00:00-06
+6	punto_venta	Punto de Venta	fas fa-cash-register	t	6	2025-12-08 00:00:00-06
+7	equipos	Equipos	fas fa-desktop	t	7	2025-12-08 00:00:00-06
+8	reportes	Reportes	fas fa-chart-bar	t	8	2025-12-08 00:00:00-06
+9	configuracion	Configuración	fas fa-cogs	t	9	2025-12-08 00:00:00-06
 \.
 
 
@@ -2556,14 +2556,14 @@ COPY public.proveedores (id, nombre_comercial, razon_social, rfc, tipo_proveedor
 --
 
 COPY public.puestos (id, nombre, descripcion, salario_minimo, salario_maximo, activo, fecha_creacion, fecha_modificacion) FROM stdin;
-1	Gerente General	Responsable de la operacion general	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-2	Gerente de Sucursal	Responsable de la administracion de la sucursal	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-3	Supervisor	Supervision de operaciones diarias	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-4	Empleado de Mostrador	Atencion directa al cliente	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-5	Cajero	Manejo de caja y cobros	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-6	Asistente de Ventas	Apoyo en atencion al cliente y ventas	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-7	Auxiliar Administrativo	Apoyo en tareas administrativas y de oficina	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-8	Operador de Equipos	Manejo y mantenimiento de equipos de copiado e impresion	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
+1	Gerente General	Responsable de la operación general	15000.00	25000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+2	Gerente de Sucursal	Responsable de la administración de la sucursal	12000.00	18000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+3	Supervisor	Supervisión de operaciones diarias	10000.00	15000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+4	Empleado de Mostrador	Atención directa al cliente	8000.00	12000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+5	Cajero	Manejo de caja y cobros	7500.00	11000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+6	Asistente de Ventas	Apoyo en atención al cliente y ventas	7000.00	10000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+7	Auxiliar Administrativo	Apoyo en tareas administrativas y de oficina	7000.00	10000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+8	Operador de Equipos	Manejo y mantenimiento de equipos de copiado e impresión	8000.00	12000.00	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
 \.
 
 
@@ -2599,7 +2599,9 @@ COPY public.regimenes_fiscales (id, codigo, descripcion, activo, fecha_creacion)
 --
 
 COPY public.sucursales (id, nombre, direccion, telefono, gerente, activa, fecha_creacion, fecha_modificacion) FROM stdin;
-1	Sucursal Principal	\N	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
+1	Sucursal Principal	Av. Principal #123, Centro	555-1234	Juan Pérez	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+2	Sucursal Norte	Av. Norte #456, Zona Norte	555-2345	María García	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
+3	Sucursal Sur	Av. Sur #789, Zona Sur	555-3456	Carlos López	t	2025-12-08 00:00:00-06	2025-12-08 00:00:00-06
 \.
 
 
@@ -2809,7 +2811,7 @@ SELECT pg_catalog.setval('public.metodos_pago_id_seq', 4, true);
 -- Name: modulos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.modulos_id_seq', 18, true);
+SELECT pg_catalog.setval('public.modulos_id_seq', 9, true);
 
 
 --
@@ -2837,7 +2839,7 @@ SELECT pg_catalog.setval('public.regimenes_fiscales_id_seq', 38, true);
 -- Name: sucursales_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.sucursales_id_seq', 1, true);
+SELECT pg_catalog.setval('public.sucursales_id_seq', 3, true);
 
 
 --

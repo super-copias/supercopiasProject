@@ -14,6 +14,21 @@ const {
 } = require('../utils/apiStandard');
 
 /**
+ * Función auxiliar para extraer solo el código de un valor que puede venir 
+ * en formato "CODIGO - Descripción" o solo "CODIGO"
+ * @param {string} value - Valor a procesar
+ * @returns {string|null} - Solo el código o null si está vacío
+ */
+function extractCode(value) {
+  if (!value || typeof value !== 'string' || value.trim().length === 0) {
+    return '';
+  }
+  // Si tiene el formato "CODIGO - Descripción", extraer solo el código
+  const match = value.trim().match(/^([A-Z0-9]+)\s*-/);
+  return match ? match[1] : value.trim();
+}
+
+/**
  * Obtener lista de clientes con búsqueda y paginación
  * Endpoint: GET /api/clientes
  * Query params: q (búsqueda), page (página), limit (límite por página)
@@ -31,20 +46,26 @@ async function listClientes(req, res) {
     const offset = (page - 1) * limit;
     
     let baseQuery = `
-      SELECT * FROM clientes 
-      WHERE activo = true
+      SELECT 
+        c.*,
+        rf.descripcion as regimen_fiscal_descripcion,
+        uc.descripcion as uso_cfdi_descripcion
+      FROM clientes c
+      LEFT JOIN regimenes_fiscales rf ON c.regimen_fiscal = rf.codigo AND rf.activo = true
+      LEFT JOIN usos_cfdi uc ON c.uso_cfdi = uc.codigo AND uc.activo = true
+      WHERE c.activo = true
     `;
-    let countQuery = 'SELECT COUNT(*) FROM clientes WHERE activo = true';
+    let countQuery = 'SELECT COUNT(*) FROM clientes c WHERE c.activo = true';
     let queryParams = [];
     
     // Filtrar por búsqueda si se proporciona
     if (q) {
       const searchCondition = ` AND (
-        LOWER(razon_social) LIKE $1 OR 
-        LOWER(nombre_comercial) LIKE $1 OR
-        LOWER(email) LIKE $1 OR 
-        LOWER(telefono) LIKE $1 OR
-        LOWER(rfc) LIKE $1
+        LOWER(c.razon_social) LIKE $1 OR 
+        LOWER(c.nombre_comercial) LIKE $1 OR
+        LOWER(c.email) LIKE $1 OR 
+        LOWER(c.telefono) LIKE $1 OR
+        LOWER(c.rfc) LIKE $1
       )`;
       baseQuery += searchCondition;
       countQuery += searchCondition;
@@ -53,12 +74,12 @@ async function listClientes(req, res) {
     
     // Incluir inactivos si se solicita
     if (req.query.includeInactive) {
-      baseQuery = baseQuery.replace('WHERE activo = true', 'WHERE 1=1');
-      countQuery = countQuery.replace('WHERE activo = true', 'WHERE 1=1');
+      baseQuery = baseQuery.replace('WHERE c.activo = true', 'WHERE 1=1');
+      countQuery = countQuery.replace('WHERE c.activo = true', 'WHERE 1=1');
     }
     
     // Agregar ordenamiento y paginación
-    baseQuery += ` ORDER BY fecha_registro DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    baseQuery += ` ORDER BY c.fecha_registro DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     queryParams.push(limit, offset);
     
     // Ejecutar consultas
@@ -76,8 +97,12 @@ async function listClientes(req, res) {
       nombreComercial: c.nombre_comercial,
       razonSocial: c.razon_social,
       rfc: c.rfc,
-      regimenFiscal: c.regimen_fiscal,
-      usoCfdi: c.uso_cfdi,
+      regimenFiscal: c.regimen_fiscal && c.regimen_fiscal_descripcion 
+        ? `${c.regimen_fiscal} - ${c.regimen_fiscal_descripcion}` 
+        : c.regimen_fiscal || '',
+      usoCfdi: c.uso_cfdi && c.uso_cfdi_descripcion 
+        ? `${c.uso_cfdi} - ${c.uso_cfdi_descripcion}` 
+        : c.uso_cfdi || '',
       telefono: c.telefono,
       segundoTelefono: c.segundo_telefono,
       email: c.email,
@@ -142,7 +167,16 @@ async function getCliente(req, res) {
       );
     }
     
-    const result = await query('SELECT * FROM clientes WHERE id = $1', [clienteId]);
+    const result = await query(`
+      SELECT 
+        c.*,
+        rf.descripcion as regimen_fiscal_descripcion,
+        uc.descripcion as uso_cfdi_descripcion
+      FROM clientes c
+      LEFT JOIN regimenes_fiscales rf ON c.regimen_fiscal = rf.codigo AND rf.activo = true
+      LEFT JOIN usos_cfdi uc ON c.uso_cfdi = uc.codigo AND uc.activo = true
+      WHERE c.id = $1
+    `, [clienteId]);
     
     if (result.rows.length === 0) {
       return res.status(404).json(
@@ -161,8 +195,12 @@ async function getCliente(req, res) {
       nombreComercial: clienteDB.nombre_comercial || '',
       razonSocial: clienteDB.razon_social || '',
       rfc: clienteDB.rfc || '',
-      regimenFiscal: clienteDB.regimen_fiscal || '',
-      usoCfdi: clienteDB.uso_cfdi || '',
+      regimenFiscal: clienteDB.regimen_fiscal && clienteDB.regimen_fiscal_descripcion 
+        ? `${clienteDB.regimen_fiscal} - ${clienteDB.regimen_fiscal_descripcion}` 
+        : clienteDB.regimen_fiscal || '',
+      usoCfdi: clienteDB.uso_cfdi && clienteDB.uso_cfdi_descripcion 
+        ? `${clienteDB.uso_cfdi} - ${clienteDB.uso_cfdi_descripcion}` 
+        : clienteDB.uso_cfdi || '',
       telefono: clienteDB.telefono || '',
       segundoTelefono: clienteDB.segundo_telefono || '',
       email: clienteDB.email || '',
@@ -199,26 +237,30 @@ async function getCliente(req, res) {
 async function createCliente(req, res) {
   try {
     const {
-      nombre,
+      nombreComercial,
       telefono,
       segundoTelefono,
       email,
       segundoEmail,
       direccionEntrega,
-      razon,
+      razonSocial,
       rfc,
-      regimen,
-      direccion,
-      cp,
-      cfdi
+      regimenFiscal: regimenFiscalRaw,
+      direccionFacturacion,
+      direccionCodigoPostal,
+      usoCfdi: usoCfdiRaw
     } = req.body;
     
+    // Extraer solo los códigos en caso de que vengan con formato "CODIGO - Descripción"
+    const regimenFiscal = extractCode(regimenFiscalRaw);
+    const usoCfdi = extractCode(usoCfdiRaw);
+    
     // Validaciones requeridas
-    if (!nombre || nombre.trim().length === 0) {
+    if (!nombreComercial || nombreComercial.trim().length === 0) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
-          'Nombre es requerido'
+          'Nombre comercial es requerido'
         )
       );
     }
@@ -298,9 +340,9 @@ async function createCliente(req, res) {
     }
     
     // Validar Régimen Fiscal si se proporciona (debe ser código SAT de 3 dígitos)
-    if (regimen) {
+    if (regimenFiscal) {
       const regimenRegex = /^[0-9]{3}$/;
-      if (!regimenRegex.test(regimen)) {
+      if (!regimenRegex.test(regimenFiscal)) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
@@ -311,10 +353,10 @@ async function createCliente(req, res) {
     }
     
     // Validar Uso CFDI si se proporciona (verificar que exista en el catálogo)
-    if (cfdi && cfdi.trim().length > 0) {
+    if (usoCfdi && usoCfdi.trim().length > 0) {
       const cfdiResult = await query(
         'SELECT codigo FROM usos_cfdi WHERE UPPER(codigo) = UPPER($1) AND activo = true',
-        [cfdi.trim()]
+        [usoCfdi.trim()]
       );
       
       if (cfdiResult.rows.length === 0) {
@@ -328,9 +370,9 @@ async function createCliente(req, res) {
     }
     
     // Validar Código Postal si se proporciona (5 dígitos)
-    if (cp) {
+    if (direccionCodigoPostal) {
       const cpRegex = /^[0-9]{5}$/;
-      if (!cpRegex.test(cp)) {
+      if (!cpRegex.test(direccionCodigoPostal)) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
@@ -369,41 +411,59 @@ async function createCliente(req, res) {
     `;
     
     const values = [
-      razon || nombre.trim(), // razon_social (usar nombre si no hay razón social)
-      nombre.trim(), // nombre_comercial
+      razonSocial || nombreComercial.trim(), // razon_social (usar nombre comercial si no hay razón social)
+      nombreComercial.trim(), // nombre_comercial
       email && email.trim().length > 0 ? email.toLowerCase() : null,
       segundoEmail && segundoEmail.trim().length > 0 ? segundoEmail.toLowerCase() : null, // segundo_email
       telefono || null,
       segundoTelefono && segundoTelefono.trim().length > 0 ? segundoTelefono : null, // segundo_telefono
       rfc && rfc.trim().length > 0 ? rfc.toUpperCase() : null,
-      regimen && regimen.trim().length > 0 ? regimen : null, // regimen_fiscal (código SAT)
-      cfdi && cfdi.trim().length > 0 ? cfdi.toUpperCase() : null, // uso_cfdi (código SAT)
+      regimenFiscal && regimenFiscal.trim().length > 0 ? regimenFiscal : null, // regimen_fiscal (código SAT)
+      usoCfdi && usoCfdi.trim().length > 0 ? usoCfdi.toUpperCase() : null, // uso_cfdi (código SAT)
       direccionEntrega && direccionEntrega.trim().length > 0 ? direccionEntrega : null, // direccion_entrega
-      direccion && direccion.trim().length > 0 ? direccion : null, // direccion_facturacion
-      cp && cp.trim().length > 0 ? cp : null // direccion_codigo_postal
+      direccionFacturacion && direccionFacturacion.trim().length > 0 ? direccionFacturacion : null, // direccion_facturacion
+      direccionCodigoPostal && direccionCodigoPostal.trim().length > 0 ? direccionCodigoPostal : null // direccion_codigo_postal
     ];
     
     const result = await query(insertQuery, values);
-    const clienteDB = result.rows[0];
+    const clienteId = result.rows[0].id;
+    
+    // Consultar el cliente recién creado con las descripciones de los catálogos
+    const clienteCompleto = await query(`
+      SELECT 
+        c.*,
+        rf.descripcion as regimen_fiscal_descripcion,
+        uc.descripcion as uso_cfdi_descripcion
+      FROM clientes c
+      LEFT JOIN regimenes_fiscales rf ON c.regimen_fiscal = rf.codigo AND rf.activo = true
+      LEFT JOIN usos_cfdi uc ON c.uso_cfdi = uc.codigo AND uc.activo = true
+      WHERE c.id = $1
+    `, [clienteId]);
+    
+    const clienteDB = clienteCompleto.rows[0];
     
     // Mapear campos de BD a formato del frontend para la respuesta
     const nuevoCliente = {
       id: clienteDB.id,
-      nombre: clienteDB.nombre_comercial || clienteDB.razon_social,
+      nombreComercial: clienteDB.nombre_comercial,
+      razonSocial: clienteDB.razon_social,
       telefono: clienteDB.telefono,
       segundoTelefono: clienteDB.segundo_telefono,
       email: clienteDB.email,
       segundoEmail: clienteDB.segundo_email,
       direccionEntrega: clienteDB.direccion_entrega,
-      razon: clienteDB.razon_social,
       rfc: clienteDB.rfc,
-      regimen: clienteDB.regimen_fiscal,
-      direccion: clienteDB.direccion_facturacion,
-      cp: clienteDB.direccion_codigo_postal,
-      cfdi: clienteDB.uso_cfdi,
+      regimenFiscal: clienteDB.regimen_fiscal && clienteDB.regimen_fiscal_descripcion 
+        ? `${clienteDB.regimen_fiscal} - ${clienteDB.regimen_fiscal_descripcion}` 
+        : clienteDB.regimen_fiscal || '',
+      direccionFacturacion: clienteDB.direccion_facturacion,
+      direccionCodigoPostal: clienteDB.direccion_codigo_postal,
+      usoCfdi: clienteDB.uso_cfdi && clienteDB.uso_cfdi_descripcion 
+        ? `${clienteDB.uso_cfdi} - ${clienteDB.uso_cfdi_descripcion}` 
+        : clienteDB.uso_cfdi || '',
       activo: clienteDB.activo,
-      fecha_registro: clienteDB.fecha_registro,
-      fecha_modificacion: clienteDB.fecha_modificacion
+      fechaRegistro: clienteDB.fecha_registro,
+      fechaModificacion: clienteDB.fecha_modificacion
     };
     
     return res.status(201).json(
@@ -436,7 +496,15 @@ async function createCliente(req, res) {
 async function updateCliente(req, res) {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
+    
+    // Extraer solo los códigos en caso de que vengan con formato "CODIGO - Descripción"
+    if (updateData.regimenFiscal) {
+      updateData.regimenFiscal = extractCode(updateData.regimenFiscal);
+    }
+    if (updateData.usoCfdi) {
+      updateData.usoCfdi = extractCode(updateData.usoCfdi);
+    }
     
     if (!id) {
       return res.status(400).json(
@@ -476,11 +544,11 @@ async function updateCliente(req, res) {
     const clienteExistente = clienteResult.rows[0];
     
     // Validaciones básicas
-    if (updateData.nombre !== undefined && (!updateData.nombre || updateData.nombre.trim().length === 0)) {
+    if (updateData.nombreComercial !== undefined && (!updateData.nombreComercial || updateData.nombreComercial.trim().length === 0)) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
-          'El nombre del cliente es requerido'
+          'El nombre comercial del cliente es requerido'
         )
       );
     }
@@ -509,9 +577,9 @@ async function updateCliente(req, res) {
     }
     
     // Validar Régimen Fiscal si se proporciona
-    if (updateData.regimen && updateData.regimen.trim().length > 0) {
+    if (updateData.regimenFiscal && updateData.regimenFiscal.trim().length > 0) {
       const regimenRegex = /^[0-9]{3}$/;
-      if (!regimenRegex.test(updateData.regimen)) {
+      if (!regimenRegex.test(updateData.regimenFiscal)) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.INVALID_FORMAT,
@@ -522,10 +590,10 @@ async function updateCliente(req, res) {
     }
     
     // Validar Uso CFDI si se proporciona (verificar que exista en el catálogo)
-    if (updateData.cfdi && updateData.cfdi.trim().length > 0) {
+    if (updateData.usoCfdi && updateData.usoCfdi.trim().length > 0) {
       const cfdiResult = await query(
         'SELECT codigo FROM usos_cfdi WHERE UPPER(codigo) = UPPER($1) AND activo = true',
-        [updateData.cfdi.trim()]
+        [updateData.usoCfdi.trim()]
       );
       
       if (cfdiResult.rows.length === 0) {
@@ -543,13 +611,13 @@ async function updateCliente(req, res) {
     const valores = [];
     let contador = 1;
     
-    if (updateData.razon !== undefined) {
+    if (updateData.razonSocial !== undefined) {
       camposActualizar.push(`razon_social = $${contador++}`);
-      valores.push(updateData.razon && updateData.razon.trim().length > 0 ? updateData.razon.trim() : null);
+      valores.push(updateData.razonSocial && updateData.razonSocial.trim().length > 0 ? updateData.razonSocial.trim() : null);
     }
-    if (updateData.nombre !== undefined) {
+    if (updateData.nombreComercial !== undefined) {
       camposActualizar.push(`nombre_comercial = $${contador++}`);
-      valores.push(updateData.nombre && updateData.nombre.trim().length > 0 ? updateData.nombre.trim() : null);
+      valores.push(updateData.nombreComercial && updateData.nombreComercial.trim().length > 0 ? updateData.nombreComercial.trim() : null);
     }
     if (updateData.email !== undefined) {
       camposActualizar.push(`email = $${contador++}`);
@@ -571,13 +639,13 @@ async function updateCliente(req, res) {
       camposActualizar.push(`rfc = $${contador++}`);
       valores.push(updateData.rfc && updateData.rfc.trim().length > 0 ? updateData.rfc.toUpperCase() : null);
     }
-    if (updateData.regimen !== undefined) {
+    if (updateData.regimenFiscal !== undefined) {
       camposActualizar.push(`regimen_fiscal = $${contador++}`);
-      valores.push(updateData.regimen && updateData.regimen.trim().length > 0 ? updateData.regimen : null);
+      valores.push(updateData.regimenFiscal && updateData.regimenFiscal.trim().length > 0 ? updateData.regimenFiscal : null);
     }
-    if (updateData.cfdi !== undefined) {
+    if (updateData.usoCfdi !== undefined) {
       camposActualizar.push(`uso_cfdi = $${contador++}`);
-      valores.push(updateData.cfdi && updateData.cfdi.trim().length > 0 ? updateData.cfdi.toUpperCase() : null);
+      valores.push(updateData.usoCfdi && updateData.usoCfdi.trim().length > 0 ? updateData.usoCfdi.toUpperCase() : null);
     }
     // Dirección de entrega
     if (updateData.direccionEntrega !== undefined) {
@@ -585,13 +653,13 @@ async function updateCliente(req, res) {
       valores.push(updateData.direccionEntrega && updateData.direccionEntrega.trim().length > 0 ? updateData.direccionEntrega : null);
     }
     // Dirección de facturación
-    if (updateData.direccion !== undefined) {
+    if (updateData.direccionFacturacion !== undefined) {
       camposActualizar.push(`direccion_facturacion = $${contador++}`);
-      valores.push(updateData.direccion && updateData.direccion.trim().length > 0 ? updateData.direccion : null);
+      valores.push(updateData.direccionFacturacion && updateData.direccionFacturacion.trim().length > 0 ? updateData.direccionFacturacion : null);
     }
-    if (updateData.cp !== undefined) {
+    if (updateData.direccionCodigoPostal !== undefined) {
       camposActualizar.push(`direccion_codigo_postal = $${contador++}`);
-      valores.push(updateData.cp);
+      valores.push(updateData.direccionCodigoPostal);
     }
     if (updateData.activo !== undefined) {
       camposActualizar.push(`activo = $${contador++}`);
@@ -600,6 +668,18 @@ async function updateCliente(req, res) {
     
     // Agregar fecha de modificación
     camposActualizar.push(`fecha_modificacion = NOW()`);
+    
+    // Verificar que haya campos para actualizar
+    if (camposActualizar.length === 1) {
+      // Solo hay fecha_modificacion, no hay cambios reales
+      return res.json(
+        createResponse(
+          true,
+          { message: 'No hay cambios para actualizar' },
+          'No se realizaron cambios'
+        )
+      );
+    }
     
     // Agregar ID al final
     valores.push(clienteId);
@@ -613,26 +693,43 @@ async function updateCliente(req, res) {
     `;
     
     const result = await query(updateQuery, valores);
-    const clienteDB = result.rows[0];
+    
+    // Consultar el cliente actualizado con las descripciones de los catálogos
+    const clienteCompleto = await query(`
+      SELECT 
+        c.*,
+        rf.descripcion as regimen_fiscal_descripcion,
+        uc.descripcion as uso_cfdi_descripcion
+      FROM clientes c
+      LEFT JOIN regimenes_fiscales rf ON c.regimen_fiscal = rf.codigo AND rf.activo = true
+      LEFT JOIN usos_cfdi uc ON c.uso_cfdi = uc.codigo AND uc.activo = true
+      WHERE c.id = $1
+    `, [clienteId]);
+    
+    const clienteDB = clienteCompleto.rows[0];
     
     // Mapear campos de BD a formato del frontend para la respuesta
     const clienteActualizado = {
       id: clienteDB.id,
-      nombre: clienteDB.nombre_comercial || clienteDB.razon_social,
+      nombreComercial: clienteDB.nombre_comercial,
+      razonSocial: clienteDB.razon_social,
       telefono: clienteDB.telefono,
       segundoTelefono: clienteDB.segundo_telefono,
       email: clienteDB.email,
       segundoEmail: clienteDB.segundo_email,
       direccionEntrega: clienteDB.direccion_entrega,
-      razon: clienteDB.razon_social,
       rfc: clienteDB.rfc,
-      regimen: clienteDB.regimen_fiscal,
-      direccion: clienteDB.direccion_facturacion,
-      cp: clienteDB.direccion_codigo_postal,
-      cfdi: clienteDB.uso_cfdi,
+      regimenFiscal: clienteDB.regimen_fiscal && clienteDB.regimen_fiscal_descripcion 
+        ? `${clienteDB.regimen_fiscal} - ${clienteDB.regimen_fiscal_descripcion}` 
+        : clienteDB.regimen_fiscal || '',
+      direccionFacturacion: clienteDB.direccion_facturacion,
+      direccionCodigoPostal: clienteDB.direccion_codigo_postal,
+      usoCfdi: clienteDB.uso_cfdi && clienteDB.uso_cfdi_descripcion 
+        ? `${clienteDB.uso_cfdi} - ${clienteDB.uso_cfdi_descripcion}` 
+        : clienteDB.uso_cfdi || '',
       activo: clienteDB.activo,
-      fecha_registro: clienteDB.fecha_registro,
-      fecha_modificacion: clienteDB.fecha_modificacion
+      fechaRegistro: clienteDB.fecha_registro,
+      fechaModificacion: clienteDB.fecha_modificacion
     };
     
     return res.json(

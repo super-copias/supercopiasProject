@@ -283,11 +283,21 @@ async function createEmpleado(req, res) {
     // Debug: Log de datos recibidos
     
     // Validaciones requeridas
-    if (!nombre || !puesto || !sucursal) {
+    if (!nombre || !puesto || !sucursal || !turno) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
-          'Nombre, puesto y sucursal son requeridos'
+          'Nombre, puesto, sucursal y turno son requeridos'
+        )
+      );
+    }
+    
+    // Validar que el turno sea válido
+    if (turno && !['Matutino', 'Vespertino'].includes(turno)) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'El turno debe ser "Matutino" o "Vespertino"'
         )
       );
     }
@@ -371,7 +381,7 @@ async function createEmpleado(req, res) {
       telefono || null,
       puesto || null,
       sucursal || null,
-      turno || 'Matutino',
+      turno, // Requerido, no usar fallback
       salario ? parseFloat(salario) : null,
       fechaIngreso || new Date().toISOString().split('T')[0],
       diasVacacionesSugeridos || 12,
