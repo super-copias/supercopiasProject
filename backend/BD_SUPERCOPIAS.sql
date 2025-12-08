@@ -322,7 +322,7 @@ BEGIN
 
     
 
-    -- Buscar siguiente n├â┬║mero disponible
+    -- Buscar siguiente número disponible
 
     LOOP
 
@@ -342,7 +342,7 @@ BEGIN
 
         
 
-        -- Expandir a 4 d├â┬¡gitos si es necesario
+        -- Expandir a 4 dígitos si es necesario
 
         IF counter > 999 THEN
 
@@ -358,11 +358,11 @@ BEGIN
 
         
 
-        -- L├â┬¡mite de seguridad
+        -- Límite de seguridad
 
         IF counter > 9999 THEN
 
-            RAISE EXCEPTION 'No se puede generar username ├â┬║nico para: %', p_nombre;
+            RAISE EXCEPTION 'No se puede generar username único para: %', p_nombre;
 
         END IF;
 
@@ -539,7 +539,7 @@ CREATE TABLE public.auditoria (
 -- Name: TABLE auditoria; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.auditoria IS 'Registro completo de operaciones para auditor├â┬¡a';
+COMMENT ON TABLE public.auditoria IS 'Registro completo de operaciones para auditoría';
 
 
 --
@@ -784,7 +784,7 @@ CREATE TABLE public.clientes (
 -- Name: TABLE clientes; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.clientes IS 'Base de datos de clientes con informaci├â┬│n fiscal';
+COMMENT ON TABLE public.clientes IS 'Base de datos de clientes con información fiscal';
 
 
 --
@@ -840,7 +840,7 @@ CREATE TABLE public.empleados (
 -- Name: TABLE empleados; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.empleados IS 'Informaci├â┬│n completa de empleados de la empresa';
+COMMENT ON TABLE public.empleados IS 'Información completa de empleados de la empresa';
 
 
 --
@@ -887,7 +887,7 @@ CREATE TABLE public.empleados_modulos (
 -- Name: TABLE empleados_modulos; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.empleados_modulos IS 'Permisos granulares por m├â┬│dulo para cada empleado';
+COMMENT ON TABLE public.empleados_modulos IS 'Permisos granulares por módulo para cada empleado';
 
 
 --
@@ -1209,7 +1209,7 @@ COMMENT ON COLUMN public.eventos_personal.tipo IS 'Tipo de evento: vacaciones, f
 -- Name: COLUMN eventos_personal.subtipo; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.eventos_personal.subtipo IS 'Clasificaci├â┬│n adicional seg├â┬║n el tipo (ej: enfermedad, personal, capacitaci├â┬│n)';
+COMMENT ON COLUMN public.eventos_personal.subtipo IS 'Clasificación adicional según el tipo (ej: enfermedad, personal, capacitación)';
 
 
 --
@@ -1752,7 +1752,7 @@ CREATE TABLE public.puestos (
 -- Name: TABLE puestos; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.puestos IS 'Cat├â┬ílogo de puestos de trabajo';
+COMMENT ON TABLE public.puestos IS 'Catálogo de puestos de trabajo';
 
 
 --
@@ -1914,7 +1914,7 @@ CREATE TABLE public.usuarios (
 -- Name: TABLE usuarios; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.usuarios IS 'Usuarios del sistema con autenticaci├â┬│n y autorizaci├â┬│n';
+COMMENT ON TABLE public.usuarios IS 'Usuarios del sistema con autenticación y autorización';
 
 
 --
@@ -1964,7 +1964,7 @@ CREATE VIEW public.vacaciones_resumen AS
 -- Name: VIEW vacaciones_resumen; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.vacaciones_resumen IS 'Vista de resumen de vacaciones por empleado para el a├â┬▒o actual';
+COMMENT ON VIEW public.vacaciones_resumen IS 'Vista de resumen de vacaciones por empleado para el año actual';
 
 
 --
@@ -2241,9 +2241,9 @@ COPY public.auditoria (id, tabla, operacion, registro_id, datos_anteriores, dato
 --
 
 COPY public.cat_estatus_equipo (id, codigo, nombre, descripcion, color, activo, orden, fecha_creacion) FROM stdin;
-1	activo	Activo	Equipo en operaciÃ³n normal	success	t	1	2025-11-30 12:00:00-06
+1	activo	Activo	Equipo en operación normal	success	t	1	2025-11-30 12:00:00-06
 2	inactivo	Inactivo	Equipo temporalmente sin uso	secondary	t	2	2025-11-30 12:00:00-06
-3	en_reparacion	En ReparaciÃ³n	Equipo en proceso de reparaciÃ³n	warning	t	3	2025-11-30 12:00:00-06
+3	en_reparacion	En Reparación	Equipo en proceso de reparación	warning	t	3	2025-11-30 12:00:00-06
 4	baja	Dado de Baja	Equipo fuera de servicio permanente	danger	t	4	2025-11-30 12:00:00-06
 \.
 
