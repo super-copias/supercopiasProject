@@ -19,10 +19,15 @@ export class LoginComponent implements OnInit {
     private notificationService: NotificationService
   ) { }
   ngOnInit() {
+    // Cargar credenciales guardadas si existen
+    const savedIdentifier = localStorage.getItem('rememberedIdentifier');
+    const savedPassword = localStorage.getItem('rememberedPassword');
+    const rememberMe = localStorage.getItem('rememberMe') === 'true';
+
     this.loginForm = this.fb.group({
-      identifier: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
-      checkbox: [false]
+      identifier: [savedIdentifier || '', [Validators.required]],
+      password: [savedPassword || '', [Validators.required, Validators.minLength(8)]],
+      checkbox: [rememberMe]
     });
   }
   get identifierControl() { return this.loginForm.get('identifier')!; }
@@ -35,6 +40,18 @@ export class LoginComponent implements OnInit {
   onSubmit() {
     if (this.loginForm.invalid) return;
     const v = this.loginForm.value;
+    
+    // Guardar o limpiar credenciales según el checkbox
+    if (v.checkbox) {
+      localStorage.setItem('rememberedIdentifier', v.identifier);
+      localStorage.setItem('rememberedPassword', v.password);
+      localStorage.setItem('rememberMe', 'true');
+    } else {
+      localStorage.removeItem('rememberedIdentifier');
+      localStorage.removeItem('rememberedPassword');
+      localStorage.removeItem('rememberMe');
+    }
+
     this.auth.login(v.identifier, v.password).subscribe({
       next: (res: any) => {
         if (res && res.success && res.data && res.data.token) {

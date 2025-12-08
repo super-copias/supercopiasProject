@@ -54,11 +54,12 @@ export class InventarioDetalleComponent implements OnInit {
       { value: 'uso_operativo', label: 'Uso Operativo' },
       { value: 'servicio_tecnico', label: 'Servicio Técnico' },
       { value: 'merma', label: 'Merma' },
-      { value: 'ajuste_salida', label: 'Ajuste Salida' }
+      { value: 'ajuste_salida', label: 'Ajuste Salida' },
+      { value: 'transferencia', label: 'Transferencia' }
     ],
     ajuste: [
-      { value: 'inventario_fisico', label: 'Inventario Físico' },
-      { value: 'correccion', label: 'Corrección' }
+      { value: 'ajuste_entrada', label: 'Ajuste Entrada' },
+      { value: 'ajuste_salida', label: 'Ajuste Salida' }
     ]
   };
 
