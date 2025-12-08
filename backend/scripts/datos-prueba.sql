@@ -64,6 +64,86 @@ INSERT INTO equipos (tipo_equipo, marca, modelo, numero_serie, nombre_equipo, ar
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
+-- EMPLEADOS DE PRUEBA (10 registros variados)
+-- =====================================================
+\echo 'Insertando empleados de prueba...'
+
+INSERT INTO empleados (nombre, email, telefono, puesto_id, sucursal_id, turno, salario, fecha_ingreso, dias_vacaciones_sugeridos, activo, tipo_acceso) VALUES
+('Roberto Martinez Sanchez', 'roberto.martinez@supercopias.com', '961-100-1001', 1, 1, 'Matutino', 22000.00, '2020-01-15', 15, true, 'completo'),
+('Laura Gomez Perez', 'laura.gomez@supercopias.com', '961-100-1002', 2, 1, 'Matutino', 16000.00, '2020-03-10', 12, true, 'limitado'),
+('Carlos Hernandez Lopez', 'carlos.hernandez@supercopias.com', '961-100-1003', 2, 2, 'Vespertino', 15500.00, '2021-06-01', 12, true, 'limitado'),
+('Ana Maria Ruiz Torres', 'ana.ruiz@supercopias.com', '961-100-1004', 3, 1, 'Matutino', 13000.00, '2021-09-15', 12, true, 'limitado'),
+('Jorge Luis Morales Garcia', 'jorge.morales@supercopias.com', '961-100-1005', 4, 1, 'Matutino', 10500.00, '2022-01-20', 12, true, 'solo_lectura'),
+('Patricia Diaz Ramirez', 'patricia.diaz@supercopias.com', '961-100-1006', 4, 2, 'Vespertino', 10000.00, '2022-03-15', 12, true, 'solo_lectura'),
+('Miguel Angel Chavez Cruz', 'miguel.chavez@supercopias.com', '961-100-1007', 5, 1, 'Matutino', 9500.00, '2022-07-01', 12, true, 'solo_lectura'),
+('Sandra Elena Ortiz Mendez', 'sandra.ortiz@supercopias.com', '961-100-1008', 6, 3, 'Matutino', 9000.00, '2023-02-10', 12, true, 'solo_lectura'),
+('Francisco Javier Ramos Silva', 'francisco.ramos@supercopias.com', '961-100-1009', 7, 2, 'Vespertino', 8500.00, '2023-05-22', 12, true, 'solo_lectura'),
+('Daniela Fernandez Vega', 'daniela.fernandez@supercopias.com', '961-100-1010', 8, 1, 'Matutino', 11000.00, '2023-08-15', 12, true, 'solo_lectura')
+ON CONFLICT DO NOTHING;
+
+-- =====================================================
+-- USUARIOS DEL SISTEMA (para empleados con acceso)
+-- =====================================================
+\echo 'Insertando usuarios del sistema...'
+
+-- Usuario Administrador (Gerente General)
+INSERT INTO usuarios (username, nombre, email, password, role, roles, empleado_id, activo, full_name, phone, bio) VALUES
+('001.robertomar', 'Roberto Martinez', 'roberto.martinez@supercopias.com', '$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7', 'admin', '["admin"]', 1, true, 'Roberto Martinez Sanchez', '961-100-1001', 'Gerente General - Administrador del sistema')
+ON CONFLICT (username) DO NOTHING;
+
+-- Usuario con acceso limitado (Gerente de Sucursal Principal)
+INSERT INTO usuarios (username, nombre, email, password, role, roles, empleado_id, activo, full_name, phone, bio) VALUES
+('002.lauragomez', 'Laura Gomez', 'laura.gomez@supercopias.com', '$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7', 'empleado', '["empleado"]', 2, true, 'Laura Gomez Perez', '961-100-1002', 'Gerente de Sucursal Principal - Acceso personalizado')
+ON CONFLICT (username) DO NOTHING;
+
+-- Usuario con acceso limitado (Gerente de Sucursal Norte)
+INSERT INTO usuarios (username, nombre, email, password, role, roles, empleado_id, activo, full_name, phone, bio) VALUES
+('003.carloshern', 'Carlos Hernandez', 'carlos.hernandez@supercopias.com', '$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7', 'empleado', '["empleado"]', 3, true, 'Carlos Hernandez Lopez', '961-100-1003', 'Gerente de Sucursal Norte - Acceso personalizado')
+ON CONFLICT (username) DO NOTHING;
+
+-- Usuario con acceso limitado (Supervisor)
+INSERT INTO usuarios (username, nombre, email, password, role, roles, empleado_id, activo, full_name, phone, bio) VALUES
+('004.anamariarui', 'Ana Maria Ruiz', 'ana.ruiz@supercopias.com', '$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7', 'empleado', '["empleado"]', 4, true, 'Ana Maria Ruiz Torres', '961-100-1004', 'Supervisor - Acceso personalizado')
+ON CONFLICT (username) DO NOTHING;
+
+-- =====================================================
+-- MÓDULOS ASIGNADOS A EMPLEADOS
+-- =====================================================
+\echo 'Asignando modulos a empleados...'
+
+-- Gerente de Sucursal Principal (Laura) - Módulos: empleados, clientes, reportes
+INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES
+(2, 'empleados', true),
+(2, 'clientes', true),
+(2, 'reportes', true)
+ON CONFLICT (empleado_id, modulo) DO NOTHING;
+
+-- Gerente de Sucursal Norte (Carlos) - Módulos: empleados, clientes, inventarios, reportes
+INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES
+(3, 'empleados', true),
+(3, 'clientes', true),
+(3, 'inventarios', true),
+(3, 'reportes', true)
+ON CONFLICT (empleado_id, modulo) DO NOTHING;
+
+-- Supervisor (Ana Maria) - Módulos: clientes, inventarios, equipos
+INSERT INTO empleados_modulos (empleado_id, modulo, acceso) VALUES
+(4, 'clientes', true),
+(4, 'inventarios', true),
+(4, 'equipos', true)
+ON CONFLICT (empleado_id, modulo) DO NOTHING;
+
+-- =====================================================
+-- Actualizar relación empleado_id en usuarios
+-- =====================================================
+\echo 'Actualizando relacion empleados-usuarios...'
+
+UPDATE empleados SET usuario_id = (SELECT id FROM usuarios WHERE empleado_id = 1) WHERE id = 1;
+UPDATE empleados SET usuario_id = (SELECT id FROM usuarios WHERE empleado_id = 2) WHERE id = 2;
+UPDATE empleados SET usuario_id = (SELECT id FROM usuarios WHERE empleado_id = 3) WHERE id = 3;
+UPDATE empleados SET usuario_id = (SELECT id FROM usuarios WHERE empleado_id = 4) WHERE id = 4;
+
+-- =====================================================
 -- Actualizar secuencias para evitar conflictos
 -- =====================================================
 \echo 'Actualizando secuencias...'
@@ -72,6 +152,9 @@ SELECT setval('clientes_id_seq', (SELECT COALESCE(MAX(id), 1) FROM clientes), tr
 SELECT setval('proveedores_id_seq', (SELECT COALESCE(MAX(id), 1) FROM proveedores), true);
 SELECT setval('inventarios_id_seq', (SELECT COALESCE(MAX(id), 1) FROM inventarios), true);
 SELECT setval('equipos_id_seq', (SELECT COALESCE(MAX(id), 1) FROM equipos), true);
+SELECT setval('empleados_id_seq', (SELECT COALESCE(MAX(id), 1) FROM empleados), true);
+SELECT setval('usuarios_id_seq', (SELECT COALESCE(MAX(id), 1) FROM usuarios), true);
+SELECT setval('empleados_modulos_id_seq', (SELECT COALESCE(MAX(id), 1) FROM empleados_modulos), true);
 
 \echo '==================================================================================='
 \echo 'DATOS DE PRUEBA INSERTADOS EXITOSAMENTE'
@@ -81,4 +164,13 @@ SELECT setval('equipos_id_seq', (SELECT COALESCE(MAX(id), 1) FROM equipos), true
 \echo '- 5 Proveedores'
 \echo '- 5 Articulos de inventario'
 \echo '- 5 Equipos con caracteristicas variadas'
+\echo '- 10 Empleados (1 Admin, 3 con acceso, 6 sin acceso al sistema)'
+\echo '- 4 Usuarios del sistema creados'
+\echo '- Modulos asignados a empleados con acceso personalizado'
+\echo ''
+\echo 'CREDENCIALES DE ACCESO (password: "password123" para todos):'
+\echo '- Admin: 001.robertomar / password123'
+\echo '- Gerente Principal: 002.lauragomez / password123'
+\echo '- Gerente Norte: 003.carloshern / password123'
+\echo '- Supervisor: 004.anamariarui / password123'
 \echo '==================================================================================='
