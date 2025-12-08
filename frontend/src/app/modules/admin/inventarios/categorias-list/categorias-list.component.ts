@@ -98,7 +98,9 @@ export class CategoriasListComponent implements OnInit {
   onEliminar(categoria: Categoria): void {
     if (!categoria.id) return;
     
-    if (!confirm(`¿Está seguro de eliminar la categoría "${categoria.nombre}"?`)) {
+    const mensaje = `¿Está seguro de eliminar PERMANENTEMENTE la categoría "${categoria.nombre}"?\n\nEsta acción NO se puede deshacer y el registro será eliminado de la base de datos.\n\nNOTA: No se pueden eliminar categorías con artículos asociados.`;
+    
+    if (!confirm(mensaje)) {
       return;
     }
     
@@ -107,13 +109,13 @@ export class CategoriasListComponent implements OnInit {
       next: (response) => {
         this.loading = false;
         if (response.success) {
-          this.notificationService.success('Categoría eliminada correctamente');
+          this.notificationService.success('Categoría eliminada permanentemente');
           this.loadCategorias();
         }
       },
       error: (error) => {
         this.loading = false;
-        const mensaje = error.error?.message || 'Error al eliminar la categoría';
+        const mensaje = error.error?.error?.message || error.error?.message || 'Error al eliminar la categoría';
         this.notificationService.error(mensaje);
         console.error('Error:', error);
       }

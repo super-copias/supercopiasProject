@@ -40,7 +40,7 @@
           <h6 class="text-muted mb-1">Existencia Actual</h6>
           <h3 class="mb-0">
             <span [class]="getStockBadge(inventario)">
-              {{inventario.existencia_actual}} {{inventario.unidad_medida}}
+              {{formatQuantity(inventario.existencia_actual)}} {{inventario.unidad_medida}}
             </span>
           </h3>
         </div>
@@ -50,7 +50,7 @@
       <div class="card">
         <div class="card-body">
           <h6 class="text-muted mb-1">Stock Mínimo</h6>
-          <h4 class="mb-0">{{inventario.stock_minimo}} {{inventario.unidad_medida}}</h4>
+          <h4 class="mb-0">{{formatQuantity(inventario.stock_minimo)}} {{inventario.unidad_medida}}</h4>
         </div>
       </div>
     </div>
@@ -110,7 +110,7 @@
               <h6 class="text-muted">Tipo de Artículo</h6>
               <p class="mb-0">
                 <i [class]="getTipoIcon(inventario.tipo) + ' me-2'"></i>
-                {{inventario.tipo}}
+                {{formatLabel(inventario.tipo)}}
               </p>
             </div>
             <div class="col-md-6 mb-3">
@@ -131,7 +131,7 @@
             </div>
             <div class="col-md-6 mb-3" *ngIf="inventario.stock_maximo">
               <h6 class="text-muted">Stock Máximo</h6>
-              <p class="mb-0">{{inventario.stock_maximo}} {{inventario.unidad_medida}}</p>
+              <p class="mb-0">{{formatQuantity(inventario.stock_maximo)}} {{inventario.unidad_medida}}</p>
             </div>
             <div class="col-md-6 mb-3" *ngIf="inventario.proveedor_nombre">
               <h6 class="text-muted">Proveedor</h6>
@@ -284,20 +284,20 @@
                   <td>
                     <span [class]="getTipoMovimientoClass(mov.tipo_movimiento)">
                       <i [class]="getTipoMovimientoIcon(mov.tipo_movimiento) + ' me-1'"></i>
-                      {{mov.tipo_movimiento}}
+                      {{getTipoMovimientoLabel(mov.tipo_movimiento)}}
                     </span>
                   </td>
                   <td>
-                    <small>{{mov.concepto}}</small>
+                    <small>{{getConceptoLabel(mov.concepto)}}</small>
                   </td>
                   <td>
-                    <strong>{{mov.cantidad}} {{inventario.unidad_medida}}</strong>
+                    <strong>{{formatQuantity(mov.cantidad)}} {{inventario.unidad_medida}}</strong>
                   </td>
                   <td>
-                    <small>{{mov.saldo_anterior}} {{inventario.unidad_medida}}</small>
+                    <small>{{formatQuantity(mov.saldo_anterior)}} {{inventario.unidad_medida}}</small>
                   </td>
                   <td>
-                    <small>{{mov.saldo_nuevo}} {{inventario.unidad_medida}}</small>
+                    <small>{{formatQuantity(mov.saldo_nuevo)}} {{inventario.unidad_medida}}</small>
                   </td>
                   <td>
                     <small>{{mov.usuario_nombre || 'N/A'}}</small>

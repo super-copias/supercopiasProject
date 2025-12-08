@@ -277,6 +277,37 @@ export class InventarioDetalleComponent implements OnInit {
     }).format(value);
   }
 
+  formatQuantity(value: number | null | undefined): string {
+    if (value === null || value === undefined) return '0';
+    // Mostrar sin decimales si es número entero
+    const num = Number(value);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  }
+
+  getTipoMovimientoLabel(tipo: string): string {
+    const tipoObj = this.tiposMovimiento.find(t => t.value === tipo);
+    return tipoObj ? tipoObj.label : tipo;
+  }
+
+  getConceptoLabel(concepto: string): string {
+    const allConceptos = [
+      ...this.conceptos.entrada,
+      ...this.conceptos.salida,
+      ...this.conceptos.ajuste
+    ];
+    const conceptoObj = allConceptos.find(c => c.value === concepto);
+    return conceptoObj ? conceptoObj.label : concepto;
+  }
+
+  formatLabel(value: string): string {
+    if (!value) return '';
+    // Capitalizar y reemplazar guiones bajos con espacios
+    return value
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   formatDate(date: Date | string | null | undefined): string {
     if (!date) return 'N/A';
     return new Date(date).toLocaleString('es-MX', {

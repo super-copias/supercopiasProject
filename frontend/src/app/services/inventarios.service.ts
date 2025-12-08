@@ -126,6 +126,7 @@ export class InventariosService {
       if (filters.categoria) params = params.set('categoria', filters.categoria);
       if (filters.estatus) params = params.set('estatus', filters.estatus);
       if (filters.stockNivel) params = params.set('stockNivel', filters.stockNivel);
+      if (filters.incluirArchivados !== undefined) params = params.set('incluirArchivados', filters.incluirArchivados.toString());
       if (filters.page) params = params.set('page', filters.page.toString());
       if (filters.limit) params = params.set('limit', filters.limit.toString());
     }
@@ -155,10 +156,17 @@ export class InventariosService {
   }
 
   /**
-   * Eliminar artículo (soft delete)
+   * Eliminar artículo (hard delete - solo si no tiene movimientos)
    */
   deleteInventario(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Archivar/desarchivar artículo (soft delete usando campo activo)
+   */
+  archivarInventario(id: number, archivar: boolean = true): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/${id}/archivar`, { archivar });
   }
 
   // =====================================================

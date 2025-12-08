@@ -158,8 +158,11 @@ function createPaginatedResponse(data, page, limit, total) {
 
 /**
  * Función helper para respuestas de error
+ * @param {string} message - Mensaje de error descriptivo
+ * @param {string} code - Código de error del catálogo CODIGOS_ERROR
+ * @param {*} details - Detalles adicionales opcionales
  */
-function createErrorResponse(code, message, details = null) {
+function createErrorResponse(message, code = CODIGOS_ERROR.INTERNAL_ERROR, details = null) {
   return {
     success: false,
     error: {

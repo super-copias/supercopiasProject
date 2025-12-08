@@ -32,6 +32,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   filtroTipo = '';
   filtroCategoria = '';
   filtroStockNivel = '';
+  mostrarArchivados = false;
   
   // Catálogos
   categorias: any[] = [];
@@ -81,6 +82,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
       tipo: this.filtroTipo,
       categoria: this.filtroCategoria,
       stockNivel: this.filtroStockNivel,
+      incluirArchivados: this.mostrarArchivados,
       page: this.page,
       limit: this.limit
     };
@@ -216,21 +218,74 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin/inventarios/editar', inventario.id]);
   }
   
+  onArchivar(inventario: any) {
+    const mensaje = `¿Está seguro de archivar el artículo "${inventario.nombre}"?\n\nEl artículo quedará oculto pero conservará su historial de movimientos.\nPodrá restaurarlo posteriormente desde artículos archivados.`;
+    
+    if (!confirm(mensaje)) {
+      return;
+    }
+    
+    this.inventariosService.archivarInventario(inventario.id, true).subscribe({
+      next: (response) => {
+        this.notificationService.success(response.message || 'Artículo archivado correctamente');
+        this.load();
+        this.loadEstadisticas();
+        this.loadAlertas();
+      },
+      error: (err) => {
+        console.error('Error al archivar artículo:', err);
+        const mensaje = err.error?.error?.message || err.error?.message || 'Error al archivar artículo';
+        this.notificationService.error(mensaje);
+      }
+    });
+  }
+
+  onRestaurar(inventario: any) {
+    const mensaje = `¿Restaurar el artículo "${inventario.nombre}"?\n\nEl artículo volverá a estar visible en el inventario activo.`;
+    
+    if (!confirm(mensaje)) {
+      return;
+    }
+    
+    this.inventariosService.archivarInventario(inventario.id, false).subscribe({
+      next: (response) => {
+        this.notificationService.success(response.message || 'Artículo restaurado correctamente');
+        this.load();
+        this.loadEstadisticas();
+      },
+      error: (err) => {
+        console.error('Error al restaurar artículo:', err);
+        const mensaje = err.error?.error?.message || err.error?.message || 'Error al restaurar artículo';
+        this.notificationService.error(mensaje);
+      }
+    });
+  }
+
+  toggleArchivados() {
+    this.mostrarArchivados = !this.mostrarArchivados;
+    this.page = 1;
+    this.load();
+  }
+  
   onEliminar(inventario: any) {
-    if (!confirm(`¿Está seguro de eliminar el artículo "${inventario.nombre}"?`)) {
+    const mensaje = `¿Está seguro de eliminar PERMANENTEMENTE el artículo "${inventario.nombre}"?\n\nEsta acción NO se puede deshacer y el registro será eliminado de la base de datos.\n\nNOTA: No se pueden eliminar artículos con movimientos registrados.\n\n⚠️ RECOMENDACIÓN: Use "Archivar" en lugar de eliminar para conservar el historial.`;
+    
+    if (!confirm(mensaje)) {
       return;
     }
     
     this.inventariosService.deleteInventario(inventario.id).subscribe({
       next: () => {
-        this.notificationService.success('Artículo eliminado exitosamente');
+        this.notificationService.success('Artículo eliminado permanentemente');
         this.load();
         this.loadEstadisticas();
         this.loadAlertas();
       },
       error: (err) => {
         console.error('Error al eliminar artículo:', err);
-        this.notificationService.error('Error al eliminar artículo');
+        // Extraer mensaje del backend
+        const mensaje = err.error?.error?.message || err.error?.message || 'Error al eliminar artículo';
+        this.notificationService.error(mensaje);
       }
     });
   }
@@ -249,5 +304,20 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   
   formatCurrency(value: number): string {
     return value ? `$${value.toFixed(2)}` : 'N/A';
+  }
+
+  formatQuantity(value: number | null | undefined): string {
+    if (value === null || value === undefined) return '0';
+    const num = Number(value);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  }
+
+  formatLabel(value: string): string {
+    if (!value) return '';
+    // Capitalizar y reemplazar guiones bajos con espacios
+    return value
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 }

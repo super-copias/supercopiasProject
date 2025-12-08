@@ -57,6 +57,7 @@ async function listInventarios(req, res) {
     const categoria = req.query.categoria;
     const estatus = req.query.estatus;
     const stockNivel = req.query.stockNivel; // critico, bajo, normal
+    const incluirArchivados = req.query.incluirArchivados === 'true';
     const page = parseInt(req.query.page || '1');
     const limit = parseInt(req.query.limit || '10');
     const offset = (page - 1) * limit;
@@ -95,17 +96,30 @@ async function listInventarios(req, res) {
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END AS tiene_reglas_personalizadas
       FROM inventarios i
       LEFT JOIN inventarios_reglas_stock r ON r.inventario_id = i.id AND r.activo = true
-      WHERE i.activo = true
+      WHERE 1=1
     `;
     
     let countQuery = `
       SELECT COUNT(*) 
       FROM inventarios i 
       LEFT JOIN inventarios_reglas_stock r ON r.inventario_id = i.id AND r.activo = true
-      WHERE i.activo = true
+      WHERE 1=1
     `;
     let queryParams = [];
     let paramCount = 1;
+    
+    // Filtro de archivados
+    if (incluirArchivados) {
+      // Mostrar SOLO archivados
+      const archivoCondition = ' AND i.activo = false';
+      baseQuery += archivoCondition;
+      countQuery += archivoCondition;
+    } else {
+      // Mostrar SOLO activos (comportamiento por defecto)
+      const activoCondition = ' AND i.activo = true';
+      baseQuery += activoCondition;
+      countQuery += activoCondition;
+    }
     
     // Filtros
     if (q) {
@@ -461,18 +475,32 @@ async function deleteInventario(req, res) {
   try {
     const { id } = req.params;
     
-    const result = await query(
-      'UPDATE inventarios SET activo = false, fecha_modificacion = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
-      [id]
-    );
+    // Verificar que existe
+    const checkQuery = 'SELECT nombre FROM inventarios WHERE id = $1';
+    const checkResult = await query(checkQuery, [id]);
     
-    if (result.rows.length === 0) {
+    if (checkResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
       );
     }
     
-    return res.json(createResponse(true, 'Artículo eliminado exitosamente'));
+    // Verificar si tiene movimientos asociados
+    const movimientosQuery = 'SELECT COUNT(*) as total FROM inventarios_movimientos WHERE inventario_id = $1';
+    const movimientosResult = await query(movimientosQuery, [id]);
+    
+    if (parseInt(movimientosResult.rows[0].total) > 0) {
+      const mensajeError = `No se puede eliminar el artículo "${checkResult.rows[0].nombre}" porque tiene movimientos registrados. Total: ${movimientosResult.rows[0].total}`;
+      return res.status(400).json(
+        createErrorResponse(CODIGOS_ERROR.DEPENDENCY_ERROR, mensajeError)
+      );
+    }
+    
+    // Eliminar físicamente (CASCADE eliminará características y reglas automáticamente)
+    const deleteQuery = 'DELETE FROM inventarios WHERE id = $1 RETURNING nombre';
+    const result = await query(deleteQuery, [id]);
+    
+    return res.json(createResponse(true, result.rows[0], 'Artículo eliminado permanentemente de la base de datos'));
     
   } catch (error) {
     console.error('Error al eliminar inventario:', error);
@@ -958,25 +986,22 @@ async function deleteCategoria(req, res) {
     const inventariosResult = await query(inventariosQuery, [categoriaResult.rows[0].nombre]);
     
     if (parseInt(inventariosResult.rows[0].total) > 0) {
+      const mensajeError = `No se puede eliminar la categoría porque tiene ${inventariosResult.rows[0].total} artículo(s) asociado(s)`;
       return res.status(400).json(
-        createErrorResponse(
-          `No se puede eliminar la categoría porque tiene ${inventariosResult.rows[0].total} artículo(s) asociado(s)`,
-          CODIGOS_ERROR.CONFLICTO
-        )
+        createErrorResponse(CODIGOS_ERROR.DEPENDENCY_ERROR, mensajeError)
       );
     }
     
-    // Desactivar categoría (soft delete)
+    // Eliminar categoría físicamente
     const deleteQuery = `
-      UPDATE inventarios_categorias
-      SET activo = false, fecha_modificacion = NOW()
+      DELETE FROM inventarios_categorias
       WHERE id = $1
-      RETURNING *
+      RETURNING nombre
     `;
     
     const result = await query(deleteQuery, [categoriaId]);
     
-    return res.json(createResponse(true, result.rows[0], 'Categoría eliminada correctamente'));
+    return res.json(createResponse(true, result.rows[0], 'Categoría eliminada permanentemente de la base de datos'));
     
   } catch (error) {
     console.error('Error al eliminar categoría:', error);
@@ -1237,12 +1262,69 @@ async function deleteReglasStock(req, res) {
   }
 }
 
+/**
+ * Archivar/desarchivar un artículo de inventario
+ * PATCH /api/inventarios/:id/archivar
+ */
+async function archivarInventario(req, res) {
+  try {
+    const { id } = req.params;
+    const { archivar = true } = req.body; // Por defecto archiva (activo = false)
+    
+    // Verificar que existe
+    const checkQuery = 'SELECT nombre, activo FROM inventarios WHERE id = $1';
+    const checkResult = await query(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+    
+    const articuloActual = checkResult.rows[0];
+    const nuevoEstado = !archivar; // Si archivar=true entonces activo=false
+    
+    // Evitar operaciones redundantes
+    if (articuloActual.activo === nuevoEstado) {
+      const mensaje = nuevoEstado 
+        ? 'El artículo ya está activo' 
+        : 'El artículo ya está archivado';
+      return res.status(400).json(
+        createErrorResponse(mensaje, CODIGOS_ERROR.OPERACION_INVALIDA)
+      );
+    }
+    
+    // Actualizar estado
+    const updateQuery = `
+      UPDATE inventarios 
+      SET activo = $1, fecha_modificacion = CURRENT_TIMESTAMP 
+      WHERE id = $2 
+      RETURNING id, nombre, activo
+    `;
+    
+    const result = await query(updateQuery, [nuevoEstado, id]);
+    
+    const mensaje = nuevoEstado 
+      ? `Artículo "${articuloActual.nombre}" restaurado y visible nuevamente`
+      : `Artículo "${articuloActual.nombre}" archivado (oculto pero conserva historial de movimientos)`;
+    
+    return res.json(createResponse(true, result.rows[0], mensaje));
+    
+  } catch (error) {
+    console.error('Error al archivar/desarchivar inventario:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al cambiar estado del artículo', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
 module.exports = {
   listInventarios,
   getInventarioById,
   createInventario,
   updateInventario,
   deleteInventario,
+  archivarInventario,
   addMovimiento,
   getHistorialMovimientos,
   getAlertas,

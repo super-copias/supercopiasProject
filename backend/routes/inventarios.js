@@ -13,6 +13,7 @@ const {
   createInventario,
   updateInventario,
   deleteInventario,
+  archivarInventario,
   addMovimiento,
   getHistorialMovimientos,
   getAlertas,
@@ -97,9 +98,16 @@ router.put('/:id', auth, updateInventario);
 
 /**
  * DELETE /api/inventarios/:id
- * Eliminar un artículo (soft delete)
+ * Eliminar un artículo (hard delete - solo si no tiene movimientos)
  */
 router.delete('/:id', auth, deleteInventario);
+
+/**
+ * PATCH /api/inventarios/:id/archivar
+ * Archivar/desarchivar un artículo (soft delete usando campo activo)
+ * Body: { archivar: true/false }
+ */
+router.patch('/:id/archivar', auth, archivarInventario);
 
 /**
  * POST /api/inventarios/:id/movimientos
