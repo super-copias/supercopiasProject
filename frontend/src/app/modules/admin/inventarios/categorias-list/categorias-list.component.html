@@ -1,0 +1,344 @@
+<div class="container-fluid">
+  <!-- Dashboard de Estadísticas -->
+  <div class="row mb-4">
+    <div class="col-md-4 mb-3">
+      <div class="card border-success">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Venta</h6>
+              <h3 class="mb-0 text-success">{{getCantidadPorTipo('venta')}}</h3>
+            </div>
+            <i class="fas fa-shopping-cart fa-2x text-success opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+      <div class="card border-primary">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Insumos</h6>
+              <h3 class="mb-0 text-primary">{{getCantidadPorTipo('insumo')}}</h3>
+            </div>
+            <i class="fas fa-tools fa-2x text-primary opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+      <div class="card border-secondary">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Genéricos</h6>
+              <h3 class="mb-0 text-secondary">{{getCantidadPorTipo('generico')}}</h3>
+            </div>
+            <i class="fas fa-cube fa-2x text-secondary opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Categorías -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-outline-secondary btn-sm" (click)="volver()">
+            <i class="fas fa-arrow-left me-1"></i> Volver
+          </button>
+          <h5 class="mb-0">Categorías de Inventario</h5>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary btn-sm" (click)="onNueva()" [disabled]="showForm">
+            <i class="fas fa-plus me-1"></i> Nueva Categoría
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card-body">
+      <!-- Filtros -->
+      <div class="row g-2 mb-3" *ngIf="!showForm">
+        <div class="col-md-4">
+          <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()">
+            <option value="">Todos los tipos</option>
+            <option *ngFor="let tipo of tipos" [value]="tipo.value">{{tipo.label}}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Formulario de Nueva/Editar Categoría -->
+      <div class="alert alert-light border mb-4" *ngIf="showForm">
+        <h6 class="mb-3">
+          <i class="fas fa-tag me-2"></i>
+          {{isEditMode ? 'Editar Categoría' : 'Nueva Categoría'}}
+        </h6>
+        <form #categoriaFormRef="ngForm">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Tipo <span class="text-danger">*</span></label>
+              <select class="form-select" 
+                      [(ngModel)]="categoriaForm.tipo" 
+                      name="tipo"
+                      required
+                      [disabled]="loading">
+                <option value="">Seleccione tipo...</option>
+                <option *ngFor="let tipo of tipos" [value]="tipo.value">{{tipo.label}}</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Nombre <span class="text-danger">*</span></label>
+              <input type="text" 
+                     class="form-control" 
+                     [(ngModel)]="categoriaForm.nombre"
+                     name="nombre"
+                     placeholder="Ej: Papel Especial"
+                     required
+                     [disabled]="loading">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Orden</label>
+              <input type="number" 
+                     class="form-control" 
+                     [(ngModel)]="categoriaForm.orden"
+                     name="orden"
+                     placeholder="Opcional"
+                     min="1"
+                     [disabled]="loading">
+            </div>
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Descripción</label>
+              <textarea class="form-control" 
+                        [(ngModel)]="categoriaForm.descripcion"
+                        name="descripcion"
+                        rows="2"
+                        placeholder="Descripción opcional de la categoría"
+                        [disabled]="loading"></textarea>
+            </div>
+
+            <!-- Campos Dinámicos -->
+            <div class="col-md-12 mb-3">
+              <h6 class="text-muted border-bottom pb-2 mb-3">
+                <i class="fas fa-sliders-h me-2"></i>Campos Personalizados (Opcional)
+              </h6>
+              
+              <!-- Lista de campos agregados -->
+              <div class="mb-3" *ngIf="categoriaForm.campos_requeridos.length > 0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Etiqueta</th>
+                        <th>Tipo</th>
+                        <th>Requerido</th>
+                        <th>Opciones</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let campo of categoriaForm.campos_requeridos; let i = index">
+                        <td>{{campo.etiqueta}}</td>
+                        <td>{{campo.tipo}}</td>
+                        <td>
+                          <span class="badge bg-{{campo.requerido ? 'success' : 'secondary'}}">
+                            {{campo.requerido ? 'Sí' : 'No'}}
+                          </span>
+                        </td>
+                        <td>
+                          <small class="text-muted">{{campo.opciones?.join(', ') || '-'}}</small>
+                        </td>
+                        <td>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" 
+                                    class="btn btn-outline-warning" 
+                                    (click)="editarCampoDinamico(i)"
+                                    title="Editar">
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-outline-danger" 
+                                    (click)="eliminarCampoDinamico(i)"
+                                    title="Eliminar">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Agregar/Editar campo -->
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="text-muted mb-2" *ngIf="editandoCampoIndex !== null">
+                    <i class="fas fa-edit me-1"></i>Editando campo
+                  </h6>
+                  <div class="row g-2">
+                    <div class="col-md-4">
+                      <input type="text" 
+                             class="form-control form-control-sm" 
+                             [(ngModel)]="campoDinamico.etiqueta"
+                             [ngModelOptions]="{standalone: true}"
+                             placeholder="Etiqueta del campo (ej: Número de Arillo)">
+                      <small class="text-muted" *ngIf="campoDinamico.etiqueta">
+                        Nombre técnico: <code>{{generarNombreTecnico(campoDinamico.etiqueta)}}</code>
+                      </small>
+                    </div>
+                    <div class="col-md-2">
+                      <select class="form-select form-select-sm" 
+                              [(ngModel)]="campoDinamico.tipo"
+                              [ngModelOptions]="{standalone: true}">
+                        <option value="texto">Texto</option>
+                        <option value="numero">Número</option>
+                        <option value="fecha">Fecha</option>
+                        <option value="select">Select</option>
+                      </select>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="form-check mt-2">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               [(ngModel)]="campoDinamico.requerido"
+                               [ngModelOptions]="{standalone: true}"
+                               id="campoRequerido">
+                        <label class="form-check-label" for="campoRequerido">
+                          Requerido
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-4" *ngIf="editandoCampoIndex === null">
+                      <button type="button" 
+                              class="btn btn-sm btn-success w-100" 
+                              (click)="agregarCampoDinamico()">
+                        <i class="fas fa-plus me-1"></i> Agregar
+                      </button>
+                    </div>
+                    <div class="col-md-4" *ngIf="editandoCampoIndex !== null">
+                      <div class="btn-group w-100" role="group">
+                        <button type="button" 
+                                class="btn btn-sm btn-primary" 
+                                (click)="actualizarCampoDinamico()">
+                          <i class="fas fa-check me-1"></i> Actualizar
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm btn-secondary" 
+                                (click)="cancelarEdicionCampo()">
+                          <i class="fas fa-times me-1"></i> Cancelar
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-12" *ngIf="campoDinamico.tipo === 'select'">
+                      <input type="text" 
+                             class="form-control form-control-sm" 
+                             [(ngModel)]="campoDinamico.opciones"
+                             [ngModelOptions]="{standalone: true}"
+                             placeholder="Opciones separadas por comas (Ej: Opción1, Opción2, Opción3)">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="col-md-12">
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        (click)="onCancelar()"
+                        [disabled]="loading">
+                  <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" 
+                        class="btn btn-primary" 
+                        (click)="onSubmit()"
+                        [disabled]="!categoriaFormRef.form.valid || loading">
+                  <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                  <i *ngIf="!loading" class="fas fa-save me-1"></i>
+                  {{isEditMode ? 'Actualizar' : 'Guardar'}}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Tabla -->
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Campos Personalizados</th>
+              <th>Orden</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading">
+              <td colspan="6" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Cargando...</span>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && categorias.length === 0">
+              <td colspan="6" class="text-center py-4 text-muted">
+                <i class="fas fa-inbox fa-3x mb-2 opacity-25"></i>
+                <p class="mb-0">No se encontraron categorías</p>
+              </td>
+            </tr>
+            <tr *ngFor="let categoria of categorias">
+              <td>
+                <span [class]="getTipoBadge(categoria.tipo)">
+                  <i [class]="'fas ' + getTipoInfo(categoria.tipo).icon + ' me-1'"></i>
+                  {{getTipoInfo(categoria.tipo).label}}
+                </span>
+              </td>
+              <td><strong>{{categoria.nombre}}</strong></td>
+              <td>
+                <small class="text-muted">{{categoria.descripcion || '-'}}</small>
+              </td>
+              <td>
+                <span class="badge bg-info" *ngIf="categoria.campos_requeridos && categoria.campos_requeridos.length > 0">
+                  {{categoria.campos_requeridos.length}} campo(s)
+                </span>
+                <small class="text-muted" *ngIf="!categoria.campos_requeridos || categoria.campos_requeridos.length === 0">
+                  Sin campos
+                </small>
+              </td>
+              <td>
+                <small>{{categoria.orden || '-'}}</small>
+              </td>
+              <td class="text-center">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button class="btn btn-outline-warning" 
+                          (click)="onEditar(categoria)" 
+                          title="Editar"
+                          [disabled]="showForm">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" 
+                          (click)="onEliminar(categoria)" 
+                          title="Eliminar"
+                          [disabled]="showForm">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

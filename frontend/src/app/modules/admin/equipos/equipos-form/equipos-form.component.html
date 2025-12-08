@@ -1,0 +1,233 @@
+<div class="container-fluid py-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">
+        <i class="fas fa-laptop me-2"></i>
+        {{isEdit ? 'Editar Equipo' : 'Nuevo Equipo'}}
+      </h5>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        
+        <!-- Datos Generales -->
+        <div class="mb-3">
+          <div class="card">
+            <div class="card-header text-white" style="background-color: #3b82f6;">
+              <i class="fas fa-info-circle me-2"></i>Datos Generales
+            </div>
+            <div class="card-body">
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label class="form-label">Tipo de Equipo <span class="text-danger">*</span></label>
+                  <select class="form-select" formControlName="tipo_equipo">
+                    <option value="">Seleccione...</option>
+                    <option *ngFor="let tipo of tiposEquipo" [value]="tipo.codigo">
+                      {{tipo.nombre}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Marca</label>
+                  <select class="form-select" formControlName="marca">
+                    <option value="">Seleccione...</option>
+                    <option *ngFor="let marca of marcasEquipo" [value]="marca.nombre">
+                      {{marca.nombre}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Modelo</label>
+                  <input type="text" class="form-control" formControlName="modelo">
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Número de Serie</label>
+                  <input type="text" class="form-control" formControlName="numero_serie">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Nombre del Equipo</label>
+                  <input type="text" class="form-control" formControlName="nombre_equipo" 
+                         placeholder="Ej: Copiadora Planta Baja">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Área/Ubicación</label>
+                  <input type="text" class="form-control" formControlName="area_ubicacion">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Asignación -->
+        <div class="mb-3">
+          <div class="card">
+            <div class="card-header text-white" style="background-color: #06b6d4;">
+              <i class="fas fa-users me-2"></i>Asignación
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Cliente</label>
+                  <input type="text" class="form-control" formControlName="cliente_nombre" 
+                         placeholder="Nombre del cliente (opcional)">
+                  <small class="text-muted">Cliente al que pertenece el equipo</small>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Responsable/Técnico</label>
+                  <input type="text" class="form-control" formControlName="responsable_nombre" 
+                         placeholder="Nombre del técnico responsable (opcional)">
+                  <small class="text-muted">Técnico encargado del equipo</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estatus y Observaciones -->
+        <div class="mb-3">
+          <div class="card">
+            <div class="card-header text-white" style="background-color: #10b981;">
+              <i class="fas fa-toggle-on me-2"></i>Estatus
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Estatus</label>
+                  <select class="form-select" formControlName="estatus">
+                    <option *ngFor="let est of estatusEquipo" [value]="est.codigo">
+                      {{est.nombre}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label">Observaciones</label>
+                  <textarea class="form-control" formControlName="observaciones" rows="3" 
+                            placeholder="Notas o comentarios adicionales sobre el equipo"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Características Específicas -->
+        <div formGroupName="caracteristicas">
+          <!-- Fotocopiadoras/Impresoras -->
+          <div *ngIf="esImpresora" class="mb-3">
+            <div class="card">
+              <div class="card-header text-white" style="background-color: #8b5cf6;">
+                <i class="fas fa-print me-2"></i>Características de Impresora/Fotocopiadora
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-3">
+                    <label class="form-label">Contador Actual</label>
+                    <input type="number" class="form-control" formControlName="contador_actual">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Capacidad Bandejas</label>
+                    <input type="text" class="form-control" formControlName="capacidad_bandejas" 
+                           placeholder="Ej: 500 hojas">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Tipo de Consumible</label>
+                    <input type="text" class="form-control" formControlName="tipo_consumible"
+                           placeholder="Ej: Toner, Cartucho">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Rendimiento Toner</label>
+                    <input type="number" class="form-control" formControlName="rendimiento_toner"
+                           placeholder="Copias estimadas">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PC/Laptop -->
+          <div *ngIf="esComputadora" class="mb-3">
+            <div class="card">
+              <div class="card-header text-white" style="background-color: #8b5cf6;">
+                <i class="fas fa-desktop me-2"></i>Características de Computadora
+              </div>
+              <div class="card-body">
+                <div class="row g-3 mb-3">
+                  <div class="col-md-3">
+                    <label class="form-label">Procesador</label>
+                    <input type="text" class="form-control" formControlName="procesador"
+                           placeholder="Ej: Intel Core i5">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">RAM</label>
+                    <input type="text" class="form-control" formControlName="ram"
+                           placeholder="Ej: 8GB DDR4">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Almacenamiento</label>
+                    <input type="text" class="form-control" formControlName="almacenamiento"
+                           placeholder="Ej: 256GB SSD">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Sistema Operativo</label>
+                    <input type="text" class="form-control" formControlName="sistema_operativo"
+                           placeholder="Ej: Windows 11">
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Dirección IP</label>
+                    <input type="text" class="form-control" formControlName="direccion_ip"
+                           placeholder="192.168.1.100">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monitor -->
+          <div *ngIf="esMonitor" class="mb-3">
+            <div class="card">
+              <div class="card-header text-white" style="background-color: #8b5cf6;">
+                <i class="fas fa-tv me-2"></i>Características de Monitor
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Tamaño (pulgadas)</label>
+                    <input type="number" class="form-control" formControlName="tamano_pulgadas"
+                           placeholder="24">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Tipo de Panel</label>
+                    <input type="text" class="form-control" formControlName="tipo_panel"
+                           placeholder="Ej: IPS, LED">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Resolución</label>
+                    <input type="text" class="form-control" formControlName="resolucion"
+                           placeholder="1920x1080">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="d-flex gap-2 justify-content-end mt-4">
+          <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="loading">
+            <i class="fas fa-times me-2"></i>Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading || form.invalid">
+            <i class="fas fa-save me-2"></i>
+            <span *ngIf="!loading">{{isEdit ? 'Actualizar' : 'Guardar'}}</span>
+            <span *ngIf="loading">
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

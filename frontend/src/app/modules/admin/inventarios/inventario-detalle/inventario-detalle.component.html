@@ -1,0 +1,359 @@
+<div class="container-fluid" *ngIf="inventario">
+  <!-- Encabezado -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h4 class="mb-1">
+                <i [class]="getTipoIcon(inventario.tipo) + ' me-2'"></i>
+                {{inventario.nombre}}
+              </h4>
+              <p class="text-muted mb-0">
+                <small>SKU: {{inventario.codigo_sku || 'N/A'}}</small>
+                <span class="mx-2">|</span>
+                <small>Categoría: {{inventario.categoria}}</small>
+                <span class="mx-2" *ngIf="inventario.marca">|</span>
+                <small *ngIf="inventario.marca">{{inventario.marca}} {{inventario.modelo}}</small>
+              </p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-warning btn-sm" (click)="onEditar()">
+                <i class="fas fa-edit me-1"></i> Editar
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="onVolver()">
+                <i class="fas fa-arrow-left me-1"></i> Volver
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tarjetas de resumen -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="text-muted mb-1">Existencia Actual</h6>
+          <h3 class="mb-0">
+            <span [class]="getStockBadge(inventario)">
+              {{formatQuantity(inventario.existencia_actual)}} {{inventario.unidad_medida}}
+            </span>
+          </h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="text-muted mb-1">Stock Mínimo</h6>
+          <h4 class="mb-0">{{formatQuantity(inventario.stock_minimo)}} {{inventario.unidad_medida}}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3" *ngIf="inventario.precio_venta">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="text-muted mb-1">Precio de Venta</h6>
+          <h4 class="mb-0 text-success">{{formatCurrency(inventario.precio_venta)}}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3" *ngIf="inventario.ubicacion_fisica">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="text-muted mb-1">Ubicación</h6>
+          <p class="mb-0"><i class="fas fa-map-marker-alt me-1"></i>{{inventario.ubicacion_fisica}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pestañas -->
+  <div class="row">
+    <div class="col-12">
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+          <a class="nav-link" 
+             [class.active]="activeTab === 'info'" 
+             (click)="setActiveTab('info')"
+             style="cursor: pointer;">
+            <i class="fas fa-info-circle me-1"></i> Información
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" 
+             [class.active]="activeTab === 'caracteristicas'" 
+             (click)="setActiveTab('caracteristicas')"
+             style="cursor: pointer;">
+            <i class="fas fa-sliders-h me-1"></i> Características
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" 
+             [class.active]="activeTab === 'movimientos'" 
+             (click)="setActiveTab('movimientos')"
+             style="cursor: pointer;">
+            <i class="fas fa-exchange-alt me-1"></i> Movimientos
+          </a>
+        </li>
+      </ul>
+
+      <!-- Tab: Información -->
+      <div class="card mb-4" *ngIf="activeTab === 'info'">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6 class="text-muted">Tipo de Artículo</h6>
+              <p class="mb-0">
+                <i [class]="getTipoIcon(inventario.tipo) + ' me-2'"></i>
+                {{formatLabel(inventario.tipo)}}
+              </p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6 class="text-muted">Categoría</h6>
+              <p class="mb-0">{{inventario.categoria}}</p>
+            </div>
+            <div class="col-md-12 mb-3" *ngIf="inventario.descripcion">
+              <h6 class="text-muted">Descripción</h6>
+              <p class="mb-0">{{inventario.descripcion}}</p>
+            </div>
+            <div class="col-md-6 mb-3" *ngIf="inventario.precio_compra">
+              <h6 class="text-muted">Precio de Compra</h6>
+              <p class="mb-0">{{formatCurrency(inventario.precio_compra)}}</p>
+            </div>
+            <div class="col-md-6 mb-3" *ngIf="inventario.costo_promedio">
+              <h6 class="text-muted">Costo Promedio</h6>
+              <p class="mb-0">{{formatCurrency(inventario.costo_promedio)}}</p>
+            </div>
+            <div class="col-md-6 mb-3" *ngIf="inventario.stock_maximo">
+              <h6 class="text-muted">Stock Máximo</h6>
+              <p class="mb-0">{{formatQuantity(inventario.stock_maximo)}} {{inventario.unidad_medida}}</p>
+            </div>
+            <div class="col-md-6 mb-3" *ngIf="inventario.proveedor_nombre">
+              <h6 class="text-muted">Proveedor</h6>
+              <p class="mb-0">{{inventario.proveedor_nombre}}</p>
+            </div>
+            <div class="col-md-12 mb-3" *ngIf="inventario.observaciones">
+              <h6 class="text-muted">Observaciones</h6>
+              <p class="mb-0">{{inventario.observaciones}}</p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6 class="text-muted">Fecha de Alta</h6>
+              <p class="mb-0">{{formatDate(inventario.fecha_alta)}}</p>
+            </div>
+            <div class="col-md-6 mb-3" *ngIf="inventario.fecha_modificacion">
+              <h6 class="text-muted">Última Modificación</h6>
+              <p class="mb-0">{{formatDate(inventario.fecha_modificacion)}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Características -->
+      <div class="card mb-4" *ngIf="activeTab === 'caracteristicas'">
+        <div class="card-header" style="background-color: #0d6efd; color: white;">
+          <i class="fas fa-sliders-h me-2"></i>Características del Producto
+        </div>
+        <div class="card-body">
+          <div *ngIf="!inventario.caracteristicas || Object.keys(inventario.caracteristicas).length === 0" class="text-center py-4 text-muted">
+            <i class="fas fa-inbox fa-3x mb-2 opacity-25"></i>
+            <p class="mb-0">No hay características registradas</p>
+            <small>Las características se definen en los campos personalizados de la categoría</small>
+          </div>
+          <div class="row" *ngIf="inventario.caracteristicas && Object.keys(inventario.caracteristicas).length > 0">
+            <div class="col-md-4 mb-3" *ngFor="let key of Object.keys(inventario.caracteristicas)">
+              <div class="card border-primary">
+                <div class="card-body">
+                  <h6 class="text-primary mb-2">
+                    <i class="fas fa-tag me-1"></i>{{formatLabel(key)}}
+                  </h6>
+                  <p class="mb-0 fw-bold">{{inventario.caracteristicas[key] || 'No especificado'}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Movimientos -->
+      <div class="card mb-4" *ngIf="activeTab === 'movimientos'">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Historial de Movimientos</h6>
+            <button class="btn btn-primary btn-sm" (click)="toggleMovimientoForm()">
+              <i [class]="showMovimientoForm ? 'fas fa-times' : 'fas fa-plus'"></i>
+              {{showMovimientoForm ? 'Cancelar' : 'Nuevo Movimiento'}}
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Formulario de nuevo movimiento -->
+          <div class="alert alert-light border" *ngIf="showMovimientoForm">
+            <h6 class="mb-3">Registrar Movimiento</h6>
+            <form #movForm="ngForm">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Tipo de Movimiento <span class="text-danger">*</span></label>
+                  <select class="form-select" 
+                          [(ngModel)]="movimientoForm.tipo_movimiento" 
+                          name="tipo_movimiento"
+                          (change)="onTipoMovimientoChange()"
+                          required>
+                    <option value="">Seleccione...</option>
+                    <option *ngFor="let tipo of tiposMovimiento" [value]="tipo.value">
+                      {{tipo.label}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Concepto <span class="text-danger">*</span></label>
+                  <select class="form-select" 
+                          [(ngModel)]="movimientoForm.concepto" 
+                          name="concepto"
+                          required
+                          [disabled]="!movimientoForm.tipo_movimiento">
+                    <option value="">Seleccione...</option>
+                    <option *ngFor="let concepto of getConceptosDisponibles()" [value]="concepto.value">
+                      {{concepto.label}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Cantidad <span class="text-danger">*</span></label>
+                  <input type="number" 
+                         class="form-control" 
+                         [(ngModel)]="movimientoForm.cantidad"
+                         name="cantidad"
+                         min="0.01"
+                         step="0.01"
+                         required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Unidad</label>
+                  <input type="text" 
+                         class="form-control" 
+                         [value]="inventario.unidad_medida"
+                         disabled>
+                </div>
+                <div class="col-md-12 mb-3">
+                  <label class="form-label">Notas</label>
+                  <textarea class="form-control" 
+                            [(ngModel)]="movimientoForm.notas"
+                            name="notas"
+                            rows="2"></textarea>
+                </div>
+                <div class="col-md-12">
+                  <button type="button" 
+                          class="btn btn-primary" 
+                          (click)="onGuardarMovimiento()"
+                          [disabled]="!movForm.form.valid || loading">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                    <i *ngIf="!loading" class="fas fa-save me-1"></i>
+                    Guardar Movimiento
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tabla de movimientos -->
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Fecha</th>
+                  <th>Tipo</th>
+                  <th>Concepto</th>
+                  <th>Cantidad</th>
+                  <th>Saldo Anterior</th>
+                  <th>Saldo Nuevo</th>
+                  <th>Usuario</th>
+                  <th>Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="movimientosLoading">
+                  <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                  </td>
+                </tr>
+                <tr *ngIf="!movimientosLoading && movimientos.length === 0">
+                  <td colspan="8" class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-3x mb-2 opacity-25"></i>
+                    <p class="mb-0">No hay movimientos registrados</p>
+                  </td>
+                </tr>
+                <tr *ngFor="let mov of movimientos">
+                  <td>
+                    <small>{{formatDate(mov.fecha_movimiento)}}</small>
+                  </td>
+                  <td>
+                    <span [class]="getTipoMovimientoClass(mov.tipo_movimiento)">
+                      <i [class]="getTipoMovimientoIcon(mov.tipo_movimiento) + ' me-1'"></i>
+                      {{getTipoMovimientoLabel(mov.tipo_movimiento)}}
+                    </span>
+                  </td>
+                  <td>
+                    <small>{{getConceptoLabel(mov.concepto)}}</small>
+                  </td>
+                  <td>
+                    <strong>{{formatQuantity(mov.cantidad)}} {{inventario.unidad_medida}}</strong>
+                  </td>
+                  <td>
+                    <small>{{formatQuantity(mov.saldo_anterior)}} {{inventario.unidad_medida}}</small>
+                  </td>
+                  <td>
+                    <small>{{formatQuantity(mov.saldo_nuevo)}} {{inventario.unidad_medida}}</small>
+                  </td>
+                  <td>
+                    <small>{{mov.usuario_nombre || 'N/A'}}</small>
+                  </td>
+                  <td>
+                    <small class="text-muted">{{mov.notas || '-'}}</small>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginación de movimientos -->
+          <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="movimientosTotal > 0">
+            <div>
+              <small class="text-muted">
+                Mostrando {{((movimientosPage - 1) * movimientosLimit) + 1}} a {{Math.min(movimientosPage * movimientosLimit, movimientosTotal)}} de {{movimientosTotal}} movimientos
+              </small>
+            </div>
+            <nav aria-label="Page navigation">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" [class.disabled]="movimientosPage === 1">
+                  <a class="page-link" (click)="goMovimientos(movimientosPage - 1)" style="cursor: pointer;">&laquo;</a>
+                </li>
+                <li class="page-item active">
+                  <a class="page-link">{{movimientosPage}}</a>
+                </li>
+                <li class="page-item" [class.disabled]="movimientosPage === movimientosPages">
+                  <a class="page-link" (click)="goMovimientos(movimientosPage + 1)" style="cursor: pointer;">&raquo;</a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="text-center py-5" *ngIf="!inventario && !loading">
+  <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+  <h5>Artículo no encontrado</h5>
+  <button class="btn btn-primary mt-3" (click)="onVolver()">Volver al listado</button>
+</div>
+
+<div class="text-center py-5" *ngIf="loading">
+  <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+  <p class="mt-3 text-muted">Cargando información...</p>
+</div>

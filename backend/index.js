@@ -26,6 +26,9 @@ const clientesRoutes = require('./routes/clientes');
 const empleadosRoutes = require('./routes/empleados');
 const catalogosRoutes = require('./routes/catalogos');
 const proveedoresRoutes = require('./routes/proveedores');
+const equiposRoutes = require('./routes/equipos');
+const catalogosEquiposRoutes = require('./routes/catalogos-equipos');
+const inventariosRoutes = require('./routes/inventarios');
 
 // Configuración del servidor Express
 const app = express();
@@ -52,7 +55,7 @@ const corsOptions = {
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   optionsSuccessStatus: 204,
 };
@@ -83,6 +86,9 @@ app.use('/api/clientes', clientesRoutes);
 app.use('/api/empleados', empleadosRoutes);
 app.use('/api/catalogos', catalogosRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
+app.use('/api/equipos', equiposRoutes);
+app.use('/api/catalogos-equipos', catalogosEquiposRoutes);
+app.use('/api/inventarios', inventariosRoutes);
 
 /**
  * Endpoint raíz - Información del API
@@ -92,7 +98,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'SuperCopias API',
     version: '1.0.0',
-    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores'],
+    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores', '/api/equipos', '/api/catalogos-equipos', '/api/inventarios'],
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -120,7 +126,7 @@ app.use('*', (req, res) => {
     method: req.method,
     url: req.originalUrl,
     timestamp: timestamp,
-    availableEndpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores'],
+    availableEndpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores', '/api/equipos'],
     message: 'Esta es una API REST. Para la aplicación web, visita el frontend desplegado.'
   });
 });
@@ -179,6 +185,7 @@ async function startServer() {
       console.log('  • GET  /api/empleados/* - Employees Management');
       console.log('  • GET  /api/catalogos/* - Catalogs');
       console.log('  • GET  /api/proveedores/* - Suppliers');
+      console.log('  • GET  /api/equipos/* - Equipment Management');
       console.log('='.repeat(60));
       console.log('✅ Sistema listo para recibir peticiones');
       console.log('='.repeat(60));

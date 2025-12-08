@@ -1,0 +1,294 @@
+<div class="container-fluid">
+  <!-- Alertas de Mantenimiento -->
+  <div class="row mb-4" *ngIf="mostrarAlertas && alertas && alertas.length > 0">
+    <div class="col-12">
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <h6 class="alert-heading">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Alertas de Mantenimiento Preventivo ({{alertas.length}})
+        </h6>
+        <div class="row g-3 mt-2">
+          <div class="col-12 col-md-6 col-lg-4" *ngFor="let alerta of alertas">
+            <div class="card border-start border-4" 
+                 [class.border-danger]="alerta.estado_alerta === 'vencido'"
+                 [class.border-warning]="alerta.estado_alerta === 'urgente'"
+                 [class.border-info]="alerta.estado_alerta === 'proximo'">
+              <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 small">{{alerta.nombre_equipo}}</h6>
+                    <p class="mb-1 text-muted small">
+                      <i class="fas fa-laptop me-1"></i>{{alerta.marca}} {{alerta.modelo}}
+                    </p>
+                    <p class="mb-0 small">
+                      <i class="fas fa-calendar me-1"></i>
+                      <span *ngIf="alerta.estado_alerta === 'vencido'" class="text-danger">
+                        <strong>¡Vencido!</strong> Hace {{Math.abs(alerta.dias_restantes)}} días
+                      </span>
+                      <span *ngIf="alerta.estado_alerta === 'urgente'" class="text-warning">
+                        <strong>Urgente:</strong> En {{alerta.dias_restantes}} días
+                      </span>
+                      <span *ngIf="alerta.estado_alerta === 'proximo'" class="text-info">
+                        Próximo: En {{alerta.dias_restantes}} días
+                      </span>
+                    </p>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary ms-2" 
+                          (click)="onVerAlerta(alerta)"
+                          title="Ver detalles">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="ocultarAlertas()" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Equipos -->
+  <div class="card mb-4">
+  <div class="card-header">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+      <h5 class="mb-0">Equipos</h5>
+      <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+        <div class="input-group" style="min-width: 250px; max-width: 400px;">
+          <input class="form-control" 
+                 placeholder="Buscar por marca, modelo, serie..." 
+                 [(ngModel)]="searchTerm" 
+                 (keyup.enter)="onSearch()"
+                 [disabled]="loading" />
+          <button class="btn btn-outline-secondary" 
+                  type="button" 
+                  (click)="onSearch()"
+                  [disabled]="loading"
+                  title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
+          <button class="btn btn-outline-secondary" 
+                  type="button" 
+                  (click)="onClearSearch()"
+                  [disabled]="loading"
+                  *ngIf="searchTerm"
+                  title="Limpiar búsqueda">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="d-flex gap-2">
+          <a class="btn btn-primary btn-sm d-flex align-items-center" (click)="onNuevo()" style="cursor: pointer;">
+            <i class="fas fa-plus d-none d-sm-inline"></i>
+            <span class="ms-0 ms-sm-1">Nuevo</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <!-- Filtros -->
+    <div class="row g-2 mb-3">
+      <div class="col-md-6">
+        <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()" (focus)="loadCatalogos()">
+          <option value="">Todos los tipos</option>
+          <option *ngFor="let tipo of tiposEquipo" [value]="tipo.codigo">{{tipo.nombre}}</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus" (change)="onFilterChange()" (focus)="loadCatalogos()">
+          <option value="">Todos los estatus</option>
+          <option *ngFor="let est of estatusEquipo" [value]="est.codigo">{{est.nombre}}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabla para pantallas grandes -->
+    <div class="table-responsive d-none d-lg-block">
+      <table class="table table-hover table-sm">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>NOMBRE</th>
+            <th>TIPO</th>
+            <th>MARCA/MODELO</th>
+            <th>SERIE</th>
+            <th>UBICACIÓN</th>
+            <th>CLIENTE</th>
+            <th>ESTATUS</th>
+            <th>ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="9" class="text-center py-3">
+              <i class="fas fa-spinner fa-spin me-2"></i>Cargando...
+            </td>
+          </tr>
+          <tr *ngIf="!loading && equipos.length === 0">
+            <td colspan="9" class="text-center py-3 text-muted">
+              <i class="fas fa-inbox me-2"></i>No se encontraron equipos
+            </td>
+          </tr>
+          <tr *ngFor="let equipo of equipos">
+            <td>{{equipo.id}}</td>
+            <td>
+              <strong>{{equipo.nombre_equipo || '-'}}</strong>
+            </td>
+            <td>
+              <span class="badge bg-primary">{{getTipoNombre(equipo.tipo_equipo)}}</span>
+            </td>
+            <td>
+              <strong>{{equipo.marca || 'Sin marca'}}</strong><br>
+              <small class="text-muted">{{equipo.modelo || 'Sin modelo'}}</small>
+            </td>
+            <td>
+              <small class="font-monospace">{{equipo.numero_serie || '-'}}</small>
+            </td>
+            <td>{{equipo.area_ubicacion || '-'}}</td>
+            <td>
+              <small>{{equipo.cliente_nombre || '-'}}</small>
+            </td>
+            <td>
+              <span [ngClass]="getEstatusClass(equipo.estatus)">
+                {{getEstatusNombre(equipo.estatus)}}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-primary btn-sm" (click)="onVer(equipo)" title="Ver detalles">
+                  <i class="fas fa-info-circle"></i>
+                </button>
+                <button class="btn btn-outline-warning btn-sm" (click)="onEditar(equipo)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="onEliminar(equipo)" title="Desactivar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Vista de cards para pantallas pequeñas -->
+    <div class="d-lg-none">
+      <div class="row g-3" *ngFor="let equipo of equipos">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-3">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="flex-shrink-0 me-3">
+                      <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                           style="width: 40px; height: 40px; border-radius: 50%; font-weight: bold;">
+                        <i class="fas fa-desktop"></i>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0 fw-bold">{{equipo.nombre_equipo || 'Sin nombre'}}</h6>
+                      <small class="text-muted">ID: {{equipo.id}}</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                      <span [ngClass]="getEstatusClass(equipo.estatus)">
+                        {{getEstatusNombre(equipo.estatus)}}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <small class="text-muted d-block">Tipo</small>
+                      <span class="badge bg-primary">{{getTipoNombre(equipo.tipo_equipo)}}</span>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted d-block">Marca</small>
+                      <span class="fw-medium">{{equipo.marca || 'N/A'}}</span>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted d-block">Modelo</small>
+                      <span class="fw-medium">{{equipo.modelo || 'N/A'}}</span>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted d-block">Serie</small>
+                      <span class="fw-medium font-monospace small">{{equipo.numero_serie || 'N/A'}}</span>
+                    </div>
+                  </div>
+
+                  <div class="mb-2" *ngIf="equipo.area_ubicacion">
+                    <small class="text-muted d-block">
+                      <i class="fas fa-map-marker-alt me-1"></i>Ubicación
+                    </small>
+                    <span>{{equipo.area_ubicacion}}</span>
+                  </div>
+
+                  <div class="mb-3" *ngIf="equipo.cliente_nombre">
+                    <small class="text-muted d-block">
+                      <i class="fas fa-user me-1"></i>Cliente
+                    </small>
+                    <span>{{equipo.cliente_nombre}}</span>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm flex-fill" (click)="onVer(equipo)">
+                      <i class="fas fa-info-circle me-1"></i>Ver
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm flex-fill" (click)="onEditar(equipo)">
+                      <i class="fas fa-edit me-1"></i>Editar
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" (click)="onEliminar(equipo)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensaje de loading/vacío para móvil -->
+      <div *ngIf="loading" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+        <p class="mt-2 text-muted">Cargando equipos...</p>
+      </div>
+      <div *ngIf="!loading && equipos.length === 0" class="text-center py-5">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <p class="text-muted">No se encontraron equipos</p>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="my-2">
+      <small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</small>
+    </div>
+
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3 gap-2">
+      <div class="small text-muted order-2 order-sm-1">Mostrando {{total}} equipos</div>
+      <nav aria-label="paginacion" class="order-1 order-sm-2">
+        <ul class="pagination pagination-sm mb-0 justify-content-center">
+          <li class="page-item" [class.disabled]="page===1">
+            <a class="page-link" (click)="go(page-1)" style="cursor: pointer;">
+              <span class="d-none d-sm-inline">Anterior</span>
+              <i class="fas fa-chevron-left d-sm-none"></i>
+            </a>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">
+              <span class="d-none d-sm-inline">Página {{page}} / {{pages}}</span>
+              <span class="d-sm-none">{{page}}/{{pages}}</span>
+            </span>
+          </li>
+          <li class="page-item" [class.disabled]="page===pages">
+            <a class="page-link" (click)="go(page+1)" style="cursor: pointer;">
+              <span class="d-none d-sm-inline">Siguiente</span>
+              <i class="fas fa-chevron-right d-sm-none"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+</div>

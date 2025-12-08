@@ -4,7 +4,6 @@
  */
 
 const { query } = require('../config/database');
-const { nanoid } = require('nanoid');
 const { 
   createResponse, 
   createPaginatedResponse, 
@@ -30,7 +29,7 @@ class ProveedoresController {
       let queryParams = [];
       
       // Incluir inactivos si se solicita
-      if (includeInactive) {
+      if (includeInactive === 'true' || includeInactive === true) {
         baseQuery = baseQuery.replace('WHERE activo = true', 'WHERE 1=1');
         countQuery = countQuery.replace('WHERE activo = true', 'WHERE 1=1');
       }
@@ -38,10 +37,12 @@ class ProveedoresController {
       // Búsqueda por texto
       if (q) {
         const searchCondition = ` AND (
-          LOWER(nombre) LIKE $1 OR
-          LOWER(contacto) LIKE $1 OR
+          LOWER(nombre_comercial) LIKE $1 OR
+          LOWER(razon_social) LIKE $1 OR
+          LOWER(nombre_contacto) LIKE $1 OR
           LOWER(email) LIKE $1 OR
-          LOWER(telefono) LIKE $1
+          LOWER(telefono) LIKE $1 OR
+          LOWER(rfc) LIKE $1
         )`;
         baseQuery += searchCondition;
         countQuery += searchCondition;
@@ -49,7 +50,7 @@ class ProveedoresController {
       }
       
       // Agregar ordenamiento y paginación
-      baseQuery += ` ORDER BY nombre ASC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+      baseQuery += ` ORDER BY nombre_comercial ASC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
       queryParams.push(parseInt(limit), offset);
       
       // Ejecutar consultas
@@ -60,20 +61,18 @@ class ProveedoresController {
       
       const proveedores = itemsResult.rows;
       const total = parseInt(countResult.rows[0].count);
-      const totalPages = Math.ceil(total / parseInt(limit));
       
       return res.json(
         createPaginatedResponse(
           proveedores,
           parseInt(page),
-          totalPages,
-          total,
-          'Proveedores obtenidos exitosamente'
+          parseInt(limit),
+          total
         )
       );
       
     } catch (error) {
-
+      console.error('Error en getList proveedores:', error);
       return res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.DATABASE_ERROR,
@@ -115,10 +114,16 @@ class ProveedoresController {
       
       const proveedor = result.rows[0];
       
-      res.json(createResponse(proveedor, 'Proveedor obtenido exitosamente'));
+      res.json(
+        createResponse(
+          true,
+          proveedor,
+          'Proveedor obtenido exitosamente'
+        )
+      );
       
     } catch (error) {
-
+      console.error('Error en getById proveedores:', error);
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.DATABASE_ERROR,
@@ -135,68 +140,92 @@ class ProveedoresController {
   async create(req, res) {
     try {
       const {
-        nombre,
+        nombreComercial,
+        razonSocial,
         rfc,
-        email,
-        telefono,
-        direccion,
-        codigoPostal,
-        ciudad,
-        estado,
-        contacto,
         tipoProveedor,
-        condicionesPago,
+        nombreContacto,
+        telefono,
+        email,
+        paginaWeb,
+        direccion,
+        metodoPagoPrincipal,
+        cuentaBancaria,
+        diasCredito,
         notas
       } = req.body;
       
       // Validación básica
-      if (!nombre || !rfc) {
+      if (!nombreComercial || nombreComercial.trim().length === 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.REQUIRED_FIELD,
-            'Nombre y RFC son requeridos'
+            'El nombre comercial es requerido'
           )
         );
       }
       
-      // Verificar RFC único en PostgreSQL
-      const existingResult = await query(
-        'SELECT id FROM proveedores WHERE rfc = $1 AND activo = true',
-        [rfc]
-      );
+      // Convertir clave de tipo a descripción para la BD
+      const mapeoTipos = {
+        'PRODUCTOS': 'Productos',
+        'SERVICIOS': 'Servicios',
+        'MIXTO': 'Mixto'
+      };
+      const tipoParaBD = mapeoTipos[tipoProveedor] || tipoProveedor || 'Mixto';
       
-      if (existingResult.rows.length > 0) {
-        return res.status(422).json(
-          createErrorResponse(
-            CODIGOS_ERROR.ALREADY_EXISTS,
-            'Ya existe un proveedor con este RFC'
-          )
+      // Convertir clave de método de pago a descripción
+      const mapeoMetodos = {
+        'EFECTIVO': 'Efectivo',
+        'TRANSFERENCIA': 'Transferencia',
+        'CHEQUE': 'Cheque',
+        'TARJETA_CREDITO': 'Tarjeta de crédito',
+        'TARJETA_DEBITO': 'Tarjeta de débito',
+        'OTRO': 'Otro'
+      };
+      const metodoParaBD = metodoPagoPrincipal ? (mapeoMetodos[metodoPagoPrincipal] || metodoPagoPrincipal) : null;
+      
+      // Verificar RFC único en PostgreSQL si se proporciona
+      if (rfc && rfc.trim().length > 0) {
+        const existingResult = await query(
+          'SELECT id FROM proveedores WHERE rfc = $1 AND activo = true',
+          [rfc.toUpperCase()]
         );
+        
+        if (existingResult.rows.length > 0) {
+          return res.status(422).json(
+            createErrorResponse(
+              CODIGOS_ERROR.ALREADY_EXISTS,
+              'Ya existe un proveedor con este RFC'
+            )
+          );
+        }
       }
       
       // Insertar en PostgreSQL
       const insertQuery = `
         INSERT INTO proveedores (
-          nombre, rfc, email, telefono, direccion, codigo_postal,
-          ciudad, estado, contacto, tipo_proveedor, condiciones_pago,
-          notas, activo, fecha_registro, fecha_modificacion
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, NOW(), NULL)
+          nombre_comercial, razon_social, rfc, tipo_proveedor, activo,
+          nombre_contacto, telefono, email, pagina_web, direccion,
+          metodo_pago_principal, cuenta_bancaria, dias_credito, notas,
+          fecha_registro, fecha_modificacion
+        ) VALUES ($1, $2, $3, $4, true, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
         RETURNING *
       `;
       
       const values = [
-        nombre,
-        rfc,
-        email || null,
-        telefono || null,
-        direccion || null,
-        codigoPostal || null,
-        ciudad || null,
-        estado || null,
-        contacto || null,
-        tipoProveedor || 'Servicios',
-        condicionesPago || 'Contado',
-        notas || null
+        nombreComercial.trim(),
+        razonSocial?.trim() || null,
+        rfc?.toUpperCase().trim() || null,
+        tipoParaBD,
+        nombreContacto?.trim() || null,
+        telefono?.trim() || null,
+        email?.trim() || null,
+        paginaWeb?.trim() || null,
+        direccion?.trim() || null,
+        metodoParaBD,
+        cuentaBancaria?.trim() || null,
+        diasCredito || 0,
+        notas?.trim() || null
       ];
       
       const result = await query(insertQuery, values);
@@ -204,13 +233,14 @@ class ProveedoresController {
       
       res.status(201).json(
         createResponse(
+          true,
           nuevoProveedor,
           'Proveedor creado correctamente'
         )
       );
       
     } catch (error) {
-
+      console.error('Error en create proveedores:', error);
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -258,10 +288,10 @@ class ProveedoresController {
       const proveedorActual = existeResult.rows[0];
       
       // Si se actualiza RFC, verificar que sea único
-      if (updateData.rfc && updateData.rfc !== proveedorActual.rfc) {
+      if (updateData.rfc && updateData.rfc.toUpperCase() !== proveedorActual.rfc) {
         const rfcDuplicado = await query(
           'SELECT id FROM proveedores WHERE rfc = $1 AND id != $2 AND activo = true',
-          [updateData.rfc, proveedorId]
+          [updateData.rfc.toUpperCase(), proveedorId]
         );
         
         if (rfcDuplicado.rows.length > 0) {
@@ -280,27 +310,82 @@ class ProveedoresController {
       let paramIndex = 1;
       
       const camposPermitidos = [
-        'nombre', 'rfc', 'email', 'telefono', 'direccion', 'codigo_postal',
-        'ciudad', 'estado', 'contacto', 'tipo_proveedor', 'condiciones_pago',
-        'notas', 'activo'
+        'nombre_comercial', 'razon_social', 'rfc', 'tipo_proveedor', 'activo',
+        'nombre_contacto', 'telefono', 'email', 'pagina_web', 'direccion',
+        'metodo_pago_principal', 'cuenta_bancaria', 'dias_credito', 'notas'
       ];
       
       // Mapeo de campos camelCase a snake_case
       const camposMapa = {
-        'codigoPostal': 'codigo_postal',
+        'nombreComercial': 'nombre_comercial',
+        'razonSocial': 'razon_social',
         'tipoProveedor': 'tipo_proveedor',
-        'condicionesPago': 'condiciones_pago'
+        'nombreContacto': 'nombre_contacto',
+        'paginaWeb': 'pagina_web',
+        'metodoPagoPrincipal': 'metodo_pago_principal',
+        'cuentaBancaria': 'cuenta_bancaria',
+        'diasCredito': 'dias_credito'
       };
       
       Object.keys(updateData).forEach(campo => {
-        const campoDb = camposMapa[campo] || campo.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        let campoDb = camposMapa[campo] || campo;
+        
+        // Convertir camelCase a snake_case si no está en el mapa
+        if (!camposMapa[campo]) {
+          campoDb = campo.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        }
         
         if (camposPermitidos.includes(campoDb) && updateData[campo] !== undefined) {
+          let valor = updateData[campo];
+          
+          // Trimming y conversión de valores
+          if (typeof valor === 'string') {
+            valor = valor.trim();
+            if (valor === '') valor = null;
+          }
+          
+          // RFC siempre en mayúsculas
+          if (campoDb === 'rfc' && valor) {
+            valor = valor.toUpperCase();
+          }
+          
+          // Convertir clave de tipo a descripción para la BD
+          if (campoDb === 'tipo_proveedor' && valor) {
+            const mapeoTipos = {
+              'PRODUCTOS': 'Productos',
+              'SERVICIOS': 'Servicios',
+              'MIXTO': 'Mixto'
+            };
+            valor = mapeoTipos[valor] || valor;
+          }
+          
+          // Convertir clave de método de pago a descripción
+          if (campoDb === 'metodo_pago_principal' && valor) {
+            const mapeoMetodos = {
+              'EFECTIVO': 'Efectivo',
+              'TRANSFERENCIA': 'Transferencia',
+              'CHEQUE': 'Cheque',
+              'TARJETA_CREDITO': 'Tarjeta de crédito',
+              'TARJETA_DEBITO': 'Tarjeta de débito',
+              'OTRO': 'Otro'
+            };
+            valor = mapeoMetodos[valor] || valor;
+          }
+          
           camposUpdate.push(`${campoDb} = $${paramIndex}`);
-          valoresUpdate.push(updateData[campo]);
+          valoresUpdate.push(valor);
           paramIndex++;
         }
       });
+      
+      if (camposUpdate.length === 0) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.INVALID_DATA,
+            'No se proporcionaron campos para actualizar'
+          )
+        );
+      }
       
       // Agregar fecha de modificación
       camposUpdate.push(`fecha_modificacion = NOW()`);
@@ -320,13 +405,14 @@ class ProveedoresController {
       
       res.json(
         createResponse(
+          true,
           proveedorActualizado,
           'Proveedor actualizado correctamente'
         )
       );
       
     } catch (error) {
-
+      console.error('Error en update proveedores:', error);
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -378,13 +464,14 @@ class ProveedoresController {
       
       res.json(
         createResponse(
+          true,
           { id: proveedorId, activo: false },
           'Proveedor desactivado correctamente'
         )
       );
       
     } catch (error) {
-
+      console.error('Error en delete proveedores:', error);
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -396,30 +483,28 @@ class ProveedoresController {
 
   /**
    * Obtener catálogo de tipos de proveedor
-   * GET /api/proveedores/tipos
+   * GET /api/proveedores/catalogo/tipos
    */
   async getTipos(req, res) {
     try {
-      const tipos = [
-        'Servicios',
-        'Productos',
-        'Mantenimiento',
-        'Suministros',
-        'Tecnología',
-        'Capacitación',
-        'Consultoría',
-        'Otros'
-      ];
+      const result = await query(
+        `SELECT id, clave AS value, descripcion AS label 
+         FROM cat_tipos_proveedor 
+         WHERE activo = true 
+         ORDER BY orden ASC`,
+        []
+      );
       
       res.json(
         createResponse(
-          tipos,
+          true,
+          result.rows,
           'Tipos de proveedor obtenidos correctamente'
         )
       );
       
     } catch (error) {
-
+      console.error('Error en getTipos:', error);
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,
@@ -430,31 +515,29 @@ class ProveedoresController {
   }
 
   /**
-   * Obtener catálogo de condiciones de pago
-   * GET /api/proveedores/condiciones-pago
+   * Obtener catálogo de métodos de pago
+   * GET /api/proveedores/catalogo/metodos-pago
    */
-  async getCondicionesPago(req, res) {
+  async getMetodosPago(req, res) {
     try {
-      const condiciones = [
-        'Contado',
-        '15 días',
-        '30 días',
-        '45 días',
-        '60 días',
-        '90 días',
-        'Contra entrega',
-        'Anticipado'
-      ];
+      const result = await query(
+        `SELECT id, clave AS value, descripcion AS label 
+         FROM cat_metodos_pago_proveedor 
+         WHERE activo = true 
+         ORDER BY orden ASC`,
+        []
+      );
       
       res.json(
         createResponse(
-          condiciones,
-          'Condiciones de pago obtenidas correctamente'
+          true,
+          result.rows,
+          'Métodos de pago obtenidos correctamente'
         )
       );
       
     } catch (error) {
-
+      console.error('Error en getMetodosPago:', error);
       res.status(500).json(
         createErrorResponse(
           CODIGOS_ERROR.INTERNAL_ERROR,

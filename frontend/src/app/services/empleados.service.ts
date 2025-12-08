@@ -7,7 +7,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, shareReplay } from 'rxjs/operators';
 import { 
   ApiResponse, 
   Empleado, 
@@ -22,6 +22,10 @@ import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class EmpleadosService {
   private baseUrl = `${environment.apiUrl}/empleados`;
+  
+  // Caché para catálogos estáticos
+  private puestosCache$: Observable<ApiResponse<string[]>> | null = null;
+  private modulosCache$: Observable<ApiResponse<any[]>> | null = null;
   
   constructor(private http: HttpClient) {}
 
@@ -118,23 +122,43 @@ export class EmpleadosService {
   }
 
   /**
-   * Obtener catálogo de puestos
+   * Obtener catálogo de puestos con caché
    */
-  getPuestos(): Observable<ApiResponse<string[]>> {
-    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/puestos`)
+  getPuestos(forceRefresh = false): Observable<ApiResponse<string[]>> {
+    if (!forceRefresh && this.puestosCache$) {
+      return this.puestosCache$;
+    }
+    
+    this.puestosCache$ = this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/puestos`)
       .pipe(
-        catchError(this.handleError.bind(this))
+        shareReplay({ bufferSize: 1, refCount: true }),
+        catchError(err => {
+          this.puestosCache$ = null;
+          return this.handleError(err);
+        })
       );
+    
+    return this.puestosCache$;
   }
 
   /**
-   * Obtener catálogo de módulos del sistema
+   * Obtener catálogo de módulos del sistema con caché
    */
-  getModulos(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/modulos`)
+  getModulos(forceRefresh = false): Observable<ApiResponse<any[]>> {
+    if (!forceRefresh && this.modulosCache$) {
+      return this.modulosCache$;
+    }
+    
+    this.modulosCache$ = this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/modulos`)
       .pipe(
-        catchError(this.handleError.bind(this))
+        shareReplay({ bufferSize: 1, refCount: true }),
+        catchError(err => {
+          this.modulosCache$ = null;
+          return this.handleError(err);
+        })
       );
+    
+    return this.modulosCache$;
   }
 
   // ============================================================================

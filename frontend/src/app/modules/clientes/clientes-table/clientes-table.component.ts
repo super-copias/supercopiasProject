@@ -16,18 +16,19 @@ export class ClientesTableComponent {
   selectedCliente: any = null;
   showDetalles = false;
   usosCFDI: any[] = [];
+  catalogosCargados = false;
 
   constructor(
     private notificationService: NotificationService,
     private catalogosService: CatalogosService
-  ) {
-    this.cargarUsosCFDI();
-  }
+  ) {}
 
   cargarUsosCFDI() {
+    if (this.catalogosCargados) return;
     this.catalogosService.getUsosCFDI().subscribe({
       next: (usos) => {
         this.usosCFDI = usos;
+        this.catalogosCargados = true;
       },
       error: (error) => {
         console.error('Error al cargar usos CFDI:', error);
@@ -52,6 +53,8 @@ export class ClientesTableComponent {
   verDetalles(cliente: any) {
     this.selectedCliente = cliente;
     this.showDetalles = true;
+    // Cargar catálogos solo cuando se necesiten
+    this.cargarUsosCFDI();
     // Prevenir scroll del body cuando el modal está abierto
     document.body.style.overflow = 'hidden';
   }
@@ -68,7 +71,7 @@ export class ClientesTableComponent {
   }
 
   eliminarCliente(cliente: any) {
-    const nombreCliente = cliente.nombre || 'este cliente';
+    const nombreCliente = cliente.nombreComercial || 'este cliente';
     if (confirm(`¿Desea desactivar a "${nombreCliente}"?\n\nEl cliente se marcará como inactivo.`)) {
       this.eliminar.emit(cliente);
     }
@@ -127,7 +130,7 @@ export class ClientesTableComponent {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Información del Cliente - ${cliente.nombre}</title>
+        <title>Información del Cliente - ${cliente.nombreComercial}</title>
         <style>
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -237,8 +240,8 @@ export class ClientesTableComponent {
               <div class="info-value">${cliente.id}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Nombre:</div>
-              <div class="info-value">${cliente.nombre}</div>
+              <div class="info-label">Nombre Comercial:</div>
+              <div class="info-value">${cliente.nombreComercial}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Teléfono:</div>
@@ -274,23 +277,23 @@ export class ClientesTableComponent {
             </div>
             <div class="info-row">
               <div class="info-label">Razón Social:</div>
-              <div class="info-value">${cliente.razon || 'No especificada'}</div>
+              <div class="info-value">${cliente.razonSocial || 'No especificada'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Régimen:</div>
-              <div class="info-value">${cliente.regimen || 'No especificado'}</div>
+              <div class="info-value">${cliente.regimenFiscal || 'No especificado'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Dirección de facturación:</div>
-              <div class="info-value">${cliente.direccion || 'No especificada'}</div>
+              <div class="info-value">${cliente.direccionFacturacion || 'No especificada'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Código Postal:</div>
-              <div class="info-value">${cliente.cp || 'No especificado'}</div>
+              <div class="info-value">${cliente.direccionCodigoPostal || 'No especificado'}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Uso CFDI:</div>
-              <div class="info-value">${this.getUsoCFDIDescripcion(cliente.cfdi)}</div>
+              <div class="info-value">${this.getUsoCFDIDescripcion(cliente.usoCfdi)}</div>
             </div>
           </div>
         </div>

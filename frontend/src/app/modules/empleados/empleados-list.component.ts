@@ -113,6 +113,7 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
   mostrarModalDetalle = false;
   empleadoSeleccionado: any = null;
   sucursales: any[] = [];
+  catalogosCargados = false;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -143,7 +144,6 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
     });
 
     // Cargar datos iniciales
-    this.loadCatalogos();
     this.load();
   }
 
@@ -285,15 +285,18 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Cargar catálogos necesarios
+   * Cargar catálogos necesarios (solo la primera vez)
    */
   private loadCatalogos(): void {
+    if (this.catalogosCargados) return;
+    
     this.catalogosService.getSucursales().pipe(
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
         if (response?.success && response.data) {
           this.sucursales = response.data;
+          this.catalogosCargados = true;
         }
       },
       error: (error) => {
@@ -305,6 +308,9 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
    * Mostrar detalle del empleado
    */
   onVerDetalle(empleado: any): void {
+    // Cargar catálogos solo cuando se necesiten
+    this.loadCatalogos();
+    
     // Obtener datos completos del empleado desde el backend
     this.empleadosService.getEmpleado(empleado.id).subscribe({
       next: (response) => {

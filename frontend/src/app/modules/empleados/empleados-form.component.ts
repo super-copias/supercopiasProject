@@ -450,7 +450,6 @@ export class EmpleadosFormComponent implements OnInit {
           resolve();
         } else if (attempts >= maxAttempts) {
           clearInterval(checkInterval);
-          console.warn('⚠️ Timeout esperando módulos, continuando de todas formas');
           resolve();
         }
       }, 50);

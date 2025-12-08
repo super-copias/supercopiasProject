@@ -8,7 +8,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { Router } from '@angular/router';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, shareReplay } from 'rxjs/operators';
 import { 
   ApiResponse, 
   Usuario, 
@@ -22,6 +22,11 @@ export class AuthService {
   private base = `${environment.apiUrl}/auth`;
   private userSubject = new BehaviorSubject<Usuario | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
+  
+  // Cache para la verificación del token
+  private verifyTokenCache$: Observable<ApiResponse<{ valid: boolean; usuario: Usuario }>> | null = null;
+  private lastVerifyTime = 0;
+  private readonly CACHE_DURATION = 5000; // 5 segundos de caché
   
   // Observables públicos para que los componentes puedan suscribirse
   user$ = this.userSubject.asObservable();
@@ -84,13 +89,26 @@ export class AuthService {
   }
 
   /**
-   * Verificar token actual
+   * Verificar token actual con caché
    * Endpoint: GET /api/auth/verify
    * 
+   * Implementa un sistema de caché para evitar múltiples llamadas HTTP
+   * cuando varios guards verifican el token en la misma navegación
+   * 
+   * @param forceRefresh - Forzar nueva petición HTTP ignorando el caché
    * @returns Observable con respuesta de verificación
    */
-  verifyToken(): Observable<ApiResponse<{ valid: boolean; usuario: Usuario }>> {
-    return this.http.get<ApiResponse<{ valid: boolean; usuario: Usuario }>>(`${this.base}/verify`)
+  verifyToken(forceRefresh = false): Observable<ApiResponse<{ valid: boolean; usuario: Usuario }>> {
+    const now = Date.now();
+    
+    // Si hay caché válido y no se fuerza el refresh, retornar el caché
+    if (!forceRefresh && this.verifyTokenCache$ && (now - this.lastVerifyTime < this.CACHE_DURATION)) {
+      return this.verifyTokenCache$;
+    }
+    
+    // Crear nueva petición y cachearla
+    this.lastVerifyTime = now;
+    this.verifyTokenCache$ = this.http.get<ApiResponse<{ valid: boolean; usuario: Usuario }>>(`${this.base}/verify`)
       .pipe(
         tap(response => {
           if (response.success && response.data?.valid) {
@@ -100,11 +118,15 @@ export class AuthService {
             this.clearSession();
           }
         }),
+        shareReplay({ bufferSize: 1, refCount: true }), // Compartir resultado entre suscriptores
         catchError(error => {
           this.clearSession();
+          this.verifyTokenCache$ = null; // Limpiar caché en caso de error
           return this.handleError(error);
         })
       );
+    
+    return this.verifyTokenCache$;
   }
 
   /**
@@ -139,6 +161,7 @@ export class AuthService {
     localStorage.removeItem('user');
     this.userSubject.next(null);
     this.tokenSubject.next(null);
+    this.verifyTokenCache$ = null; // Limpiar caché al cerrar sesión
   }
 
   /**

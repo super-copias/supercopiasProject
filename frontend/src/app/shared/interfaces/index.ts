@@ -33,19 +33,21 @@ export interface BaseEntity {
 // Interfaz para Usuario (autenticación y perfil básico)
 export interface Usuario extends BaseEntity {
   username: string;
+  password?: string; // Opcional - solo para creación/actualización
   nombre: string;
   email: string;
   role: string; // Para compatibilidad con código existente
   roles?: number[]; // Nuevo campo para múltiples roles numéricos
-  ultimoAcceso?: string;
-  tipoPermiso?: string; // Tipo de permiso del empleado asociado
   empleadoId?: number; // ID del empleado asociado
-  modulosPermitidos?: string[]; // Módulos a los que tiene acceso
-  // Campos adicionales para perfil
+  ultimoAcceso?: string;
+  // Campos de perfil
   fullName?: string;
   phone?: string;
   bio?: string;
   profileImage?: string;
+  // Campos para permisos (calculados)
+  tipoPermiso?: string; // Tipo de permiso del empleado asociado
+  modulosPermitidos?: string[]; // Módulos a los que tiene acceso
 }
 
 // Interfaz específica para datos de perfil completo
@@ -94,17 +96,18 @@ export interface LoginResponse {
 
 // Interfaces para entidades de negocio
 export interface Cliente extends BaseEntity {
-  nombre: string;
+  nombreComercial: string;
+  razonSocial?: string;
+  rfc?: string;
+  regimenFiscal?: string;
+  usoCfdi?: string;
   telefono?: string;
   segundoTelefono?: string;
   email?: string;
+  segundoEmail?: string;
   direccionEntrega?: string;
-  razon?: string;
-  rfc?: string;
-  regimen?: string;
-  direccion?: string;
-  cp?: string;
-  cfdi?: string;
+  direccionFacturacion?: string;
+  direccionCodigoPostal?: string;
 }
 
 // Interfaces para sistema de roles
@@ -126,30 +129,39 @@ export interface RolSistema {
 
 export interface Empleado extends BaseEntity {
   nombre: string;
-  apellidos: string;
   email?: string;
   telefono?: string;
-  puesto?: string;
-  departamento?: string;
+  puestoId?: number;
+  puesto?: string; // Dato desnormalizado del join
+  sucursalId?: number;
+  sucursal?: string; // Dato desnormalizado del join
   salario?: number;
   fechaIngreso?: string;
-  numeroEmpleado?: string;
+  fechaBaja?: string;
+  turno?: 'Matutino' | 'Vespertino' | 'Nocturno' | 'Mixto';
+  tipoAcceso?: 'completo' | 'limitado';
+  diasVacacionesSugeridos?: number;
+  notasVacaciones?: string;
   roles?: string[];
   rolesInfo?: RolSistema[];
   tieneUsuario?: boolean;
   usuarioId?: number;
+  username?: string; // Dato del join con usuarios
+  usuarioRoles?: number[]; // Dato del join con usuarios
 }
 
 export interface CrearEmpleado {
   nombre: string;
-  apellidos: string;
   email?: string;
   telefono?: string;
-  puesto?: string;
-  departamento?: string;
+  puestoId?: number;
+  sucursalId?: number;
   salario?: number;
   fechaIngreso?: string;
-  numeroEmpleado?: string;
+  turno?: 'Matutino' | 'Vespertino' | 'Nocturno' | 'Mixto';
+  tipoAcceso?: 'completo' | 'limitado';
+  diasVacacionesSugeridos?: number;
+  notasVacaciones?: string;
   roles?: string[];
   crearUsuario?: boolean;
 }
@@ -171,18 +183,28 @@ export interface EmpleadoConUsuario {
 
 // Interface para Proveedor
 export interface Proveedor extends BaseEntity {
-  nombre: string;
-  rfc: string;
-  email?: string;
-  telefono?: string;
-  direccion?: string;
-  codigoPostal?: string;
-  ciudad?: string;
-  estado?: string;
-  contacto?: string;
+  nombreComercial: string;
+  razonSocial?: string;
+  rfc?: string;
   tipoProveedor?: string;
-  condicionesPago?: string;
+  nombreContacto?: string;
+  telefono?: string;
+  email?: string;
+  paginaWeb?: string;
+  direccion?: string;
+  metodoPagoPrincipal?: string;
+  cuentaBancaria?: string;
+  diasCredito?: number;
   notas?: string;
+  // Compatibilidad con datos de backend (snake_case)
+  nombre_comercial?: string;
+  razon_social?: string;
+  tipo_proveedor?: string;
+  nombre_contacto?: string;
+  pagina_web?: string;
+  metodo_pago_principal?: string;
+  cuenta_bancaria?: string;
+  dias_credito?: number;
 }
 
 // Interfaces para operaciones comunes

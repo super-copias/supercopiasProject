@@ -1,0 +1,42 @@
+.sticky-top {
+  position: sticky;
+}
+
+.form-check-input:disabled ~ .form-check-label {
+  opacity: 0.5;
+}
+
+.badge {
+  font-size: 0.9em;
+}
+
+.alert {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.input-group-text {
+  min-width: 140px;
+}
+
+.border {
+  border-width: 2px !important;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+}

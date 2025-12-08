@@ -1,0 +1,39 @@
+/* Estilos para el componente de detalle de inventario */
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.nav-tabs .nav-link {
+  color: #6c757d;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+}
+
+.badge {
+  font-size: 1rem;
+  padding: 0.5em 0.75em;
+}
+
+h6.text-muted {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.opacity-25 {
+  opacity: 0.25;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  h4 {
+    font-size: 1.25rem;
+  }
+  
+  .table {
+    font-size: 0.875rem;
+  }
+}
