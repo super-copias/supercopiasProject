@@ -2233,6 +2233,26 @@ ALTER TABLE ONLY public.usuarios ALTER COLUMN id SET DEFAULT nextval('public.usu
 --
 
 COPY public.auditoria (id, tabla, operacion, registro_id, datos_anteriores, datos_nuevos, usuario_id, ip_address, fecha_operacion) FROM stdin;
+177	clientes	INSERT	2	\N	{"id": 2, "rfc": "CLE920615B84", "email": "ventas@papeleriamundial.com", "activo": true, "telefono": "961-200-0002", "uso_cfdi": "G01", "razon_social": "Colegio Le├│n XIII A.C.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "603", "nombre_comercial": "Colegio Le├│n XIII", "segundo_telefono": null, "direccion_entrega": "Blvd. Belisario Dom├¡nguez, 789, Jardines de Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29020"}	\N	\N	2025-11-26 20:37:53.986761-06
+178	clientes	INSERT	3	\N	{"id": 3, "rfc": "OCH010228C93", "email": "info@oficinaschiapas.com", "activo": true, "telefono": "961-200-0003", "uso_cfdi": "G03", "razon_social": "Oficinas Chiapas, S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Oficinas Chiapas", "segundo_telefono": null, "direccion_entrega": "3ra. Avenida Norte Oriente, 1515, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:37:53.986761-06
+179	clientes	INSERT	4	\N	{"id": 4, "rfc": "SII150810D45", "email": "gerencia@copiasistmo.com", "activo": true, "telefono": "961-200-0004", "uso_cfdi": "G03", "razon_social": "Servicios de Impresi├│n del Istmo S.A.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Copiasistmo", "segundo_telefono": null, "direccion_entrega": "Calle Primera Norte, 654, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:37:53.986761-06
+180	clientes	INSERT	5	\N	{"id": 5, "rfc": "CSP180920E56", "email": "contacto@consultoresmaya.com", "activo": true, "telefono": "961-200-0005", "uso_cfdi": "G01", "razon_social": "Consultor├¡a y Servicios Profesionales Maya S.C.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "612", "nombre_comercial": "Consultores Maya", "segundo_telefono": null, "direccion_entrega": "Av. Universidad, 321, Universitaria, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29050"}	\N	\N	2025-11-26 20:37:53.986761-06
+181	clientes	INSERT	6	\N	{"id": 6, "rfc": "GAD190531F67", "email": "info@gonzalezabogados.com", "activo": true, "telefono": "961-200-0006", "uso_cfdi": "G01", "razon_social": "Gonz├ílez y Asociados Despacho Jur├¡dico S.C.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "612", "nombre_comercial": "Despacho Jur├¡dico Gonz├ílez", "segundo_telefono": null, "direccion_entrega": "Calle Primera Norte, 789, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:37:53.986761-06
+182	clientes	INSERT	7	\N	{"id": 7, "rfc": "DCH170215G78", "email": "ventas@districhiapas.com", "activo": true, "telefono": "961-200-0007", "uso_cfdi": "G03", "razon_social": "Distribuidora de Chiapas S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Distribuidora Chiapas", "segundo_telefono": null, "direccion_entrega": "Blvd. Los Castillos, 456, Las Flores, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29020"}	\N	\N	2025-11-26 20:37:53.986761-06
+183	clientes	INSERT	8	\N	{"id": 8, "rfc": "CSM140815H89", "email": "proyectos@constructoradelsur.com", "activo": true, "telefono": "961-200-0008", "uso_cfdi": "G03", "razon_social": "Constructora del Sur de M├®xico S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Constructora del Sur", "segundo_telefono": null, "direccion_entrega": "Libramiento Norte Poniente, 2500, Plan de Ayala, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29010"}	\N	\N	2025-11-26 20:37:53.986761-06
+184	clientes	INSERT	9	\N	{"id": 9, "rfc": "ICP111020I90", "email": "informes@icpsureste.edu.mx", "activo": true, "telefono": "961-200-0009", "uso_cfdi": "D10", "razon_social": "Instituto de Capacitaci├│n Profesional del Sureste A.C.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "603", "nombre_comercial": "ICP Sureste", "segundo_telefono": null, "direccion_entrega": "Calle Central Oriente, 1200, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:37:53.986761-06
+185	clientes	INSERT	10	\N	{"id": 10, "rfc": "OAL160305J01", "email": "reservas@lacasonatgz.com", "activo": true, "telefono": "961-200-0010", "uso_cfdi": "G03", "razon_social": "Operadora de Alimentos La Casona S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Restaurante La Casona", "segundo_telefono": null, "direccion_entrega": "Av. Central Poniente, 850, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:37:53.986761-06
+186	clientes	INSERT	12	\N	{"id": 12, "rfc": "HST120915L23", "email": "reservaciones@hotelegecutivotgz.com", "activo": true, "telefono": "961-200-0012", "uso_cfdi": "G01", "razon_social": "Hotelera y Servicios Tur├¡sticos del Grijalva S.A.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Hotel Ejecutivo Plaza", "segundo_telefono": null, "direccion_entrega": "Blvd. Belisario Dom├¡nguez, 1450, Moctezuma, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29030"}	\N	\N	2025-11-26 20:37:53.986761-06
+187	clientes	INSERT	13	\N	{"id": 13, "rfc": "CPA191105M34", "email": "contacto@creativostgz.com", "activo": true, "telefono": "961-200-0013", "uso_cfdi": "G03", "razon_social": "Creativos y Publicistas Asociados S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Agencia Creativa TGZ", "segundo_telefono": null, "direccion_entrega": "Calle 2da. Poniente Sur, 234, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:37:53.986761-06
+188	clientes	INSERT	1	\N	{"id": 1, "rfc": "SUR850315A72", "email": "contacto@serviciosses.com", "activo": true, "telefono": "961-200-0001", "uso_cfdi": "G03", "razon_social": "del Sureste S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Papeler├¡a Mundial", "segundo_telefono": "65674663883", "direccion_entrega": "reforma 222", "fecha_modificacion": "2025-10-15T23:01:12.836429-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29020"}	\N	\N	2025-11-26 20:38:23.684112-06
+189	clientes	INSERT	22	\N	{"id": 22, "rfc": "PEGJ850315ABC", "email": "juan.perez@email.com", "activo": true, "telefono": "9611234567", "uso_cfdi": "G03", "razon_social": "Juan P├®rez Garc├¡a", "segundo_email": null, "fecha_registro": "2025-10-15T23:26:43.721052-06:00", "regimen_fiscal": "612", "nombre_comercial": "Juan P├®rez Garc├¡a", "segundo_telefono": "9611234568", "direccion_entrega": "Av. Central 123, Col. Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T23:26:43.721052-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 20:38:23.684112-06
+190	clientes	INSERT	23	\N	{"id": 23, "rfc": "CLS920810XYZ", "email": null, "activo": true, "telefono": "9612345678", "uso_cfdi": "G01", "razon_social": "Comercializadora L├│pez S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T23:26:43.726086-06:00", "regimen_fiscal": "601", "nombre_comercial": "Comercializadora L├│pez S.A. de C.V.", "segundo_telefono": null, "direccion_entrega": "Blvd. Belisario Dom├¡nguez 456, Col. Moctezuma, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T23:26:43.726086-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29030"}	\N	\N	2025-11-26 20:38:23.684112-06
+191	clientes	INSERT	24	\N	{"id": 24, "rfc": "GOHM750425DEF", "email": "maria.gonzalez@email.com", "activo": true, "telefono": "9673456789", "uso_cfdi": "G03", "razon_social": "Mar├¡a Gonz├ílez Hern├índez", "segundo_email": null, "fecha_registro": "2025-10-15T23:26:43.727255-06:00", "regimen_fiscal": "612", "nombre_comercial": "Mar├¡a Gonz├ílez Hern├índez", "segundo_telefono": "9673456790", "direccion_entrega": "Real de Guadalupe 789, Centro, San Crist├│bal de las Casas, Chiapas", "fecha_modificacion": "2025-10-15T23:26:43.727255-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29200"}	\N	\N	2025-11-26 20:38:23.684112-06
+192	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$T1AaTiFCWAt.ubexs.QkreJSTQRKRjPy2VeyQXCslX82feThi9tuW", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": "", "ultimo_acceso": "2025-10-16T01:28:05.615298-06:00", "fecha_registro": "2025-10-11T23:09:08.738514-06:00", "fecha_modificacion": "2025-10-16T01:28:05.615298-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$T1AaTiFCWAt.ubexs.QkreJSTQRKRjPy2VeyQXCslX82feThi9tuW", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": "", "ultimo_acceso": "2025-11-26T20:40:29.290684-06:00", "fecha_registro": "2025-10-11T23:09:08.738514-06:00", "fecha_modificacion": "2025-11-26T20:40:29.290684-06:00"}	\N	\N	2025-11-26 20:40:29.290684-06
+193	clientes	UPDATE	12	{"id": 12, "rfc": "HST120915L23", "email": "reservaciones@hotelegecutivotgz.com", "activo": true, "telefono": "961-200-0012", "uso_cfdi": "G01", "razon_social": "Hotelera y Servicios Tur├¡sticos del Grijalva S.A.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Hotel Ejecutivo Plaza", "segundo_telefono": null, "direccion_entrega": "Blvd. Belisario Dom├¡nguez, 1450, Moctezuma, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29030"}	{"id": 12, "rfc": "HST120915L23", "email": "reservaciones@hotelegecutivotgz.com", "activo": false, "telefono": "961-200-0012", "uso_cfdi": "G01", "razon_social": "Hotelera y Servicios Tur├¡sticos del Grijalva S.A.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Hotel Ejecutivo Plaza", "segundo_telefono": null, "direccion_entrega": "Blvd. Belisario Dom├¡nguez, 1450, Moctezuma, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-11-26T21:38:04.713301-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29030"}	\N	\N	2025-11-26 21:38:04.713301-06
+194	clientes	UPDATE	10	{"id": 10, "rfc": "OAL160305J01", "email": "reservas@lacasonatgz.com", "activo": true, "telefono": "961-200-0010", "uso_cfdi": "G03", "razon_social": "Operadora de Alimentos La Casona S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Restaurante La Casona", "segundo_telefono": null, "direccion_entrega": "Av. Central Poniente, 850, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-10-15T01:38:22.089808-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	{"id": 10, "rfc": "OAL160305J01", "email": "reservas@lacasonatgz.com", "activo": false, "telefono": "961-200-0010", "uso_cfdi": "G03", "razon_social": "Operadora de Alimentos La Casona S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-10-15T01:38:22.089808-06:00", "regimen_fiscal": "601", "nombre_comercial": "Restaurante La Casona", "segundo_telefono": null, "direccion_entrega": "Av. Central Poniente, 850, Centro, Tuxtla Guti├®rrez, Chiapas", "fecha_modificacion": "2025-11-26T21:38:47.96281-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-11-26 21:38:47.96281-06
+195	empleados	UPDATE	1	{"id": 1, "email": "admin@supercopias.com", "turno": null, "activo": true, "nombre": "Administrador Sistema", "salario": 30000.00, "telefono": "555-1000", "puesto_id": 1, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "completo", "fecha_ingreso": "2024-01-01", "fecha_registro": "2025-10-11T23:09:08.734609-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-10-11T23:09:08.734609-06:00", "dias_vacaciones_sugeridos": 12}	{"id": 1, "email": "admin@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Administrador Sistema", "salario": 30000.00, "telefono": "555-1000", "puesto_id": 1, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "completo", "fecha_ingreso": "2024-01-01", "fecha_registro": "2025-10-11T23:09:08.734609-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-11-26T23:40:37.259162-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-11-26 23:40:37.259162-06
+196	empleados	UPDATE	24	{"id": 24, "email": "dfsd@gmail.com", "turno": null, "activo": true, "nombre": "jhonatan", "salario": 5656.00, "telefono": "234823423", "puesto_id": 7, "fecha_baja": null, "usuario_id": 19, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2025-10-16", "fecha_registro": "2025-10-16T00:44:55.672798-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-10-16T00:44:55.740268-06:00", "dias_vacaciones_sugeridos": 12}	{"id": 24, "email": "dfsd@gmail.com", "turno": "Matutino", "activo": true, "nombre": "jhonatan", "salario": 5656.00, "telefono": "234823423", "puesto_id": 7, "fecha_baja": null, "usuario_id": 19, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2025-10-16", "fecha_registro": "2025-10-16T00:44:55.672798-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-11-26T23:40:37.259162-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-11-26 23:40:37.259162-06
 \.
 
 
@@ -2319,6 +2339,21 @@ COPY public.cat_tipos_proveedor (id, clave, descripcion, orden, activo, fecha_cr
 --
 
 COPY public.clientes (id, rfc, razon_social, nombre_comercial, email, telefono, direccion_codigo_postal, regimen_fiscal, uso_cfdi, activo, fecha_registro, fecha_modificacion, direccion_entrega, direccion_facturacion, segundo_telefono, segundo_email) FROM stdin;
+2	CLE920615B84	Colegio Le├│n XIII A.C.	Colegio Le├│n XIII	ventas@papeleriamundial.com	961-200-0002	29020	603	G01	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Blvd. Belisario Dom├¡nguez, 789, Jardines de Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+3	OCH010228C93	Oficinas Chiapas, S.A. de C.V.	Oficinas Chiapas	info@oficinaschiapas.com	961-200-0003	29000	601	G03	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	3ra. Avenida Norte Oriente, 1515, Centro, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+4	SII150810D45	Servicios de Impresi├│n del Istmo S.A.	Copiasistmo	gerencia@copiasistmo.com	961-200-0004	29000	601	G03	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Calle Primera Norte, 654, Centro, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+5	CSP180920E56	Consultor├¡a y Servicios Profesionales Maya S.C.	Consultores Maya	contacto@consultoresmaya.com	961-200-0005	29050	612	G01	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Av. Universidad, 321, Universitaria, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+6	GAD190531F67	Gonz├ílez y Asociados Despacho Jur├¡dico S.C.	Despacho Jur├¡dico Gonz├ílez	info@gonzalezabogados.com	961-200-0006	29000	612	G01	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Calle Primera Norte, 789, Centro, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+7	DCH170215G78	Distribuidora de Chiapas S.A. de C.V.	Distribuidora Chiapas	ventas@districhiapas.com	961-200-0007	29020	601	G03	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Blvd. Los Castillos, 456, Las Flores, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+8	CSM140815H89	Constructora del Sur de M├®xico S.A. de C.V.	Constructora del Sur	proyectos@constructoradelsur.com	961-200-0008	29010	601	G03	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Libramiento Norte Poniente, 2500, Plan de Ayala, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+9	ICP111020I90	Instituto de Capacitaci├│n Profesional del Sureste A.C.	ICP Sureste	informes@icpsureste.edu.mx	961-200-0009	29000	603	D10	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Calle Central Oriente, 1200, Centro, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+13	CPA191105M34	Creativos y Publicistas Asociados S.A. de C.V.	Agencia Creativa TGZ	contacto@creativostgz.com	961-200-0013	29000	601	G03	t	2025-10-15 01:38:22.089808-06	2025-10-15 01:38:22.089808-06	Calle 2da. Poniente Sur, 234, Centro, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+1	SUR850315A72	del Sureste S.A. de C.V.	Papeler├¡a Mundial	contacto@serviciosses.com	961-200-0001	29020	601	G03	t	2025-10-15 01:38:22.089808-06	2025-10-15 23:01:12.836429-06	reforma 222	\N	65674663883	\N
+22	PEGJ850315ABC	Juan P├®rez Garc├¡a	Juan P├®rez Garc├¡a	juan.perez@email.com	9611234567	29000	612	G03	t	2025-10-15 23:26:43.721052-06	2025-10-15 23:26:43.721052-06	Av. Central 123, Col. Centro, Tuxtla Guti├®rrez, Chiapas	\N	9611234568	\N
+23	CLS920810XYZ	Comercializadora L├│pez S.A. de C.V.	Comercializadora L├│pez S.A. de C.V.	\N	9612345678	29030	601	G01	t	2025-10-15 23:26:43.726086-06	2025-10-15 23:26:43.726086-06	Blvd. Belisario Dom├¡nguez 456, Col. Moctezuma, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+24	GOHM750425DEF	Mar├¡a Gonz├ílez Hern├índez	Mar├¡a Gonz├ílez Hern├índez	maria.gonzalez@email.com	9673456789	29200	612	G03	t	2025-10-15 23:26:43.727255-06	2025-10-15 23:26:43.727255-06	Real de Guadalupe 789, Centro, San Crist├│bal de las Casas, Chiapas	\N	9673456790	\N
+12	HST120915L23	Hotelera y Servicios Tur├¡sticos del Grijalva S.A.	Hotel Ejecutivo Plaza	reservaciones@hotelegecutivotgz.com	961-200-0012	29030	601	G01	f	2025-10-15 01:38:22.089808-06	2025-11-26 21:38:04.713301-06	Blvd. Belisario Dom├¡nguez, 1450, Moctezuma, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
+10	OAL160305J01	Operadora de Alimentos La Casona S.A. de C.V.	Restaurante La Casona	reservas@lacasonatgz.com	961-200-0010	29000	601	G03	f	2025-10-15 01:38:22.089808-06	2025-11-26 21:38:47.96281-06	Av. Central Poniente, 850, Centro, Tuxtla Guti├®rrez, Chiapas	\N	\N	\N
 \.
 
 
@@ -2327,6 +2362,8 @@ COPY public.clientes (id, rfc, razon_social, nombre_comercial, email, telefono, 
 --
 
 COPY public.empleados (id, nombre, email, telefono, puesto_id, sucursal_id, salario, fecha_ingreso, activo, fecha_baja, fecha_registro, fecha_modificacion, tipo_acceso, usuario_id, dias_vacaciones_sugeridos, notas_vacaciones, turno) FROM stdin;
+1	Administrador Sistema	admin@supercopias.com	555-1000	1	1	30000.00	2024-01-01	t	\N	2025-10-11 23:09:08.734609-06	2025-11-26 23:40:37.259162-06	completo	\N	12	\N	Matutino
+24	jhonatan	dfsd@gmail.com	234823423	7	1	5656.00	2025-10-16	t	\N	2025-10-16 00:44:55.672798-06	2025-11-26 23:40:37.259162-06	limitado	19	12	\N	Matutino
 \.
 
 
@@ -2335,6 +2372,14 @@ COPY public.empleados (id, nombre, email, telefono, puesto_id, sucursal_id, sala
 --
 
 COPY public.empleados_modulos (id, empleado_id, modulo, acceso, fecha_asignacion) FROM stdin;
+1	1	empleados	t	2025-10-11 23:09:08.739992-06
+2	1	clientes	t	2025-10-11 23:09:08.739992-06
+3	1	proveedores	t	2025-10-11 23:09:08.739992-06
+4	1	reportes	t	2025-10-11 23:09:08.739992-06
+5	1	configuracion	t	2025-10-11 23:09:08.739992-06
+6	1	administracion	t	2025-10-11 23:09:08.739992-06
+173	24	dashboard	t	2025-10-16 00:44:55.677187-06
+174	24	empleados	t	2025-10-16 00:44:55.678129-06
 \.
 
 
@@ -2389,24 +2434,24 @@ COPY public.estados (id, codigo, nombre, activo, fecha_creacion) FROM stdin;
 4	CAM	Campeche	t	2025-10-11 23:12:28.25509-06
 5	CHP	Chiapas	t	2025-10-11 23:12:28.255518-06
 6	CHH	Chihuahua	t	2025-10-11 23:12:28.255906-06
-7	CMX	Ciudad de México	t	2025-10-11 23:12:28.256365-06
+7	CMX	Ciudad de M├®xico	t	2025-10-11 23:12:28.256365-06
 8	COA	Coahuila	t	2025-10-11 23:12:28.256719-06
 9	COL	Colima	t	2025-10-11 23:12:28.257117-06
 10	DUR	Durango	t	2025-10-11 23:12:28.257457-06
-11	MEX	Estado de México	t	2025-10-11 23:12:28.25775-06
+11	MEX	Estado de M├®xico	t	2025-10-11 23:12:28.25775-06
 12	GUA	Guanajuato	t	2025-10-11 23:12:28.258022-06
 13	GRO	Guerrero	t	2025-10-11 23:12:28.258374-06
 14	HID	Hidalgo	t	2025-10-11 23:12:28.258653-06
 15	JAL	Jalisco	t	2025-10-11 23:12:28.258915-06
-16	MIC	Michoacán	t	2025-10-11 23:12:28.259192-06
+16	MIC	Michoac├ín	t	2025-10-11 23:12:28.259192-06
 17	MOR	Morelos	t	2025-10-11 23:12:28.259478-06
 18	NAY	Nayarit	t	2025-10-11 23:12:28.259742-06
-19	NLE	Nuevo León	t	2025-10-11 23:12:28.260003-06
+19	NLE	Nuevo Le├│n	t	2025-10-11 23:12:28.260003-06
 20	OAX	Oaxaca	t	2025-10-11 23:12:28.260275-06
 21	PUE	Puebla	t	2025-10-11 23:12:28.260537-06
-22	QUE	Querétaro	t	2025-10-11 23:12:28.260835-06
+22	QUE	Quer├®taro	t	2025-10-11 23:12:28.260835-06
 23	ROO	Quintana Roo	t	2025-10-11 23:12:28.261167-06
-24	SLP	San Luis Potosí	t	2025-10-11 23:12:28.261488-06
+24	SLP	San Luis Potos├¡	t	2025-10-11 23:12:28.261488-06
 25	SIN	Sinaloa	t	2025-10-11 23:12:28.261811-06
 26	SON	Sonora	t	2025-10-11 23:12:28.262132-06
 27	TAB	Tabasco	t	2025-10-11 23:12:28.26244-06
@@ -2423,6 +2468,8 @@ COPY public.estados (id, codigo, nombre, activo, fecha_creacion) FROM stdin;
 --
 
 COPY public.eventos_personal (id, empleado_id, tipo, fecha_inicio, fecha_fin, hora_inicio, hora_fin, horas_totales, dias_totales, subtipo, estado, justificada, con_goce_sueldo, motivo, observaciones, documento_url, registrado_por, aprobado_por, fecha_registro, fecha_aprobacion, created_at, updated_at) FROM stdin;
+2	24	falta	2025-11-01	\N	\N	\N	\N	1	otro	aprobado	f	f	prueba 	prueba	\N	1	\N	2025-11-26 21:32:17.478272	\N	2025-11-26 21:32:17.478272	2025-11-26 21:32:17.478272
+3	24	permiso	2025-11-28	\N	08:37:00	20:40:00	12.05	\N	otro	pendiente	\N	t	prueba 	\N	\N	1	\N	2025-11-26 21:35:37.053205	\N	2025-11-26 21:35:37.053205	2025-11-26 21:35:37.053205
 \.
 
 
@@ -2433,24 +2480,24 @@ COPY public.eventos_personal (id, empleado_id, tipo, fecha_inicio, fecha_fin, ho
 COPY public.formas_pago (id, codigo, descripcion, activo, fecha_creacion) FROM stdin;
 1	01	Efectivo	t	2025-10-11 23:12:28.279051-06
 2	02	Cheque nominativo	t	2025-10-11 23:12:28.280649-06
-3	03	Transferencia electrónica de fondos	t	2025-10-11 23:12:28.280916-06
-4	04	Tarjeta de crédito	t	2025-10-11 23:12:28.281169-06
-5	05	Monedero electrónico	t	2025-10-11 23:12:28.281417-06
-6	06	Dinero electrónico	t	2025-10-11 23:12:28.281718-06
+3	03	Transferencia electr├│nica de fondos	t	2025-10-11 23:12:28.280916-06
+4	04	Tarjeta de cr├®dito	t	2025-10-11 23:12:28.281169-06
+5	05	Monedero electr├│nico	t	2025-10-11 23:12:28.281417-06
+6	06	Dinero electr├│nico	t	2025-10-11 23:12:28.281718-06
 7	08	Vales de despensa	t	2025-10-11 23:12:28.282009-06
-8	12	Dación en pago	t	2025-10-11 23:12:28.282325-06
-9	13	Pago por subrogación	t	2025-10-11 23:12:28.282589-06
-10	14	Pago por consignación	t	2025-10-11 23:12:28.282894-06
-11	15	Condonación	t	2025-10-11 23:12:28.283165-06
-12	17	Compensación	t	2025-10-11 23:12:28.283415-06
-13	23	Novación	t	2025-10-11 23:12:28.283663-06
-14	24	Confusión	t	2025-10-11 23:12:28.283985-06
-15	25	Remisión de deuda	t	2025-10-11 23:12:28.284295-06
-16	26	Prescripción o caducidad	t	2025-10-11 23:12:28.284574-06
-17	27	A satisfacción del acreedor	t	2025-10-11 23:12:28.284831-06
-18	28	Tarjeta de débito	t	2025-10-11 23:12:28.28508-06
+8	12	Daci├│n en pago	t	2025-10-11 23:12:28.282325-06
+9	13	Pago por subrogaci├│n	t	2025-10-11 23:12:28.282589-06
+10	14	Pago por consignaci├│n	t	2025-10-11 23:12:28.282894-06
+11	15	Condonaci├│n	t	2025-10-11 23:12:28.283165-06
+12	17	Compensaci├│n	t	2025-10-11 23:12:28.283415-06
+13	23	Novaci├│n	t	2025-10-11 23:12:28.283663-06
+14	24	Confusi├│n	t	2025-10-11 23:12:28.283985-06
+15	25	Remisi├│n de deuda	t	2025-10-11 23:12:28.284295-06
+16	26	Prescripci├│n o caducidad	t	2025-10-11 23:12:28.284574-06
+17	27	A satisfacci├│n del acreedor	t	2025-10-11 23:12:28.284831-06
+18	28	Tarjeta de d├®bito	t	2025-10-11 23:12:28.28508-06
 19	29	Tarjeta de servicios	t	2025-10-11 23:12:28.285327-06
-20	30	Aplicación de anticipos	t	2025-10-11 23:12:28.285579-06
+20	30	Aplicaci├│n de anticipos	t	2025-10-11 23:12:28.285579-06
 21	31	Intermediario pagos	t	2025-10-11 23:12:28.285824-06
 22	99	Por definir	t	2025-10-11 23:12:28.286069-06
 \.
@@ -2521,7 +2568,7 @@ COPY public.inventarios_reglas_stock (id, inventario_id, nivel_critico_porcentaj
 --
 
 COPY public.metodos_pago (id, codigo, descripcion, activo, fecha_creacion) FROM stdin;
-1	PUE	Pago en una sola exhibición	t	2025-10-11 23:12:28.286448-06
+1	PUE	Pago en una sola exhibici├│n	t	2025-10-11 23:12:28.286448-06
 2	PPD	Pago en parcialidades o diferido	t	2025-10-11 23:12:28.287972-06
 \.
 
@@ -2539,7 +2586,7 @@ COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FR
 6	equipos	Equipos	fas fa-tools	t	0	2025-10-11 23:12:28.291492-06
 7	reportes	Reportes	fas fa-chart-bar	t	0	2025-10-11 23:12:28.29175-06
 8	punto_venta	Punto de Venta	fas fa-cash-register	t	0	2025-10-11 23:12:28.292027-06
-9	configuracion	Configuración	fas fa-cogs	f	0	2025-10-11 23:12:28.292289-06
+9	configuracion	Configuraci├│n	fas fa-cogs	f	0	2025-10-11 23:12:28.292289-06
 \.
 
 
@@ -2548,6 +2595,11 @@ COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FR
 --
 
 COPY public.proveedores (id, nombre_comercial, razon_social, rfc, tipo_proveedor, activo, nombre_contacto, telefono, email, pagina_web, direccion, metodo_pago_principal, cuenta_bancaria, dias_credito, notas, fecha_registro, fecha_modificacion) FROM stdin;
+1	Papelería El Estudiante	Papelería El Estudiante S.A. de C.V.	PES910315ABC	Productos	t	María González	555-1001	ventas@estudiantepapeleria.com	www.papeleriaestudiante.com	Av. Universidad 123, Col. Centro, Ciudad de México, CDMX, 06000, México	Transferencia	012345678901234567	30	Proveedor principal de papelería y suministros de oficina	2023-01-09 18:00:00-06	\N
+2	Tecnología y Sistemas	Tecnología y Sistemas S.A. de C.V.	TYS850420DEF	Servicios	t	Ing. Carlos Ramírez	555-1002	soporte@tecnologiasistemas.com	www.tecnologiaysistemas.com	Calle Tecnología 456, Col. Moderna, Ciudad de México, CDMX, 03100, México	Transferencia	\N	15	Mantenimiento de equipos de cómputo y redes	2023-02-04 18:00:00-06	\N
+3	Limpieza Integral	Servicios de Limpieza Integral S.A. de C.V.	SLI780630GHI	Servicios	t	Patricia Herrera	555-1003	admin@limpiezaintegral.com	\N	Av. Servicios 789, Col. Industrial, Ciudad de México, CDMX, 07300, México	Efectivo	\N	0	Servicio de limpieza diario para oficinas	2023-03-11 18:00:00-06	\N
+4	Toners Express	Insumos y Toners Express S.A. de C.V.	ITE920815JKL	Productos	t	Lic. Roberto Silva	555-1004	pedidos@tonersexpress.com	www.tonersexpress.com	Blvd. Insumos 321, Col. Comercial, Ciudad de México, CDMX, 06500, México	Transferencia	098765432109876543	45	Cartuchos, toners y consumibles para impresoras	2023-04-17 18:00:00-06	\N
+5	Capacitación Pro	Capacitación Empresarial Pro S.C.	CEP870925MNO	Servicios	t	Mtra. Ana López	555-1005	cursos@capacitacionpro.com	www.capacitacionpro.com	Av. Capacitación 654, Col. Educativa, Ciudad de México, CDMX, 03900, México	Transferencia	\N	0	Cursos de desarrollo profesional y técnico	2023-05-21 18:00:00-06	\N
 \.
 
 
@@ -2556,14 +2608,14 @@ COPY public.proveedores (id, nombre_comercial, razon_social, rfc, tipo_proveedor
 --
 
 COPY public.puestos (id, nombre, descripcion, salario_minimo, salario_maximo, activo, fecha_creacion, fecha_modificacion) FROM stdin;
-1	Gerente General	Responsable de la operacion general	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-2	Gerente de Sucursal	Responsable de la administracion de la sucursal	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-3	Supervisor	Supervision de operaciones diarias	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-4	Empleado de Mostrador	Atencion directa al cliente	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-5	Cajero	Manejo de caja y cobros	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-6	Asistente de Ventas	Apoyo en atencion al cliente y ventas	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-7	Auxiliar Administrativo	Apoyo en tareas administrativas y de oficina	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
-8	Operador de Equipos	Manejo y mantenimiento de equipos de copiado e impresion	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
+1	Gerente General	Responsable de la operaci├â┬│n general	25000.00	35000.00	t	2025-10-11 23:09:08.733062-06	2025-10-11 23:09:08.733062-06
+3	Supervisor	Supervisi├â┬│n de operaciones diarias	12000.00	18000.00	t	2025-10-11 23:09:08.733062-06	2025-10-11 23:09:08.733062-06
+4	Empleado de Mostrador	Atenci├â┬│n directa al cliente	8000.00	12000.00	t	2025-10-11 23:09:08.733062-06	2025-10-11 23:09:08.733062-06
+5	Cajero	Manejo de caja y cobros	8000.00	10000.00	t	2025-10-11 23:09:08.733062-06	2025-10-11 23:09:08.733062-06
+2	Gerente de Sucursal	Responsable de la administraci├│n general de la sucursal	20000.00	35000.00	t	2025-10-11 23:09:08.733062-06	2025-10-11 23:18:16.918139-06
+7	Asistente de Ventas	Apoyo en atenci├│n al cliente y ventas	12000.00	18000.00	t	2025-10-11 10:10:57.691-06	2025-10-11 23:18:16.919149-06
+8	Auxiliar Administrativo	Apoyo en tareas administrativas y de oficina	10000.00	15000.00	t	2025-10-11 10:10:57.691-06	2025-10-11 23:18:16.919863-06
+9	Operador de Equipos	Manejo y mantenimiento de equipos de copiado e impresi├│n	11000.00	16000.00	t	2025-10-11 10:10:57.691-06	2025-10-11 23:18:16.92042-06
 \.
 
 
@@ -2576,21 +2628,21 @@ COPY public.regimenes_fiscales (id, codigo, descripcion, activo, fecha_creacion)
 2	603	Personas Morales con Fines no Lucrativos	t	2025-10-11 23:12:28.266054-06
 3	605	Sueldos y Salarios e Ingresos Asimilados a Salarios	t	2025-10-11 23:12:28.266326-06
 4	606	Arrendamiento	t	2025-10-11 23:12:28.266582-06
-5	607	Régimen de Enajenación o Adquisición de Bienes	t	2025-10-11 23:12:28.266836-06
-6	608	Demás ingresos	t	2025-10-11 23:12:28.267085-06
-7	610	Residentes en el Extranjero sin Establecimiento Permanente en México	t	2025-10-11 23:12:28.267334-06
+5	607	R├®gimen de Enajenaci├│n o Adquisici├│n de Bienes	t	2025-10-11 23:12:28.266836-06
+6	608	Dem├ís ingresos	t	2025-10-11 23:12:28.267085-06
+7	610	Residentes en el Extranjero sin Establecimiento Permanente en M├®xico	t	2025-10-11 23:12:28.267334-06
 8	611	Ingresos por Dividendos (socios y accionistas)	t	2025-10-11 23:12:28.267579-06
-9	612	Personas Físicas con Actividades Empresariales y Profesionales	t	2025-10-11 23:12:28.267843-06
+9	612	Personas F├¡sicas con Actividades Empresariales y Profesionales	t	2025-10-11 23:12:28.267843-06
 10	614	Ingresos por intereses	t	2025-10-11 23:12:28.268118-06
-11	615	Régimen de los ingresos por obtención de premios	t	2025-10-11 23:12:28.268415-06
+11	615	R├®gimen de los ingresos por obtenci├│n de premios	t	2025-10-11 23:12:28.268415-06
 12	616	Sin obligaciones fiscales	t	2025-10-11 23:12:28.26881-06
-13	620	Sociedades Cooperativas de Producción que optan por diferir sus ingresos	t	2025-10-11 23:12:28.269139-06
-14	621	Incorporación Fiscal	t	2025-10-11 23:12:28.269467-06
-15	622	Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras	t	2025-10-11 23:12:28.269747-06
+13	620	Sociedades Cooperativas de Producci├│n que optan por diferir sus ingresos	t	2025-10-11 23:12:28.269139-06
+14	621	Incorporaci├│n Fiscal	t	2025-10-11 23:12:28.269467-06
+15	622	Actividades Agr├¡colas, Ganaderas, Silv├¡colas y Pesqueras	t	2025-10-11 23:12:28.269747-06
 16	623	Opcional para Grupos de Sociedades	t	2025-10-11 23:12:28.270012-06
 17	624	Coordinados	t	2025-10-11 23:12:28.270265-06
-18	625	Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas	t	2025-10-11 23:12:28.270519-06
-19	626	Régimen Simplificado de Confianza	t	2025-10-11 23:12:28.270769-06
+18	625	R├®gimen de las Actividades Empresariales con ingresos a trav├®s de Plataformas Tecnol├│gicas	t	2025-10-11 23:12:28.270519-06
+19	626	R├®gimen Simplificado de Confianza	t	2025-10-11 23:12:28.270769-06
 \.
 
 
@@ -2599,7 +2651,9 @@ COPY public.regimenes_fiscales (id, codigo, descripcion, activo, fecha_creacion)
 --
 
 COPY public.sucursales (id, nombre, direccion, telefono, gerente, activa, fecha_creacion, fecha_modificacion) FROM stdin;
-1	Sucursal Principal	\N	\N	\N	t	CURRENT_TIMESTAMP	CURRENT_TIMESTAMP
+1	Sucursal Centro	Centro de Tuxtla Guti├®rrez	961-100-1001	Mar├¡a G├│mez Hern├índez	t	2025-10-11 23:09:08.731227-06	2025-10-11 23:18:16.914451-06
+2	Sucursal Norte	Norte de Tuxtla Guti├®rrez	961-100-1002	Juan P├®rez Mart├¡nez	t	2025-10-11 23:09:08.731227-06	2025-10-11 23:18:16.917174-06
+3	Sucursal Sur	Sur de Tuxtla Guti├®rrez	961-100-1003	Ana L├│pez Silva	t	2025-10-11 23:09:08.731227-06	2025-10-11 23:18:16.917594-06
 \.
 
 
@@ -2608,30 +2662,30 @@ COPY public.sucursales (id, nombre, direccion, telefono, gerente, activa, fecha_
 --
 
 COPY public.usos_cfdi (id, codigo, descripcion, activo, fecha_creacion) FROM stdin;
-1	G01	Adquisición de mercancías	t	2025-10-11 23:12:28.271148-06
+1	G01	Adquisici├│n de mercanc├¡as	t	2025-10-11 23:12:28.271148-06
 2	G02	Devoluciones, descuentos o bonificaciones	t	2025-10-11 23:12:28.272833-06
 3	G03	Gastos en general	t	2025-10-11 23:12:28.273095-06
 4	I01	Construcciones	t	2025-10-11 23:12:28.273353-06
 5	I02	Mobiliario y equipo de oficina por inversiones	t	2025-10-11 23:12:28.273602-06
 6	I03	Equipo de transporte	t	2025-10-11 23:12:28.273847-06
-7	I04	Equipo de cómputo y accesorios	t	2025-10-11 23:12:28.274093-06
+7	I04	Equipo de c├│mputo y accesorios	t	2025-10-11 23:12:28.274093-06
 8	I05	Dados, troqueles, moldes, matrices y herramental	t	2025-10-11 23:12:28.274337-06
-9	I06	Comunicaciones telefónicas	t	2025-10-11 23:12:28.274586-06
+9	I06	Comunicaciones telef├│nicas	t	2025-10-11 23:12:28.274586-06
 10	I07	Comunicaciones satelitales	t	2025-10-11 23:12:28.27487-06
 11	I08	Otra maquinaria y equipo	t	2025-10-11 23:12:28.275168-06
-12	D01	Honorarios médicos, dentales y gastos hospitalarios	t	2025-10-11 23:12:28.275478-06
-13	D02	Gastos médicos por incapacidad o discapacidad	t	2025-10-11 23:12:28.275744-06
+12	D01	Honorarios m├®dicos, dentales y gastos hospitalarios	t	2025-10-11 23:12:28.275478-06
+13	D02	Gastos m├®dicos por incapacidad o discapacidad	t	2025-10-11 23:12:28.275744-06
 14	D03	Gastos funerales	t	2025-10-11 23:12:28.276009-06
 15	D04	Donativos	t	2025-10-11 23:12:28.276286-06
-16	D05	Intereses reales efectivamente pagados por créditos hipotecarios	t	2025-10-11 23:12:28.276545-06
+16	D05	Intereses reales efectivamente pagados por cr├®ditos hipotecarios	t	2025-10-11 23:12:28.276545-06
 17	D06	Aportaciones voluntarias al SAR	t	2025-10-11 23:12:28.276799-06
-18	D07	Primas por seguros de gastos médicos	t	2025-10-11 23:12:28.277045-06
-19	D08	Gastos de transportación escolar obligatoria	t	2025-10-11 23:12:28.277292-06
-20	D09	Depósitos en cuentas para el ahorro, primas que tengan como base planes de pensiones	t	2025-10-11 23:12:28.27754-06
+18	D07	Primas por seguros de gastos m├®dicos	t	2025-10-11 23:12:28.277045-06
+19	D08	Gastos de transportaci├│n escolar obligatoria	t	2025-10-11 23:12:28.277292-06
+20	D09	Dep├│sitos en cuentas para el ahorro, primas que tengan como base planes de pensiones	t	2025-10-11 23:12:28.27754-06
 21	D10	Pagos por servicios educativos (colegiaturas)	t	2025-10-11 23:12:28.277791-06
 22	S01	Sin efectos fiscales	t	2025-10-11 23:12:28.278038-06
 23	CP01	Pagos	t	2025-10-11 23:12:28.278364-06
-24	CN01	Nómina	t	2025-10-11 23:12:28.278617-06
+24	CN01	N├│mina	t	2025-10-11 23:12:28.278617-06
 \.
 
 
@@ -2640,7 +2694,8 @@ COPY public.usos_cfdi (id, codigo, descripcion, activo, fecha_creacion) FROM std
 --
 
 COPY public.usuarios (id, username, password, nombre, email, role, roles, empleado_id, activo, fecha_registro, fecha_modificacion, ultimo_acceso, full_name, phone, bio, profile_image) FROM stdin;
-1	admin	$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq	Administrador SuperCopias	admin@supercopias.com	admin	["admin"]	\N	t	2025-10-12 00:09:08.738514-06	2025-10-12 00:09:08.738514-06	2025-10-12 00:09:08.738514-06	Administrador SuperCopias	+52 961 100 0000	Administrador principal del sistema SuperCopias	\N
+19	001.Jhonatan	$2a$08$a5x.y3QbNF9tbBG/w6QT6u1X3fgQsI12GE4pYzshgM9uV.OFfGhBy	jhonatan	dfsd@gmail.com	empleado	["empleado"]	24	t	2025-10-16 00:44:55.739087-06	2025-10-16 01:28:36.43517-06	2025-10-16 01:28:36.43517-06	jhonatan	234823423	Empleado - Acceso personalizado	\N
+1	admin	$2a$10$T1AaTiFCWAt.ubexs.QkreJSTQRKRjPy2VeyQXCslX82feThi9tuW	Administrador SuperCopias	admin@supercopias.com	admin	["admin"]	\N	t	2025-10-11 23:09:08.738514-06	2025-11-26 20:40:29.290684-06	2025-11-26 20:40:29.290684-06	Administrador SuperCopias	+52 961 100 0000	Administrador principal del sistema SuperCopias	
 \.
 
 
@@ -2648,7 +2703,7 @@ COPY public.usuarios (id, username, password, nombre, email, role, roles, emplea
 -- Name: auditoria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.auditoria_id_seq', 1, false);
+SELECT pg_catalog.setval('public.auditoria_id_seq', 196, true);
 
 
 --
@@ -2690,21 +2745,21 @@ SELECT pg_catalog.setval('public.cat_tipos_proveedor_id_seq', 3, true);
 -- Name: clientes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.clientes_id_seq', 1, false);
+SELECT pg_catalog.setval('public.clientes_id_seq', 26, true);
 
 
 --
 -- Name: empleados_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.empleados_id_seq', 1, false);
+SELECT pg_catalog.setval('public.empleados_id_seq', 24, true);
 
 
 --
 -- Name: empleados_modulos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.empleados_modulos_id_seq', 1, false);
+SELECT pg_catalog.setval('public.empleados_modulos_id_seq', 174, true);
 
 
 --
@@ -2753,7 +2808,7 @@ SELECT pg_catalog.setval('public.estados_id_seq', 64, true);
 -- Name: eventos_personal_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.eventos_personal_id_seq', 1, false);
+SELECT pg_catalog.setval('public.eventos_personal_id_seq', 3, true);
 
 
 --
@@ -2816,14 +2871,14 @@ SELECT pg_catalog.setval('public.modulos_id_seq', 18, true);
 -- Name: proveedores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.proveedores_id_seq', 1, false);
+SELECT pg_catalog.setval('public.proveedores_id_seq', 10, true);
 
 
 --
 -- Name: puestos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.puestos_id_seq', 8, true);
+SELECT pg_catalog.setval('public.puestos_id_seq', 9, true);
 
 
 --
@@ -2837,7 +2892,7 @@ SELECT pg_catalog.setval('public.regimenes_fiscales_id_seq', 38, true);
 -- Name: sucursales_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.sucursales_id_seq', 1, true);
+SELECT pg_catalog.setval('public.sucursales_id_seq', 6, true);
 
 
 --
@@ -2851,7 +2906,7 @@ SELECT pg_catalog.setval('public.usos_cfdi_id_seq', 48, true);
 -- Name: usuarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.usuarios_id_seq', 1, true);
+SELECT pg_catalog.setval('public.usuarios_id_seq', 19, true);
 
 
 --
