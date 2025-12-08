@@ -498,6 +498,11 @@ async function addMovimiento(req, res) {
       evidencia_url
     } = req.body;
     
+    console.log('=== REGISTRAR MOVIMIENTO ===');
+    console.log('ID Inventario:', id);
+    console.log('Body recibido:', req.body);
+    console.log('Usuario:', req.user?.username);
+    
     // Validaciones
     if (!tipo_movimiento || !concepto || !cantidad || cantidad <= 0) {
       return res.status(400).json(
@@ -511,6 +516,8 @@ async function addMovimiento(req, res) {
       [id]
     );
     
+    console.log('Inventario encontrado:', inventarioResult.rows[0]);
+    
     if (inventarioResult.rows.length === 0) {
       return res.status(404).json(
         createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
@@ -520,6 +527,9 @@ async function addMovimiento(req, res) {
     const saldo_anterior = parseFloat(inventarioResult.rows[0].existencia_actual);
     let saldo_nuevo = saldo_anterior;
     let cantidad_movimiento = parseFloat(cantidad);
+    
+    console.log('Saldo anterior:', saldo_anterior);
+    console.log('Cantidad movimiento:', cantidad_movimiento);
     
     // Calcular nuevo saldo según tipo de movimiento
     if (tipo_movimiento === 'entrada') {
@@ -539,6 +549,9 @@ async function addMovimiento(req, res) {
       saldo_nuevo = cantidad_movimiento;
       cantidad_movimiento = saldo_nuevo - saldo_anterior;
     }
+    
+    console.log('Saldo nuevo:', saldo_nuevo);
+    console.log('Cantidad a registrar:', cantidad_movimiento);
     
     // Insertar movimiento
     const movimientoQuery = `
@@ -563,11 +576,15 @@ async function addMovimiento(req, res) {
       evidencia_url || null
     ]);
     
+    console.log('Movimiento insertado:', movResult.rows[0]);
+    
     // Actualizar existencia en inventarios
     await query(
       'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = CURRENT_TIMESTAMP WHERE id = $2',
       [saldo_nuevo, id]
     );
+    
+    console.log('Inventario actualizado correctamente');
     
     return res.status(201).json(
       createResponse(true, movResult.rows[0], 'Movimiento registrado exitosamente')
@@ -575,6 +592,7 @@ async function addMovimiento(req, res) {
     
   } catch (error) {
     console.error('Error al registrar movimiento:', error);
+    console.error('Error stack:', error.stack);
     return res.status(500).json(
       createErrorResponse('Error al registrar movimiento', CODIGOS_ERROR.ERROR_SERVIDOR)
     );

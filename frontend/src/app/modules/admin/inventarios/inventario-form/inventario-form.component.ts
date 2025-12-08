@@ -50,8 +50,17 @@ export class InventarioFormComponent implements OnInit {
 
   // Unidades de medida comunes
   unidadesMedida = [
-    'pieza', 'paquete', 'caja', 'resma', 'litro', 'kilogramo', 
-    'metro', 'rollo', 'cartucho', 'tóner', 'unidad'
+    { value: 'pieza', label: 'Pieza' },
+    { value: 'paquete', label: 'Paquete' },
+    { value: 'caja', label: 'Caja' },
+    { value: 'resma', label: 'Resma' },
+    { value: 'litro', label: 'Litro' },
+    { value: 'kilogramo', label: 'Kilogramo' },
+    { value: 'metro', label: 'Metro' },
+    { value: 'rollo', label: 'Rollo' },
+    { value: 'cartucho', label: 'Cartucho' },
+    { value: 'toner', label: 'Tóner' },
+    { value: 'unidad', label: 'Unidad' }
   ];
 
   constructor(

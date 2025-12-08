@@ -163,7 +163,7 @@
                         required
                         [disabled]="loading">
                   <option value="">Seleccione...</option>
-                  <option *ngFor="let unidad of unidadesMedida" [value]="unidad">{{unidad}}</option>
+                  <option *ngFor="let unidad of unidadesMedida" [value]="unidad.value">{{unidad.label}}</option>
                 </select>
               </div>
               

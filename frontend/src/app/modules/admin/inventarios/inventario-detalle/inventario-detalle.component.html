@@ -207,8 +207,8 @@
                           required
                           [disabled]="!movimientoForm.tipo_movimiento">
                     <option value="">Seleccione...</option>
-                    <option *ngFor="let concepto of getConceptosDisponibles()" [value]="concepto">
-                      {{concepto}}
+                    <option *ngFor="let concepto of getConceptosDisponibles()" [value]="concepto.value">
+                      {{concepto.label}}
                     </option>
                   </select>
                 </div>

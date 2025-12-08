@@ -44,9 +44,22 @@ export class InventarioDetalleComponent implements OnInit {
   ];
 
   conceptos = {
-    entrada: ['compra', 'devolucion', 'donacion', 'otro'],
-    salida: ['venta', 'uso_operativo', 'desperdicio', 'otro'],
-    ajuste: ['inventario_fisico', 'correccion', 'otro']
+    entrada: [
+      { value: 'compra', label: 'Compra' },
+      { value: 'devolucion', label: 'Devolución' },
+      { value: 'ajuste_entrada', label: 'Ajuste Entrada' }
+    ],
+    salida: [
+      { value: 'venta', label: 'Venta' },
+      { value: 'uso_operativo', label: 'Uso Operativo' },
+      { value: 'servicio_tecnico', label: 'Servicio Técnico' },
+      { value: 'merma', label: 'Merma' },
+      { value: 'ajuste_salida', label: 'Ajuste Salida' }
+    ],
+    ajuste: [
+      { value: 'inventario_fisico', label: 'Inventario Físico' },
+      { value: 'correccion', label: 'Corrección' }
+    ]
   };
 
   constructor(
@@ -150,7 +163,7 @@ export class InventarioDetalleComponent implements OnInit {
     this.movimientoForm.concepto = '';
   }
 
-  getConceptosDisponibles(): string[] {
+  getConceptosDisponibles(): { value: string; label: string; }[] {
     const tipo = this.movimientoForm.tipo_movimiento;
     return this.conceptos[tipo as keyof typeof this.conceptos] || [];
   }
