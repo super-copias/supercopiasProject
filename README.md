@@ -25,6 +25,7 @@ SuperCopias es un sistema de gestión empresarial desarrollado con tecnologías 
 
 ### Opción 1: Script Automatizado (Recomendado)
 
+**Windows (PowerShell):**
 ```powershell
 # Clonar el repositorio
 git clone <url-repositorio>
@@ -34,14 +35,28 @@ cd supercopiasProject
 createdb -U postgres supercopias
 cd backend
 psql -U postgres -d supercopias -f BD_SUPERCOPIAS.sql
+psql -U postgres -d supercopias -f scripts/datos-prueba.sql
 
 # Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus credenciales de PostgreSQL
+# Editar .env con tus credenciales
 
 # Iniciar desarrollo
 cd ..
 .\start-dev.ps1
+```
+
+**macOS/Linux (Bash):**
+```bash
+# Configurar base de datos
+createdb -U postgres supercopias
+cd backend
+psql -U postgres -d supercopias -f BD_SUPERCOPIAS.sql
+psql -U postgres -d supercopias -f scripts/datos-prueba.sql
+
+# Iniciar desarrollo
+cd ..
+./start-dev.sh
 ```
 
 Esto iniciará:
@@ -64,10 +79,16 @@ npm install
 npm start
 ```
 
-### 🔑 Credenciales de Acceso
+### 🔑 Credenciales de Acceso (Datos de Prueba)
 
-- **Usuario**: `admin`
-- **Contraseña**: `Admin123!$`
+Con el script `datos-prueba.sql` se crean usuarios de prueba:
+
+| Usuario | Contraseña | Role |
+|---------|-----------|------|
+| `001.robertomar` | `password123` | Admin |
+| `002.lauragomez` | `password123` | Empleado |
+| `003.carloshern` | `password123` | Empleado |
+| `004.anamariarui` | `password123` | Empleado |
 
 ---
 
@@ -81,8 +102,9 @@ supercopiasProject/
 │   ├── middlewares/              # Auth, roles, etc.
 │   ├── utils/                    # Utilidades
 │   ├── scripts/                  # Scripts de BD
+│   │   ├── datos-prueba.sql      # Datos de prueba
 │   │   ├── CHANGELOG.md          # Historial de cambios BD
-│   │   └── restore-database.ps1  # Script de restauración
+│   │   └── reload-database.sh    # Script de restauración local
 │   ├── BD_SUPERCOPIAS.sql        # Dump completo de BD (UTF-8)
 │   └── index.js                  # Punto de entrada
 │
@@ -95,8 +117,14 @@ supercopiasProject/
 │       │   └── admin/
 │       └── services/             # Servicios HTTP
 │
-├── start-dev.ps1                 # Script de inicio
-├── DOCS.md                       # Documentación completa
+├── start-dev.ps1                 # Script de inicio (Windows)
+├── start-dev.sh                  # Script de inicio (macOS/Linux)
+├── update-railway-db-env.sh      # Actualizar BD en Railway (macOS/Linux)
+├── update-railway-db.ps1         # Actualizar BD en Railway (Windows)
+├── docs/                         # Documentación técnica
+│   ├── GUIA_ACTUALIZACION_RAILWAY.md
+│   ├── REPORTE_SINCRONIZACION_BD.md
+│   └── SOLUCION_MODULO_EMPLEADOS.md
 └── README.md                     # Este archivo
 ```
 
@@ -168,16 +196,35 @@ supercopiasProject/
 - **Índices** optimizados para búsquedas
 - **Constraints** y validaciones a nivel BD
 
-### Restaurar Base de Datos
+### Restaurar Base de Datos Local
 
+**Windows:**
 ```powershell
-# Windows
 cd backend\scripts
-.\restore-database.ps1
-
-# Linux/Mac
-psql -U postgres -d supercopias -f backend/BD_SUPERCOPIAS.sql
+.\reload-database.sh  # Requiere Git Bash o WSL
 ```
+
+**macOS/Linux:**
+```bash
+cd backend/scripts
+./reload-database.sh
+```
+
+### Actualizar Base de Datos en Railway
+
+**macOS/Linux:**
+```bash
+./update-railway-db-env.sh
+# Selecciona opción 2: Esquema + datos de prueba
+```
+
+**Windows:**
+```powershell
+.\update-railway-db.ps1
+# Selecciona opción 2
+```
+
+Ver [Guía de Railway](docs/GUIA_ACTUALIZACION_RAILWAY.md) para más detalles.
 
 ---
 
@@ -198,9 +245,16 @@ npm run build    # Build de producción
 ```
 
 #### Proyecto Completo
+
+**Windows:**
 ```powershell
 .\start-dev.ps1           # Iniciar todo
 .\start-dev.ps1 -Restart  # Reiniciar servicios
+```
+
+**macOS/Linux:**
+```bash
+./start-dev.sh           # Iniciar todo
 ```
 
 ### Variables de Entorno
@@ -222,14 +276,15 @@ NODE_ENV=development
 
 ## 📚 Documentación
 
-Para documentación completa, consulta [DOCS.md](./DOCS.md):
+Documentos técnicos en la carpeta `docs/`:
 
-- 🚀 Guía de inicio rápido
-- 🏗️ Arquitectura del sistema
-- 📦 Módulos detallados
-- 💾 Estructura de base de datos
-- 👨‍💻 Guía de desarrollo
-- 📋 Changelog completo
+- 📋 [Guía de Actualización Railway](docs/GUIA_ACTUALIZACION_RAILWAY.md) - Cómo actualizar la BD en Railway
+- 🔄 [Reporte Sincronización BD](docs/REPORTE_SINCRONIZACION_BD.md) - Historial de migraciones
+- 👥 [Solución Módulo Empleados](docs/SOLUCION_MODULO_EMPLEADOS.md) - Detalles del módulo de empleados
+- 📖 [Documentación Técnica Completa](docs/DOCUMENTACION_TECNICA_COMPLETA.md) - Documentación exhaustiva del sistema
+- 📝 [Changelog BD](backend/scripts/CHANGELOG.md) - Cambios en la base de datos
+
+Ver el [índice completo de documentación](docs/README.md).
 
 ---
 
@@ -281,10 +336,9 @@ ng build --configuration production
 
 ## 📝 Archivos de Documentación
 
-- `README.md` - Este archivo (overview general)
-- `DOCS.md` - Documentación técnica completa
+- `README.md` - Este archivo (overview general del proyecto)
+- `docs/` - Documentación técnica y guías específicas
 - `backend/scripts/CHANGELOG.md` - Historial de cambios de BD
-- `backend/scripts/README.md` - Guía de scripts de BD
 
 ---
 
@@ -297,12 +351,12 @@ Copyright © 2025 SuperCopias. Todos los derechos reservados.
 ## 📞 Soporte
 
 Para problemas o preguntas:
-- 📖 Consultar [DOCS.md](./DOCS.md)
+- 📖 Consultar documentación en `docs/`
 - 🐛 Crear issue en GitHub
 - 📧 Contactar al equipo de desarrollo
 
 ---
 
-**Última actualización**: 30 de noviembre de 2025  
+**Última actualización**: 8 de diciembre de 2025  
 **Versión**: 1.0.0  
 **Desarrollado con**: ❤️ usando Angular + Node.js + PostgreSQL
