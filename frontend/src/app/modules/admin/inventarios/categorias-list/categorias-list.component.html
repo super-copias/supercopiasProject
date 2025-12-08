@@ -64,7 +64,7 @@
     
     <div class="card-body">
       <!-- Filtros -->
-      <div class="row g-2 mb-3">
+      <div class="row g-2 mb-3" *ngIf="!showForm">
         <div class="col-md-4">
           <select class="form-select form-select-sm" [(ngModel)]="filtroTipo" (change)="onFilterChange()">
             <option value="">Todos los tipos</option>
@@ -154,11 +154,20 @@
                           <small class="text-muted">{{campo.opciones?.join(', ') || '-'}}</small>
                         </td>
                         <td>
-                          <button type="button" 
-                                  class="btn btn-sm btn-outline-danger" 
-                                  (click)="eliminarCampoDinamico(i)">
-                            <i class="fas fa-trash"></i>
-                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" 
+                                    class="btn btn-outline-warning" 
+                                    (click)="editarCampoDinamico(i)"
+                                    title="Editar">
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-outline-danger" 
+                                    (click)="eliminarCampoDinamico(i)"
+                                    title="Eliminar">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </tbody>
@@ -166,9 +175,12 @@
                 </div>
               </div>
 
-              <!-- Agregar nuevo campo -->
+              <!-- Agregar/Editar campo -->
               <div class="card bg-light">
                 <div class="card-body">
+                  <h6 class="text-muted mb-2" *ngIf="editandoCampoIndex !== null">
+                    <i class="fas fa-edit me-1"></i>Editando campo
+                  </h6>
                   <div class="row g-2">
                     <div class="col-md-4">
                       <input type="text" 
@@ -202,12 +214,26 @@
                         </label>
                       </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4" *ngIf="editandoCampoIndex === null">
                       <button type="button" 
                               class="btn btn-sm btn-success w-100" 
                               (click)="agregarCampoDinamico()">
                         <i class="fas fa-plus me-1"></i> Agregar
                       </button>
+                    </div>
+                    <div class="col-md-4" *ngIf="editandoCampoIndex !== null">
+                      <div class="btn-group w-100" role="group">
+                        <button type="button" 
+                                class="btn btn-sm btn-primary" 
+                                (click)="actualizarCampoDinamico()">
+                          <i class="fas fa-check me-1"></i> Actualizar
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm btn-secondary" 
+                                (click)="cancelarEdicionCampo()">
+                          <i class="fas fa-times me-1"></i> Cancelar
+                        </button>
+                      </div>
                     </div>
                     <div class="col-md-12" *ngIf="campoDinamico.tipo === 'select'">
                       <input type="text" 

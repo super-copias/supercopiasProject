@@ -111,12 +111,9 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   loadCatalogos() {
     this.equiposService.getCatalogosCompletos().subscribe({
       next: (response) => {
-        console.log('Catálogos recibidos:', response);
         if (response.success && response.data) {
           this.tiposEquipo = response.data.tipos || [];
           this.estatusEquipo = response.data.estatus || [];
-          console.log('Tipos cargados:', this.tiposEquipo.length);
-          console.log('Estatus cargados:', this.estatusEquipo.length);
         }
       },
       error: (err) => {
@@ -182,12 +179,10 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   }
   
   onVer(equipo: any) {
-    console.log('Navegando a detalle de equipo:', equipo.id);
     this.router.navigate(['/admin/equipos/detalle', equipo.id]);
   }
   
   onEditar(equipo: any) {
-    console.log('Navegando a editar equipo:', equipo.id);
     this.router.navigate(['/admin/equipos/editar', equipo.id]);
   }
   

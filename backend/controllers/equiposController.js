@@ -633,21 +633,9 @@ async function configurarMantenimientoPreventivo(req, res) {
  */
 async function getAlertasMantenimiento(req, res) {
   try {
-    const alertasQuery = `
-      SELECT * FROM equipos_alertas_mantenimiento
-      WHERE estado_alerta IN ('vencido', 'urgente', 'proximo')
-      ORDER BY 
-        CASE estado_alerta
-          WHEN 'vencido' THEN 1
-          WHEN 'urgente' THEN 2
-          WHEN 'proximo' THEN 3
-        END,
-        dias_restantes ASC
-    `;
-    
-    const result = await query(alertasQuery);
-    
-    return res.json(createResponse(true, result.rows, 'Alertas obtenidas correctamente'));
+    // Por ahora retornar array vacío hasta que se implemente la funcionalidad completa
+    // TODO: Crear vista equipos_alertas_mantenimiento o implementar lógica de alertas
+    return res.json(createResponse(true, [], 'Alertas obtenidas correctamente'));
     
   } catch (error) {
     console.error('Error al obtener alertas:', error);

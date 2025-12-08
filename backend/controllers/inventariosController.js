@@ -882,7 +882,7 @@ async function createCategoria(req, res) {
       tipo,
       nombre.trim(),
       descripcion || null,
-      campos_requeridos ? JSON.stringify(campos_requeridos) : null,
+      campos_requeridos !== undefined ? JSON.stringify(campos_requeridos) : null,
       ordenFinal
     ]);
     
@@ -940,29 +940,60 @@ async function updateCategoria(req, res) {
       }
     }
     
+    // Construir el UPDATE dinámicamente solo con campos que vienen en el body
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (tipo !== undefined) {
+      updates.push(`tipo = $${paramIndex++}`);
+      values.push(tipo);
+    }
+    
+    if (nombre !== undefined) {
+      updates.push(`nombre = $${paramIndex++}`);
+      values.push(nombre.trim());
+    }
+    
+    if (descripcion !== undefined) {
+      updates.push(`descripcion = $${paramIndex++}`);
+      values.push(descripcion);
+    }
+    
+    if (campos_requeridos !== undefined) {
+      updates.push(`campos_requeridos = $${paramIndex++}`);
+      values.push(JSON.stringify(campos_requeridos));
+    }
+    
+    if (orden !== undefined) {
+      updates.push(`orden = $${paramIndex++}`);
+      values.push(orden);
+    }
+    
+    if (activo !== undefined) {
+      updates.push(`activo = $${paramIndex++}`);
+      values.push(activo);
+    }
+    
+    // Siempre actualizar fecha de modificación
+    updates.push('fecha_modificacion = NOW()');
+    
+    if (updates.length === 1) { // Solo fecha_modificacion
+      return res.status(400).json(
+        createErrorResponse('No hay campos para actualizar', CODIGOS_ERROR.DATOS_INVALIDOS)
+      );
+    }
+    
     const updateQuery = `
       UPDATE inventarios_categorias
-      SET 
-        tipo = COALESCE($1, tipo),
-        nombre = COALESCE($2, nombre),
-        descripcion = COALESCE($3, descripcion),
-        campos_requeridos = COALESCE($4, campos_requeridos),
-        orden = COALESCE($5, orden),
-        activo = COALESCE($6, activo),
-        fecha_modificacion = NOW()
-      WHERE id = $7
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *
     `;
     
-    const result = await query(updateQuery, [
-      tipo || null,
-      nombre ? nombre.trim() : null,
-      descripcion !== undefined ? descripcion : null,
-      campos_requeridos !== undefined ? (campos_requeridos ? JSON.stringify(campos_requeridos) : null) : null,
-      orden || null,
-      activo !== undefined ? activo : null,
-      categoriaId
-    ]);
+    values.push(categoriaId);
+    
+    const result = await query(updateQuery, values);
     
     return res.json(createResponse(true, result.rows[0], 'Categoría actualizada correctamente'));
     

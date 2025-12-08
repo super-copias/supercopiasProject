@@ -43,6 +43,8 @@ export class CategoriasListComponent implements OnInit {
     requerido: false,
     opciones: ''
   };
+  
+  editandoCampoIndex: number | null = null;
 
   constructor(
     private router: Router,
@@ -60,7 +62,8 @@ export class CategoriasListComponent implements OnInit {
       next: (response) => {
         this.loading = false;
         if (response.success) {
-          this.categorias = response.data || [];
+          // Forzar nueva referencia del array para detectar cambios
+          this.categorias = [...(response.data || [])];
         }
       },
       error: (error) => {
@@ -143,7 +146,10 @@ export class CategoriasListComponent implements OnInit {
           this.loading = false;
           if (response.success) {
             this.notificationService.success('Categoría actualizada correctamente');
+            this.resetForm();
             this.showForm = false;
+            this.isEditMode = false;
+            this.editingId = null;
             this.loadCategorias();
           }
         },
@@ -224,6 +230,61 @@ export class CategoriasListComponent implements OnInit {
 
   eliminarCampoDinamico(index: number): void {
     this.categoriaForm.campos_requeridos.splice(index, 1);
+  }
+  
+  editarCampoDinamico(index: number): void {
+    const campo = this.categoriaForm.campos_requeridos[index];
+    this.editandoCampoIndex = index;
+    this.campoDinamico = {
+      nombre: campo.nombre,
+      etiqueta: campo.etiqueta,
+      tipo: campo.tipo,
+      requerido: campo.requerido,
+      opciones: campo.opciones ? campo.opciones.join(', ') : ''
+    };
+  }
+  
+  actualizarCampoDinamico(): void {
+    if (!this.campoDinamico.etiqueta) {
+      this.notificationService.warning('La etiqueta del campo es requerida');
+      return;
+    }
+    
+    const campo: any = {
+      nombre: this.generarNombreTecnico(this.campoDinamico.etiqueta),
+      etiqueta: this.campoDinamico.etiqueta,
+      tipo: this.campoDinamico.tipo,
+      requerido: this.campoDinamico.requerido
+    };
+    
+    if (this.campoDinamico.opciones) {
+      campo.opciones = this.campoDinamico.opciones.split(',').map((o: string) => o.trim());
+    }
+    
+    if (this.editandoCampoIndex !== null) {
+      this.categoriaForm.campos_requeridos[this.editandoCampoIndex] = campo;
+      this.editandoCampoIndex = null;
+    }
+    
+    // Reset
+    this.campoDinamico = {
+      nombre: '',
+      etiqueta: '',
+      tipo: 'texto',
+      requerido: false,
+      opciones: ''
+    };
+  }
+  
+  cancelarEdicionCampo(): void {
+    this.editandoCampoIndex = null;
+    this.campoDinamico = {
+      nombre: '',
+      etiqueta: '',
+      tipo: 'texto',
+      requerido: false,
+      opciones: ''
+    };
   }
 
   volver(): void {
