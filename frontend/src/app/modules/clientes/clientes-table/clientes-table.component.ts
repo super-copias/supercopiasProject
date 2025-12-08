@@ -16,18 +16,19 @@ export class ClientesTableComponent {
   selectedCliente: any = null;
   showDetalles = false;
   usosCFDI: any[] = [];
+  catalogosCargados = false;
 
   constructor(
     private notificationService: NotificationService,
     private catalogosService: CatalogosService
-  ) {
-    this.cargarUsosCFDI();
-  }
+  ) {}
 
   cargarUsosCFDI() {
+    if (this.catalogosCargados) return;
     this.catalogosService.getUsosCFDI().subscribe({
       next: (usos) => {
         this.usosCFDI = usos;
+        this.catalogosCargados = true;
       },
       error: (error) => {
         console.error('Error al cargar usos CFDI:', error);
@@ -52,6 +53,8 @@ export class ClientesTableComponent {
   verDetalles(cliente: any) {
     this.selectedCliente = cliente;
     this.showDetalles = true;
+    // Cargar catálogos solo cuando se necesiten
+    this.cargarUsosCFDI();
     // Prevenir scroll del body cuando el modal está abierto
     document.body.style.overflow = 'hidden';
   }

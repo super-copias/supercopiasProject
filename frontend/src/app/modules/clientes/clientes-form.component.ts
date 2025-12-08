@@ -93,7 +93,7 @@ import { NotificationService } from '../../services/notification.service';
       <div class="mb-2"><label>RFC</label><input class="form-control" [(ngModel)]="model.rfc" name="rfc" maxlength="13" placeholder="XAXX010101000" /></div>
       <div class="mb-2">
         <label>Régimen Fiscal</label>
-        <select class="form-select" [(ngModel)]="model.regimenFiscal" name="regimenFiscal">
+        <select class="form-select" [(ngModel)]="model.regimenFiscal" name="regimenFiscal" (focus)="loadRegimenesFiscales()">
           <option value="">Seleccione un régimen fiscal...</option>
           <option *ngFor="let regimen of regimenesFiscales" [value]="regimen.codigo">
             {{regimen.codigo}} - {{regimen.descripcion}}
@@ -104,7 +104,7 @@ import { NotificationService } from '../../services/notification.service';
       <div class="mb-2"><label>Código Postal</label><input class="form-control" [(ngModel)]="model.direccionCodigoPostal" name="direccionCodigoPostal" maxlength="5" placeholder="29000" /></div>
       <div class="mb-2">
         <label>Uso CFDI</label>
-        <select class="form-select" [(ngModel)]="model.usoCfdi" name="usoCfdi">
+        <select class="form-select" [(ngModel)]="model.usoCfdi" name="usoCfdi" (focus)="loadUsosCFDI()">
           <option value="">Seleccione un uso CFDI...</option>
           <option *ngFor="let uso of usosCFDI" [value]="uso.codigo">
             {{uso.codigo}} - {{uso.descripcion}}
@@ -142,6 +142,7 @@ export class ClientesFormComponent implements OnInit {
   // Catálogos SAT
   usosCFDI: any[] = [];
   regimenesFiscales: any[] = [];
+  catalogosCargados = false;
   
   // Variables para el selector de mapa (accordion expandible)
   showMapSelector = false;
@@ -162,8 +163,6 @@ export class ClientesFormComponent implements OnInit {
    * Carga los catálogos SAT y verifica si es modo edición
    */
   ngOnInit() {
-    this.loadUsosCFDI();
-    this.loadRegimenesFiscales();
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
         const id = parseInt(params['id'], 10);
@@ -183,6 +182,7 @@ export class ClientesFormComponent implements OnInit {
    * Cargar catálogo de Regímenes Fiscales desde el backend
    */
   loadRegimenesFiscales() {
+    if (this.catalogosCargados) return;
     this.catalogosService.getRegimenesFiscales().subscribe({
       next: (regimenes) => {
         if (regimenes) this.regimenesFiscales = regimenes;
@@ -197,9 +197,11 @@ export class ClientesFormComponent implements OnInit {
    * Cargar catálogo de Usos CFDI desde el backend
    */
   loadUsosCFDI() {
+    if (this.catalogosCargados) return;
     this.catalogosService.getUsosCFDI().subscribe({
       next: (usos) => {
         if (usos) this.usosCFDI = usos;
+        this.catalogosCargados = true;
       },
       error: (error) => {
       }
@@ -212,6 +214,10 @@ export class ClientesFormComponent implements OnInit {
   loadCliente() {
     if (this.clienteId) {
       this.loading = true;
+      // Cargar catálogos primero si estamos en modo edición
+      this.loadUsosCFDI();
+      this.loadRegimenesFiscales();
+      
       this.svc.getById(this.clienteId).subscribe({
         next: (response) => {
           if (response && response.success && response.data) {

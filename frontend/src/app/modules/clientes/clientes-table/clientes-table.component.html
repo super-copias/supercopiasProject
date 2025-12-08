@@ -126,7 +126,7 @@
                   <dd class="col-sm-8">{{selectedCliente.id}}</dd>
                   
                   <dt class="col-sm-4">Nombre:</dt>
-                  <dd class="col-sm-8">{{selectedCliente.nombre}}</dd>
+                  <dd class="col-sm-8">{{selectedCliente.nombreComercial}}</dd>
                   
                   <dt class="col-sm-4">Teléfono:</dt>
                   <dd class="col-sm-8">
@@ -179,19 +179,19 @@
                   </dd>
                   
                   <dt class="col-sm-4">Razón Social:</dt>
-                  <dd class="col-sm-8">{{selectedCliente.razon || 'No especificada'}}</dd>
+                  <dd class="col-sm-8">{{selectedCliente.razonSocial || 'No especificada'}}</dd>
                   
                   <dt class="col-sm-4">Régimen:</dt>
-                  <dd class="col-sm-8">{{selectedCliente.regimen || 'No especificado'}}</dd>
+                  <dd class="col-sm-8">{{selectedCliente.regimenFiscal || 'No especificado'}}</dd>
                   
                   <dt class="col-sm-4">Dirección de facturación:</dt>
-                  <dd class="col-sm-8">{{selectedCliente.direccion || 'No especificada'}}</dd>
+                  <dd class="col-sm-8">{{selectedCliente.direccionFacturacion || 'No especificada'}}</dd>
                   
                   <dt class="col-sm-4">Código Postal:</dt>
-                  <dd class="col-sm-8">{{selectedCliente.cp || 'No especificado'}}</dd>
+                  <dd class="col-sm-8">{{selectedCliente.direccionCodigoPostal || 'No especificado'}}</dd>
                   
                   <dt class="col-sm-4">Uso CFDI:</dt>
-                  <dd class="col-sm-8">{{getUsoCFDIDescripcion(selectedCliente.cfdi)}}</dd>
+                  <dd class="col-sm-8">{{getUsoCFDIDescripcion(selectedCliente.usoCfdi)}}</dd>
                 </dl>
               </div>
             </div>
