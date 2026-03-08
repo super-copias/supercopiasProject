@@ -56,13 +56,16 @@ export class AdminComponent {
   }
 
   updateForWidth(width: number) {
-    // Consider mobile if below 768px
     if (width < 768) {
-      // start hidden (mobile overlay closed)
+      // Móvil: oculto, se abre como overlay
+      this.collapsed = true;
+      this.mobileOpen = false;
+    } else if (width < 1200) {
+      // Tablet / pantalla mediana: solo íconos (colapsado)
       this.collapsed = true;
       this.mobileOpen = false;
     } else {
-      // desktop: show expanded by default
+      // Monitor grande: sidebar completo con texto
       this.collapsed = false;
       this.mobileOpen = false;
     }

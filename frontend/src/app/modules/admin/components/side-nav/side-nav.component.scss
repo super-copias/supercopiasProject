@@ -156,7 +156,7 @@
 @media (max-width: 767.98px) {
     .sidenav {
         transform: translateX(-110%);
-        width: 200px; /* reduced overlay width to 200px */
+        width: 68px; /* icon-only en móvil */
         position: fixed;
         left: 0;
         top: 0;
@@ -177,7 +177,7 @@
     .sidenav-wrapper.mobile-open.collapsed .sidenav {
         transform: translateX(0) !important;
         left: 0 !important;
-        width: 200px !important; /* match reduced mobile width */
+        width: 68px !important; /* icon-only, mismo que tablet colapsada */
         bottom: 0 !important;
         min-height: 100vh !important;
     }
@@ -236,5 +236,55 @@
     .sidenav .nav > *:last-child {
         margin-bottom: 0;
         padding-bottom: 0;
+    }
+}
+
+/* Ícono en header colapsado */
+.sidenav-header-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+/* Footer compacto (modo solo-íconos) */
+.sidenav-footer-compact {
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+.user-avatar-mini {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255, 221, 2, 0.2);
+    border: 2px solid rgba(255, 221, 2, 0.5);
+    color: #fff;
+    font-weight: bold;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    cursor: default;
+    user-select: none;
+}
+
+.btn-logout-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0.5rem auto 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(220, 53, 69, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover {
+        background: rgba(220, 53, 69, 0.7);
+        color: #fff;
     }
 }
