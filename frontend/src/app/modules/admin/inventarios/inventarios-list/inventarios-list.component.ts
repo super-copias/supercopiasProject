@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, finalize, switchMap, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { InventariosService } from '../../../../services/inventarios.service';
+import { InventariosService, Articulo, Departamento, DepartamentoConArticulos, EstadisticasInventario } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 
 @Component({
@@ -11,347 +11,227 @@ import { NotificationService } from '../../../../services/notification.service';
   styleUrls: ['./inventarios-list.component.scss']
 })
 export class InventariosListComponent implements OnInit, OnDestroy {
-  inventarios: any[] = [];
-  alertas: any[] = [];
-  estadisticas: any = null;
-  mostrarAlertas = true;
-  Math = Math;
-  q = '';
-  searchTerm = '';
+
+  // ── Estado de vista ────────────────────────────────────────────────────────
+  vistaActiva: 'vacia' | 'acordeon' | 'busqueda' = 'vacia';
   loading = false;
-  loadingStats = false;
-  pageChange$ = new Subject<number>();
-  private destroy$ = new Subject<void>();
-  private pageSub: Subscription | null = null;
+
+  // ── Datos ──────────────────────────────────────────────────────────────────
+  departamentosConArticulos: DepartamentoConArticulos[] = [];
+  resultadosBusqueda: Articulo[] = [];
+  departamentos: Departamento[] = [];
+  alertas: any[] = [];
+  estadisticas: EstadisticasInventario | null = null;
+  mostrarAlertas = false;
+
+  // ── Acordeón ───────────────────────────────────────────────────────────────
+  seccionesAbiertas = new Set<number>();
+
+  // ── Filtros ────────────────────────────────────────────────────────────────
+  filtroBusqueda = '';
+  filtroDepartamento: number | '' = '';
+  filtroTipo = '';
+
+  // ── Paginación (vista búsqueda) ────────────────────────────────────────────
   page = 1;
-  limit = 10;
   total = 0;
   pages = 1;
-  
-  // Filtros
-  filtroTipo = '';
-  filtroCategoria = '';
-  filtroStockNivel = '';
-  mostrarArchivados = false;
-  
-  // Catálogos
-  categorias: any[] = [];
-  categoriasCargadas = false;
-  
+  limit = 15;
+  get paginasArray(): number[] {
+    return Array.from({ length: Math.min(this.pages, 7) }, (_, i) => i + 1);
+  }
+
+  private destroy$ = new Subject<void>();
+  private busqueda$ = new Subject<void>();
+
   constructor(
     private inventariosService: InventariosService,
     private router: Router,
-    private notificationService: NotificationService
-  ) { }
-  
-  ngOnInit() {
-    // Cargar estadísticas
-    this.loadEstadisticas();
-    
-    // Cargar alertas
-    this.loadAlertas();
-    
-    this.pageSub = this.pageChange$.pipe(
-      debounceTime(150),
-      switchMap(page => {
-        this.page = page;
-        return this.loadData();
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (r: any) => { 
-        this.handleResponse(r);
-      },
-      error: (error) => {
-        this.handleError(error);
-      }
-    });
+    private notif: NotificationService
+  ) {}
 
-    this.load();
+  ngOnInit() {
+    this.cargarDepartamentos();
+    this.cargarEstadisticas();
+    this.cargarAlertas();
+
+    // Debounce para búsqueda por texto — siempre escucha
+    this.busqueda$.pipe(debounceTime(350), takeUntil(this.destroy$))
+      .subscribe(() => this.ejecutarBusquedaOFiltro());
   }
-  
-  ngOnDestroy() { 
+
+  ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.pageSub) this.pageSub.unsubscribe();
   }
-  
-  private loadData() {
-    this.loading = true;
-    const filters = {
-      q: this.q,
-      tipo: this.filtroTipo,
-      categoria: this.filtroCategoria,
-      stockNivel: this.filtroStockNivel,
-      incluirArchivados: this.mostrarArchivados,
-      page: this.page,
-      limit: this.limit
-    };
-    
-    return this.inventariosService.getInventarios(filters).pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.loading = false)
-    );
-  }
-  
-  private handleResponse(r: any) {
-    if (r.success) {
-      this.inventarios = r.data || [];
-      this.total = r.pagination?.total || 0;
-      this.pages = r.pagination?.pages || 1;
-    } else {
-      this.inventarios = [];
-      this.total = 0;
-      this.pages = 1;
-    }
-  }
-  
-  private handleError(error: any) {
-    console.error('Error al cargar inventarios:', error);
-    this.notificationService.error('Error al cargar inventarios');
-    this.inventarios = [];
-    this.total = 0;
-    this.pages = 1;
-  }
-  
-  loadEstadisticas() {
-    this.loadingStats = true;
-    this.inventariosService.getStats().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.estadisticas = response.data;
-        }
-        this.loadingStats = false;
-      },
-      error: (err) => {
-        console.error('Error al cargar estadísticas:', err);
-        this.loadingStats = false;
-      }
+
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+
+  private cargarDepartamentos() {
+    this.inventariosService.getDepartamentos().subscribe({
+      next: r => { if (r.success) this.departamentos = r.data || []; }
     });
   }
 
-  loadAlertas() {
+  private cargarEstadisticas() {
+    this.inventariosService.getEstadisticas().subscribe({
+      next: r => { if (r.success) this.estadisticas = r.data; }
+    });
+  }
+
+  private cargarAlertas() {
     this.inventariosService.getAlertas().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.alertas = response.data;
+      next: r => {
+        if (r.success) {
+          this.alertas = r.data || [];
           this.mostrarAlertas = this.alertas.length > 0;
         }
-      },
-      error: (err) => {
-        console.error('Error al cargar alertas:', err);
-        this.alertas = [];
       }
     });
   }
-  
-  loadCategorias() {
-    if (this.categoriasCargadas) return;
-    
-    // Cargar todas las categorías (sin filtro de tipo)
-    this.inventariosService.getCategorias('').subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.categorias = response.data;
-          this.categoriasCargadas = true;
+
+  // ── Vista acordeón (Ver todos) ─────────────────────────────────────────────
+
+  verTodos() {
+    const params: any = {};
+    if (this.filtroDepartamento) params.departamento_id = this.filtroDepartamento;
+    if (this.filtroTipo) params.tipo = this.filtroTipo;
+
+    this.loading = true;
+    this.inventariosService.getInventariosPorDepartamento(params).subscribe({
+      next: r => {
+        this.loading = false;
+        if (r.success) {
+          this.departamentosConArticulos = r.data || [];
+          // Iniciar todos los departamentos contraídos
+          this.seccionesAbiertas.clear();
+          this.vistaActiva = 'acordeon';
         }
       },
-      error: (err) => {
-        console.error('Error al cargar categorías:', err);
-        this.categorias = [];
-      }
+      error: () => { this.loading = false; this.notif.error('Error al cargar inventario'); }
     });
-  }
-  
-  ocultarAlertas() {
-    this.mostrarAlertas = false;
   }
 
-  onVerAlerta(alerta: any) {
-    this.router.navigate(['/admin/inventarios/detalle', alerta.id]);
+  toggleSeccion(id: number) {
+    if (this.seccionesAbiertas.has(id)) this.seccionesAbiertas.delete(id);
+    else this.seccionesAbiertas.add(id);
   }
-  
-  load() {
-    this.page = 1;
-    this.loadData().subscribe({
-      next: r => this.handleResponse(r),
-      error: e => this.handleError(e)
-    });
+
+  estaAbierto(id: number): boolean { return this.seccionesAbiertas.has(id); }
+
+  // ── Búsqueda y filtros ─────────────────────────────────────────────────────
+
+  onFiltroChange() {
+    this.busqueda$.next();
   }
-  
-  onSearch() {
-    this.q = this.searchTerm.trim();
-    this.load();
+
+  ejecutarBusquedaOFiltro() {
+    const hayTexto = this.filtroBusqueda.trim().length > 0;
+    const hayDepto = !!this.filtroDepartamento;
+    const hayTipo = !!this.filtroTipo;
+
+    // Sin ningún filtro → vista vacía
+    if (!hayTexto && !hayDepto && !hayTipo) {
+      this.vistaActiva = 'vacia';
+      return;
+    }
+    // Solo departamento (sin texto) → acordeón filtrado
+    if (!hayTexto && hayDepto && !hayTipo) {
+      this.verTodos();
+      return;
+    }
+    // Cualquier texto o combinación → lista paginada
+    this.cargarListaBusqueda(1);
   }
-  
-  onClearSearch() {
-    this.searchTerm = '';
-    this.q = '';
-    this.load();
-  }
-  
-  onFilterChange() {
-    if (this.filtroTipo) {
-      this.loadCategorias();
+
+  cargarListaBusqueda(p: number) {
+    if (p < 1 || p > this.pages) return;
+    this.page = p;
+    this.loading = true;
+
+    const params: any = { page: p, limit: this.limit };
+    if (this.filtroBusqueda.trim()) {
+      // Búsqueda por texto: independiente de los demás filtros
+      params.q = this.filtroBusqueda.trim();
     } else {
-      this.filtroCategoria = '';
-      this.categorias = [];
+      // Sin texto: aplica departamento y tipo
+      if (this.filtroDepartamento) params.departamento_id = this.filtroDepartamento;
+      if (this.filtroTipo) params.tipo = this.filtroTipo;
     }
-    this.load();
-  }
-  
-  go(p: number) {
-    if (p >= 1 && p <= this.pages) {
-      this.pageChange$.next(p);
-    }
-  }
-  
-  onNuevo() {
-    this.router.navigate(['/admin/inventarios/nuevo']);
-  }
-  
-  onVer(inventario: any) {
-    this.router.navigate(['/admin/inventarios/detalle', inventario.id]);
-  }
-  
-  onEditar(inventario: any) {
-    this.router.navigate(['/admin/inventarios/editar', inventario.id]);
-  }
-  
-  onArchivar(inventario: any) {
-    const mensaje = `¿Está seguro de archivar el artículo "${inventario.nombre}"?\n\nEl artículo quedará oculto pero conservará su historial de movimientos.\nPodrá restaurarlo posteriormente desde artículos archivados.`;
-    
-    if (!confirm(mensaje)) {
-      return;
-    }
-    
-    this.inventariosService.archivarInventario(inventario.id, true).subscribe({
-      next: (response) => {
-        this.notificationService.success(response.message || 'Artículo archivado correctamente');
-        this.load();
-        this.loadEstadisticas();
-        this.loadAlertas();
+
+    this.inventariosService.getInventarios(params).subscribe({
+      next: r => {
+        this.loading = false;
+        if (r.success) {
+          this.resultadosBusqueda = r.data || [];
+          this.total = r.pagination?.total || 0;
+          this.pages = r.pagination?.pages || 1;
+          this.vistaActiva = 'busqueda';
+        }
       },
-      error: (err) => {
-        console.error('Error al archivar artículo:', err);
-        const mensaje = err.error?.error?.message || err.error?.message || 'Error al archivar artículo';
-        this.notificationService.error(mensaje);
-      }
+      error: () => { this.loading = false; this.notif.error('Error al buscar'); }
     });
   }
 
-  onRestaurar(inventario: any) {
-    const mensaje = `¿Restaurar el artículo "${inventario.nombre}"?\n\nEl artículo volverá a estar visible en el inventario activo.`;
-    
-    if (!confirm(mensaje)) {
-      return;
-    }
-    
-    this.inventariosService.archivarInventario(inventario.id, false).subscribe({
-      next: (response) => {
-        this.notificationService.success(response.message || 'Artículo restaurado correctamente');
-        this.load();
-        this.loadEstadisticas();
+  limpiarFiltros() {
+    this.filtroBusqueda = '';
+    this.filtroDepartamento = '';
+    this.filtroTipo = '';
+    this.vistaActiva = 'vacia';
+    this.resultadosBusqueda = [];
+    this.departamentosConArticulos = [];
+  }
+
+  limpiarBusqueda() {
+    this.filtroBusqueda = '';
+    this.onFiltroChange();
+  }
+
+  // ── Navegación ─────────────────────────────────────────────────────────────
+
+  nuevo() { this.router.navigate(['/admin/inventarios/nuevo']); }
+  verDetalle(id: number) { this.router.navigate(['/admin/inventarios/detalle', id]); }
+  editar(id: number) { this.router.navigate(['/admin/inventarios/editar', id]); }
+  verHistorial() { this.router.navigate(['/admin/inventarios/movimientos']); }
+  verDepartamentos() { this.router.navigate(['/admin/inventarios/departamentos']); }
+  ocultarAlertas() { this.mostrarAlertas = false; }
+
+  // ── Acciones sobre artículos ───────────────────────────────────────────────
+
+  archivar(art: Articulo) {
+    if (!confirm(`¿Archivar "${art.nombre}"? El artículo quedará oculto pero conservará su historial.`)) return;
+    this.inventariosService.archivarInventario(art.id!, true).subscribe({
+      next: r => {
+        this.notif.success(r.message || 'Artículo archivado');
+        this.refrescarVista();
+        this.cargarEstadisticas();
       },
-      error: (err) => {
-        console.error('Error al restaurar artículo:', err);
-        const mensaje = err.error?.error?.message || err.error?.message || 'Error al restaurar artículo';
-        this.notificationService.error(mensaje);
-      }
+      error: e => this.notif.error(e.error?.message || 'Error al archivar')
     });
   }
 
-  toggleArchivados() {
-    this.mostrarArchivados = !this.mostrarArchivados;
-    this.page = 1;
-    this.load();
-  }
-  
-  onEliminar(inventario: any) {
-    const mensaje = `¿Está seguro de eliminar PERMANENTEMENTE el artículo "${inventario.nombre}"?\n\nEsta acción NO se puede deshacer y el registro será eliminado de la base de datos.\n\nNOTA: No se pueden eliminar artículos con movimientos registrados.\n\n⚠️ RECOMENDACIÓN: Use "Archivar" en lugar de eliminar para conservar el historial.`;
-    
-    if (!confirm(mensaje)) {
-      return;
-    }
-    
-    this.inventariosService.deleteInventario(inventario.id).subscribe({
+  eliminar(art: Articulo) {
+    if (!confirm(`¿Eliminar PERMANENTEMENTE "${art.nombre}"?\n⚠ Esta acción no se puede deshacer. Se recomienda archivar en su lugar.`)) return;
+    this.inventariosService.deleteInventario(art.id!).subscribe({
       next: () => {
-        this.notificationService.success('Artículo eliminado permanentemente');
-        this.load();
-        this.loadEstadisticas();
-        this.loadAlertas();
+        this.notif.success('Artículo eliminado');
+        this.refrescarVista();
+        this.cargarEstadisticas();
+        this.cargarAlertas();
       },
-      error: (err) => {
-        console.error('Error al eliminar artículo:', err);
-        // Extraer mensaje del backend
-        const mensaje = err.error?.error?.message || err.error?.message || 'Error al eliminar artículo';
-        this.notificationService.error(mensaje);
-      }
+      error: e => this.notif.error(e.error?.message || 'Error al eliminar')
     });
   }
-  
-  getStockBadge(inventario: any): string {
-    return this.inventariosService.getStockBadgeClass(inventario.nivel_stock);
-  }
-  
-  getStockLabel(inventario: any): string {
-    return this.inventariosService.getStockLabel(inventario.nivel_stock);
-  }
-  
-  getTipoIcon(tipo: string): string {
-    return this.inventariosService.getTipoIcon(tipo);
-  }
-  
-  formatCurrency(value: number): string {
-    return value ? `$${value.toFixed(2)}` : 'N/A';
+
+  private refrescarVista() {
+    if (this.vistaActiva === 'acordeon') this.verTodos();
+    else if (this.vistaActiva === 'busqueda') this.cargarListaBusqueda(this.page);
   }
 
-  formatQuantity(value: number | null | undefined): string {
-    if (value === null || value === undefined) return '0';
-    const num = Number(value);
-    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
-  }
+  // ── Helpers de presentación ────────────────────────────────────────────────
 
-  formatLabel(value: string): string {
-    if (!value) return '';
-    // Capitalizar y reemplazar guiones bajos con espacios
-    return value
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  getCaracteristicasArray(item: any): Array<{key: string, value: string}> {
-    if (!item.caracteristicas) return [];
-    
-    let caracteristicas = item.caracteristicas;
-    
-    // Si es string JSON, parsearlo
-    if (typeof caracteristicas === 'string') {
-      try {
-        caracteristicas = JSON.parse(caracteristicas);
-      } catch (e) {
-        console.error('Error parseando caracteristicas:', e);
-        return [];
-      }
-    }
-    
-    // Buscar la categoría del item para obtener las etiquetas
-    const categoria = this.categorias.find(c => c.nombre === item.categoria);
-    const camposCategoria = categoria?.campos_requeridos || [];
-    
-    // Convertir objeto a array de key-value, usando etiquetas reales
-    return Object.keys(caracteristicas)
-      .filter(key => caracteristicas[key] && caracteristicas[key].toString().trim() !== '')
-      .map(key => {
-        // Buscar la etiqueta real del campo en la categoría
-        const campoInfo = camposCategoria.find((campo: any) => campo.nombre === key);
-        const etiqueta = campoInfo?.etiqueta || this.formatLabel(key);
-        
-        return {
-          key: etiqueta,
-          value: caracteristicas[key]
-        };
-      });
-  }
+  getBadgeStock(art: any): string { return this.inventariosService.getBadgeClass(art?.nivel_stock || 'sin_stock'); }
+  getStockLabel(art: any): string { return this.inventariosService.getStockLabel(art); }
+  getTipoIcon(art: any): string { return this.inventariosService.getTipoIcon(art); }
+  formatCurrency(v: number): string { return this.inventariosService.formatCurrency(v); }
 }

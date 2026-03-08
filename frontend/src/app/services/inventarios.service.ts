@@ -1,384 +1,221 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ConfigService } from './config.service';
+import { environment } from '../../environments/environment';
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  pagination?: any;
+// ── Interfaces ──────────────────────────────────────────────────────────────
+
+export interface Departamento {
+  id?: number;
+  nombre: string;
+  descripcion?: string;
+  color?: string;
+  orden?: number;
+  activo?: boolean;
+  total_articulos?: number;
 }
 
-export interface Inventario {
+export interface Articulo {
   id?: number;
-  tipo: string; // 'venta', 'insumo', 'generico'
   nombre: string;
-  categoria: string;
+  descripcion?: string;
+  tipo: 'venta' | 'insumo' | 'generico';
+  es_servicio?: boolean;
+  departamento_id?: number;
+  departamento_nombre?: string;
+  departamento_color?: string;
+  codigo_sku?: string;
   marca?: string;
   modelo?: string;
-  codigo_sku?: string;
   proveedor_id?: number;
-  proveedor_nombre?: string;
-  estatus?: string; // 'activo', 'inactivo'
+  unidad_medida?: string;
   existencia_actual?: number;
-  unidad_medida: string;
   stock_minimo?: number;
   stock_maximo?: number;
-  ubicacion_fisica?: string;
   costo_compra?: number;
   precio_venta?: number;
-  costo_promedio?: number;
-  observaciones?: string;
-  foto_url?: string;
-  caracteristicas?: any;
-  fecha_alta?: Date;
-  fecha_modificacion?: Date;
-  activo?: boolean;
-  nivel_stock?: string; // 'critico', 'bajo', 'normal'
+  disponible_en_pos?: boolean;
+  ubicacion_fisica?: string;
+  archivado?: boolean;
+  nivel_stock?: 'ok' | 'bajo' | 'critico' | 'sin_stock' | 'servicio';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DepartamentoConArticulos extends Departamento {
+  articulos: Articulo[];
 }
 
 export interface Movimiento {
   id?: number;
-  inventario_id?: number;
-  tipo_movimiento: string; // 'entrada', 'salida', 'ajuste'
-  concepto: string; // 'compra', 'venta', 'uso_operativo', etc.
-  cantidad: number;
-  saldo_anterior?: number;
-  saldo_nuevo?: number;
-  usuario_nombre?: string;
-  area_servicio?: string;
-  notas?: string;
-  evidencia_url?: string;
-  fecha_movimiento?: Date;
-}
-
-export interface Categoria {
-  id?: number;
-  tipo: string;
-  nombre: string;
-  descripcion?: string;
-  campos_requeridos?: any[];
-  activo?: boolean;
-  orden?: number;
-}
-
-export interface ReglasStock {
-  id?: number;
   inventario_id: number;
-  nivel_critico_porcentaje: number;
-  nivel_bajo_porcentaje: number;
-  nivel_normal_porcentaje: number;
-  usar_stock_maximo: boolean;
-  alerta_critico_activa: boolean;
-  alerta_bajo_activa: boolean;
-  alerta_sobrestock_activa: boolean;
-  umbral_sobrestock_porcentaje: number;
-  notificar_usuarios?: any;
-  observaciones?: string;
-  activo?: boolean;
-  fecha_creacion?: Date;
-  fecha_modificacion?: Date;
-  tiene_reglas_personalizadas?: boolean;
-  stock_minimo?: number;
-  stock_maximo?: number;
+  tipo_movimiento: 'entrada' | 'salida' | 'ajuste' | 'transferencia';
+  concepto: string;
+  cantidad: number;
+  existencia_antes?: number;
+  existencia_despues?: number;
+  costo_unitario?: number;
+  referencia?: string;
+  notas?: string;
+  usuario_nombre?: string;
+  created_at?: string;
 }
 
 export interface EstadisticasInventario {
   total_articulos: number;
-  total_venta: number;
-  total_insumos: number;
-  total_genericos: number;
+  total_servicios?: number;
   alertas_criticas: number;
   alertas_bajas: number;
   valor_total_inventario: number;
+  articulos_sin_departamento?: number;
+  total_departamentos?: number;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+// Legacy (para compatibilidad con componentes no migrados aún)
+export interface Inventario extends Articulo {
+  caracteristicas?: any;
+}
+export interface Categoria { id?: number; nombre: string; descripcion?: string; }
+
+@Injectable({ providedIn: 'root' })
 export class InventariosService {
-  private apiUrl: string;
-  private baseUrl: string;
 
-  constructor(
-    private http: HttpClient,
-    private configService: ConfigService
-  ) {
-    this.baseUrl = this.configService.apiUrl;
-    this.apiUrl = `${this.baseUrl}/inventarios`;
+  private baseUrl = `${environment.apiUrl}/inventarios`;
+
+  constructor(private http: HttpClient) {}
+
+  // ── Departamentos ──────────────────────────────────────────────────────────
+
+  getDepartamentos(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/departamentos`);
   }
 
-  // =====================================================
-  // CRUD básico de inventarios
-  // =====================================================
-
-  /**
-   * Obtener lista de inventarios con filtros y paginación
-   * @param filters - Filtros opcionales: q, tipo, categoria, estatus, stockNivel, page, limit
-   */
-  getInventarios(filters?: any): Observable<any> {
-    let params = new HttpParams();
-    
-    if (filters) {
-      if (filters.q) params = params.set('q', filters.q);
-      if (filters.tipo) params = params.set('tipo', filters.tipo);
-      if (filters.categoria) params = params.set('categoria', filters.categoria);
-      if (filters.estatus) params = params.set('estatus', filters.estatus);
-      if (filters.stockNivel) params = params.set('stockNivel', filters.stockNivel);
-      if (filters.incluirArchivados !== undefined) params = params.set('incluirArchivados', filters.incluirArchivados.toString());
-      if (filters.page) params = params.set('page', filters.page.toString());
-      if (filters.limit) params = params.set('limit', filters.limit.toString());
-    }
-    
-    return this.http.get<any>(this.apiUrl, { params });
+  createDepartamento(data: Partial<Departamento>): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/departamentos`, data);
   }
 
-  /**
-   * Obtener un artículo por ID
-   */
+  updateDepartamento(id: number, data: Partial<Departamento>): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/departamentos/${id}`, data);
+  }
+
+  deleteDepartamento(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/departamentos/${id}`);
+  }
+
+  // ── Artículos por departamento (acordeón) ──────────────────────────────────
+
+  getInventariosPorDepartamento(params?: any): Observable<any> {
+    let p = new HttpParams();
+    if (params) Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/por-departamento`, { params: p });
+  }
+
+  // ── Artículos (lista / búsqueda) ───────────────────────────────────────────
+
+  getInventarios(params?: any): Observable<any> {
+    let p = new HttpParams();
+    if (params) Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(this.baseUrl, { params: p });
+  }
+
   getInventarioById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.baseUrl}/${id}`);
   }
 
-  /**
-   * Crear nuevo artículo en inventario
-   */
-  createInventario(inventario: Inventario): Observable<any> {
-    return this.http.post<any>(this.apiUrl, inventario);
+  createInventario(data: Partial<Articulo>): Observable<any> {
+    return this.http.post<any>(this.baseUrl, data);
   }
 
-  /**
-   * Actualizar artículo existente
-   */
-  updateInventario(id: number, inventario: Partial<Inventario>): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, inventario);
+  updateInventario(id: number, data: Partial<Articulo>): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/${id}`, data);
   }
 
-  /**
-   * Eliminar artículo (hard delete - solo si no tiene movimientos)
-   */
   deleteInventario(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    return this.http.delete<any>(`${this.baseUrl}/${id}`);
   }
 
-  /**
-   * Archivar/desarchivar artículo (soft delete usando campo activo)
-   */
-  archivarInventario(id: number, archivar: boolean = true): Observable<any> {
-    return this.http.patch<any>(`${this.apiUrl}/${id}/archivar`, { archivar });
+  archivarInventario(id: number, archivado: boolean): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/${id}/archivar`, { archivado });
   }
 
-  // =====================================================
-  // Movimientos de inventario
-  // =====================================================
+  // ── Movimientos ────────────────────────────────────────────────────────────
 
-  /**
-   * Registrar movimiento de inventario (entrada/salida/ajuste)
-   */
-  addMovimiento(inventarioId: number, movimiento: Partial<Movimiento>): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/${inventarioId}/movimientos`, movimiento);
+  addMovimiento(inventarioId: number, data: Partial<Movimiento>): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/${inventarioId}/movimientos`, data);
   }
 
-  /**
-   * Obtener historial de movimientos de un artículo
-   */
-  getHistorialMovimientos(inventarioId: number, page?: number, limit?: number): Observable<any> {
-    let params = new HttpParams();
-    if (page) params = params.set('page', page.toString());
-    if (limit) params = params.set('limit', limit.toString());
-    
-    return this.http.get<any>(`${this.apiUrl}/${inventarioId}/movimientos`, { params });
+  getMovimientos(inventarioId: number, params?: any): Observable<any> {
+    let p = new HttpParams();
+    if (params) Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/${inventarioId}/movimientos`, { params: p });
   }
 
-  // =====================================================
-  // Alertas y estadísticas
-  // =====================================================
-
-  /**
-   * Obtener alertas de stock bajo o crítico
-   */
-  getAlertas(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/alertas`);
+  getHistorialGlobal(params?: any): Observable<any> {
+    let p = new HttpParams();
+    if (params) Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/movimientos/historial`, { params: p });
   }
 
-  /**
-   * Obtener estadísticas generales del inventario
-   */
-  getStats(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/stats`);
+  // ── Stats y alertas ────────────────────────────────────────────────────────
+
+  getEstadisticas(): Observable<any> { return this.http.get<any>(`${this.baseUrl}/stats`); }
+  getAlertas(): Observable<any> { return this.http.get<any>(`${this.baseUrl}/alertas`); }
+  getCatalogoPos(): Observable<any> { return this.http.get<any>(`${this.baseUrl}/catalogo-pos`); }
+
+  // Alias para compatibilidad
+  getStats(): Observable<any> { return this.getEstadisticas(); }
+
+  // ── Helpers de presentación ────────────────────────────────────────────────
+
+  getTiposArticulo() {
+    return [
+      { value: 'venta',    label: 'Producto venta',  icon: 'fa-tag',           color: '#0d6efd', desc: 'Se vende al público. Lleva precio de venta.' },
+      { value: 'insumo',   label: 'Insumo',          icon: 'fa-tools',         color: '#fd7e14', desc: 'Material de trabajo. No se vende directamente.' },
+      { value: 'generico', label: 'Genérico',        icon: 'fa-cube',          color: '#6c757d', desc: 'Uso interno sin venta. Para control de existencias.' },
+      { value: 'servicio', label: 'Servicio',        icon: 'fa-concierge-bell',color: '#0dcaf0', desc: 'Servicio que se cobra pero no consume stock físico.' },
+    ];
   }
 
-  // =====================================================
-  // Catálogos
-  // =====================================================
-
-  /**
-   * Obtener catálogo de categorías
-   * @param tipo - Filtrar por tipo: 'venta', 'insumo', 'generico'
-   */
-  getCategorias(tipo?: string): Observable<any> {
-    let params = new HttpParams();
-    if (tipo) params = params.set('tipo', tipo);
-    
-    return this.http.get<any>(`${this.apiUrl}/categorias`, { params });
+  getTipoIcon(art: any): string {
+    if (art?.es_servicio) return 'fas fa-concierge-bell';
+    const icons: Record<string, string> = { venta: 'fas fa-tag', insumo: 'fas fa-tools', generico: 'fas fa-cube' };
+    return icons[art?.tipo] || 'fas fa-cube';
   }
 
-  /**
-   * Crear nueva categoría
-   */
-  createCategoria(categoria: Partial<Categoria>): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/categorias`, categoria);
+  getBadgeClass(nivel: string): string {
+    const map: Record<string, string> = {
+      critico: 'badge bg-danger', bajo: 'badge bg-warning text-dark',
+      ok: 'badge bg-success', sin_stock: 'badge bg-danger', servicio: 'badge bg-info'
+    };
+    return map[nivel] || 'badge bg-secondary';
   }
 
-  /**
-   * Actualizar categoría existente
-   */
-  updateCategoriaById(id: number, categoria: Partial<Categoria>): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/categorias/${id}`, categoria);
+  getStockBadgeClass(nivel: string): string { return this.getBadgeClass(nivel); }
+
+  getStockLabel(art: any): string {
+    if (art?.es_servicio || art?.nivel_stock === 'servicio') return 'Servicio';
+    const n = art?.nivel_stock ?? art;
+    if (typeof n === 'string') {
+      if (n === 'sin_stock') return 'Sin stock';
+      if (n === 'critico') return 'Crítico';
+      if (n === 'bajo') return 'Bajo';
+      if (n === 'ok') return 'OK';
+    }
+    return String(art?.existencia_actual ?? '—');
   }
 
-  /**
-   * Eliminar categoría
-   */
-  deleteCategoria(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/categorias/${id}`);
+  getConceptosPorTipo(tipo: string): string[] {
+    if (tipo === 'entrada')  return ['Compra a proveedor', 'Devolución de cliente', 'Ajuste positivo', 'Donación', 'Otro ingreso'];
+    if (tipo === 'salida')   return ['Venta', 'Uso en servicio', 'Ajuste negativo', 'Merma', 'Devolución a proveedor', 'Otro egreso'];
+    if (tipo === 'ajuste')   return ['Inventario físico', 'Corrección', 'Otro ajuste'];
+    return [];
   }
 
-  // =====================================================
-  // Reglas de Stock Personalizadas
-  // =====================================================
-
-  /**
-   * Obtener reglas de stock de un artículo
-   */
-  getReglasStock(inventarioId: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${inventarioId}/reglas-stock`);
-  }
-
-  /**
-   * Crear reglas de stock personalizadas
-   */
-  createReglasStock(inventarioId: number, reglas: Partial<ReglasStock>): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/${inventarioId}/reglas-stock`, reglas);
-  }
-
-  /**
-   * Actualizar reglas de stock existentes
-   */
-  updateReglasStock(inventarioId: number, reglas: Partial<ReglasStock>): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${inventarioId}/reglas-stock`, reglas);
-  }
-
-  /**
-   * Eliminar reglas personalizadas (volver a usar reglas por defecto)
-   */
-  deleteReglasStock(inventarioId: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${inventarioId}/reglas-stock`);
-  }
-
-  // =====================================================
-  // Métodos auxiliares
-  // =====================================================
-
-  /**
-   * Obtener opciones de unidades de medida
-   */
   getUnidadesMedida(): string[] {
-    return [
-      'Pieza',
-      'Caja',
-      'Resma',
-      'Paquete',
-      'Kit',
-      'Millar',
-      'Rollo',
-      'Juego',
-      'Par',
-      'Litro',
-      'Metro',
-      'Kilogramo',
-      'Gramo',
-      'Unidad',
-      'Otro'
-    ];
+    return ['Pieza', 'Caja', 'Resma', 'Paquete', 'Kit', 'Millar', 'Rollo', 'Juego', 'Par', 'Litro', 'Metro', 'Kilogramo', 'Gramo', 'Unidad', 'Otro'];
   }
 
-  /**
-   * Obtener opciones de tipo de movimiento
-   */
-  getTiposMovimiento(): any[] {
-    return [
-      { value: 'entrada', label: 'Entrada' },
-      { value: 'salida', label: 'Salida' },
-      { value: 'ajuste', label: 'Ajuste' }
-    ];
-  }
-
-  /**
-   * Obtener opciones de concepto según tipo de movimiento
-   */
-  getConceptosPorTipo(tipoMovimiento: string): any[] {
-    const conceptos: any = {
-      'entrada': [
-        { value: 'compra', label: 'Compra' },
-        { value: 'devolucion', label: 'Devolución de cliente' },
-        { value: 'ajuste_entrada', label: 'Ajuste de inventario' },
-        { value: 'transferencia', label: 'Transferencia entrante' }
-      ],
-      'salida': [
-        { value: 'venta', label: 'Venta' },
-        { value: 'uso_operativo', label: 'Uso operativo (servicio)' },
-        { value: 'servicio_tecnico', label: 'Servicio técnico' },
-        { value: 'merma', label: 'Merma / Pérdida' },
-        { value: 'ajuste_salida', label: 'Ajuste de inventario' },
-        { value: 'transferencia', label: 'Transferencia saliente' }
-      ],
-      'ajuste': [
-        { value: 'ajuste_entrada', label: 'Ajuste por conteo' },
-        { value: 'ajuste_salida', label: 'Corrección' }
-      ]
-    };
-    
-    return conceptos[tipoMovimiento] || [];
-  }
-
-  /**
-   * Obtener badge de color según nivel de stock
-   */
-  getStockBadgeClass(nivelStock: string): string {
-    const badgeClasses: any = {
-      'critico': 'badge bg-danger',
-      'bajo': 'badge bg-warning text-dark',
-      'normal': 'badge bg-success'
-    };
-    
-    return badgeClasses[nivelStock] || 'badge bg-secondary';
-  }
-
-  /**
-   * Obtener etiqueta de nivel de stock
-   */
-  getStockLabel(nivelStock: string): string {
-    const labels: any = {
-      'critico': 'Stock Crítico',
-      'bajo': 'Stock Bajo',
-      'normal': 'Stock Normal'
-    };
-    
-    return labels[nivelStock] || 'Desconocido';
-  }
-
-  /**
-   * Obtener icono según tipo de inventario
-   */
-  getTipoIcon(tipo: string): string {
-    const icons: any = {
-      'venta': 'fas fa-shopping-cart',
-      'insumo': 'fas fa-tools',
-      'generico': 'fas fa-box'
-    };
-    
-    return icons[tipo] || 'fas fa-box';
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value || 0);
   }
 }

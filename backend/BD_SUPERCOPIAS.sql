@@ -2,14 +2,15 @@
 -- PostgreSQL database dump
 --
 
-\restrict mvqFOyOZ4ZFjclDwejKGyxOlKv3WlFqNHoCkIagyWtwh8V0aa2Lqficu4aS9Mni
+\restrict 2kkeDg2LY5IJ0yWEE8GbfGUTfBPEwIFCm2L7OCKgpRJQJ0L9lF26DMkDqtaOfxt
 
--- Dumped from database version 15.14
--- Dumped by pg_dump version 15.14
+-- Dumped from database version 15.15 (Homebrew)
+-- Dumped by pg_dump version 18.1
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -18,256 +19,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS fk_usuarios_empleado;
-ALTER TABLE IF EXISTS ONLY public.equipos_mantenimiento DROP CONSTRAINT IF EXISTS fk_mantenimiento_equipo;
-ALTER TABLE IF EXISTS ONLY public.inventarios_reglas_stock DROP CONSTRAINT IF EXISTS fk_inventarios_reglas_stock_inventario;
-ALTER TABLE IF EXISTS ONLY public.inventarios DROP CONSTRAINT IF EXISTS fk_inventarios_proveedor;
-ALTER TABLE IF EXISTS ONLY public.inventarios_movimientos DROP CONSTRAINT IF EXISTS fk_inventarios_movimientos_inventario;
-ALTER TABLE IF EXISTS ONLY public.inventarios_caracteristicas DROP CONSTRAINT IF EXISTS fk_inventarios_caracteristicas_inventario;
-ALTER TABLE IF EXISTS ONLY public.equipos_historial_contador DROP CONSTRAINT IF EXISTS fk_historial_equipo;
-ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS fk_empleados_sucursal;
-ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS fk_empleados_puesto;
-ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS fk_empleados_modulos_empleado;
-ALTER TABLE IF EXISTS ONLY public.equipos_consumibles DROP CONSTRAINT IF EXISTS fk_consumibles_equipo;
-ALTER TABLE IF EXISTS ONLY public.equipos_caracteristicas DROP CONSTRAINT IF EXISTS fk_caracteristicas_equipo;
-ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_registrado_por_fkey;
-ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_empleado_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_aprobado_por_fkey;
-DROP TRIGGER IF EXISTS trg_usuarios_updated_at ON public.usuarios;
-DROP TRIGGER IF EXISTS trg_usuarios_auditoria ON public.usuarios;
-DROP TRIGGER IF EXISTS trg_sucursales_updated_at ON public.sucursales;
-DROP TRIGGER IF EXISTS trg_puestos_updated_at ON public.puestos;
-DROP TRIGGER IF EXISTS trg_proveedores_updated_at ON public.proveedores;
-DROP TRIGGER IF EXISTS trg_proveedores_auditoria ON public.proveedores;
-DROP TRIGGER IF EXISTS trg_eventos_updated_at ON public.eventos_personal;
-DROP TRIGGER IF EXISTS trg_empleados_updated_at ON public.empleados;
-DROP TRIGGER IF EXISTS trg_empleados_auditoria ON public.empleados;
-DROP TRIGGER IF EXISTS trg_clientes_updated_at ON public.clientes;
-DROP TRIGGER IF EXISTS trg_clientes_auditoria ON public.clientes;
-DROP INDEX IF EXISTS public.idx_usuarios_username;
-DROP INDEX IF EXISTS public.idx_usuarios_role;
-DROP INDEX IF EXISTS public.idx_usuarios_empleado_id;
-DROP INDEX IF EXISTS public.idx_usuarios_email;
-DROP INDEX IF EXISTS public.idx_usuarios_activo;
-DROP INDEX IF EXISTS public.idx_usos_cfdi_codigo;
-DROP INDEX IF EXISTS public.idx_sucursales_nombre;
-DROP INDEX IF EXISTS public.idx_sucursales_activa;
-DROP INDEX IF EXISTS public.idx_regimenes_fiscales_codigo;
-DROP INDEX IF EXISTS public.idx_puestos_nombre;
-DROP INDEX IF EXISTS public.idx_puestos_activo;
-DROP INDEX IF EXISTS public.idx_proveedores_tipo;
-DROP INDEX IF EXISTS public.idx_proveedores_rfc;
-DROP INDEX IF EXISTS public.idx_proveedores_email;
-DROP INDEX IF EXISTS public.idx_proveedores_activo;
-DROP INDEX IF EXISTS public.idx_modulos_clave;
-DROP INDEX IF EXISTS public.idx_modulos_activo;
-DROP INDEX IF EXISTS public.idx_metodos_pago_codigo;
-DROP INDEX IF EXISTS public.idx_mantenimiento_fecha;
-DROP INDEX IF EXISTS public.idx_mantenimiento_equipo;
-DROP INDEX IF EXISTS public.idx_inventarios_tipo;
-DROP INDEX IF EXISTS public.idx_inventarios_reglas_stock_inventario;
-DROP INDEX IF EXISTS public.idx_inventarios_reglas_stock_activo;
-DROP INDEX IF EXISTS public.idx_inventarios_proveedor;
-DROP INDEX IF EXISTS public.idx_inventarios_nombre;
-DROP INDEX IF EXISTS public.idx_inventarios_movimientos_tipo;
-DROP INDEX IF EXISTS public.idx_inventarios_movimientos_inventario;
-DROP INDEX IF EXISTS public.idx_inventarios_movimientos_fecha;
-DROP INDEX IF EXISTS public.idx_inventarios_estatus;
-DROP INDEX IF EXISTS public.idx_inventarios_codigo_sku;
-DROP INDEX IF EXISTS public.idx_inventarios_categorias_tipo;
-DROP INDEX IF EXISTS public.idx_inventarios_categorias_activo;
-DROP INDEX IF EXISTS public.idx_inventarios_categoria;
-DROP INDEX IF EXISTS public.idx_inventarios_caracteristicas_inventario;
-DROP INDEX IF EXISTS public.idx_inventarios_activo;
-DROP INDEX IF EXISTS public.idx_historial_contador_fecha;
-DROP INDEX IF EXISTS public.idx_historial_contador_equipo;
-DROP INDEX IF EXISTS public.idx_formas_pago_codigo;
-DROP INDEX IF EXISTS public.idx_eventos_tipo;
-DROP INDEX IF EXISTS public.idx_eventos_fecha;
-DROP INDEX IF EXISTS public.idx_eventos_estado;
-DROP INDEX IF EXISTS public.idx_eventos_empleado;
-DROP INDEX IF EXISTS public.idx_estados_codigo;
-DROP INDEX IF EXISTS public.idx_equipos_tipo;
-DROP INDEX IF EXISTS public.idx_equipos_serie;
-DROP INDEX IF EXISTS public.idx_equipos_estatus;
-DROP INDEX IF EXISTS public.idx_equipos_cliente_nombre;
-DROP INDEX IF EXISTS public.idx_empleados_nombre;
-DROP INDEX IF EXISTS public.idx_empleados_modulos_modulo;
-DROP INDEX IF EXISTS public.idx_empleados_modulos_empleado_id;
-DROP INDEX IF EXISTS public.idx_empleados_modulos_acceso;
-DROP INDEX IF EXISTS public.idx_empleados_fecha_ingreso;
-DROP INDEX IF EXISTS public.idx_empleados_email;
-DROP INDEX IF EXISTS public.idx_empleados_activo;
-DROP INDEX IF EXISTS public.idx_consumibles_tipo;
-DROP INDEX IF EXISTS public.idx_consumibles_equipo;
-DROP INDEX IF EXISTS public.idx_clientes_razon_social;
-DROP INDEX IF EXISTS public.idx_clientes_email;
-DROP INDEX IF EXISTS public.idx_clientes_codigo_postal;
-DROP INDEX IF EXISTS public.idx_clientes_activo;
-DROP INDEX IF EXISTS public.idx_cat_tipos_proveedor_clave;
-DROP INDEX IF EXISTS public.idx_cat_tipos_proveedor_activo;
-DROP INDEX IF EXISTS public.idx_cat_tipos_equipo_codigo;
-DROP INDEX IF EXISTS public.idx_cat_tipos_equipo_activo;
-DROP INDEX IF EXISTS public.idx_cat_metodos_pago_proveedor_clave;
-DROP INDEX IF EXISTS public.idx_cat_metodos_pago_proveedor_activo;
-DROP INDEX IF EXISTS public.idx_cat_marcas_equipo_nombre;
-DROP INDEX IF EXISTS public.idx_cat_marcas_equipo_activo;
-DROP INDEX IF EXISTS public.idx_cat_estatus_equipo_codigo;
-DROP INDEX IF EXISTS public.idx_cat_estatus_equipo_activo;
-DROP INDEX IF EXISTS public.idx_caracteristicas_equipo;
-DROP INDEX IF EXISTS public.idx_auditoria_usuario_id;
-DROP INDEX IF EXISTS public.idx_auditoria_tabla;
-DROP INDEX IF EXISTS public.idx_auditoria_registro_id;
-DROP INDEX IF EXISTS public.idx_auditoria_operacion;
-DROP INDEX IF EXISTS public.idx_auditoria_fecha;
-ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS usuarios_username_key;
-ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS usuarios_pkey;
-ALTER TABLE IF EXISTS ONLY public.usuarios DROP CONSTRAINT IF EXISTS usuarios_email_key;
-ALTER TABLE IF EXISTS ONLY public.usos_cfdi DROP CONSTRAINT IF EXISTS usos_cfdi_pkey;
-ALTER TABLE IF EXISTS ONLY public.usos_cfdi DROP CONSTRAINT IF EXISTS usos_cfdi_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.sucursales DROP CONSTRAINT IF EXISTS unique_sucursal_nombre;
-ALTER TABLE IF EXISTS ONLY public.puestos DROP CONSTRAINT IF EXISTS unique_puesto_nombre;
-ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS uk_empleados_modulos;
-ALTER TABLE IF EXISTS ONLY public.sucursales DROP CONSTRAINT IF EXISTS sucursales_pkey;
-ALTER TABLE IF EXISTS ONLY public.regimenes_fiscales DROP CONSTRAINT IF EXISTS regimenes_fiscales_pkey;
-ALTER TABLE IF EXISTS ONLY public.regimenes_fiscales DROP CONSTRAINT IF EXISTS regimenes_fiscales_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.puestos DROP CONSTRAINT IF EXISTS puestos_pkey;
-ALTER TABLE IF EXISTS ONLY public.proveedores DROP CONSTRAINT IF EXISTS proveedores_pkey;
-ALTER TABLE IF EXISTS ONLY public.modulos DROP CONSTRAINT IF EXISTS modulos_pkey;
-ALTER TABLE IF EXISTS ONLY public.modulos DROP CONSTRAINT IF EXISTS modulos_clave_key;
-ALTER TABLE IF EXISTS ONLY public.metodos_pago DROP CONSTRAINT IF EXISTS metodos_pago_pkey;
-ALTER TABLE IF EXISTS ONLY public.metodos_pago DROP CONSTRAINT IF EXISTS metodos_pago_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.inventarios_reglas_stock DROP CONSTRAINT IF EXISTS inventarios_reglas_stock_pkey;
-ALTER TABLE IF EXISTS ONLY public.inventarios_reglas_stock DROP CONSTRAINT IF EXISTS inventarios_reglas_stock_inventario_id_key;
-ALTER TABLE IF EXISTS ONLY public.inventarios DROP CONSTRAINT IF EXISTS inventarios_pkey;
-ALTER TABLE IF EXISTS ONLY public.inventarios_movimientos DROP CONSTRAINT IF EXISTS inventarios_movimientos_pkey;
-ALTER TABLE IF EXISTS ONLY public.inventarios_categorias DROP CONSTRAINT IF EXISTS inventarios_categorias_pkey;
-ALTER TABLE IF EXISTS ONLY public.inventarios_caracteristicas DROP CONSTRAINT IF EXISTS inventarios_caracteristicas_pkey;
-ALTER TABLE IF EXISTS ONLY public.formas_pago DROP CONSTRAINT IF EXISTS formas_pago_pkey;
-ALTER TABLE IF EXISTS ONLY public.formas_pago DROP CONSTRAINT IF EXISTS formas_pago_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.eventos_personal DROP CONSTRAINT IF EXISTS eventos_personal_pkey;
-ALTER TABLE IF EXISTS ONLY public.estados DROP CONSTRAINT IF EXISTS estados_pkey;
-ALTER TABLE IF EXISTS ONLY public.estados DROP CONSTRAINT IF EXISTS estados_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.equipos DROP CONSTRAINT IF EXISTS equipos_pkey;
-ALTER TABLE IF EXISTS ONLY public.equipos_mantenimiento DROP CONSTRAINT IF EXISTS equipos_mantenimiento_pkey;
-ALTER TABLE IF EXISTS ONLY public.equipos_historial_contador DROP CONSTRAINT IF EXISTS equipos_historial_contador_pkey;
-ALTER TABLE IF EXISTS ONLY public.equipos_consumibles DROP CONSTRAINT IF EXISTS equipos_consumibles_pkey;
-ALTER TABLE IF EXISTS ONLY public.equipos_caracteristicas DROP CONSTRAINT IF EXISTS equipos_caracteristicas_pkey;
-ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS empleados_pkey;
-ALTER TABLE IF EXISTS ONLY public.empleados_modulos DROP CONSTRAINT IF EXISTS empleados_modulos_pkey;
-ALTER TABLE IF EXISTS ONLY public.empleados DROP CONSTRAINT IF EXISTS empleados_email_key;
-ALTER TABLE IF EXISTS ONLY public.clientes DROP CONSTRAINT IF EXISTS clientes_pkey;
-ALTER TABLE IF EXISTS ONLY public.cat_tipos_proveedor DROP CONSTRAINT IF EXISTS cat_tipos_proveedor_pkey;
-ALTER TABLE IF EXISTS ONLY public.cat_tipos_proveedor DROP CONSTRAINT IF EXISTS cat_tipos_proveedor_clave_key;
-ALTER TABLE IF EXISTS ONLY public.cat_tipos_equipo DROP CONSTRAINT IF EXISTS cat_tipos_equipo_pkey;
-ALTER TABLE IF EXISTS ONLY public.cat_tipos_equipo DROP CONSTRAINT IF EXISTS cat_tipos_equipo_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.cat_metodos_pago_proveedor DROP CONSTRAINT IF EXISTS cat_metodos_pago_proveedor_pkey;
-ALTER TABLE IF EXISTS ONLY public.cat_metodos_pago_proveedor DROP CONSTRAINT IF EXISTS cat_metodos_pago_proveedor_clave_key;
-ALTER TABLE IF EXISTS ONLY public.cat_marcas_equipo DROP CONSTRAINT IF EXISTS cat_marcas_equipo_pkey;
-ALTER TABLE IF EXISTS ONLY public.cat_marcas_equipo DROP CONSTRAINT IF EXISTS cat_marcas_equipo_nombre_key;
-ALTER TABLE IF EXISTS ONLY public.cat_estatus_equipo DROP CONSTRAINT IF EXISTS cat_estatus_equipo_pkey;
-ALTER TABLE IF EXISTS ONLY public.cat_estatus_equipo DROP CONSTRAINT IF EXISTS cat_estatus_equipo_codigo_key;
-ALTER TABLE IF EXISTS ONLY public.auditoria DROP CONSTRAINT IF EXISTS auditoria_pkey;
-ALTER TABLE IF EXISTS public.usuarios ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.usos_cfdi ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.sucursales ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.regimenes_fiscales ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.puestos ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.proveedores ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.modulos ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.metodos_pago ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.inventarios_reglas_stock ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.inventarios_movimientos ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.inventarios_categorias ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.inventarios_caracteristicas ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.inventarios ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.formas_pago ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.eventos_personal ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.estados ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.equipos_mantenimiento ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.equipos_historial_contador ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.equipos_consumibles ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.equipos_caracteristicas ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.equipos ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.empleados_modulos ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.empleados ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.clientes ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.cat_tipos_proveedor ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.cat_tipos_equipo ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.cat_metodos_pago_proveedor ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.cat_marcas_equipo ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.cat_estatus_equipo ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.auditoria ALTER COLUMN id DROP DEFAULT;
-DROP VIEW IF EXISTS public.vista_empleados_completa;
-DROP VIEW IF EXISTS public.vista_clientes_activos;
-DROP VIEW IF EXISTS public.vacaciones_resumen;
-DROP SEQUENCE IF EXISTS public.usuarios_id_seq;
-DROP TABLE IF EXISTS public.usuarios;
-DROP SEQUENCE IF EXISTS public.usos_cfdi_id_seq;
-DROP TABLE IF EXISTS public.usos_cfdi;
-DROP SEQUENCE IF EXISTS public.sucursales_id_seq;
-DROP TABLE IF EXISTS public.sucursales;
-DROP SEQUENCE IF EXISTS public.regimenes_fiscales_id_seq;
-DROP TABLE IF EXISTS public.regimenes_fiscales;
-DROP SEQUENCE IF EXISTS public.puestos_id_seq;
-DROP TABLE IF EXISTS public.puestos;
-DROP SEQUENCE IF EXISTS public.proveedores_id_seq;
-DROP TABLE IF EXISTS public.proveedores;
-DROP SEQUENCE IF EXISTS public.modulos_id_seq;
-DROP TABLE IF EXISTS public.modulos;
-DROP SEQUENCE IF EXISTS public.metodos_pago_id_seq;
-DROP TABLE IF EXISTS public.metodos_pago;
-DROP SEQUENCE IF EXISTS public.inventarios_reglas_stock_id_seq;
-DROP TABLE IF EXISTS public.inventarios_reglas_stock;
-DROP SEQUENCE IF EXISTS public.inventarios_movimientos_id_seq;
-DROP TABLE IF EXISTS public.inventarios_movimientos;
-DROP SEQUENCE IF EXISTS public.inventarios_id_seq;
-DROP SEQUENCE IF EXISTS public.inventarios_categorias_id_seq;
-DROP TABLE IF EXISTS public.inventarios_categorias;
-DROP SEQUENCE IF EXISTS public.inventarios_caracteristicas_id_seq;
-DROP TABLE IF EXISTS public.inventarios_caracteristicas;
-DROP TABLE IF EXISTS public.inventarios;
-DROP SEQUENCE IF EXISTS public.formas_pago_id_seq;
-DROP TABLE IF EXISTS public.formas_pago;
-DROP SEQUENCE IF EXISTS public.eventos_personal_id_seq;
-DROP TABLE IF EXISTS public.eventos_personal;
-DROP SEQUENCE IF EXISTS public.estados_id_seq;
-DROP TABLE IF EXISTS public.estados;
-DROP SEQUENCE IF EXISTS public.equipos_mantenimiento_id_seq;
-DROP TABLE IF EXISTS public.equipos_mantenimiento;
-DROP SEQUENCE IF EXISTS public.equipos_id_seq;
-DROP SEQUENCE IF EXISTS public.equipos_historial_contador_id_seq;
-DROP TABLE IF EXISTS public.equipos_historial_contador;
-DROP SEQUENCE IF EXISTS public.equipos_consumibles_id_seq;
-DROP TABLE IF EXISTS public.equipos_consumibles;
-DROP SEQUENCE IF EXISTS public.equipos_caracteristicas_id_seq;
-DROP TABLE IF EXISTS public.equipos_caracteristicas;
-DROP TABLE IF EXISTS public.equipos;
-DROP SEQUENCE IF EXISTS public.empleados_modulos_id_seq;
-DROP TABLE IF EXISTS public.empleados_modulos;
-DROP SEQUENCE IF EXISTS public.empleados_id_seq;
-DROP TABLE IF EXISTS public.empleados;
-DROP SEQUENCE IF EXISTS public.clientes_id_seq;
-DROP TABLE IF EXISTS public.clientes;
-DROP SEQUENCE IF EXISTS public.cat_tipos_proveedor_id_seq;
-DROP TABLE IF EXISTS public.cat_tipos_proveedor;
-DROP SEQUENCE IF EXISTS public.cat_tipos_equipo_id_seq;
-DROP TABLE IF EXISTS public.cat_tipos_equipo;
-DROP SEQUENCE IF EXISTS public.cat_metodos_pago_proveedor_id_seq;
-DROP TABLE IF EXISTS public.cat_metodos_pago_proveedor;
-DROP SEQUENCE IF EXISTS public.cat_marcas_equipo_id_seq;
-DROP TABLE IF EXISTS public.cat_marcas_equipo;
-DROP SEQUENCE IF EXISTS public.cat_estatus_equipo_id_seq;
-DROP TABLE IF EXISTS public.cat_estatus_equipo;
-DROP SEQUENCE IF EXISTS public.auditoria_id_seq;
-DROP TABLE IF EXISTS public.auditoria;
-DROP FUNCTION IF EXISTS public.trigger_updated_at();
-DROP FUNCTION IF EXISTS public.trigger_eventos_updated_at();
-DROP FUNCTION IF EXISTS public.trigger_auditoria();
-DROP FUNCTION IF EXISTS public.obtener_estadisticas_generales();
-DROP FUNCTION IF EXISTS public.generar_username(p_nombre character varying);
-DROP EXTENSION IF EXISTS "uuid-ossp";
-DROP EXTENSION IF EXISTS pgcrypto;
 --
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
@@ -1273,6 +1024,56 @@ ALTER SEQUENCE public.formas_pago_id_seq OWNED BY public.formas_pago.id;
 
 
 --
+-- Name: inv_departamentos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inv_departamentos (
+    id integer NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion text,
+    color character varying(7) DEFAULT '#6c757d'::character varying,
+    orden integer DEFAULT 0,
+    activo boolean DEFAULT true,
+    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: TABLE inv_departamentos; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inv_departamentos IS 'Departamentos de inventario definidos por el usuario (Papel, Arillos, Servicios, etc.)';
+
+
+--
+-- Name: COLUMN inv_departamentos.color; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inv_departamentos.color IS 'Color hexadecimal para identificación visual del departamento';
+
+
+--
+-- Name: inv_departamentos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inv_departamentos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inv_departamentos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inv_departamentos_id_seq OWNED BY public.inv_departamentos.id;
+
+
+--
 -- Name: inventarios; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1300,6 +1101,10 @@ CREATE TABLE public.inventarios (
     fecha_alta timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     activo boolean DEFAULT true,
+    departamento_id integer,
+    es_servicio boolean DEFAULT false NOT NULL,
+    disponible_en_pos boolean DEFAULT false NOT NULL,
+    descripcion text,
     CONSTRAINT chk_inventarios_estatus CHECK (((estatus)::text = ANY (ARRAY[('activo'::character varying)::text, ('inactivo'::character varying)::text]))),
     CONSTRAINT chk_inventarios_tipo CHECK (((tipo)::text = ANY (ARRAY[('venta'::character varying)::text, ('insumo'::character varying)::text, ('generico'::character varying)::text])))
 );
@@ -1338,104 +1143,6 @@ COMMENT ON COLUMN public.inventarios.proveedor_id IS 'Referencia al proveedor de
 --
 
 COMMENT ON COLUMN public.inventarios.stock_maximo IS 'Cantidad máxima de existencias permitidas para alertas';
-
-
---
--- Name: inventarios_caracteristicas; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inventarios_caracteristicas (
-    id integer NOT NULL,
-    inventario_id integer NOT NULL,
-    caracteristicas jsonb DEFAULT '{}'::jsonb,
-    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-
---
--- Name: TABLE inventarios_caracteristicas; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.inventarios_caracteristicas IS 'Características específicas por categoría de inventario (campos dinámicos)';
-
-
---
--- Name: inventarios_caracteristicas_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.inventarios_caracteristicas_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: inventarios_caracteristicas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.inventarios_caracteristicas_id_seq OWNED BY public.inventarios_caracteristicas.id;
-
-
---
--- Name: inventarios_categorias; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inventarios_categorias (
-    id integer NOT NULL,
-    tipo character varying(30) NOT NULL,
-    nombre character varying(100) NOT NULL,
-    descripcion text,
-    campos_requeridos jsonb,
-    activo boolean DEFAULT true,
-    orden integer DEFAULT 0,
-    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-
---
--- Name: TABLE inventarios_categorias; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.inventarios_categorias IS 'Catálogo de categorías de inventario por tipo';
-
-
---
--- Name: COLUMN inventarios_categorias.campos_requeridos; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_categorias.campos_requeridos IS 'Definición JSON de campos personalizados requeridos para esta categoría';
-
-
---
--- Name: COLUMN inventarios_categorias.fecha_modificacion; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_categorias.fecha_modificacion IS 'Fecha y hora de la última modificación de la categoría';
-
-
---
--- Name: inventarios_categorias_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.inventarios_categorias_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: inventarios_categorias_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.inventarios_categorias_id_seq OWNED BY public.inventarios_categorias.id;
 
 
 --
@@ -1519,92 +1226,6 @@ CREATE SEQUENCE public.inventarios_movimientos_id_seq
 --
 
 ALTER SEQUENCE public.inventarios_movimientos_id_seq OWNED BY public.inventarios_movimientos.id;
-
-
---
--- Name: inventarios_reglas_stock; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inventarios_reglas_stock (
-    id integer NOT NULL,
-    inventario_id integer NOT NULL,
-    nivel_critico_porcentaje numeric(5,2) DEFAULT 0,
-    nivel_bajo_porcentaje numeric(5,2) DEFAULT 10,
-    nivel_normal_porcentaje numeric(5,2) DEFAULT 30,
-    usar_stock_maximo boolean DEFAULT true,
-    alerta_critico_activa boolean DEFAULT true,
-    alerta_bajo_activa boolean DEFAULT true,
-    alerta_sobrestock_activa boolean DEFAULT false,
-    umbral_sobrestock_porcentaje numeric(5,2) DEFAULT 0,
-    notificar_usuarios jsonb,
-    observaciones text,
-    activo boolean DEFAULT true,
-    fecha_creacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_reglas_porcentajes_validos CHECK (((nivel_critico_porcentaje >= (0)::numeric) AND (nivel_bajo_porcentaje >= (0)::numeric) AND (nivel_normal_porcentaje >= (0)::numeric) AND (umbral_sobrestock_porcentaje >= (0)::numeric) AND (nivel_critico_porcentaje <= nivel_bajo_porcentaje) AND (nivel_bajo_porcentaje <= nivel_normal_porcentaje)))
-);
-
-
---
--- Name: TABLE inventarios_reglas_stock; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.inventarios_reglas_stock IS 'Reglas personalizadas de niveles de stock por artículo de inventario';
-
-
---
--- Name: COLUMN inventarios_reglas_stock.nivel_critico_porcentaje; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_reglas_stock.nivel_critico_porcentaje IS 'Porcentaje sobre stock_minimo para considerar nivel crítico (default: 0% = justo en el mínimo)';
-
-
---
--- Name: COLUMN inventarios_reglas_stock.nivel_bajo_porcentaje; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_reglas_stock.nivel_bajo_porcentaje IS 'Porcentaje sobre stock_minimo para considerar nivel bajo (default: 10%)';
-
-
---
--- Name: COLUMN inventarios_reglas_stock.nivel_normal_porcentaje; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_reglas_stock.nivel_normal_porcentaje IS 'Porcentaje sobre stock_minimo para considerar nivel normal (default: 30%)';
-
-
---
--- Name: COLUMN inventarios_reglas_stock.usar_stock_maximo; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_reglas_stock.usar_stock_maximo IS 'Si es true, usa stock_maximo para calcular rangos; si es false, usa porcentajes sobre stock_minimo';
-
-
---
--- Name: COLUMN inventarios_reglas_stock.notificar_usuarios; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inventarios_reglas_stock.notificar_usuarios IS 'Array JSON de IDs de usuarios a notificar cuando se active alguna alerta';
-
-
---
--- Name: inventarios_reglas_stock_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.inventarios_reglas_stock_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: inventarios_reglas_stock_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.inventarios_reglas_stock_id_seq OWNED BY public.inventarios_reglas_stock.id;
 
 
 --
@@ -2138,6 +1759,13 @@ ALTER TABLE ONLY public.formas_pago ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: inv_departamentos id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inv_departamentos ALTER COLUMN id SET DEFAULT nextval('public.inv_departamentos_id_seq'::regclass);
+
+
+--
 -- Name: inventarios id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2145,31 +1773,10 @@ ALTER TABLE ONLY public.inventarios ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- Name: inventarios_caracteristicas id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_caracteristicas ALTER COLUMN id SET DEFAULT nextval('public.inventarios_caracteristicas_id_seq'::regclass);
-
-
---
--- Name: inventarios_categorias id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_categorias ALTER COLUMN id SET DEFAULT nextval('public.inventarios_categorias_id_seq'::regclass);
-
-
---
 -- Name: inventarios_movimientos id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inventarios_movimientos ALTER COLUMN id SET DEFAULT nextval('public.inventarios_movimientos_id_seq'::regclass);
-
-
---
--- Name: inventarios_reglas_stock id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_reglas_stock ALTER COLUMN id SET DEFAULT nextval('public.inventarios_reglas_stock_id_seq'::regclass);
 
 
 --
@@ -2233,6 +1840,44 @@ ALTER TABLE ONLY public.usuarios ALTER COLUMN id SET DEFAULT nextval('public.usu
 --
 
 COPY public.auditoria (id, tabla, operacion, registro_id, datos_anteriores, datos_nuevos, usuario_id, ip_address, fecha_operacion) FROM stdin;
+1	clientes	INSERT	1	\N	{"id": 1, "rfc": "PEGJ850315ABC", "email": "juan.perez@email.com", "activo": true, "telefono": "9611234567", "uso_cfdi": "G03", "razon_social": "Juan Perez Garcia", "segundo_email": null, "fecha_registro": "2025-12-08T14:53:22.041494-06:00", "regimen_fiscal": "612", "nombre_comercial": "Juan Perez Garcia", "segundo_telefono": "9611234568", "direccion_entrega": "Av. Central 123, Col. Centro, Tuxtla Gutierrez, Chiapas", "fecha_modificacion": "2025-12-08T14:53:22.041494-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29000"}	\N	\N	2025-12-08 14:53:22.041494-06
+2	clientes	INSERT	2	\N	{"id": 2, "rfc": "CLS920810XYZ", "email": "ventas@comlopez.com", "activo": true, "telefono": "9612345678", "uso_cfdi": "G01", "razon_social": "Comercializadora Lopez S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-12-08T14:53:22.041494-06:00", "regimen_fiscal": "601", "nombre_comercial": "Comercializadora Lopez S.A. de C.V.", "segundo_telefono": null, "direccion_entrega": "Blvd. Belisario Dominguez 456, Col. Moctezuma, Tuxtla Gutierrez, Chiapas", "fecha_modificacion": "2025-12-08T14:53:22.041494-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29030"}	\N	\N	2025-12-08 14:53:22.041494-06
+3	clientes	INSERT	3	\N	{"id": 3, "rfc": "GOHM750425DEF", "email": "maria.gonzalez@email.com", "activo": true, "telefono": "9673456789", "uso_cfdi": "G03", "razon_social": "Maria Gonzalez Hernandez", "segundo_email": null, "fecha_registro": "2025-12-08T14:53:22.041494-06:00", "regimen_fiscal": "612", "nombre_comercial": "Maria Gonzalez Hernandez", "segundo_telefono": "9673456790", "direccion_entrega": "Real de Guadalupe 789, Centro, San Cristobal de las Casas, Chiapas", "fecha_modificacion": "2025-12-08T14:53:22.041494-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29200"}	\N	\N	2025-12-08 14:53:22.041494-06
+4	clientes	INSERT	4	\N	{"id": 4, "rfc": "CSP180920E56", "email": "contacto@consultoresmaya.com", "activo": true, "telefono": "9612000005", "uso_cfdi": "G01", "razon_social": "Consultoria y Servicios Profesionales Maya S.C.", "segundo_email": null, "fecha_registro": "2025-12-08T14:53:22.041494-06:00", "regimen_fiscal": "612", "nombre_comercial": "Consultores Maya", "segundo_telefono": null, "direccion_entrega": "Av. Universidad, 321, Universitaria, Tuxtla Gutierrez, Chiapas", "fecha_modificacion": "2025-12-08T14:53:22.041494-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29050"}	\N	\N	2025-12-08 14:53:22.041494-06
+5	clientes	INSERT	5	\N	{"id": 5, "rfc": "DCH170215G78", "email": "ventas@districhiapas.com", "activo": true, "telefono": "9612000007", "uso_cfdi": "G03", "razon_social": "Distribuidora de Chiapas S.A. de C.V.", "segundo_email": null, "fecha_registro": "2025-12-08T14:53:22.041494-06:00", "regimen_fiscal": "601", "nombre_comercial": "Distribuidora Chiapas", "segundo_telefono": null, "direccion_entrega": "Blvd. Los Castillos, 456, Las Flores, Tuxtla Gutierrez, Chiapas", "fecha_modificacion": "2025-12-08T14:53:22.041494-06:00", "direccion_facturacion": null, "direccion_codigo_postal": "29020"}	\N	\N	2025-12-08 14:53:22.041494-06
+6	proveedores	INSERT	1	\N	{"id": 1, "rfc": "PES910315ABC", "email": "ventas@estudiantepapeleria.com", "notas": "Proveedor principal de papeleria y suministros de oficina", "activo": true, "telefono": "555-1001", "direccion": "Av. Universidad 123, Col. Centro, Ciudad de Mexico, CDMX, 06000, Mexico", "pagina_web": "www.papeleriaestudiante.com", "dias_credito": 30, "razon_social": "Papeleria El Estudiante S.A. de C.V.", "fecha_registro": "2023-01-10T00:00:00-06:00", "tipo_proveedor": "Productos", "cuenta_bancaria": "012345678901234567", "nombre_contacto": "Maria Gonzalez", "nombre_comercial": "Papeleria El Estudiante", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Transferencia"}	\N	\N	2025-12-08 14:53:22.053047-06
+7	proveedores	INSERT	2	\N	{"id": 2, "rfc": "TYS850420DEF", "email": "soporte@tecnologiasistemas.com", "notas": "Mantenimiento de equipos de computo y redes", "activo": true, "telefono": "555-1002", "direccion": "Calle Tecnologia 456, Col. Moderna, Ciudad de Mexico, CDMX, 03100, Mexico", "pagina_web": "www.tecnologiaysistemas.com", "dias_credito": 15, "razon_social": "Tecnologia y Sistemas S.A. de C.V.", "fecha_registro": "2023-02-05T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": null, "nombre_contacto": "Ing. Carlos Ramirez", "nombre_comercial": "Tecnologia y Sistemas", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Transferencia"}	\N	\N	2025-12-08 14:53:22.053047-06
+8	proveedores	INSERT	3	\N	{"id": 3, "rfc": "SLI780630GHI", "email": "admin@limpiezaintegral.com", "notas": "Servicio de limpieza diario para oficinas", "activo": true, "telefono": "555-1003", "direccion": "Av. Servicios 789, Col. Industrial, Ciudad de Mexico, CDMX, 07300, Mexico", "pagina_web": null, "dias_credito": 0, "razon_social": "Servicios de Limpieza Integral S.A. de C.V.", "fecha_registro": "2023-03-12T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": null, "nombre_contacto": "Patricia Herrera", "nombre_comercial": "Limpieza Integral", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Efectivo"}	\N	\N	2025-12-08 14:53:22.053047-06
+9	proveedores	INSERT	4	\N	{"id": 4, "rfc": "ITE920815JKL", "email": "pedidos@tonersexpress.com", "notas": "Cartuchos, toners y consumibles para impresoras", "activo": true, "telefono": "555-1004", "direccion": "Blvd. Insumos 321, Col. Comercial, Ciudad de Mexico, CDMX, 06500, Mexico", "pagina_web": "www.tonersexpress.com", "dias_credito": 45, "razon_social": "Insumos y Toners Express S.A. de C.V.", "fecha_registro": "2023-04-18T00:00:00-06:00", "tipo_proveedor": "Productos", "cuenta_bancaria": "098765432109876543", "nombre_contacto": "Lic. Roberto Silva", "nombre_comercial": "Toners Express", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Transferencia"}	\N	\N	2025-12-08 14:53:22.053047-06
+10	proveedores	INSERT	5	\N	{"id": 5, "rfc": "CEP870925MNO", "email": "cursos@capacitacionpro.com", "notas": "Cursos de desarrollo profesional y tecnico", "activo": true, "telefono": "555-1005", "direccion": "Av. Capacitacion 654, Col. Educativa, Ciudad de Mexico, CDMX, 03900, Mexico", "pagina_web": "www.capacitacionpro.com", "dias_credito": 0, "razon_social": "Capacitacion Empresarial Pro S.C.", "fecha_registro": "2023-05-22T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": null, "nombre_contacto": "Mtra. Ana Lopez", "nombre_comercial": "Capacitacion Pro", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Transferencia"}	\N	\N	2025-12-08 14:53:22.053047-06
+11	empleados	INSERT	1	\N	{"id": 1, "email": "roberto.martinez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Roberto Martinez Sanchez", "salario": 22000.00, "telefono": "961-100-1001", "puesto_id": 1, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "completo", "fecha_ingreso": "2020-01-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 15}	\N	\N	2025-12-08 14:53:22.059204-06
+12	empleados	INSERT	2	\N	{"id": 2, "email": "laura.gomez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Laura Gomez Perez", "salario": 16000.00, "telefono": "961-100-1002", "puesto_id": 2, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2020-03-10", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+13	empleados	INSERT	3	\N	{"id": 3, "email": "carlos.hernandez@supercopias.com", "turno": "Vespertino", "activo": true, "nombre": "Carlos Hernandez Lopez", "salario": 15500.00, "telefono": "961-100-1003", "puesto_id": 2, "fecha_baja": null, "usuario_id": null, "sucursal_id": 2, "tipo_acceso": "limitado", "fecha_ingreso": "2021-06-01", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+14	empleados	INSERT	4	\N	{"id": 4, "email": "ana.ruiz@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Ana Maria Ruiz Torres", "salario": 13000.00, "telefono": "961-100-1004", "puesto_id": 3, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2021-09-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+15	empleados	INSERT	5	\N	{"id": 5, "email": "jorge.morales@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Jorge Luis Morales Garcia", "salario": 10500.00, "telefono": "961-100-1005", "puesto_id": 4, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "solo_lectura", "fecha_ingreso": "2022-01-20", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+16	empleados	INSERT	6	\N	{"id": 6, "email": "patricia.diaz@supercopias.com", "turno": "Vespertino", "activo": true, "nombre": "Patricia Diaz Ramirez", "salario": 10000.00, "telefono": "961-100-1006", "puesto_id": 4, "fecha_baja": null, "usuario_id": null, "sucursal_id": 2, "tipo_acceso": "solo_lectura", "fecha_ingreso": "2022-03-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+17	empleados	INSERT	7	\N	{"id": 7, "email": "miguel.chavez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Miguel Angel Chavez Cruz", "salario": 9500.00, "telefono": "961-100-1007", "puesto_id": 5, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "solo_lectura", "fecha_ingreso": "2022-07-01", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+18	empleados	INSERT	8	\N	{"id": 8, "email": "sandra.ortiz@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Sandra Elena Ortiz Mendez", "salario": 9000.00, "telefono": "961-100-1008", "puesto_id": 6, "fecha_baja": null, "usuario_id": null, "sucursal_id": 3, "tipo_acceso": "solo_lectura", "fecha_ingreso": "2023-02-10", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+19	empleados	INSERT	9	\N	{"id": 9, "email": "francisco.ramos@supercopias.com", "turno": "Vespertino", "activo": true, "nombre": "Francisco Javier Ramos Silva", "salario": 8500.00, "telefono": "961-100-1009", "puesto_id": 7, "fecha_baja": null, "usuario_id": null, "sucursal_id": 2, "tipo_acceso": "solo_lectura", "fecha_ingreso": "2023-05-22", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+20	empleados	INSERT	10	\N	{"id": 10, "email": "daniela.fernandez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Daniela Fernandez Vega", "salario": 11000.00, "telefono": "961-100-1010", "puesto_id": 8, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "solo_lectura", "fecha_ingreso": "2023-08-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.059204-06
+21	usuarios	INSERT	2	\N	{"id": 2, "bio": "Gerente General - Administrador del sistema", "role": "admin", "email": "roberto.martinez@supercopias.com", "phone": "961-100-1001", "roles": ["admin"], "activo": true, "nombre": "Roberto Martinez", "password": "$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7", "username": "001.robertomar", "full_name": "Roberto Martinez Sanchez", "empleado_id": 1, "profile_image": null, "ultimo_acceso": null, "fecha_registro": "2025-12-08T14:53:22.065258-06:00", "fecha_modificacion": "2025-12-08T14:53:22.065258-06:00"}	\N	\N	2025-12-08 14:53:22.065258-06
+22	usuarios	INSERT	3	\N	{"id": 3, "bio": "Gerente de Sucursal Principal - Acceso personalizado", "role": "empleado", "email": "laura.gomez@supercopias.com", "phone": "961-100-1002", "roles": ["empleado"], "activo": true, "nombre": "Laura Gomez", "password": "$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7", "username": "002.lauragomez", "full_name": "Laura Gomez Perez", "empleado_id": 2, "profile_image": null, "ultimo_acceso": null, "fecha_registro": "2025-12-08T14:53:22.0686-06:00", "fecha_modificacion": "2025-12-08T14:53:22.0686-06:00"}	\N	\N	2025-12-08 14:53:22.0686-06
+23	usuarios	INSERT	4	\N	{"id": 4, "bio": "Gerente de Sucursal Norte - Acceso personalizado", "role": "empleado", "email": "carlos.hernandez@supercopias.com", "phone": "961-100-1003", "roles": ["empleado"], "activo": true, "nombre": "Carlos Hernandez", "password": "$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7", "username": "003.carloshern", "full_name": "Carlos Hernandez Lopez", "empleado_id": 3, "profile_image": null, "ultimo_acceso": null, "fecha_registro": "2025-12-08T14:53:22.069178-06:00", "fecha_modificacion": "2025-12-08T14:53:22.069178-06:00"}	\N	\N	2025-12-08 14:53:22.069178-06
+24	usuarios	INSERT	5	\N	{"id": 5, "bio": "Supervisor - Acceso personalizado", "role": "empleado", "email": "ana.ruiz@supercopias.com", "phone": "961-100-1004", "roles": ["empleado"], "activo": true, "nombre": "Ana Maria Ruiz", "password": "$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7", "username": "004.anamariarui", "full_name": "Ana Maria Ruiz Torres", "empleado_id": 4, "profile_image": null, "ultimo_acceso": null, "fecha_registro": "2025-12-08T14:53:22.069517-06:00", "fecha_modificacion": "2025-12-08T14:53:22.069517-06:00"}	\N	\N	2025-12-08 14:53:22.069517-06
+25	empleados	UPDATE	1	{"id": 1, "email": "roberto.martinez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Roberto Martinez Sanchez", "salario": 22000.00, "telefono": "961-100-1001", "puesto_id": 1, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "completo", "fecha_ingreso": "2020-01-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 15}	{"id": 1, "email": "roberto.martinez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Roberto Martinez Sanchez", "salario": 22000.00, "telefono": "961-100-1001", "puesto_id": 1, "fecha_baja": null, "usuario_id": 2, "sucursal_id": 1, "tipo_acceso": "completo", "fecha_ingreso": "2020-01-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.071229-06:00", "dias_vacaciones_sugeridos": 15}	\N	\N	2025-12-08 14:53:22.071229-06
+26	empleados	UPDATE	2	{"id": 2, "email": "laura.gomez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Laura Gomez Perez", "salario": 16000.00, "telefono": "961-100-1002", "puesto_id": 2, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2020-03-10", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	{"id": 2, "email": "laura.gomez@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Laura Gomez Perez", "salario": 16000.00, "telefono": "961-100-1002", "puesto_id": 2, "fecha_baja": null, "usuario_id": 3, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2020-03-10", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.071743-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.071743-06
+27	empleados	UPDATE	3	{"id": 3, "email": "carlos.hernandez@supercopias.com", "turno": "Vespertino", "activo": true, "nombre": "Carlos Hernandez Lopez", "salario": 15500.00, "telefono": "961-100-1003", "puesto_id": 2, "fecha_baja": null, "usuario_id": null, "sucursal_id": 2, "tipo_acceso": "limitado", "fecha_ingreso": "2021-06-01", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	{"id": 3, "email": "carlos.hernandez@supercopias.com", "turno": "Vespertino", "activo": true, "nombre": "Carlos Hernandez Lopez", "salario": 15500.00, "telefono": "961-100-1003", "puesto_id": 2, "fecha_baja": null, "usuario_id": 4, "sucursal_id": 2, "tipo_acceso": "limitado", "fecha_ingreso": "2021-06-01", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.071994-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.071994-06
+28	empleados	UPDATE	4	{"id": 4, "email": "ana.ruiz@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Ana Maria Ruiz Torres", "salario": 13000.00, "telefono": "961-100-1004", "puesto_id": 3, "fecha_baja": null, "usuario_id": null, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2021-09-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.059204-06:00", "dias_vacaciones_sugeridos": 12}	{"id": 4, "email": "ana.ruiz@supercopias.com", "turno": "Matutino", "activo": true, "nombre": "Ana Maria Ruiz Torres", "salario": 13000.00, "telefono": "961-100-1004", "puesto_id": 3, "fecha_baja": null, "usuario_id": 5, "sucursal_id": 1, "tipo_acceso": "limitado", "fecha_ingreso": "2021-09-15", "fecha_registro": "2025-12-08T14:53:22.059204-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:53:22.072526-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:53:22.072526-06
+29	empleados	INSERT	11	\N	{"id": 11, "email": "prueba@mail.com", "turno": "Matutino", "activo": true, "nombre": "Jhonatan Grajales", "salario": 10000.00, "telefono": "5544935853", "puesto_id": 6, "fecha_baja": null, "usuario_id": null, "sucursal_id": 2, "tipo_acceso": "limitado", "fecha_ingreso": "2025-12-08", "fecha_registro": "2025-12-08T14:57:23.895542-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:57:23.895542-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:57:23.895542-06
+30	usuarios	INSERT	6	\N	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$10$qGcrf./RnIHX8Y.nyXfHSeaimxYFOi6coFBIyHgXxi0TzsIA0dS6W", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": null, "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:57:23.994707-06:00"}	\N	\N	2025-12-08 14:57:23.994707-06
+31	empleados	UPDATE	11	{"id": 11, "email": "prueba@mail.com", "turno": "Matutino", "activo": true, "nombre": "Jhonatan Grajales", "salario": 10000.00, "telefono": "5544935853", "puesto_id": 6, "fecha_baja": null, "usuario_id": null, "sucursal_id": 2, "tipo_acceso": "limitado", "fecha_ingreso": "2025-12-08", "fecha_registro": "2025-12-08T14:57:23.895542-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:57:23.895542-06:00", "dias_vacaciones_sugeridos": 12}	{"id": 11, "email": "prueba@mail.com", "turno": "Matutino", "activo": true, "nombre": "Jhonatan Grajales", "salario": 10000.00, "telefono": "5544935853", "puesto_id": 6, "fecha_baja": null, "usuario_id": 6, "sucursal_id": 2, "tipo_acceso": "limitado", "fecha_ingreso": "2025-12-08", "fecha_registro": "2025-12-08T14:57:23.895542-06:00", "notas_vacaciones": null, "fecha_modificacion": "2025-12-08T14:57:23.997384-06:00", "dias_vacaciones_sugeridos": 12}	\N	\N	2025-12-08 14:57:23.997384-06
+32	usuarios	UPDATE	6	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$10$qGcrf./RnIHX8Y.nyXfHSeaimxYFOi6coFBIyHgXxi0TzsIA0dS6W", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": null, "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:57:23.994707-06:00"}	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$10$qGcrf./RnIHX8Y.nyXfHSeaimxYFOi6coFBIyHgXxi0TzsIA0dS6W", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": "2025-12-08T14:58:15.442881-06:00", "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:58:15.442881-06:00"}	\N	\N	2025-12-08 14:58:15.442881-06
+33	usuarios	UPDATE	6	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$10$qGcrf./RnIHX8Y.nyXfHSeaimxYFOi6coFBIyHgXxi0TzsIA0dS6W", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": "2025-12-08T14:58:15.442881-06:00", "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:58:15.442881-06:00"}	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$08$le4AuouGc8R..iU2/oYMi.qxvurNC9wycnVKwsjj6aG1hu/DpYW7u", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": "2025-12-08T14:58:15.442881-06:00", "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:59:03.654714-06:00"}	\N	\N	2025-12-08 14:59:03.654714-06
+34	usuarios	UPDATE	6	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$08$le4AuouGc8R..iU2/oYMi.qxvurNC9wycnVKwsjj6aG1hu/DpYW7u", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": "2025-12-08T14:58:15.442881-06:00", "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:59:03.654714-06:00"}	{"id": 6, "bio": "Empleado - Acceso personalizado", "role": "empleado", "email": "prueba@mail.com", "phone": "5544935853", "roles": ["empleado"], "activo": true, "nombre": "Jhonatan Grajales", "password": "$2a$08$le4AuouGc8R..iU2/oYMi.qxvurNC9wycnVKwsjj6aG1hu/DpYW7u", "username": "005.Jhonatan", "full_name": "Jhonatan Grajales", "empleado_id": 11, "profile_image": null, "ultimo_acceso": "2025-12-08T14:59:41.100037-06:00", "fecha_registro": "2025-12-08T14:57:23.994707-06:00", "fecha_modificacion": "2025-12-08T14:59:41.100037-06:00"}	\N	\N	2025-12-08 14:59:41.100037-06
+35	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2025-10-12T00:09:08.738514-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2025-10-12T00:09:08.738514-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2025-12-08T15:00:22.392569-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2025-12-08T15:00:22.392569-06:00"}	\N	\N	2025-12-08 15:00:22.392569-06
+36	proveedores	UPDATE	5	{"id": 5, "rfc": "CEP870925MNO", "email": "cursos@capacitacionpro.com", "notas": "Cursos de desarrollo profesional y tecnico", "activo": true, "telefono": "555-1005", "direccion": "Av. Capacitacion 654, Col. Educativa, Ciudad de Mexico, CDMX, 03900, Mexico", "pagina_web": "www.capacitacionpro.com", "dias_credito": 0, "razon_social": "Capacitacion Empresarial Pro S.C.", "fecha_registro": "2023-05-22T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": null, "nombre_contacto": "Mtra. Ana Lopez", "nombre_comercial": "Capacitacion Pro", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Transferencia"}	{"id": 5, "rfc": "CEP870925MNO", "email": "cursos@capacitacionpro.com", "notas": "Cursos de desarrollo profesional y tecnico", "activo": true, "telefono": "555-1005", "direccion": "Av. Capacitacion 654, Col. Educativa, Ciudad de Mexico, CDMX, 03900, Mexico", "pagina_web": "www.capacitacionpro.com", "dias_credito": 15, "razon_social": "Capacitacion Empresarial Pro S.C.", "fecha_registro": "2023-05-22T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": "098765432109876543", "nombre_contacto": "Mtra. Ana Lopez", "nombre_comercial": "Capacitacion Pro", "fecha_modificacion": "2025-12-08T15:01:08.783671-06:00", "metodo_pago_principal": "Transferencia"}	\N	\N	2025-12-08 15:01:08.783671-06
+37	proveedores	INSERT	6	\N	{"id": 6, "rfc": "CLS920810XYZ", "email": "buit_99@hotmail.com", "notas": "nota de prueba", "activo": true, "telefono": "9612345678", "direccion": "AV MACTUMATZA LTE 5 MZN 35", "pagina_web": "www.tonersexpress.com", "dias_credito": 0, "razon_social": "comercializadora de pruebas", "fecha_registro": "2025-12-08T15:03:33.788913-06:00", "tipo_proveedor": "Mixto", "cuenta_bancaria": null, "nombre_contacto": "Jhonatan Grajales", "nombre_comercial": "Proveedor de prueba", "fecha_modificacion": "2025-12-08T15:03:33.788913-06:00", "metodo_pago_principal": "Cheque"}	\N	\N	2025-12-08 15:03:33.788913-06
+38	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2025-12-08T15:00:22.392569-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2025-12-08T15:00:22.392569-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T17:56:45.988068-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T17:56:45.988068-06:00"}	\N	\N	2026-03-07 17:56:45.988068-06
 \.
 
 
@@ -2319,6 +1964,11 @@ COPY public.cat_tipos_proveedor (id, clave, descripcion, orden, activo, fecha_cr
 --
 
 COPY public.clientes (id, rfc, razon_social, nombre_comercial, email, telefono, direccion_codigo_postal, regimen_fiscal, uso_cfdi, activo, fecha_registro, fecha_modificacion, direccion_entrega, direccion_facturacion, segundo_telefono, segundo_email) FROM stdin;
+1	PEGJ850315ABC	Juan Perez Garcia	Juan Perez Garcia	juan.perez@email.com	9611234567	29000	612	G03	t	2025-12-08 14:53:22.041494-06	2025-12-08 14:53:22.041494-06	Av. Central 123, Col. Centro, Tuxtla Gutierrez, Chiapas	\N	9611234568	\N
+2	CLS920810XYZ	Comercializadora Lopez S.A. de C.V.	Comercializadora Lopez S.A. de C.V.	ventas@comlopez.com	9612345678	29030	601	G01	t	2025-12-08 14:53:22.041494-06	2025-12-08 14:53:22.041494-06	Blvd. Belisario Dominguez 456, Col. Moctezuma, Tuxtla Gutierrez, Chiapas	\N	\N	\N
+3	GOHM750425DEF	Maria Gonzalez Hernandez	Maria Gonzalez Hernandez	maria.gonzalez@email.com	9673456789	29200	612	G03	t	2025-12-08 14:53:22.041494-06	2025-12-08 14:53:22.041494-06	Real de Guadalupe 789, Centro, San Cristobal de las Casas, Chiapas	\N	9673456790	\N
+4	CSP180920E56	Consultoria y Servicios Profesionales Maya S.C.	Consultores Maya	contacto@consultoresmaya.com	9612000005	29050	612	G01	t	2025-12-08 14:53:22.041494-06	2025-12-08 14:53:22.041494-06	Av. Universidad, 321, Universitaria, Tuxtla Gutierrez, Chiapas	\N	\N	\N
+5	DCH170215G78	Distribuidora de Chiapas S.A. de C.V.	Distribuidora Chiapas	ventas@districhiapas.com	9612000007	29020	601	G03	t	2025-12-08 14:53:22.041494-06	2025-12-08 14:53:22.041494-06	Blvd. Los Castillos, 456, Las Flores, Tuxtla Gutierrez, Chiapas	\N	\N	\N
 \.
 
 
@@ -2327,6 +1977,17 @@ COPY public.clientes (id, rfc, razon_social, nombre_comercial, email, telefono, 
 --
 
 COPY public.empleados (id, nombre, email, telefono, puesto_id, sucursal_id, salario, fecha_ingreso, activo, fecha_baja, fecha_registro, fecha_modificacion, tipo_acceso, usuario_id, dias_vacaciones_sugeridos, notas_vacaciones, turno) FROM stdin;
+5	Jorge Luis Morales Garcia	jorge.morales@supercopias.com	961-100-1005	4	1	10500.00	2022-01-20	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.059204-06	solo_lectura	\N	12	\N	Matutino
+6	Patricia Diaz Ramirez	patricia.diaz@supercopias.com	961-100-1006	4	2	10000.00	2022-03-15	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.059204-06	solo_lectura	\N	12	\N	Vespertino
+7	Miguel Angel Chavez Cruz	miguel.chavez@supercopias.com	961-100-1007	5	1	9500.00	2022-07-01	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.059204-06	solo_lectura	\N	12	\N	Matutino
+8	Sandra Elena Ortiz Mendez	sandra.ortiz@supercopias.com	961-100-1008	6	3	9000.00	2023-02-10	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.059204-06	solo_lectura	\N	12	\N	Matutino
+9	Francisco Javier Ramos Silva	francisco.ramos@supercopias.com	961-100-1009	7	2	8500.00	2023-05-22	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.059204-06	solo_lectura	\N	12	\N	Vespertino
+10	Daniela Fernandez Vega	daniela.fernandez@supercopias.com	961-100-1010	8	1	11000.00	2023-08-15	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.059204-06	solo_lectura	\N	12	\N	Matutino
+1	Roberto Martinez Sanchez	roberto.martinez@supercopias.com	961-100-1001	1	1	22000.00	2020-01-15	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.071229-06	completo	2	15	\N	Matutino
+2	Laura Gomez Perez	laura.gomez@supercopias.com	961-100-1002	2	1	16000.00	2020-03-10	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.071743-06	limitado	3	12	\N	Matutino
+3	Carlos Hernandez Lopez	carlos.hernandez@supercopias.com	961-100-1003	2	2	15500.00	2021-06-01	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.071994-06	limitado	4	12	\N	Vespertino
+4	Ana Maria Ruiz Torres	ana.ruiz@supercopias.com	961-100-1004	3	1	13000.00	2021-09-15	t	\N	2025-12-08 14:53:22.059204-06	2025-12-08 14:53:22.072526-06	limitado	5	12	\N	Matutino
+11	Jhonatan Grajales	prueba@mail.com	5544935853	6	2	10000.00	2025-12-08	t	\N	2025-12-08 14:57:23.895542-06	2025-12-08 14:57:23.997384-06	limitado	6	12	\N	Matutino
 \.
 
 
@@ -2335,6 +1996,19 @@ COPY public.empleados (id, nombre, email, telefono, puesto_id, sucursal_id, sala
 --
 
 COPY public.empleados_modulos (id, empleado_id, modulo, acceso, fecha_asignacion) FROM stdin;
+1	2	empleados	t	2025-12-08 14:53:22.0698-06
+2	2	clientes	t	2025-12-08 14:53:22.0698-06
+3	2	reportes	t	2025-12-08 14:53:22.0698-06
+4	3	empleados	t	2025-12-08 14:53:22.070726-06
+5	3	clientes	t	2025-12-08 14:53:22.070726-06
+6	3	inventarios	t	2025-12-08 14:53:22.070726-06
+7	3	reportes	t	2025-12-08 14:53:22.070726-06
+8	4	clientes	t	2025-12-08 14:53:22.070997-06
+9	4	inventarios	t	2025-12-08 14:53:22.070997-06
+10	4	equipos	t	2025-12-08 14:53:22.070997-06
+11	11	empleados	t	2025-12-08 14:57:23.903319-06
+12	11	clientes	t	2025-12-08 14:57:23.904321-06
+13	11	reportes	t	2025-12-08 14:57:23.904664-06
 \.
 
 
@@ -2343,6 +2017,12 @@ COPY public.empleados_modulos (id, empleado_id, modulo, acceso, fecha_asignacion
 --
 
 COPY public.equipos (id, tipo_equipo, marca, modelo, numero_serie, nombre_equipo, area_ubicacion, cliente_nombre, estatus, responsable_nombre, observaciones, foto_url, fecha_alta, fecha_modificacion, activo, mantenimiento_intervalo_dias, mantenimiento_fecha_inicio, mantenimiento_dias_alerta) FROM stdin;
+2	impresora	HP	LaserJet Pro M404dn	HPM404-045-2023	Impresora Oficina 1	Oficina Administrativa	\N	activo	Maria Lopez	Impresora para documentos administrativos	\N	2025-12-08 14:53:22.057877-06	2025-12-08 14:53:22.057877-06	t	120	2024-02-01	7
+3	pc	Dell	OptiPlex 7090	DELL7090-123	PC Recepcion	Recepcion	\N	activo	Carlos Ramirez	Equipo de atencion al cliente	\N	2025-12-08 14:53:22.057877-06	2025-12-08 14:53:22.057877-06	t	\N	\N	7
+4	laptop	Lenovo	ThinkPad E14	LNVE14-789	Laptop Gerencia	Gerencia	\N	activo	Ana Martinez	Equipo movil para gerencia	\N	2025-12-08 14:53:22.057877-06	2025-12-08 14:53:22.057877-06	t	\N	\N	7
+5	router	TP-Link	Archer AX50	TPAX50-456	Router Principal	Sala de Servidores	\N	activo	Luis Gomez	Router principal de red empresarial	\N	2025-12-08 14:53:22.057877-06	2025-12-08 14:53:22.057877-06	t	180	2024-03-01	7
+1	fotocopiadora	Canon	imageRUNNER 2525i	CNR2525-001-2023	Copiadora Principal	Area de Produccion	\N	activo	Juan Perez	Equipo principal para volumen alto de copias	\N	2025-12-08 14:53:22.057877-06	2025-12-08 15:26:28.111047-06	f	90	2024-01-15	7
+6	fotocopiadora	Epson	\N	\N	Copiadora de prueba	5ta norte	\N	activo	Jhonatan Grajales	prueba nueva fotocopiadora	\N	2025-12-08 15:28:17.946976-06	2025-12-08 15:29:40.32967-06	t	10	2025-11-01	7
 \.
 
 
@@ -2351,6 +2031,7 @@ COPY public.equipos (id, tipo_equipo, marca, modelo, numero_serie, nombre_equipo
 --
 
 COPY public.equipos_caracteristicas (id, equipo_id, caracteristicas, fecha_creacion, fecha_modificacion) FROM stdin;
+1	6	{"ram": "", "procesador": "", "resolucion": "", "tipo_panel": "", "direccion_ip": "", "almacenamiento": "", "contador_actual": 1000, "tamano_pulgadas": null, "tipo_consumible": "Toner", "rendimiento_toner": 10000, "sistema_operativo": "", "capacidad_bandejas": "500"}	2025-12-08 15:28:17.949992-06	2025-12-08 15:28:17.949992-06
 \.
 
 
@@ -2367,6 +2048,7 @@ COPY public.equipos_consumibles (id, equipo_id, tipo_consumible, fecha_instalaci
 --
 
 COPY public.equipos_historial_contador (id, equipo_id, fecha_lectura, contador_actual, tecnico_nombre, observaciones) FROM stdin;
+1	6	2025-12-08 15:29:00.006527-06	1200	\N	ultima actualización
 \.
 
 
@@ -2375,6 +2057,7 @@ COPY public.equipos_historial_contador (id, equipo_id, fecha_lectura, contador_a
 --
 
 COPY public.equipos_mantenimiento (id, equipo_id, fecha_servicio, contador_servicio, descripcion, costo, tecnico_nombre, proveedor_nombre, observaciones) FROM stdin;
+1	6	2025-12-08 16:06:01.479866-06	1500	Se agrega servicio de prueba	2000.00	\N	\N	prueba
 \.
 
 
@@ -2457,46 +2140,22 @@ COPY public.formas_pago (id, codigo, descripcion, activo, fecha_creacion) FROM s
 
 
 --
+-- Data for Name: inv_departamentos; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inv_departamentos (id, nombre, descripcion, color, orden, activo, fecha_creacion, fecha_modificacion) FROM stdin;
+1	Lapicero	Lapicero BIC	#6c757d	1	t	2026-03-07 19:04:00.742099-06	2026-03-07 19:04:00.742099-06
+2	Papel	Papel por paquete	#6c757d	1	t	2026-03-07 19:04:00.742099-06	2026-03-07 19:04:00.742099-06
+\.
+
+
+--
 -- Data for Name: inventarios; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.inventarios (id, tipo, nombre, categoria, marca, modelo, codigo_sku, proveedor_id, proveedor_nombre, estatus, existencia_actual, unidad_medida, stock_minimo, stock_maximo, ubicacion_fisica, costo_compra, precio_venta, costo_promedio, observaciones, foto_url, fecha_alta, fecha_modificacion, activo) FROM stdin;
-\.
-
-
---
--- Data for Name: inventarios_caracteristicas; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.inventarios_caracteristicas (id, inventario_id, caracteristicas, fecha_creacion, fecha_modificacion) FROM stdin;
-\.
-
-
---
--- Data for Name: inventarios_categorias; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.inventarios_categorias (id, tipo, nombre, descripcion, campos_requeridos, activo, orden, fecha_creacion, fecha_modificacion) FROM stdin;
-1	venta	Papel	Papel para venta al público (resmas, paquetes)	\N	t	1	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-2	venta	Consumibles	Toners, cartuchos, tintas para venta	\N	t	2	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-3	venta	Engargolado	Pastas, arillos y material de engargolado para venta	\N	t	3	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-4	venta	Acetatos	Hojas para transparencias	\N	t	4	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-5	venta	Papelería	Artículos de papelería variados	\N	t	5	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-6	venta	Oficina	Artículos de oficina diversos	\N	t	6	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-7	venta	Otros Productos	Otros productos para venta	\N	t	99	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-8	insumo	Papel Operativo	Papel para servicios de copias e impresiones	\N	t	1	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-9	insumo	Toner/Revelador	Toner, revelador y recarga para equipos	\N	t	2	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-10	insumo	Refacciones Copiadoras	Cuchillas, cilindros, rodillos y refacciones	\N	t	3	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-11	insumo	Material Engargolado	Arillos y pastas para servicio	\N	t	4	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-12	insumo	Hojas Especiales	Papel fotográfico, etiquetas, adhesivos	\N	t	5	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-13	insumo	Acabados	Material para corte, pegado, laminado	\N	t	6	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-14	insumo	Otros Insumos	Otros insumos operativos	\N	t	99	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-15	generico	Herramientas	Desarmadores, pinzas, llaves	\N	t	1	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-16	generico	Cables y Conectores	Cables, extensiones, adaptadores	\N	t	2	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-17	generico	Electrónica	Componentes electrónicos y accesorios	\N	t	3	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-18	generico	Tornillería	Tornillos, tuercas, rondanas	\N	t	4	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-19	generico	Material Diverso	Artículos sin clasificación específica	\N	t	5	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
-20	generico	Otros Genéricos	Otros items genéricos	\N	t	99	2025-12-04 00:00:00-06	2025-12-04 00:00:00-06
+COPY public.inventarios (id, tipo, nombre, categoria, marca, modelo, codigo_sku, proveedor_id, proveedor_nombre, estatus, existencia_actual, unidad_medida, stock_minimo, stock_maximo, ubicacion_fisica, costo_compra, precio_venta, costo_promedio, observaciones, foto_url, fecha_alta, fecha_modificacion, activo, departamento_id, es_servicio, disponible_en_pos, descripcion) FROM stdin;
+6	venta	Lapicero	Lapicero	BIC	0.5	\N	6	\N	activo	10.00	pieza	5.00	20.00	5ta norte	10.00	15.00	10.00	\N	\N	2025-12-08 15:10:55.981505-06	2025-12-08 15:10:55.981505-06	t	1	f	t	\N
+7	insumo	Papel	Papel	\N	\N	\N	1	\N	activo	3.00	paquete	4.00	\N	5ta norte	500.00	\N	500.00	\N	\N	2025-12-08 15:14:37.983548-06	2025-12-08 15:44:27.648355-06	t	2	f	f	\N
 \.
 
 
@@ -2505,14 +2164,12 @@ COPY public.inventarios_categorias (id, tipo, nombre, descripcion, campos_requer
 --
 
 COPY public.inventarios_movimientos (id, inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo, usuario_nombre, area_servicio, notas, evidencia_url, fecha_movimiento) FROM stdin;
-\.
-
-
---
--- Data for Name: inventarios_reglas_stock; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.inventarios_reglas_stock (id, inventario_id, nivel_critico_porcentaje, nivel_bajo_porcentaje, nivel_normal_porcentaje, usar_stock_maximo, alerta_critico_activa, alerta_bajo_activa, alerta_sobrestock_activa, umbral_sobrestock_porcentaje, notificar_usuarios, observaciones, activo, fecha_creacion, fecha_modificacion) FROM stdin;
+1	6	entrada	ajuste_entrada	10.00	0.00	10.00	admin	\N	Existencia inicial al crear artículo	\N	2025-12-08 15:10:55.989819-06
+2	7	entrada	ajuste_entrada	10.00	0.00	10.00	admin	\N	Existencia inicial al crear artículo	\N	2025-12-08 15:14:37.98786-06
+3	7	salida	uso_operativo	-5.00	10.00	5.00	admin	\N	prueba salida operativa	\N	2025-12-08 15:17:00.881268-06
+4	7	salida	venta	-2.00	5.00	3.00	admin	\N	salida venta	\N	2025-12-08 15:18:31.834647-06
+5	7	entrada	compra	2.00	3.00	5.00	admin	\N	entrada compra 2	\N	2025-12-08 15:19:17.419268-06
+6	7	salida	ajuste_salida	-2.00	5.00	3.00	admin	\N	\N	\N	2025-12-08 15:44:27.646284-06
 \.
 
 
@@ -2548,6 +2205,12 @@ COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FR
 --
 
 COPY public.proveedores (id, nombre_comercial, razon_social, rfc, tipo_proveedor, activo, nombre_contacto, telefono, email, pagina_web, direccion, metodo_pago_principal, cuenta_bancaria, dias_credito, notas, fecha_registro, fecha_modificacion) FROM stdin;
+1	Papeleria El Estudiante	Papeleria El Estudiante S.A. de C.V.	PES910315ABC	Productos	t	Maria Gonzalez	555-1001	ventas@estudiantepapeleria.com	www.papeleriaestudiante.com	Av. Universidad 123, Col. Centro, Ciudad de Mexico, CDMX, 06000, Mexico	Transferencia	012345678901234567	30	Proveedor principal de papeleria y suministros de oficina	2023-01-10 00:00:00-06	2025-12-08 14:53:22.053047-06
+2	Tecnologia y Sistemas	Tecnologia y Sistemas S.A. de C.V.	TYS850420DEF	Servicios	t	Ing. Carlos Ramirez	555-1002	soporte@tecnologiasistemas.com	www.tecnologiaysistemas.com	Calle Tecnologia 456, Col. Moderna, Ciudad de Mexico, CDMX, 03100, Mexico	Transferencia	\N	15	Mantenimiento de equipos de computo y redes	2023-02-05 00:00:00-06	2025-12-08 14:53:22.053047-06
+3	Limpieza Integral	Servicios de Limpieza Integral S.A. de C.V.	SLI780630GHI	Servicios	t	Patricia Herrera	555-1003	admin@limpiezaintegral.com	\N	Av. Servicios 789, Col. Industrial, Ciudad de Mexico, CDMX, 07300, Mexico	Efectivo	\N	0	Servicio de limpieza diario para oficinas	2023-03-12 00:00:00-06	2025-12-08 14:53:22.053047-06
+4	Toners Express	Insumos y Toners Express S.A. de C.V.	ITE920815JKL	Productos	t	Lic. Roberto Silva	555-1004	pedidos@tonersexpress.com	www.tonersexpress.com	Blvd. Insumos 321, Col. Comercial, Ciudad de Mexico, CDMX, 06500, Mexico	Transferencia	098765432109876543	45	Cartuchos, toners y consumibles para impresoras	2023-04-18 00:00:00-06	2025-12-08 14:53:22.053047-06
+5	Capacitacion Pro	Capacitacion Empresarial Pro S.C.	CEP870925MNO	Servicios	t	Mtra. Ana Lopez	555-1005	cursos@capacitacionpro.com	www.capacitacionpro.com	Av. Capacitacion 654, Col. Educativa, Ciudad de Mexico, CDMX, 03900, Mexico	Transferencia	098765432109876543	15	Cursos de desarrollo profesional y tecnico	2023-05-22 00:00:00-06	2025-12-08 15:01:08.783671-06
+6	Proveedor de prueba	comercializadora de pruebas	CLS920810XYZ	Mixto	t	Jhonatan Grajales	9612345678	buit_99@hotmail.com	www.tonersexpress.com	AV MACTUMATZA LTE 5 MZN 35	Cheque	\N	0	nota de prueba	2025-12-08 15:03:33.788913-06	2025-12-08 15:03:33.788913-06
 \.
 
 
@@ -2642,7 +2305,12 @@ COPY public.usos_cfdi (id, codigo, descripcion, activo, fecha_creacion) FROM std
 --
 
 COPY public.usuarios (id, username, password, nombre, email, role, roles, empleado_id, activo, fecha_registro, fecha_modificacion, ultimo_acceso, full_name, phone, bio, profile_image) FROM stdin;
-1	admin	$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq	Administrador SuperCopias	admin@supercopias.com	admin	["admin"]	\N	t	2025-10-12 00:09:08.738514-06	2025-10-12 00:09:08.738514-06	2025-10-12 00:09:08.738514-06	Administrador SuperCopias	+52 961 100 0000	Administrador principal del sistema SuperCopias	\N
+2	001.robertomar	$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7	Roberto Martinez	roberto.martinez@supercopias.com	admin	["admin"]	1	t	2025-12-08 14:53:22.065258-06	2025-12-08 14:53:22.065258-06	\N	Roberto Martinez Sanchez	961-100-1001	Gerente General - Administrador del sistema	\N
+3	002.lauragomez	$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7	Laura Gomez	laura.gomez@supercopias.com	empleado	["empleado"]	2	t	2025-12-08 14:53:22.0686-06	2025-12-08 14:53:22.0686-06	\N	Laura Gomez Perez	961-100-1002	Gerente de Sucursal Principal - Acceso personalizado	\N
+4	003.carloshern	$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7	Carlos Hernandez	carlos.hernandez@supercopias.com	empleado	["empleado"]	3	t	2025-12-08 14:53:22.069178-06	2025-12-08 14:53:22.069178-06	\N	Carlos Hernandez Lopez	961-100-1003	Gerente de Sucursal Norte - Acceso personalizado	\N
+5	004.anamariarui	$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7	Ana Maria Ruiz	ana.ruiz@supercopias.com	empleado	["empleado"]	4	t	2025-12-08 14:53:22.069517-06	2025-12-08 14:53:22.069517-06	\N	Ana Maria Ruiz Torres	961-100-1004	Supervisor - Acceso personalizado	\N
+6	005.Jhonatan	$2a$08$le4AuouGc8R..iU2/oYMi.qxvurNC9wycnVKwsjj6aG1hu/DpYW7u	Jhonatan Grajales	prueba@mail.com	empleado	["empleado"]	11	t	2025-12-08 14:57:23.994707-06	2025-12-08 14:59:41.100037-06	2025-12-08 14:59:41.100037-06	Jhonatan Grajales	5544935853	Empleado - Acceso personalizado	\N
+1	admin	$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq	Administrador SuperCopias	admin@supercopias.com	admin	["admin"]	\N	t	2025-10-12 00:09:08.738514-06	2026-03-07 17:56:45.988068-06	2026-03-07 17:56:45.988068-06	Administrador SuperCopias	+52 961 100 0000	Administrador principal del sistema SuperCopias	\N
 \.
 
 
@@ -2650,7 +2318,7 @@ COPY public.usuarios (id, username, password, nombre, email, role, roles, emplea
 -- Name: auditoria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.auditoria_id_seq', 1, false);
+SELECT pg_catalog.setval('public.auditoria_id_seq', 38, true);
 
 
 --
@@ -2692,28 +2360,28 @@ SELECT pg_catalog.setval('public.cat_tipos_proveedor_id_seq', 3, true);
 -- Name: clientes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.clientes_id_seq', 1, false);
+SELECT pg_catalog.setval('public.clientes_id_seq', 5, true);
 
 
 --
 -- Name: empleados_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.empleados_id_seq', 1, false);
+SELECT pg_catalog.setval('public.empleados_id_seq', 11, true);
 
 
 --
 -- Name: empleados_modulos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.empleados_modulos_id_seq', 1, false);
+SELECT pg_catalog.setval('public.empleados_modulos_id_seq', 13, true);
 
 
 --
 -- Name: equipos_caracteristicas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.equipos_caracteristicas_id_seq', 1, false);
+SELECT pg_catalog.setval('public.equipos_caracteristicas_id_seq', 1, true);
 
 
 --
@@ -2727,21 +2395,21 @@ SELECT pg_catalog.setval('public.equipos_consumibles_id_seq', 1, false);
 -- Name: equipos_historial_contador_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.equipos_historial_contador_id_seq', 1, false);
+SELECT pg_catalog.setval('public.equipos_historial_contador_id_seq', 1, true);
 
 
 --
 -- Name: equipos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.equipos_id_seq', 1, false);
+SELECT pg_catalog.setval('public.equipos_id_seq', 6, true);
 
 
 --
 -- Name: equipos_mantenimiento_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.equipos_mantenimiento_id_seq', 1, false);
+SELECT pg_catalog.setval('public.equipos_mantenimiento_id_seq', 1, true);
 
 
 --
@@ -2766,38 +2434,24 @@ SELECT pg_catalog.setval('public.formas_pago_id_seq', 44, true);
 
 
 --
--- Name: inventarios_caracteristicas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: inv_departamentos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inventarios_caracteristicas_id_seq', 1, false);
-
-
---
--- Name: inventarios_categorias_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.inventarios_categorias_id_seq', 20, true);
+SELECT pg_catalog.setval('public.inv_departamentos_id_seq', 2, true);
 
 
 --
 -- Name: inventarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inventarios_id_seq', 1, false);
+SELECT pg_catalog.setval('public.inventarios_id_seq', 7, true);
 
 
 --
 -- Name: inventarios_movimientos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inventarios_movimientos_id_seq', 1, false);
-
-
---
--- Name: inventarios_reglas_stock_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.inventarios_reglas_stock_id_seq', 1, false);
+SELECT pg_catalog.setval('public.inventarios_movimientos_id_seq', 6, true);
 
 
 --
@@ -2818,7 +2472,7 @@ SELECT pg_catalog.setval('public.modulos_id_seq', 9, true);
 -- Name: proveedores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.proveedores_id_seq', 1, false);
+SELECT pg_catalog.setval('public.proveedores_id_seq', 6, true);
 
 
 --
@@ -2853,7 +2507,7 @@ SELECT pg_catalog.setval('public.usos_cfdi_id_seq', 48, true);
 -- Name: usuarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.usuarios_id_seq', 1, true);
+SELECT pg_catalog.setval('public.usuarios_id_seq', 6, true);
 
 
 --
@@ -3057,19 +2711,11 @@ ALTER TABLE ONLY public.formas_pago
 
 
 --
--- Name: inventarios_caracteristicas inventarios_caracteristicas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inv_departamentos inv_departamentos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.inventarios_caracteristicas
-    ADD CONSTRAINT inventarios_caracteristicas_pkey PRIMARY KEY (id);
-
-
---
--- Name: inventarios_categorias inventarios_categorias_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_categorias
-    ADD CONSTRAINT inventarios_categorias_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.inv_departamentos
+    ADD CONSTRAINT inv_departamentos_pkey PRIMARY KEY (id);
 
 
 --
@@ -3086,22 +2732,6 @@ ALTER TABLE ONLY public.inventarios_movimientos
 
 ALTER TABLE ONLY public.inventarios
     ADD CONSTRAINT inventarios_pkey PRIMARY KEY (id);
-
-
---
--- Name: inventarios_reglas_stock inventarios_reglas_stock_inventario_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_reglas_stock
-    ADD CONSTRAINT inventarios_reglas_stock_inventario_id_key UNIQUE (inventario_id);
-
-
---
--- Name: inventarios_reglas_stock inventarios_reglas_stock_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_reglas_stock
-    ADD CONSTRAINT inventarios_reglas_stock_pkey PRIMARY KEY (id);
 
 
 --
@@ -3198,6 +2828,14 @@ ALTER TABLE ONLY public.puestos
 
 ALTER TABLE ONLY public.sucursales
     ADD CONSTRAINT unique_sucursal_nombre UNIQUE (nombre);
+
+
+--
+-- Name: inv_departamentos uq_inv_departamentos_nombre; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inv_departamentos
+    ADD CONSTRAINT uq_inv_departamentos_nombre UNIQUE (nombre);
 
 
 --
@@ -3528,17 +3166,24 @@ CREATE INDEX idx_historial_contador_fecha ON public.equipos_historial_contador U
 
 
 --
+-- Name: idx_inv_departamentos_activo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_departamentos_activo ON public.inv_departamentos USING btree (activo);
+
+
+--
+-- Name: idx_inv_departamentos_orden; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_departamentos_orden ON public.inv_departamentos USING btree (orden);
+
+
+--
 -- Name: idx_inventarios_activo; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_inventarios_activo ON public.inventarios USING btree (activo);
-
-
---
--- Name: idx_inventarios_caracteristicas_inventario; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_inventarios_caracteristicas_inventario ON public.inventarios_caracteristicas USING btree (inventario_id);
 
 
 --
@@ -3549,24 +3194,31 @@ CREATE INDEX idx_inventarios_categoria ON public.inventarios USING btree (catego
 
 
 --
--- Name: idx_inventarios_categorias_activo; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_inventarios_categorias_activo ON public.inventarios_categorias USING btree (activo);
-
-
---
--- Name: idx_inventarios_categorias_tipo; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_inventarios_categorias_tipo ON public.inventarios_categorias USING btree (tipo);
-
-
---
 -- Name: idx_inventarios_codigo_sku; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_inventarios_codigo_sku ON public.inventarios USING btree (codigo_sku);
+
+
+--
+-- Name: idx_inventarios_departamento; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_departamento ON public.inventarios USING btree (departamento_id);
+
+
+--
+-- Name: idx_inventarios_disponible_pos; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_disponible_pos ON public.inventarios USING btree (disponible_en_pos);
+
+
+--
+-- Name: idx_inventarios_es_servicio; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventarios_es_servicio ON public.inventarios USING btree (es_servicio);
 
 
 --
@@ -3609,20 +3261,6 @@ CREATE INDEX idx_inventarios_nombre ON public.inventarios USING btree (nombre);
 --
 
 CREATE INDEX idx_inventarios_proveedor ON public.inventarios USING btree (proveedor_id);
-
-
---
--- Name: idx_inventarios_reglas_stock_activo; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_inventarios_reglas_stock_activo ON public.inventarios_reglas_stock USING btree (activo);
-
-
---
--- Name: idx_inventarios_reglas_stock_inventario; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_inventarios_reglas_stock_inventario ON public.inventarios_reglas_stock USING btree (inventario_id);
 
 
 --
@@ -3922,11 +3560,11 @@ ALTER TABLE ONLY public.equipos_historial_contador
 
 
 --
--- Name: inventarios_caracteristicas fk_inventarios_caracteristicas_inventario; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventarios fk_inventarios_departamento; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.inventarios_caracteristicas
-    ADD CONSTRAINT fk_inventarios_caracteristicas_inventario FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.inventarios
+    ADD CONSTRAINT fk_inventarios_departamento FOREIGN KEY (departamento_id) REFERENCES public.inv_departamentos(id);
 
 
 --
@@ -3943,14 +3581,6 @@ ALTER TABLE ONLY public.inventarios_movimientos
 
 ALTER TABLE ONLY public.inventarios
     ADD CONSTRAINT fk_inventarios_proveedor FOREIGN KEY (proveedor_id) REFERENCES public.proveedores(id) ON DELETE SET NULL;
-
-
---
--- Name: inventarios_reglas_stock fk_inventarios_reglas_stock_inventario; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventarios_reglas_stock
-    ADD CONSTRAINT fk_inventarios_reglas_stock_inventario FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE CASCADE;
 
 
 --
@@ -3973,5 +3603,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict mvqFOyOZ4ZFjclDwejKGyxOlKv3WlFqNHoCkIagyWtwh8V0aa2Lqficu4aS9Mni
+\unrestrict 2kkeDg2LY5IJ0yWEE8GbfGUTfBPEwIFCm2L7OCKgpRJQJ0L9lF26DMkDqtaOfxt
 

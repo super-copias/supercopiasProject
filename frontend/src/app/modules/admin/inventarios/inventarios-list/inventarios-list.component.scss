@@ -1,8 +1,25 @@
-/* Estilos para el componente de lista de inventarios */
+/* Inventarios list - estilos del acordeón y badges */
 
 .card {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
+
+.card-header {
+  user-select: none;
+  transition: background 0.15s;
+  &:hover { background-color: rgba(0,0,0,.04); }
+}
+
+.badge {
+  font-size: .75rem;
+  font-weight: 500;
+}
+
+.table th { font-size: .8rem; color: #6c757d; }
+.table td { vertical-align: middle; font-size: .88rem; }
+
+.btn-group-sm .btn { padding: .2rem .4rem; }
+
 
 .badge {
   font-size: 0.75rem;

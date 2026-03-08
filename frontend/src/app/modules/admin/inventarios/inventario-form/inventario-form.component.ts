@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { InventariosService } from '../../../../services/inventarios.service';
+import { InventariosService, Articulo, Departamento } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { ProveedoresService } from '../../../../services/proveedores.service';
 
@@ -10,292 +10,177 @@ import { ProveedoresService } from '../../../../services/proveedores.service';
   styleUrls: ['./inventario-form.component.scss']
 })
 export class InventarioFormComponent implements OnInit {
+
   loading = false;
   isEditMode = false;
   inventarioId: number | null = null;
 
-  // Datos del formulario
-  inventario: any = {
-    tipo: '',
-    categoria: '',
+  // ── Paso 1: selector de tipo ─────────────────────────────────────────────
+  paso: 1 | 2 = 1;          // 1 = selector tipo, 2 = formulario
+  tiposArticulo = this.inventariosService.getTiposArticulo();
+
+  // ── Datos del formulario ─────────────────────────────────────────────────
+  form: Partial<Articulo> = {
+    tipo: 'venta',
+    es_servicio: false,
     nombre: '',
     descripcion: '',
+    departamento_id: undefined,
     codigo_sku: '',
     marca: '',
     modelo: '',
-    unidad_medida: '',
+    unidad_medida: 'Pieza',
     existencia_actual: 0,
     stock_minimo: 0,
-    stock_maximo: 0,
-    costo_compra: null,
-    precio_venta: null,
+    stock_maximo: null as any,
+    costo_compra: null as any,
+    precio_venta: null as any,
+    disponible_en_pos: false,
     ubicacion_fisica: '',
-    proveedor_id: null,
-    caracteristicas: {},
-    notas: ''
+    proveedor_id: null as any
   };
 
-  // Listas para los selects
-  categorias: any[] = [];
+  // ── Catálogos ────────────────────────────────────────────────────────────
+  departamentos: Departamento[] = [];
   proveedores: any[] = [];
-  
-  // Campos dinámicos según categoría
-  camposCategoria: any[] = [];
-  
-  // Tipos de inventario
-  tipos = [
-    { value: 'venta', label: 'Producto para Venta' },
-    { value: 'insumo', label: 'Insumo Operativo' },
-    { value: 'generico', label: 'Item Genérico' }
-  ];
+  unidadesMedida = this.inventariosService.getUnidadesMedida();
 
-  // Unidades de medida comunes
-  unidadesMedida = [
-    { value: 'pieza', label: 'Pieza' },
-    { value: 'paquete', label: 'Paquete' },
-    { value: 'caja', label: 'Caja' },
-    { value: 'resma', label: 'Resma' },
-    { value: 'litro', label: 'Litro' },
-    { value: 'kilogramo', label: 'Kilogramo' },
-    { value: 'metro', label: 'Metro' },
-    { value: 'rollo', label: 'Rollo' },
-    { value: 'cartucho', label: 'Cartucho' },
-    { value: 'toner', label: 'Tóner' },
-    { value: 'unidad', label: 'Unidad' }
-  ];
+  // ── Computed helpers ─────────────────────────────────────────────────────
+  get esServicio(): boolean { return !!this.form.es_servicio; }
+  get tipoSeleccionado() { return this.tiposArticulo.find(t => t.value === (this.esServicio ? 'servicio' : this.form.tipo)); }
+  get mostrarPrecioVenta(): boolean { return this.form.tipo === 'venta' || this.esServicio || !!this.form.disponible_en_pos; }
+
+  get margenPorcentaje(): number | null {
+    const c = Number(this.form.costo_compra);
+    const p = Number(this.form.precio_venta);
+    if (!c || !p || c <= 0) return null;
+    return Math.round(((p - c) / c) * 100);
+  }
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private inventariosService: InventariosService,
-    private notificationService: NotificationService,
+    public inventariosService: InventariosService,
+    private notif: NotificationService,
     private proveedoresService: ProveedoresService
   ) {}
 
   ngOnInit(): void {
-    this.loadCategorias();
-    this.loadProveedores();
-    
+    this.cargarDepartamentos();
+    this.cargarProveedores();
+
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.isEditMode = true;
         this.inventarioId = +params['id'];
-        // SOLO cargar el inventario si ya tenemos las categorías
-        if (this.categorias.length > 0) {
-          this.loadInventario(this.inventarioId);
-        }
-        // Si no, se cargará después cuando lleguen las categorías
+        this.cargarInventario(this.inventarioId);
       }
     });
   }
 
-  loadCategorias(): void {
-    this.inventariosService.getCategorias().subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.categorias = response.data || [];
-          
-          // Si estamos en modo edición y el inventario aún no se ha cargado, cargarlo ahora
-          if (this.isEditMode && this.inventarioId && !this.inventario.id) {
-            this.loadInventario(this.inventarioId);
-          }
-        }
-      },
-      error: (error) => {
-        console.error('Error cargando categorías:', error);
-      }
+  // ── Carga de datos ───────────────────────────────────────────────────────
+
+  private cargarDepartamentos() {
+    this.inventariosService.getDepartamentos().subscribe({
+      next: r => { if (r.success) this.departamentos = r.data || []; }
     });
   }
 
-  loadProveedores(): void {
+  private cargarProveedores() {
     this.proveedoresService.getList({ activo: true, limit: 1000 }).subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.proveedores = response.data;
-        }
-      },
-      error: (error) => {
-        console.error('Error cargando proveedores:', error);
-        this.notificationService.error('Error al cargar proveedores');
-        this.proveedores = [];
-      }
+      next: r => { if (r.success && r.data) this.proveedores = r.data; },
+      error: () => { this.proveedores = []; }
     });
   }
 
-  loadInventario(id: number): void {
+  private cargarInventario(id: number) {
     this.loading = true;
     this.inventariosService.getInventarioById(id).subscribe({
-      next: (response) => {
+      next: r => {
         this.loading = false;
-        if (response.success) {
-          this.inventario = response.data;
-          
-          // Si características es string JSON, parsearlo
-          if (this.inventario.caracteristicas && typeof this.inventario.caracteristicas === 'string') {
-            try {
-              this.inventario.caracteristicas = JSON.parse(this.inventario.caracteristicas);
-            } catch (e) {
-              console.error('Error al parsear características:', e);
-              this.inventario.caracteristicas = {};
-            }
-          }
-          
-          // Si no hay características, inicializar como objeto vacío
-          if (!this.inventario.caracteristicas) {
-            this.inventario.caracteristicas = {};
-          }
-          
-          // Formatear precios al cargar
-          this.formatPrecio('costo_compra');
-          this.formatPrecio('precio_venta');
-          
-          // Cargar los campos de la categoría
-          this.onCategoriaChange();
+        if (r.success) {
+          this.form = { ...this.form, ...r.data };
+          this.paso = 2;  // ir directo al formulario en modo edición
         }
       },
-      error: (error) => {
+      error: () => { this.loading = false; this.notif.error('Error al cargar el artículo'); }
+    });
+  }
+
+  // ── Paso 1: selección de tipo ────────────────────────────────────────────
+
+  seleccionarTipo(value: string) {
+    if (value === 'servicio') {
+      this.form.tipo = 'venta';
+      this.form.es_servicio = true;
+      this.form.disponible_en_pos = true;
+      this.form.existencia_actual = undefined as any;
+      this.form.stock_minimo = undefined as any;
+    } else {
+      this.form.tipo = value as any;
+      this.form.es_servicio = false;
+      if (value === 'insumo' || value === 'generico') {
+        this.form.disponible_en_pos = false;
+        this.form.precio_venta = null as any;
+      }
+      if (!this.form.existencia_actual) this.form.existencia_actual = 0;
+      if (!this.form.stock_minimo) this.form.stock_minimo = 0;
+    }
+    this.paso = 2;
+  }
+
+  volver() { this.paso = 1; }
+
+  // ── Toggle disponible en POS ─────────────────────────────────────────────
+
+  onTogglePos() {
+    if (!this.form.disponible_en_pos) this.form.precio_venta = null as any;
+  }
+
+  // ── Guardar ─────────────────────────────────────────────────────────────
+
+  onSubmit() {
+    if (!this.form.nombre?.trim()) { this.notif.warning('Ingresa el nombre del artículo'); return; }
+    if (!this.form.departamento_id) { this.notif.warning('Selecciona un departamento'); return; }
+    if ((this.form.tipo === 'venta' || this.form.es_servicio) && !this.form.precio_venta) {
+      this.notif.warning('El precio de venta es obligatorio para productos venta y servicios'); return;
+    }
+
+    const data = { ...this.form };
+    if (this.esServicio) { data.existencia_actual = 0; data.stock_minimo = 0; data.stock_maximo = null as any; }
+
+    this.loading = true;
+    const req = this.isEditMode
+      ? this.inventariosService.updateInventario(this.inventarioId!, data)
+      : this.inventariosService.createInventario(data);
+
+    req.subscribe({
+      next: r => {
         this.loading = false;
-        this.notificationService.error('Error al cargar el artículo');
-        console.error('Error:', error);
+        if (r.success) {
+          this.notif.success(this.isEditMode ? 'Artículo actualizado' : 'Artículo creado correctamente');
+          this.router.navigate(['/admin/inventarios']);
+        }
+      },
+      error: e => {
+        this.loading = false;
+        this.notif.error(e.error?.message || 'Error al guardar');
       }
     });
   }
 
-  onTipoChange(): void {
-    // Al cambiar tipo, resetear categoría
-    this.inventario.categoria = '';
-    this.camposCategoria = [];
-    this.inventario.caracteristicas = {};
-  }
-
-  onCategoriaChange(): void {
-    // Obtener campos dinámicos para la categoría seleccionada
-    const categoriaSeleccionada = this.categorias.find(
-      c => c.nombre === this.inventario.categoria
-    );
-    
-    if (categoriaSeleccionada && categoriaSeleccionada.campos_requeridos) {
-      this.camposCategoria = categoriaSeleccionada.campos_requeridos;
-      
-      // Inicializar características si no existen
-      if (!this.inventario.caracteristicas) {
-        this.inventario.caracteristicas = {};
-      }
-      
-      // Agregar campos faltantes SOLO si no existen (preserva valores existentes)
-      this.camposCategoria.forEach(campo => {
-        if (!(campo.nombre in this.inventario.caracteristicas)) {
-          this.inventario.caracteristicas[campo.nombre] = '';
-        }
-      });
-    } else {
-      this.camposCategoria = [];
+  redondearDecimales(campo: 'costo_compra' | 'precio_venta') {
+    const v = this.form[campo];
+    if (v != null && v !== '' as any) {
+      this.form[campo] = +parseFloat(String(v)).toFixed(2) as any;
     }
   }
 
-  onSubmit(): void {
-    // Validaciones básicas
-    if (!this.inventario.tipo) {
-      this.notificationService.warning('Seleccione un tipo de artículo');
-      return;
-    }
-    
-    if (!this.inventario.categoria) {
-      this.notificationService.warning('Seleccione una categoría');
-      return;
-    }
-    
-    if (!this.inventario.nombre || this.inventario.nombre.trim() === '') {
-      this.notificationService.warning('Ingrese el nombre del artículo');
-      return;
-    }
-    
-    if (!this.inventario.unidad_medida) {
-      this.notificationService.warning('Seleccione una unidad de medida');
-      return;
-    }
+  cancelar() { this.router.navigate(['/admin/inventarios']); }
 
-    // Validar que existencia_actual sea un número válido
-    if (this.inventario.existencia_actual === null || this.inventario.existencia_actual === undefined) {
-      this.inventario.existencia_actual = 0;
-    }
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-    // Validar que stock_minimo sea un número válido
-    if (this.inventario.stock_minimo === null || this.inventario.stock_minimo === undefined) {
-      this.inventario.stock_minimo = 0;
-    }
-
-    this.loading = true;
-    
-    if (this.isEditMode && this.inventarioId) {
-      // Actualizar
-      this.inventariosService.updateInventario(this.inventarioId, this.inventario).subscribe({
-        next: (response) => {
-          this.loading = false;
-          if (response.success) {
-            this.notificationService.success('Artículo actualizado correctamente');
-            this.router.navigate(['/admin/inventarios']);
-          }
-        },
-        error: (error) => {
-          this.loading = false;
-          this.notificationService.error('Error al actualizar el artículo');
-          console.error('Error:', error);
-        }
-      });
-    } else {
-      // Crear nuevo
-      this.inventariosService.createInventario(this.inventario).subscribe({
-        next: (response) => {
-          this.loading = false;
-          if (response.success) {
-            this.notificationService.success('Artículo creado correctamente');
-            this.router.navigate(['/admin/inventarios']);
-          }
-        },
-        error: (error) => {
-          this.loading = false;
-          this.notificationService.error('Error al crear el artículo');
-          console.error('Error:', error);
-        }
-      });
-    }
-  }
-
-  onCancel(): void {
-    this.router.navigate(['/admin/inventarios']);
-  }
-
-  // Helper para obtener categorías filtradas por tipo
-  getCategoriasFiltradas(): any[] {
-    if (!this.inventario.tipo) {
-      return [];
-    }
-    return this.categorias.filter(c => c.tipo === this.inventario.tipo);
-  }
-
-  // Helper para determinar el tipo de input de un campo dinámico
-  getInputType(tipoCampo: string): string {
-    switch (tipoCampo) {
-      case 'numero':
-        return 'number';
-      case 'fecha':
-        return 'date';
-      case 'email':
-        return 'email';
-      default:
-        return 'text';
-    }
-  }
-
-  // Formatear precio al perder el foco (blur)
-  formatPrecio(campo: 'costo_compra' | 'precio_venta'): void {
-    const valor = this.inventario[campo];
-    if (valor !== null && valor !== undefined && valor !== '') {
-      const numerico = typeof valor === 'string' ? parseFloat(valor) : valor;
-      if (!isNaN(numerico) && numerico >= 0) {
-        this.inventario[campo] = numerico.toFixed(2);
-      }
-    }
+  formatCurrency(v: number | null | undefined): string {
+    return this.inventariosService.formatCurrency(v || 0);
   }
 }

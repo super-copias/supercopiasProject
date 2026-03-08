@@ -113,10 +113,9 @@ export class InventarioDetalleComponent implements OnInit {
     if (!this.inventarioId) return;
     
     this.movimientosLoading = true;
-    this.inventariosService.getHistorialMovimientos(
-      this.inventarioId, 
-      this.movimientosPage, 
-      this.movimientosLimit
+    this.inventariosService.getMovimientos(
+      this.inventarioId,
+      { page: this.movimientosPage, limit: this.movimientosLimit }
     ).subscribe({
       next: (response) => {
         this.movimientosLoading = false;
