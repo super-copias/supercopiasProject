@@ -1,11 +1,11 @@
 <div class="container-fluid">
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
       <a routerLink="/admin/inventarios" class="btn btn-sm btn-outline-secondary">
-        <i class="fas fa-arrow-left me-1"></i>Volver
+        <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Volver</span>
       </a>
-      <h5 class="mb-0"><i class="fas fa-history me-2 text-info"></i>Historial de movimientos</h5>
+      <h5 class="mb-0"><i class="fas fa-history me-2 text-info"></i><span class="d-none d-sm-inline">Historial de movimientos</span><span class="d-sm-none">Historial</span></h5>
     </div>
     <span class="badge bg-secondary" *ngIf="consultaRealizada">{{total}} registros</span>
   </div>
@@ -39,7 +39,9 @@
           <input type="date" class="form-control form-control-sm" [(ngModel)]="filtros.fecha_hasta" title="Hasta">
         </div>
         <div class="col-12 col-md-1 d-flex gap-1">
-          <button class="btn btn-primary btn-sm flex-grow-1" (click)="cargar(1)"><i class="fas fa-search"></i></button>
+          <button class="btn btn-primary btn-sm flex-grow-1" (click)="cargar(1)">
+            <i class="fas fa-search"></i><span class="d-none d-sm-inline ms-1">Buscar</span>
+          </button>
           <button class="btn btn-outline-secondary btn-sm" (click)="limpiarFiltros()" title="Limpiar"><i class="fas fa-times"></i></button>
         </div>
       </div>
@@ -68,10 +70,16 @@
       <table class="table table-hover table-sm mb-0">
         <thead class="table-light">
           <tr>
-            <th>Fecha</th><th>Artículo</th><th>Departamento</th><th>Tipo</th>
-            <th>Concepto</th><th class="text-end">Cantidad</th>
-            <th class="text-end">Antes</th><th class="text-end">Después</th>
-            <th>Referencia</th><th>Usuario</th>
+            <th>Fecha</th>
+            <th>Artículo</th>
+            <th class="d-none d-md-table-cell">Departamento</th>
+            <th>Tipo</th>
+            <th class="d-none d-lg-table-cell">Concepto</th>
+            <th class="text-end">Cant.</th>
+            <th class="text-end d-none d-sm-table-cell">Antes</th>
+            <th class="text-end">Después</th>
+            <th class="d-none d-lg-table-cell">Referencia</th>
+            <th class="d-none d-lg-table-cell">Usuario</th>
           </tr>
         </thead>
         <tbody>
@@ -80,21 +88,24 @@
             <td>
               <div class="fw-semibold small">{{m.articulo_nombre}}</div>
               <div class="text-muted" style="font-size:.75rem" *ngIf="m.articulo_sku">{{m.articulo_sku}}</div>
+              <div class="d-md-none mt-1">
+                <span class="badge rounded-pill" [style.background-color]="m.departamento_color || '#6c757d'">{{m.departamento_nombre || '—'}}</span>
+              </div>
             </td>
-            <td>
+            <td class="d-none d-md-table-cell">
               <span class="badge rounded-pill" [style.background-color]="m.departamento_color || '#6c757d'">{{m.departamento_nombre || '—'}}</span>
             </td>
             <td><span class="badge" [class]="getBadgeTipo(m.tipo_movimiento)">{{getLabelTipo(m.tipo_movimiento)}}</span></td>
-            <td class="small">{{m.concepto}}</td>
+            <td class="small d-none d-lg-table-cell">{{m.concepto}}</td>
             <td class="text-end fw-semibold"
                 [class.text-success]="m.tipo_movimiento === 'entrada'"
                 [class.text-danger]="m.tipo_movimiento === 'salida'">
               {{m.tipo_movimiento === 'salida' ? '-' : '+'}}{{m.cantidad}}
             </td>
-            <td class="text-end small text-muted">{{m.saldo_anterior ?? '—'}}</td>
+            <td class="text-end small text-muted d-none d-sm-table-cell">{{m.saldo_anterior ?? '—'}}</td>
             <td class="text-end small">{{m.saldo_nuevo ?? '—'}}</td>
-            <td class="small text-muted">{{m.referencia || '—'}}</td>
-            <td class="small text-muted">{{m.usuario_nombre || '—'}}</td>
+            <td class="small text-muted d-none d-lg-table-cell">{{m.referencia || '—'}}</td>
+            <td class="small text-muted d-none d-lg-table-cell">{{m.usuario_nombre || '—'}}</td>
           </tr>
         </tbody>
       </table>

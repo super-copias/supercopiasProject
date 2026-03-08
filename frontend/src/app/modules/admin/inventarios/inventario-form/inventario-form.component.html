@@ -4,9 +4,9 @@
 
       <!-- Encabezado -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">{{isEditMode ? 'Editar artículo' : 'Nuevo artículo'}}</h5>
+        <h5 class="mb-0 fs-6 fs-md-5">{{isEditMode ? 'Editar artículo' : 'Nuevo artículo'}}</h5>
         <button class="btn btn-sm btn-outline-secondary" (click)="cancelar()">
-          <i class="fas fa-arrow-left me-1"></i>Volver
+          <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Volver</span>
         </button>
       </div>
 
@@ -179,7 +179,7 @@
           </div>
 
           <!-- Botones -->
-          <div class="d-flex justify-content-end gap-2 mb-4">
+          <div class="form-actions d-flex justify-content-end gap-2 mb-4 pt-2">
             <button type="button" class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button>
             <button type="submit" class="btn btn-primary" [disabled]="loading">
               <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>

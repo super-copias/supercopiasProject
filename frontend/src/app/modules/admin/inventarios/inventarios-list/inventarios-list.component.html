@@ -105,19 +105,19 @@
         <div class="col-12 col-md-4 d-flex gap-2 justify-content-md-end flex-wrap align-items-center">
           <button class="btn btn-outline-danger btn-sm"
                   (click)="limpiarFiltros()" title="Limpiar filtros">
-            <i class="fas fa-eraser me-1"></i>Limpiar
+            <i class="fas fa-eraser"></i><span class="d-none d-md-inline ms-1">Limpiar</span>
           </button>
-          <button class="btn btn-outline-secondary btn-sm" (click)="verTodos()">
-            <i class="fas fa-th-list me-1"></i>Ver todos
+          <button class="btn btn-outline-secondary btn-sm" (click)="verTodos()" title="Ver todos">
+            <i class="fas fa-th-list"></i><span class="d-none d-md-inline ms-1">Ver todos</span>
           </button>
-          <button class="btn btn-outline-info btn-sm" (click)="verHistorial()">
-            <i class="fas fa-history me-1"></i>Historial
+          <button class="btn btn-outline-info btn-sm" (click)="verHistorial()" title="Historial">
+            <i class="fas fa-history"></i><span class="d-none d-md-inline ms-1">Historial</span>
           </button>
-          <button class="btn btn-outline-primary btn-sm" (click)="verDepartamentos()">
-            <i class="fas fa-tags me-1"></i>Departamentos
+          <button class="btn btn-outline-primary btn-sm" (click)="verDepartamentos()" title="Departamentos">
+            <i class="fas fa-tags"></i><span class="d-none d-md-inline ms-1">Departamentos</span>
           </button>
-          <button class="btn btn-primary btn-sm" (click)="nuevo()">
-            <i class="fas fa-plus me-1"></i>Nuevo artículo
+          <button class="btn btn-primary btn-sm" (click)="nuevo()" title="Nuevo artículo">
+            <i class="fas fa-plus"></i><span class="d-none d-sm-inline ms-1">Nuevo artículo</span>
           </button>
         </div>
       </div>
@@ -165,8 +165,12 @@
           <table class="table table-hover table-sm mb-0">
             <thead class="table-light">
               <tr>
-                <th>Artículo</th><th>Tipo</th><th>Stock</th>
-                <th>Precio venta</th><th class="text-center">En caja</th><th class="text-end">Acciones</th>
+                <th>Artículo</th>
+                <th class="d-none d-md-table-cell">Tipo</th>
+                <th>Stock</th>
+                <th class="d-none d-md-table-cell">Precio venta</th>
+                <th class="text-center d-none d-md-table-cell">En caja</th>
+                <th class="text-end">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -174,17 +178,21 @@
                 <td>
                   <div class="fw-semibold">{{art.nombre}}</div>
                   <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>
+                  <div class="d-md-none mt-1">
+                    <i [class]="getTipoIcon(art) + ' me-1 text-muted small'"></i>
+                    <span class="text-muted small">{{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}</span>
+                  </div>
                 </td>
-                <td>
+                <td class="d-none d-md-table-cell">
                   <i [class]="getTipoIcon(art) + ' me-1 text-muted'"></i>
                   <span>{{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}</span>
                 </td>
                 <td><span [class]="getBadgeStock(art)">{{getStockLabel(art)}}</span></td>
-                <td>
+                <td class="d-none d-md-table-cell">
                   <span *ngIf="art.precio_venta">{{formatCurrency(art.precio_venta)}}</span>
                   <span *ngIf="!art.precio_venta" class="text-muted">—</span>
                 </td>
-                <td class="text-center">
+                <td class="text-center d-none d-md-table-cell">
                   <i class="fas fa-check-circle text-success" *ngIf="art.disponible_en_pos"></i>
                   <i class="fas fa-times-circle text-muted" *ngIf="!art.disponible_en_pos"></i>
                 </td>
@@ -192,8 +200,8 @@
                   <div class="btn-group btn-group-sm">
                     <button class="btn btn-outline-primary" title="Ver" (click)="verDetalle(art.id!)"><i class="fas fa-eye"></i></button>
                     <button class="btn btn-outline-warning" title="Editar" (click)="editar(art.id!)"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-outline-secondary" title="Archivar" (click)="archivar(art)"><i class="fas fa-archive"></i></button>
-                    <button class="btn btn-outline-danger" title="Eliminar" (click)="eliminar(art)"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-outline-secondary d-none d-md-inline-flex" title="Archivar" (click)="archivar(art)"><i class="fas fa-archive"></i></button>
+                    <button class="btn btn-outline-danger d-none d-md-inline-flex" title="Eliminar" (click)="eliminar(art)"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -219,8 +227,12 @@
         <table class="table table-hover table-sm mb-0">
           <thead class="table-light">
             <tr>
-              <th>Artículo</th><th>Departamento</th><th>Tipo</th>
-              <th>Stock</th><th>Precio venta</th><th class="text-end">Acciones</th>
+              <th>Artículo</th>
+              <th class="d-none d-md-table-cell">Departamento</th>
+              <th class="d-none d-md-table-cell">Tipo</th>
+              <th>Stock</th>
+              <th class="d-none d-md-table-cell">Precio venta</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -228,24 +240,34 @@
               <td>
                 <div class="fw-semibold">{{art.nombre}}</div>
                 <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>
+                <div class="d-md-none mt-1">
+                  <span class="badge me-1" [style.background-color]="art.departamento_color || '#6c757d'">
+                    {{art.departamento_nombre || 'Sin depto.'}}
+                  </span>
+                  <span class="text-muted small">
+                    <i [class]="getTipoIcon(art) + ' me-1'"></i>{{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}
+                  </span>
+                </div>
               </td>
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span class="badge" [style.background-color]="art.departamento_color || '#6c757d'">
                   {{art.departamento_nombre || 'Sin depto.'}}
                 </span>
               </td>
-              <td><i [class]="getTipoIcon(art) + ' me-1'"></i>{{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}</td>
+              <td class="d-none d-md-table-cell">
+                <i [class]="getTipoIcon(art) + ' me-1'"></i>{{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}
+              </td>
               <td><span [class]="getBadgeStock(art)">{{getStockLabel(art)}}</span></td>
-              <td>
+              <td class="d-none d-md-table-cell">
                 <span *ngIf="art.precio_venta">{{formatCurrency(art.precio_venta)}}</span>
                 <span *ngIf="!art.precio_venta" class="text-muted">—</span>
               </td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-primary" (click)="verDetalle(art.id!)"><i class="fas fa-eye"></i></button>
-                  <button class="btn btn-outline-warning" (click)="editar(art.id!)"><i class="fas fa-edit"></i></button>
-                  <button class="btn btn-outline-secondary" (click)="archivar(art)"><i class="fas fa-archive"></i></button>
-                  <button class="btn btn-outline-danger" (click)="eliminar(art)"><i class="fas fa-trash"></i></button>
+                  <button class="btn btn-outline-primary" title="Ver" (click)="verDetalle(art.id!)"><i class="fas fa-eye"></i></button>
+                  <button class="btn btn-outline-warning" title="Editar" (click)="editar(art.id!)"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-outline-secondary d-none d-md-inline-flex" title="Archivar" (click)="archivar(art)"><i class="fas fa-archive"></i></button>
+                  <button class="btn btn-outline-danger d-none d-md-inline-flex" title="Eliminar" (click)="eliminar(art)"><i class="fas fa-trash"></i></button>
                 </div>
               </td>
             </tr>

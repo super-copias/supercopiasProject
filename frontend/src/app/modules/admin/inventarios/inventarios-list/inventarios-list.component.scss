@@ -104,13 +104,21 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .table {
-    font-size: 0.875rem;
-  }
-  
-  .btn-group-sm .btn {
-    padding: 0.15rem 0.3rem;
-    font-size: 0.75rem;
-  }
+@media (max-width: 767px) {
+  .container-fluid { padding-left: 0.5rem; padding-right: 0.5rem; }
+
+  .card-header { padding: 0.5rem 0.75rem; }
+
+  .table th, .table td { padding: 0.5rem 0.4rem; font-size: 0.82rem; }
+
+  .btn-group-sm .btn { padding: 0.25rem 0.45rem; font-size: 0.8rem; }
+
+  /* Stats: texto más compacto */
+  .fs-4 { font-size: 1.1rem !important; }
+  .fs-5 { font-size: 0.95rem !important; }
+}
+
+@media (max-width: 575px) {
+  /* Acordeón header compacto */
+  .card-header strong { font-size: 0.9rem; }
 }
