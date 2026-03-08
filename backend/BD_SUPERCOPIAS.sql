@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2kkeDg2LY5IJ0yWEE8GbfGUTfBPEwIFCm2L7OCKgpRJQJ0L9lF26DMkDqtaOfxt
+\restrict xdokERlp8GM8wCgwycKIBMrgblOsZfVAkMA5Px5EKv1K3bzIq9hP6VvxXwYojuN
 
 -- Dumped from database version 15.15 (Homebrew)
 -- Dumped by pg_dump version 18.1
@@ -20,31 +20,17 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
-
-
---
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+CREATE SCHEMA public;
 
 
 --
--- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
 --
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
-
-
---
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+COMMENT ON SCHEMA public IS 'standard public schema';
 
 
 --
@@ -1878,6 +1864,11 @@ COPY public.auditoria (id, tabla, operacion, registro_id, datos_anteriores, dato
 36	proveedores	UPDATE	5	{"id": 5, "rfc": "CEP870925MNO", "email": "cursos@capacitacionpro.com", "notas": "Cursos de desarrollo profesional y tecnico", "activo": true, "telefono": "555-1005", "direccion": "Av. Capacitacion 654, Col. Educativa, Ciudad de Mexico, CDMX, 03900, Mexico", "pagina_web": "www.capacitacionpro.com", "dias_credito": 0, "razon_social": "Capacitacion Empresarial Pro S.C.", "fecha_registro": "2023-05-22T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": null, "nombre_contacto": "Mtra. Ana Lopez", "nombre_comercial": "Capacitacion Pro", "fecha_modificacion": "2025-12-08T14:53:22.053047-06:00", "metodo_pago_principal": "Transferencia"}	{"id": 5, "rfc": "CEP870925MNO", "email": "cursos@capacitacionpro.com", "notas": "Cursos de desarrollo profesional y tecnico", "activo": true, "telefono": "555-1005", "direccion": "Av. Capacitacion 654, Col. Educativa, Ciudad de Mexico, CDMX, 03900, Mexico", "pagina_web": "www.capacitacionpro.com", "dias_credito": 15, "razon_social": "Capacitacion Empresarial Pro S.C.", "fecha_registro": "2023-05-22T00:00:00-06:00", "tipo_proveedor": "Servicios", "cuenta_bancaria": "098765432109876543", "nombre_contacto": "Mtra. Ana Lopez", "nombre_comercial": "Capacitacion Pro", "fecha_modificacion": "2025-12-08T15:01:08.783671-06:00", "metodo_pago_principal": "Transferencia"}	\N	\N	2025-12-08 15:01:08.783671-06
 37	proveedores	INSERT	6	\N	{"id": 6, "rfc": "CLS920810XYZ", "email": "buit_99@hotmail.com", "notas": "nota de prueba", "activo": true, "telefono": "9612345678", "direccion": "AV MACTUMATZA LTE 5 MZN 35", "pagina_web": "www.tonersexpress.com", "dias_credito": 0, "razon_social": "comercializadora de pruebas", "fecha_registro": "2025-12-08T15:03:33.788913-06:00", "tipo_proveedor": "Mixto", "cuenta_bancaria": null, "nombre_contacto": "Jhonatan Grajales", "nombre_comercial": "Proveedor de prueba", "fecha_modificacion": "2025-12-08T15:03:33.788913-06:00", "metodo_pago_principal": "Cheque"}	\N	\N	2025-12-08 15:03:33.788913-06
 38	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2025-12-08T15:00:22.392569-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2025-12-08T15:00:22.392569-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T17:56:45.988068-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T17:56:45.988068-06:00"}	\N	\N	2026-03-07 17:56:45.988068-06
+39	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T17:56:45.988068-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T17:56:45.988068-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T19:54:36.634273-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T19:54:36.634273-06:00"}	\N	\N	2026-03-07 19:54:36.634273-06
+40	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T19:54:36.634273-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T19:54:36.634273-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T20:05:29.781013-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T20:05:29.781013-06:00"}	\N	\N	2026-03-07 20:05:29.781013-06
+41	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T20:05:29.781013-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T20:05:29.781013-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T20:18:26.515183-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T20:18:26.515183-06:00"}	\N	\N	2026-03-07 20:18:26.515183-06
+42	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T20:18:26.515183-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T20:18:26.515183-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T20:29:01.882881-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T20:29:01.882881-06:00"}	\N	\N	2026-03-07 20:29:01.882881-06
+43	usuarios	UPDATE	1	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T20:29:01.882881-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T20:29:01.882881-06:00"}	{"id": 1, "bio": "Administrador principal del sistema SuperCopias", "role": "admin", "email": "admin@supercopias.com", "phone": "+52 961 100 0000", "roles": ["admin"], "activo": true, "nombre": "Administrador SuperCopias", "password": "$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq", "username": "admin", "full_name": "Administrador SuperCopias", "empleado_id": null, "profile_image": null, "ultimo_acceso": "2026-03-07T21:02:13.287223-06:00", "fecha_registro": "2025-10-12T00:09:08.738514-06:00", "fecha_modificacion": "2026-03-07T21:02:13.287223-06:00"}	\N	\N	2026-03-07 21:02:13.287223-06
 \.
 
 
@@ -2146,6 +2137,7 @@ COPY public.formas_pago (id, codigo, descripcion, activo, fecha_creacion) FROM s
 COPY public.inv_departamentos (id, nombre, descripcion, color, orden, activo, fecha_creacion, fecha_modificacion) FROM stdin;
 1	Lapicero	Lapicero BIC	#6c757d	1	t	2026-03-07 19:04:00.742099-06	2026-03-07 19:04:00.742099-06
 2	Papel	Papel por paquete	#6c757d	1	t	2026-03-07 19:04:00.742099-06	2026-03-07 19:04:00.742099-06
+3	Arillos	\N	#dc3545	2	t	2026-03-07 19:57:03.676671-06	2026-03-07 19:57:03.676671-06
 \.
 
 
@@ -2156,6 +2148,7 @@ COPY public.inv_departamentos (id, nombre, descripcion, color, orden, activo, fe
 COPY public.inventarios (id, tipo, nombre, categoria, marca, modelo, codigo_sku, proveedor_id, proveedor_nombre, estatus, existencia_actual, unidad_medida, stock_minimo, stock_maximo, ubicacion_fisica, costo_compra, precio_venta, costo_promedio, observaciones, foto_url, fecha_alta, fecha_modificacion, activo, departamento_id, es_servicio, disponible_en_pos, descripcion) FROM stdin;
 6	venta	Lapicero	Lapicero	BIC	0.5	\N	6	\N	activo	10.00	pieza	5.00	20.00	5ta norte	10.00	15.00	10.00	\N	\N	2025-12-08 15:10:55.981505-06	2025-12-08 15:10:55.981505-06	t	1	f	t	\N
 7	insumo	Papel	Papel	\N	\N	\N	1	\N	activo	3.00	paquete	4.00	\N	5ta norte	500.00	\N	500.00	\N	\N	2025-12-08 15:14:37.983548-06	2025-12-08 15:44:27.648355-06	t	2	f	f	\N
+13	venta	Arillo no10	Arillos	BIC	\N	12	\N	\N	activo	5.00	Pieza	10.00	30.00	5ta norte	5.00	7.00	5.00	\N	\N	2026-03-07 20:19:55.044973-06	2026-03-07 20:29:23.866749-06	t	3	f	t	\N
 \.
 
 
@@ -2170,6 +2163,7 @@ COPY public.inventarios_movimientos (id, inventario_id, tipo_movimiento, concept
 4	7	salida	venta	-2.00	5.00	3.00	admin	\N	salida venta	\N	2025-12-08 15:18:31.834647-06
 5	7	entrada	compra	2.00	3.00	5.00	admin	\N	entrada compra 2	\N	2025-12-08 15:19:17.419268-06
 6	7	salida	ajuste_salida	-2.00	5.00	3.00	admin	\N	\N	\N	2025-12-08 15:44:27.646284-06
+7	13	entrada	ajuste_entrada	5.00	0.00	5.00	admin	\N	Existencia inicial al crear artículo	\N	2026-03-07 20:19:55.048244-06
 \.
 
 
@@ -2310,7 +2304,7 @@ COPY public.usuarios (id, username, password, nombre, email, role, roles, emplea
 4	003.carloshern	$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7	Carlos Hernandez	carlos.hernandez@supercopias.com	empleado	["empleado"]	3	t	2025-12-08 14:53:22.069178-06	2025-12-08 14:53:22.069178-06	\N	Carlos Hernandez Lopez	961-100-1003	Gerente de Sucursal Norte - Acceso personalizado	\N
 5	004.anamariarui	$2a$10$5h8ZQZ7X5v5Z7X5v5Z7X5uXJ8ZQZ7X5v5Z7X5v5Z7X5v5Z7X5v5Z7	Ana Maria Ruiz	ana.ruiz@supercopias.com	empleado	["empleado"]	4	t	2025-12-08 14:53:22.069517-06	2025-12-08 14:53:22.069517-06	\N	Ana Maria Ruiz Torres	961-100-1004	Supervisor - Acceso personalizado	\N
 6	005.Jhonatan	$2a$08$le4AuouGc8R..iU2/oYMi.qxvurNC9wycnVKwsjj6aG1hu/DpYW7u	Jhonatan Grajales	prueba@mail.com	empleado	["empleado"]	11	t	2025-12-08 14:57:23.994707-06	2025-12-08 14:59:41.100037-06	2025-12-08 14:59:41.100037-06	Jhonatan Grajales	5544935853	Empleado - Acceso personalizado	\N
-1	admin	$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq	Administrador SuperCopias	admin@supercopias.com	admin	["admin"]	\N	t	2025-10-12 00:09:08.738514-06	2026-03-07 17:56:45.988068-06	2026-03-07 17:56:45.988068-06	Administrador SuperCopias	+52 961 100 0000	Administrador principal del sistema SuperCopias	\N
+1	admin	$2a$10$vTJe5E7cA9KIuRWpYqXp6OOyS7luHxk6dyz4wJckCwWs./RPAlmyq	Administrador SuperCopias	admin@supercopias.com	admin	["admin"]	\N	t	2025-10-12 00:09:08.738514-06	2026-03-07 21:02:13.287223-06	2026-03-07 21:02:13.287223-06	Administrador SuperCopias	+52 961 100 0000	Administrador principal del sistema SuperCopias	\N
 \.
 
 
@@ -2318,7 +2312,7 @@ COPY public.usuarios (id, username, password, nombre, email, role, roles, emplea
 -- Name: auditoria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.auditoria_id_seq', 38, true);
+SELECT pg_catalog.setval('public.auditoria_id_seq', 43, true);
 
 
 --
@@ -2437,21 +2431,21 @@ SELECT pg_catalog.setval('public.formas_pago_id_seq', 44, true);
 -- Name: inv_departamentos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inv_departamentos_id_seq', 2, true);
+SELECT pg_catalog.setval('public.inv_departamentos_id_seq', 3, true);
 
 
 --
 -- Name: inventarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inventarios_id_seq', 7, true);
+SELECT pg_catalog.setval('public.inventarios_id_seq', 13, true);
 
 
 --
 -- Name: inventarios_movimientos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.inventarios_movimientos_id_seq', 6, true);
+SELECT pg_catalog.setval('public.inventarios_movimientos_id_seq', 7, true);
 
 
 --
@@ -3603,5 +3597,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2kkeDg2LY5IJ0yWEE8GbfGUTfBPEwIFCm2L7OCKgpRJQJ0L9lF26DMkDqtaOfxt
+\unrestrict xdokERlp8GM8wCgwycKIBMrgblOsZfVAkMA5Px5EKv1K3bzIq9hP6VvxXwYojuN
 
