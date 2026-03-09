@@ -345,14 +345,13 @@ async function createVenta(req, res) {
         [nuevoNivel, cliente_id]
       );
 
-      if (puntosGanados > 0) {
-        const saldoPuntos = pr.puntos_acumulados - pr.puntos_canjeados;
-        await client.query(`
-          INSERT INTO pos_clientes_puntos_movimientos
-            (cliente_id, venta_id, tipo, puntos, saldo_puntos, notas)
-          VALUES ($1,$2,'acumulado',$3,$4,$5)
-        `, [cliente_id, ventaId, puntosGanados, saldoPuntos, `Venta ${folio}`]);
-      }
+      // Siempre registrar movimiento aunque los puntos sean 0 (bitácora completa)
+      const saldoPuntos = parseInt(pr.puntos_acumulados, 10) - parseInt(pr.puntos_canjeados, 10);
+      await client.query(`
+        INSERT INTO pos_clientes_puntos_movimientos
+          (cliente_id, venta_id, tipo, puntos, saldo_puntos, notas)
+        VALUES ($1,$2,'acumulado',$3,$4,$5)
+      `, [cliente_id, ventaId, puntosGanados, saldoPuntos, `Venta ${folio} · $${total}`]);
     }
 
     await client.query('COMMIT');
