@@ -3594,6 +3594,325 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
+-- =====================================================
+-- MÓDULO: Punto de Venta (POS) - v1.0.0 - 2026-03-08
+-- =====================================================
+--
+
+--
+-- Name: pos_alertas_seguridad; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pos_alertas_seguridad (
+    id              integer NOT NULL,
+    created_at      timestamp with time zone DEFAULT now() NOT NULL,
+    tipo            character varying(60) NOT NULL,
+    usuario_id      integer,
+    usuario_nombre  character varying(120),
+    ip              character varying(60),
+    detalle         jsonb,
+    descripcion     text
+);
+
+COMMENT ON TABLE public.pos_alertas_seguridad IS 'Registro de alertas de seguridad del POS (p.ej. manipulación de precios)';
+COMMENT ON COLUMN public.pos_alertas_seguridad.tipo IS 'Código de alerta, p.ej. PRECIO_MANIPULADO';
+COMMENT ON COLUMN public.pos_alertas_seguridad.detalle IS 'JSON con contexto detallado del incidente';
+
+CREATE SEQUENCE public.pos_alertas_seguridad_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.pos_alertas_seguridad_id_seq OWNED BY public.pos_alertas_seguridad.id;
+ALTER TABLE ONLY public.pos_alertas_seguridad ALTER COLUMN id SET DEFAULT nextval('public.pos_alertas_seguridad_id_seq'::regclass);
+
+--
+-- Name: pos_descuentos_config; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pos_descuentos_config (
+    id                          integer NOT NULL,
+    nombre                      character varying(100) NOT NULL,
+    descripcion                 text,
+    tipo                        character varying(30) NOT NULL,
+    valor                       numeric(10,2) NOT NULL,
+    requiere_autorizacion       boolean DEFAULT false,
+    limite_porcentaje_cajero    numeric(5,2) DEFAULT 15.00,
+    activo                      boolean DEFAULT true,
+    fecha_vigencia_inicio       date,
+    fecha_vigencia_fin          date,
+    fecha_creacion              timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pos_descuento_tipo CHECK (((tipo)::text = ANY (ARRAY[
+        ('porcentaje_global'::character varying)::text,
+        ('monto_fijo'::character varying)::text,
+        ('vip_automatico'::character varying)::text,
+        ('cupon'::character varying)::text
+    ]))),
+    CONSTRAINT chk_pos_descuento_valor CHECK (valor >= 0)
+);
+
+COMMENT ON TABLE public.pos_descuentos_config IS 'Catálogo de reglas de descuento para el Punto de Venta';
+
+
+CREATE SEQUENCE public.pos_descuentos_config_id_seq
+    AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+
+ALTER SEQUENCE public.pos_descuentos_config_id_seq OWNED BY public.pos_descuentos_config.id;
+ALTER TABLE ONLY public.pos_descuentos_config ALTER COLUMN id SET DEFAULT nextval('public.pos_descuentos_config_id_seq'::regclass);
+ALTER TABLE ONLY public.pos_descuentos_config
+    ADD CONSTRAINT pos_descuentos_config_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: pos_ventas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pos_ventas (
+    id                          integer NOT NULL,
+    folio                       character varying(25) NOT NULL,
+    fecha_venta                 timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    cliente_id                  integer,
+    cliente_nombre              character varying(500) DEFAULT 'Público General'::character varying,
+    vendedor_usuario_id         integer,
+    vendedor_nombre             character varying(255) NOT NULL,
+    sucursal_id                 integer,
+    subtotal                    numeric(12,2) NOT NULL,
+    descuento_pct               numeric(5,2) DEFAULT 0,
+    descuento_monto             numeric(12,2) DEFAULT 0,
+    total                       numeric(12,2) NOT NULL,
+    monto_recibido              numeric(12,2),
+    cambio                      numeric(12,2) DEFAULT 0,
+    metodo_pago_codigo          character varying(10),
+    metodo_pago_descripcion     character varying(100),
+    descuento_config_id         integer,
+    descuento_autorizado_por    character varying(255),
+    estatus                     character varying(20) DEFAULT 'completada'::character varying,
+    motivo_cancelacion          text,
+    notas                       text,
+    ticket_generado             boolean DEFAULT false,
+    fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pos_ventas_estatus CHECK (((estatus)::text = ANY (ARRAY[
+        ('completada'::character varying)::text,
+        ('cancelada'::character varying)::text,
+        ('devuelta'::character varying)::text
+    ]))),
+    CONSTRAINT chk_pos_ventas_subtotal CHECK (subtotal >= 0),
+    CONSTRAINT chk_pos_ventas_total CHECK (total >= 0),
+    CONSTRAINT chk_pos_ventas_descuento_pct CHECK (descuento_pct BETWEEN 0 AND 100),
+    CONSTRAINT chk_pos_ventas_descuento_monto CHECK (descuento_monto >= 0)
+);
+
+COMMENT ON TABLE public.pos_ventas IS 'Registro de ventas del Punto de Venta - cabecera de cada transacción';
+COMMENT ON COLUMN public.pos_ventas.folio IS 'Folio único de venta en formato PV-YYYY-NNNNN';
+COMMENT ON COLUMN public.pos_ventas.cliente_id IS 'NULL = venta a Público General sin cliente registrado';
+
+CREATE SEQUENCE public.pos_ventas_id_seq
+    AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+
+ALTER SEQUENCE public.pos_ventas_id_seq OWNED BY public.pos_ventas.id;
+ALTER TABLE ONLY public.pos_ventas ALTER COLUMN id SET DEFAULT nextval('public.pos_ventas_id_seq'::regclass);
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT pos_ventas_pkey PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX idx_pos_ventas_folio    ON public.pos_ventas (folio);
+CREATE INDEX idx_pos_ventas_fecha           ON public.pos_ventas (fecha_venta DESC);
+CREATE INDEX idx_pos_ventas_cliente         ON public.pos_ventas (cliente_id);
+CREATE INDEX idx_pos_ventas_vendedor        ON public.pos_ventas (vendedor_usuario_id);
+CREATE INDEX idx_pos_ventas_estatus         ON public.pos_ventas (estatus);
+
+
+--
+-- Name: pos_ventas_detalle; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pos_ventas_detalle (
+    id                      integer NOT NULL,
+    venta_id                integer NOT NULL,
+    inventario_id           integer,
+    nombre_producto         character varying(255) NOT NULL,
+    sku                     character varying(50),
+    es_servicio             boolean DEFAULT false,
+    es_item_libre           boolean DEFAULT false,
+    cantidad                numeric(10,2) NOT NULL,
+    precio_unitario         numeric(12,2) NOT NULL,
+    descuento_linea_pct     numeric(5,2) DEFAULT 0,
+    descuento_linea_monto   numeric(12,2) DEFAULT 0,
+    subtotal_linea          numeric(12,2) NOT NULL,
+    CONSTRAINT chk_pos_detalle_cantidad CHECK (cantidad > 0),
+    CONSTRAINT chk_pos_detalle_precio CHECK (precio_unitario >= 0),
+    CONSTRAINT chk_pos_detalle_desc_pct CHECK (descuento_linea_pct BETWEEN 0 AND 100),
+    CONSTRAINT chk_pos_detalle_sub CHECK (subtotal_linea >= 0)
+);
+
+COMMENT ON TABLE public.pos_ventas_detalle IS 'Líneas de productos/servicios de cada venta del POS';
+COMMENT ON COLUMN public.pos_ventas_detalle.inventario_id IS 'NULL cuando es_item_libre=TRUE';
+COMMENT ON COLUMN public.pos_ventas_detalle.es_item_libre IS 'TRUE = producto ingresado manualmente sin inventario asignado';
+
+CREATE SEQUENCE public.pos_ventas_detalle_id_seq
+    AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+
+ALTER SEQUENCE public.pos_ventas_detalle_id_seq OWNED BY public.pos_ventas_detalle.id;
+ALTER TABLE ONLY public.pos_ventas_detalle ALTER COLUMN id SET DEFAULT nextval('public.pos_ventas_detalle_id_seq'::regclass);
+ALTER TABLE ONLY public.pos_ventas_detalle
+    ADD CONSTRAINT pos_ventas_detalle_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_pos_detalle_venta      ON public.pos_ventas_detalle (venta_id);
+CREATE INDEX idx_pos_detalle_inventario ON public.pos_ventas_detalle (inventario_id);
+
+
+--
+-- Name: pos_clientes_puntos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pos_clientes_puntos (
+    id                  integer NOT NULL,
+    cliente_id          integer NOT NULL,
+    puntos_acumulados   integer DEFAULT 0,
+    puntos_canjeados    integer DEFAULT 0,
+    puntos_disponibles  integer GENERATED ALWAYS AS (puntos_acumulados - puntos_canjeados) STORED,
+    nivel_cliente       character varying(20) DEFAULT 'estandar'::character varying,
+    total_comprado      numeric(14,2) DEFAULT 0,
+    fecha_ultima_compra timestamp with time zone,
+    fecha_registro      timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion  timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pos_puntos_nivel CHECK (((nivel_cliente)::text = ANY (ARRAY[
+        ('estandar'::character varying)::text,
+        ('frecuente'::character varying)::text,
+        ('vip'::character varying)::text
+    ]))),
+    CONSTRAINT chk_pos_puntos_acumulados CHECK (puntos_acumulados >= 0),
+    CONSTRAINT chk_pos_puntos_canjeados CHECK (puntos_canjeados >= 0),
+    CONSTRAINT chk_pos_puntos_total CHECK (total_comprado >= 0)
+);
+
+COMMENT ON TABLE public.pos_clientes_puntos IS 'Sistema de puntos y nivel de fidelización por cliente';
+COMMENT ON COLUMN public.pos_clientes_puntos.nivel_cliente IS 'estandar (0-999) | frecuente (1000-4999) | vip (5000+)';
+
+CREATE SEQUENCE public.pos_clientes_puntos_id_seq
+    AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+
+ALTER SEQUENCE public.pos_clientes_puntos_id_seq OWNED BY public.pos_clientes_puntos.id;
+ALTER TABLE ONLY public.pos_clientes_puntos ALTER COLUMN id SET DEFAULT nextval('public.pos_clientes_puntos_id_seq'::regclass);
+ALTER TABLE ONLY public.pos_clientes_puntos
+    ADD CONSTRAINT pos_clientes_puntos_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.pos_clientes_puntos
+    ADD CONSTRAINT pos_clientes_puntos_cliente_unique UNIQUE (cliente_id);
+
+
+--
+-- Name: pos_clientes_puntos_movimientos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pos_clientes_puntos_movimientos (
+    id              integer NOT NULL,
+    cliente_id      integer NOT NULL,
+    venta_id        integer,
+    tipo            character varying(20) NOT NULL,
+    puntos          integer NOT NULL,
+    saldo_puntos    integer NOT NULL,
+    notas           text,
+    fecha           timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pos_puntos_mov_tipo CHECK (((tipo)::text = ANY (ARRAY[
+        ('acumulado'::character varying)::text,
+        ('canjeado'::character varying)::text,
+        ('ajuste'::character varying)::text,
+        ('vencido'::character varying)::text
+    ])))
+);
+
+COMMENT ON TABLE public.pos_clientes_puntos_movimientos IS 'Historial de movimientos de puntos por cliente';
+
+CREATE SEQUENCE public.pos_clientes_puntos_movimientos_id_seq
+    AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+
+ALTER SEQUENCE public.pos_clientes_puntos_movimientos_id_seq OWNED BY public.pos_clientes_puntos_movimientos.id;
+ALTER TABLE ONLY public.pos_clientes_puntos_movimientos ALTER COLUMN id SET DEFAULT nextval('public.pos_clientes_puntos_movimientos_id_seq'::regclass);
+ALTER TABLE ONLY public.pos_clientes_puntos_movimientos
+    ADD CONSTRAINT pos_clientes_puntos_movimientos_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_pos_puntos_mov_cliente ON public.pos_clientes_puntos_movimientos (cliente_id);
+CREATE INDEX idx_pos_puntos_mov_venta   ON public.pos_clientes_puntos_movimientos (venta_id);
+
+
+--
+-- Columna venta_id en inventarios_movimientos (trazabilidad POS)
+--
+
+ALTER TABLE ONLY public.inventarios_movimientos
+    ADD COLUMN IF NOT EXISTS venta_id integer;
+
+COMMENT ON COLUMN public.inventarios_movimientos.venta_id IS 'FK a pos_ventas cuando el movimiento es por una venta del POS';
+
+CREATE INDEX idx_inv_mov_venta ON public.inventarios_movimientos (venta_id) WHERE venta_id IS NOT NULL;
+
+
+--
+-- FK Constraints POS
+--
+
+ALTER TABLE ONLY public.pos_alertas_seguridad
+    ADD CONSTRAINT pos_alertas_seguridad_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT fk_pos_ventas_cliente      FOREIGN KEY (cliente_id)          REFERENCES public.clientes(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT fk_pos_ventas_vendedor     FOREIGN KEY (vendedor_usuario_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT fk_pos_ventas_sucursal     FOREIGN KEY (sucursal_id)         REFERENCES public.sucursales(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT fk_pos_ventas_descuento    FOREIGN KEY (descuento_config_id) REFERENCES public.pos_descuentos_config(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.pos_ventas_detalle
+    ADD CONSTRAINT fk_pos_detalle_venta       FOREIGN KEY (venta_id)            REFERENCES public.pos_ventas(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.pos_ventas_detalle
+    ADD CONSTRAINT fk_pos_detalle_inventario  FOREIGN KEY (inventario_id)       REFERENCES public.inventarios(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.pos_clientes_puntos
+    ADD CONSTRAINT fk_pos_puntos_cliente      FOREIGN KEY (cliente_id)          REFERENCES public.clientes(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.pos_clientes_puntos_movimientos
+    ADD CONSTRAINT fk_pos_mov_cliente         FOREIGN KEY (cliente_id)          REFERENCES public.clientes(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.pos_clientes_puntos_movimientos
+    ADD CONSTRAINT fk_pos_mov_venta           FOREIGN KEY (venta_id)            REFERENCES public.pos_ventas(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.inventarios_movimientos
+    ADD CONSTRAINT fk_inv_mov_venta           FOREIGN KEY (venta_id)            REFERENCES public.pos_ventas(id) ON DELETE SET NULL;
+
+
+--
+-- Triggers POS
+--
+
+CREATE TRIGGER trg_pos_ventas_updated_at
+    BEFORE UPDATE ON public.pos_ventas
+    FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
+CREATE TRIGGER trg_pos_descuentos_updated_at
+    BEFORE UPDATE ON public.pos_descuentos_config
+    FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
+CREATE TRIGGER trg_pos_puntos_updated_at
+    BEFORE UPDATE ON public.pos_clientes_puntos
+    FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
+
+--
+-- Datos iniciales POS
+--
+
+INSERT INTO public.pos_descuentos_config (nombre, descripcion, tipo, valor, requiere_autorizacion, limite_porcentaje_cajero, activo)
+VALUES
+    ('Descuento Estándar',  'Descuento manual por cajero hasta 15% sin autorización', 'porcentaje_global', 0,  FALSE, 15.00, TRUE),
+    ('Descuento VIP',       'Descuento automático 10% para clientes nivel VIP',       'vip_automatico',    10, FALSE, 15.00, TRUE),
+    ('Descuento Frecuente', 'Descuento automático 5% para clientes nivel Frecuente',  'vip_automatico',    5,  FALSE, 15.00, TRUE)
+ON CONFLICT DO NOTHING;
+
+
+--
 -- PostgreSQL database dump complete
 --
 

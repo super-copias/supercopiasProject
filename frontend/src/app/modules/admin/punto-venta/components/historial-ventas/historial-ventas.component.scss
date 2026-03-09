@@ -1,0 +1,93 @@
+:host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
+.historial-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Filtros
+.filtros-bar {
+  padding: .75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+.form-label-sm { font-size: .75rem; font-weight: 600; color: #6c757d; }
+
+// Tabla
+.tabla-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+.folio { font-size: .78rem; background: #e9ecef; border-radius: 3px; padding: 2px 5px; }
+.cursor-pointer { cursor: pointer; }
+.btn-xs { padding: .1rem .35rem; font-size: .75rem; }
+
+// Paginador
+.paginador { flex-shrink: 0; background: #fff; }
+.page-link { cursor: pointer; }
+
+// Overlay de detalle
+.detalle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1500;
+  display: flex;
+  justify-content: flex-end;
+}
+.detalle-panel {
+  width: 520px;
+  max-width: 100vw;
+  height: 100%;
+  background: #fff;
+  overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0,0,0,.2);
+  display: flex;
+  flex-direction: column;
+}
+.detalle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+  background: #f8f9fa;
+}
+.detalle-body { padding: 1rem 1.25rem; flex: 1; overflow-y: auto; }
+
+// Info grid
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .4rem;
+  div {
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: .4rem .6rem;
+    span:first-child { font-size: .7rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+    span:last-child  { font-size: .88rem; font-weight: 600; }
+  }
+}
+
+// Totales en detalle
+.detalle-totales {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+// Print
+@media print {
+  .historial-wrapper { display: none !important; }
+  .filtros-bar { display: none !important; }
+}

@@ -1,0 +1,121 @@
+<div class="ticket-wrapper" *ngIf="venta">
+
+  <!-- ── Acciones (no se imprimen) ──────────────────────────── -->
+  <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
+    <button class="btn btn-outline-secondary btn-sm" (click)="onNuevaVenta()">
+      <i class="bi bi-plus-circle me-1"></i>Nueva Venta
+    </button>
+    <button class="btn btn-primary btn-sm" (click)="onImprimir()">
+      <i class="bi bi-printer me-1"></i>Imprimir Ticket
+    </button>
+  </div>
+
+  <!-- ── Ticket papel ────────────────────────────────────────── -->
+  <div class="ticket-papel">
+
+    <!-- Encabezado -->
+    <div class="t-header">
+      <div class="t-empresa">SUPERCOPIAS</div>
+      <div class="t-sub">Soluciones de impresión</div>
+      <div class="t-sep"></div>
+    </div>
+
+    <!-- Folio + Fecha -->
+    <div class="t-meta">
+      <div><b>Folio:</b> {{ venta.folio }}</div>
+      <div><b>Fecha:</b> {{ venta.fecha_venta | date:'dd/MM/yyyy HH:mm' }}</div>
+      <div *ngIf="venta.vendedor_nombre"><b>Atendió:</b> {{ venta.vendedor_nombre }}</div>
+    </div>
+
+    <!-- Datos del cliente -->
+    <ng-container *ngIf="venta.cliente_id">
+      <div class="t-sep"></div>
+      <div class="t-cliente">
+        <div class="t-cliente-titulo">Cliente</div>
+        <div class="t-cliente-nombre">{{ venta.cliente_nombre }}</div>
+        <div *ngIf="venta.puntos_cliente" class="t-cliente-puntos">
+          <i class="bi bi-star-fill"></i>
+          Puntos disponibles: <b>{{ venta.puntos_cliente.puntos_disponibles }}</b>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="t-sep"></div>
+
+    <!-- Items -->
+    <table class="t-items">
+      <thead>
+        <tr>
+          <th class="t-desc">Descripción</th>
+          <th class="t-qty">Cant</th>
+          <th class="t-price">Precio</th>
+          <th class="t-tot">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of venta.detalle">
+          <td class="t-desc">
+            {{ item.nombre_producto }}
+            <span *ngIf="item.descuento_linea_pct > 0" class="t-badge-desc">-{{ item.descuento_linea_pct }}%</span>
+          </td>
+          <td class="t-qty">{{ item.cantidad }}</td>
+          <td class="t-price">${{ item.precio_unitario | number:'1.2-2' }}</td>
+          <td class="t-tot">${{ item.subtotal_linea | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="t-sep"></div>
+
+    <!-- Totales -->
+    <div class="t-totales">
+      <div class="t-trow">
+        <span>Subtotal</span>
+        <span>${{ venta.subtotal | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow" *ngIf="venta.descuento_monto > 0">
+        <span>Descuento ({{ venta.descuento_pct }}%)</span>
+        <span>-${{ venta.descuento_monto | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow t-total-row">
+        <span>TOTAL</span>
+        <span>${{ venta.total | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
+        <span>Recibido</span>
+        <span>${{ venta.monto_recibido | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
+        <span>Cambio</span>
+        <span>${{ cambio | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow">
+        <span>Pago</span>
+        <span>{{ venta.metodo_pago_descripcion }}</span>
+      </div>
+    </div>
+
+    <!-- Puntos ganados en esta compra -->
+    <ng-container *ngIf="puntosGanados > 0">
+      <div class="t-sep"></div>
+      <div class="t-puntos">
+        <i class="bi bi-star-fill"></i>
+        ¡Ganaste {{ puntosGanados }} punto{{ puntosGanados !== 1 ? 's' : '' }} en esta compra!
+      </div>
+    </ng-container>
+
+    <!-- Notas -->
+    <div class="t-notas" *ngIf="venta.notas">
+      <div class="t-sep"></div>
+      {{ venta.notas }}
+    </div>
+
+    <!-- Pie -->
+    <div class="t-sep"></div>
+    <div class="t-footer">
+      ¡Gracias por su preferencia!<br>
+      www.supercopias.com
+    </div>
+
+  </div><!-- /ticket-papel -->
+</div>

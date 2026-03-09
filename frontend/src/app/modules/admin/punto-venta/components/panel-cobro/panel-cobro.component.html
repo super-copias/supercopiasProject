@@ -1,0 +1,124 @@
+<!-- ── Ticket post-venta ─────────────────────────────────────── -->
+<app-pos-ticket
+  *ngIf="mostrarTicket && ventaExitosa"
+  [venta]="ventaExitosa"
+  (imprimir)="imprimirTicket()"
+  (nuevaVenta)="nuevaVenta()"
+></app-pos-ticket>
+
+<!-- ── Panel cobro normal ────────────────────────────────────── -->
+<div class="panel-cobro d-flex flex-column h-100" *ngIf="!mostrarTicket">
+
+  <!-- Totales -->
+  <div class="totales-box mb-2">
+    <div class="totales-row">
+      <span>Subtotal</span>
+      <span>${{ totales.subtotal | number:'1.2-2' }}</span>
+    </div>
+    <div class="totales-row desc" *ngIf="totales.descuentoMonto > 0">
+      <span>Descuento</span>
+      <span>-${{ totales.descuentoMonto | number:'1.2-2' }}</span>
+    </div>
+    <div class="totales-row total">
+      <span>TOTAL</span>
+      <span class="total-val">${{ totales.total | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
+  <!-- Descuento global -->
+  <div class="seccion mb-2">
+    <div class="seccion-titulo">Descuento global</div>
+    <div class="descuento-rapido d-flex gap-1 mb-1">
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===5"  (click)="aplicarDescuentoRapido(5)">5%</button>
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===10" (click)="aplicarDescuentoRapido(10)">10%</button>
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===15" (click)="aplicarDescuentoRapido(15)">15%</button>
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===20" (click)="aplicarDescuentoRapido(20)">20%</button>
+    </div>
+    <div class="input-group input-group-sm">
+      <input type="number" class="form-control" min="0" max="100" step="0.5"
+        [value]="descuentoManualPct"
+        (change)="onDescuentoManualChange($any($event.target).value)"
+        placeholder="0">
+      <span class="input-group-text">%</span>
+    </div>
+    <small class="text-muted" *ngIf="descuentoAutorizadoPor">
+      <i class="bi bi-shield-check text-success"></i> Autorizado por {{ descuentoAutorizadoPor }}
+    </small>
+  </div>
+
+  <!-- Método de pago -->
+  <div class="seccion mb-2">
+    <div class="seccion-titulo">Método de pago</div>
+    <div class="metodos d-flex gap-1">
+      <button class="btn btn-sm flex-fill metodo-btn"
+        [class.activo]="metodoPago==='efectivo'"
+        (click)="metodoPago='efectivo'">
+        <i class="bi bi-cash"></i> Efectivo
+      </button>
+      <button class="btn btn-sm flex-fill metodo-btn"
+        [class.activo]="metodoPago==='tarjeta'"
+        (click)="metodoPago='tarjeta'">
+        <i class="bi bi-credit-card"></i> Tarjeta
+      </button>
+      <button class="btn btn-sm flex-fill metodo-btn"
+        [class.activo]="metodoPago==='transferencia'"
+        (click)="metodoPago='transferencia'">
+        <i class="bi bi-bank"></i> Trans.
+      </button>
+    </div>
+
+    <!-- Efectivo: recibido + cambio -->
+    <ng-container *ngIf="metodoPago==='efectivo'">
+      <div class="input-group input-group-sm mt-2">
+        <span class="input-group-text">Recibido $</span>
+        <input type="number" class="form-control" min="0" step="0.5"
+          [(ngModel)]="montoRecibido" placeholder="0.00">
+      </div>
+      <div class="cambio-row mt-1" *ngIf="montoRecibido !== null && montoRecibido > 0">
+        <span>Cambio</span>
+        <span [class.text-danger]="montoRecibido < totales.total">
+          ${{ cambio | number:'1.2-2' }}
+        </span>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Notas -->
+  <div class="seccion mb-2">
+    <div class="seccion-titulo">Notas (opcional)</div>
+    <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas" placeholder="Observaciones..."></textarea>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-danger py-1 px-2 small mb-2" *ngIf="error">{{ error }}</div>
+
+  <!-- Botón cobrar -->
+  <div class="mt-auto">
+    <button class="btn btn-cobrar w-100"
+      [disabled]="!puedeVender"
+      (click)="procesarVenta()">
+      <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>
+      <span *ngIf="!procesando"><i class="bi bi-cash-stack me-1"></i></span>
+      {{ procesando ? 'Procesando...' : 'COBRAR $' + (totales.total | number:'1.2-2') }}
+    </button>
+
+    <div class="text-muted text-center small mt-1" *ngIf="carrito.length === 0">
+      Agrega productos al carrito para cobrar
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal autorización supervisor ────────────────────────── -->
+<div class="modal-auth-overlay" *ngIf="mostrarAutorizacion" (click)="cancelarAutorizacion()">
+  <div class="modal-auth-box" (click)="$event.stopPropagation()">
+    <div class="modal-auth-title"><i class="bi bi-shield-lock me-2"></i>Autorización requerida</div>
+    <p class="small text-muted mb-3">El descuento de {{ descuentoManualPct }}% supera el límite del cajero ({{ LIMITE_CAJERO }}%). Ingrese el PIN de supervisor.</p>
+    <input type="password" class="form-control mb-2" [(ngModel)]="pinAutorizacion"
+      placeholder="PIN supervisor" (keydown.enter)="confirmarAutorizacion()">
+    <div class="text-danger small mb-2" *ngIf="errorPin">{{ errorPin }}</div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="cancelarAutorizacion()">Cancelar</button>
+      <button class="btn btn-sm btn-primary flex-fill" (click)="confirmarAutorizacion()">Autorizar</button>
+    </div>
+  </div>
+</div>

@@ -29,6 +29,7 @@ const proveedoresRoutes = require('./routes/proveedores');
 const equiposRoutes = require('./routes/equipos');
 const catalogosEquiposRoutes = require('./routes/catalogos-equipos');
 const inventariosRoutes = require('./routes/inventarios');
+const posRoutes = require('./routes/pos');
 
 // Configuración del servidor Express
 const app = express();
@@ -89,6 +90,7 @@ app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/equipos', equiposRoutes);
 app.use('/api/catalogos-equipos', catalogosEquiposRoutes);
 app.use('/api/inventarios', inventariosRoutes);
+app.use('/api/pos', posRoutes);
 
 /**
  * Endpoint raíz - Información del API
@@ -98,7 +100,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'SuperCopias API',
     version: '1.0.0',
-    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores', '/api/equipos', '/api/catalogos-equipos', '/api/inventarios'],
+    endpoints: ['/api/auth', '/api/profile', '/api/clientes', '/api/empleados', '/api/catalogos', '/api/proveedores', '/api/equipos', '/api/catalogos-equipos', '/api/inventarios', '/api/pos'],
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });

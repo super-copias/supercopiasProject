@@ -1,0 +1,62 @@
+<div class="carrito-wrapper">
+
+  <div class="carrito-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-cart3"></i>
+      <span class="fw-bold">Carrito</span>
+      <span class="badge bg-primary rounded-pill ms-1" *ngIf="carrito.length>0">{{ totalItems }}</span>
+    </div>
+    <button class="btn btn-vaciar btn-xs" (click)="confirmarLimpiar()"
+      *ngIf="carrito.length>0" title="Vaciar carrito">
+      <i class="bi bi-trash3"></i>
+      <span class="ms-1">Vaciar</span>
+    </button>
+  </div>
+
+  <!-- Vacío -->
+  <div class="carrito-vacio" *ngIf="carrito.length===0">
+    <i class="bi bi-cart-x"></i>
+    <p>Carrito vacío</p>
+    <small class="text-muted">Selecciona productos del catálogo</small>
+  </div>
+
+  <!-- Líneas -->
+  <div class="carrito-items" *ngIf="carrito.length>0">
+    <div class="linea-item" *ngFor="let linea of carrito; trackBy: trackById">
+
+      <!-- Info del producto -->
+      <div class="linea-nombre">
+        <span class="badge bg-info me-1" *ngIf="linea.es_servicio">Svc</span>
+        <span class="badge bg-secondary me-1" *ngIf="linea.es_item_libre">Libre</span>
+        {{ linea.nombre_producto }}
+        <div class="linea-sku text-muted" *ngIf="linea.sku">{{ linea.sku }}</div>
+      </div>
+
+      <!-- Precio unitario -->
+      <div class="linea-precio">{{ linea.precio_unitario | currency:'MXN':'symbol':'1.2-2' }}</div>
+
+      <!-- Control de cantidad -->
+      <div class="linea-qty">
+        <button class="btn-qty btn-qty-minus" (click)="decrementar(linea)" title="Reducir cantidad">
+          <i class="bi" [class.bi-trash3]="linea.cantidad<=1" [class.bi-dash-lg]="linea.cantidad>1"></i>
+        </button>
+        <input type="number" class="qty-input" [value]="linea.cantidad" min="0.01" step="1"
+          (change)="onCantidadChange(linea, $any($event.target).value)">
+        <button class="btn-qty btn-qty-plus" (click)="incrementar(linea)" title="Agregar más">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+      </div>
+
+      <!-- Subtotal -->
+      <div class="linea-subtotal fw-bold">
+        {{ linea.subtotal_linea | currency:'MXN':'symbol':'1.2-2' }}
+      </div>
+
+      <!-- Eliminar -->
+      <button class="btn-eliminar" (click)="eliminar(linea)">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+</div>
