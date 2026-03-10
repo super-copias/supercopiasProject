@@ -23,7 +23,10 @@
               "src/_redirects",
               "src/.htaccess"
             ],
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "node_modules/bootstrap-icons/font/bootstrap-icons.css",
+              "src/styles.scss"
+            ],
             "scripts": []
           },
           "configurations": {

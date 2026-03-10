@@ -2,11 +2,11 @@
     <nav class="sidenav shadow-right" (click)="$event.stopPropagation()">
         <!-- Header simplificado -->
         <div class="sidenav-header text-center py-3 border-bottom">
-            <div *ngIf="!collapsed || mobileOpen" class="text-white fw-bold">
+            <div *ngIf="!collapsed" class="text-white fw-bold">
                 ADMINISTRACIÓN
             </div>
-            <div *ngIf="collapsed && !mobileOpen" class="text-white fw-bold small">
-                ADMIN
+            <div *ngIf="collapsed" class="sidenav-header-icon">
+                <i class="fas fa-store text-white opacity-75"></i>
             </div>
         </div>
         
@@ -24,11 +24,21 @@
             </div>
         </div>
         <div class="sidenav-footer">
-            <div class="sidenav-footer-content">
+            <!-- Footer completo: solo cuando sidebar está expandido (desktop) -->
+            <div class="sidenav-footer-content" *ngIf="!collapsed">
                 <div class="sidenav-footer-subtitle">Usuario:</div>
                 <div class="sidenav-footer-title">{{(auth.user$ | async)?.username || 'Admin'}}</div>
                 <button class="btn btn-danger btn-sm mt-2" (click)="logout()">
                     <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                </button>
+            </div>
+            <!-- Footer compacto: tablet colapsada y overlay móvil -->
+            <div class="sidenav-footer-compact" *ngIf="collapsed">
+                <div class="user-avatar-mini" title="{{(auth.user$ | async)?.username || 'Admin'}}">
+                    {{((auth.user$ | async)?.username || 'A')[0].toUpperCase()}}
+                </div>
+                <button class="btn-logout-compact" (click)="logout()" title="Cerrar sesión">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
         </div>

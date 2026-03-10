@@ -1,0 +1,89 @@
+<div class="pos-wrapper">
+
+  <!-- ── Barra superior ── -->
+  <div class="pos-topbar">
+    <div class="topbar-left">
+      <i class="bi bi-shop me-2"></i>
+      <span class="fw-bold">Punto de Venta</span>
+    </div>
+    <div class="topbar-center">
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-primary]="vistaActiva==='pos'"
+          [class.btn-outline-primary]="vistaActiva!=='pos'"
+          (click)="cambiarVista('pos')">
+          <i class="bi bi-cash-register me-1"></i>Nueva Venta
+        </button>
+        <button class="btn" [class.btn-primary]="vistaActiva==='historial'"
+          [class.btn-outline-primary]="vistaActiva!=='historial'"
+          (click)="cambiarVista('historial')">
+          <i class="bi bi-clock-history me-1"></i>Historial
+        </button>
+      </div>
+    </div>
+    <!-- Stats del día -->
+    <div class="topbar-right d-none d-lg-flex gap-3">
+      <div class="stat-chip" *ngIf="statsHoy">
+        <span class="stat-label">Ventas hoy</span>
+        <span class="stat-value">{{ statsHoy.total_ventas }}</span>
+      </div>
+      <div class="stat-chip highlight" *ngIf="statsHoy">
+        <span class="stat-label">Total</span>
+        <span class="stat-value">{{ statsHoy.total_ingresos | currency:'MXN':'symbol':'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- VISTA POS                                 -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="pos-body" *ngIf="vistaActiva==='pos'">
+
+    <!-- Columna izquierda: Selector cliente + Catálogo -->
+    <div class="pos-col-left">
+
+      <!-- Selector de cliente -->
+      <app-pos-selector-cliente
+        [clienteActual]="clienteSeleccionado"
+        (clienteSeleccionado)="onClienteSeleccionado($event)">
+      </app-pos-selector-cliente>
+
+      <!-- Catálogo de productos -->
+      <app-pos-catalogo
+        (agregarItem)="onAgregarAlCarrito($event)"
+        (agregarItemLibre)="onAgregarItemLibre($event)">
+      </app-pos-catalogo>
+    </div>
+
+    <!-- Columna derecha: Carrito + Panel cobro -->
+    <div class="pos-col-right">
+
+      <!-- Carrito -->
+      <app-pos-carrito
+        [carrito]="carrito"
+        [descuentoGlobalPct]="descuentoGlobalPct"
+        (carritoActualizado)="onCarritoActualizado($event)"
+        (limpiarCarrito)="onLimpiarCarrito()">
+      </app-pos-carrito>
+
+      <!-- Panel de cobro -->
+      <app-pos-panel-cobro
+        [carrito]="carrito"
+        [totales]="totales"
+        [clienteSeleccionado]="clienteSeleccionado"
+        [descuentoGlobalPct]="descuentoGlobalPct"
+        [descuentoConfigId]="descuentoConfigId"
+        [descuentoAutorizadoPor]="descuentoAutorizadoPor"
+        (descuentoCambiado)="onDescuentoCambiado($event)"
+        (ventaCompletada)="onVentaCompletada()">
+      </app-pos-panel-cobro>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- VISTA HISTORIAL                           -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="pos-historial-wrapper" *ngIf="vistaActiva==='historial'">
+    <app-pos-historial-ventas (irANuevaVenta)="cambiarVista('pos')"></app-pos-historial-ventas>
+  </div>
+
+</div>

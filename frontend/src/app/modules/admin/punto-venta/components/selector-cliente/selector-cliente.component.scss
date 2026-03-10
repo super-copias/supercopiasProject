@@ -1,0 +1,175 @@
+:host {
+  display:     block;
+  flex-shrink: 0;
+}
+
+.selector-cliente-wrapper {
+  background:    #fff;
+  border-bottom: 2px solid #e9ecef;
+  padding:       0.65rem 0.9rem;
+  position:      relative;
+}
+
+.selector-label {
+  display:        flex;
+  align-items:    center;
+  gap:            0.35rem;
+  font-size:      0.7rem;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color:          var(--color-deep-blue);
+  margin-bottom:  0.45rem;
+}
+.selector-label i { font-size: 0.75rem; }
+
+.cliente-activo {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  background:      #eef3ff;
+  border-radius:   10px;
+  padding:         0.55rem 0.75rem;
+  border:          1.5px solid #c2d0f5;
+  gap:             0.5rem;
+}
+.cliente-activo-info { flex: 1; min-width: 0; }
+
+.cliente-icon {
+  font-size:   1.7rem;
+  color:       var(--color-deep-blue);
+  flex-shrink: 0;
+}
+
+.cliente-nombre {
+  font-weight:   600;
+  font-size:     0.88rem;
+  color:         var(--color-dark-blue);
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+
+.btn-cambiar-cliente {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           0.3rem;
+  font-size:     0.75rem;
+  font-weight:   600;
+  color:         #6c757d;
+  background:    #fff;
+  border:        1.5px solid #dee2e6;
+  border-radius: 7px;
+  padding:       0.25rem 0.6rem;
+  white-space:   nowrap;
+  flex-shrink:   0;
+  transition:    all .15s;
+}
+.btn-cambiar-cliente:hover {
+  border-color: #dc3545;
+  color:        #dc3545;
+  background:   #fff5f5;
+}
+.btn-cambiar-cliente i { font-size: 0.7rem; }
+
+// Búsqueda de cliente
+.busqueda-cliente {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.4rem;
+  position:       relative;
+}
+
+.input-wrapper {
+  position:  relative;
+  flex:      1;
+  min-width: 0;
+}
+.input-wrapper .search-icon {
+  position:       absolute;
+  left:           0.65rem;
+  top:            50%;
+  transform:      translateY(-50%);
+  color:          #9ca3af;
+  font-size:      0.85rem;
+  pointer-events: none;
+}
+.input-wrapper input {
+  padding-left:  2.1rem;
+  font-size:     0.875rem;
+  height:        38px;
+  border-radius: 8px;
+  border:        1.5px solid #dee2e6;
+  transition:    border-color .15s, box-shadow .15s;
+  width:         100%;
+}
+.input-wrapper input:focus {
+  border-color: var(--color-deep-blue);
+  box-shadow:   0 0 0 3px rgba(0,61,128,.1);
+  outline:      none;
+}
+.input-wrapper .loading-icon {
+  position:  absolute;
+  right:     0.6rem;
+  top:       50%;
+  transform: translateY(-50%);
+  width:     14px;
+  height:    14px;
+}
+
+// Nota informativa Público General
+.publico-general-hint {
+  font-size:    0.72rem;
+  color:        #6c757d;
+  display:      flex;
+  align-items:  center;
+  gap:          0.3rem;
+  padding:      0 0.25rem;
+}
+.publico-general-hint i      { color: #9ca3af; font-size: 0.75rem; flex-shrink: 0; }
+.publico-general-hint strong { color: #495057; font-weight: 600; }
+
+.dropdown-resultados {
+  position:      absolute;
+  top:           calc(100% + 4px);
+  left:          0;
+  right:         0;
+  background:    #fff;
+  border:        1px solid #dee2e6;
+  border-radius: 10px;
+  box-shadow:    0 6px 20px rgba(0,0,0,.12);
+  z-index:       600;
+  overflow:      hidden;
+  max-height:    220px;
+  overflow-y:    auto;
+}
+
+.sin-resultados {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             0.4rem;
+  padding:         0.75rem;
+  font-size:       0.82rem;
+  color:           #9ca3af;
+}
+
+.resultado-item {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0.55rem 0.85rem;
+  cursor:          pointer;
+  font-size:       0.83rem;
+  border-bottom:   1px solid #f3f4f6;
+  transition:      background .1s;
+}
+.resultado-item:last-child { border-bottom: none; }
+.resultado-item:hover      { background: #f0f4ff; }
+.resultado-item .cliente-nombre-r { font-weight: 600; color: #1a2a66; }
+
+.resultado-meta {
+  font-size:  0.7rem;
+  color:      #9ca3af;
+  margin-top: 0.1rem;
+}

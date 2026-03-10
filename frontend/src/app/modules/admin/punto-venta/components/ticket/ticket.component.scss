@@ -1,0 +1,96 @@
+.ticket-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: .75rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+// Papel de ticket
+.ticket-papel {
+  width: 100%;
+  max-width: 300px;
+  background: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+// Encabezado
+.t-empresa { font-weight: 700; font-size: 15px; text-align: center; }
+.t-sub     { text-align: center; font-size: 11px; margin-bottom: 4px; }
+.t-sep     { border-top: 1px dashed #aaa; margin: 6px 0; }
+
+// Meta
+.t-meta    { line-height: 1.6; }
+
+// Tabla items
+.t-items   { width: 100%; border-collapse: collapse; }
+.t-items th,
+.t-items td { padding: 2px 0; vertical-align: top; }
+.t-desc   { width: 46%; word-break: break-word; }
+.t-qty    { width: 12%; text-align: center; }
+.t-price  { width: 20%; text-align: right; }
+.t-tot    { width: 22%; text-align: right; }
+.t-items thead th { border-bottom: 1px dashed #aaa; font-weight: 700; }
+
+.t-badge-desc {
+  display: inline-block;
+  background: #ffd302;
+  color: #000;
+  font-size: 9px;
+  padding: 0 3px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+// Totales
+.t-totales  { line-height: 1.8; }
+.t-trow     { display: flex; justify-content: space-between; }
+.t-total-row { font-weight: 700; font-size: 14px; border-top: 1px dashed #aaa;
+               padding-top: 4px; margin-top: 2px; }
+
+// Puntos
+.t-puntos {
+  text-align: center;
+  padding: 4px;
+  background: #fff8dc;
+  border-radius: 4px;
+  font-weight: 600;
+  .bi { color: #ffd302; }
+}
+
+// Bloque cliente
+.t-cliente {
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 2px 0;
+  &-titulo  { font-weight: 700; text-transform: uppercase; font-size: 10px; color: #888; }
+  &-nombre  { font-weight: 700; font-size: 13px; }
+  &-extra   { color: #555; }
+  &-puntos  { margin-top: 2px; .bi { color: #ffd302; margin-right: 2px; } }
+}
+
+// Notas, pie
+.t-notas  { font-style: italic; font-size: 11px; }
+.t-footer { text-align: center; font-size: 11px; line-height: 1.6; }
+
+// Acciones (solo pantalla): no requiere estilos propios
+.ticket-actions { display: flex; }
+
+// Impresión: solo el papel
+@media print {
+  .no-print { display: none !important; }
+  .ticket-wrapper {
+    padding: 0;
+    align-items: flex-start;
+  }
+  .ticket-papel {
+    border: none;
+    max-width: 100%;
+    font-size: 11px;
+  }
+}

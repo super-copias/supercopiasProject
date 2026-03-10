@@ -1,0 +1,66 @@
+<div class="selector-cliente-wrapper">
+
+  <div class="selector-label">
+    <i class="bi bi-person-fill"></i>
+    <span>Cliente</span>
+  </div>
+
+  <!-- Cliente seleccionado -->
+  <div class="cliente-activo" *ngIf="clienteActual">
+    <div class="cliente-activo-info">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-person-circle cliente-icon"></i>
+        <div>
+          <div class="cliente-nombre">{{ nombreCliente }}</div>
+          <div class="d-flex align-items-center gap-1 mt-1">
+            <span class="badge bg-{{ badgeNivel }}">{{ labelNivel }}</span>
+            <span class="text-muted small" *ngIf="puntosCliente">
+              <i class="bi bi-star-fill text-warning me-1"></i>
+              {{ puntosCliente.puntos?.puntos_disponibles || 0 }} pts
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-cambiar-cliente" (click)="quitarCliente()" title="Cambiar cliente">
+      <i class="bi bi-x-lg"></i> Cambiar
+    </button>
+  </div>
+
+  <!-- Búsqueda / Sin cliente -->
+  <div class="busqueda-cliente" *ngIf="!clienteActual">
+    <div class="input-wrapper">
+      <i class="bi bi-search search-icon"></i>
+      <input type="text" class="form-control" [formControl]="busqueda"
+        placeholder="Nombre, RFC o email del cliente...">
+      <div class="spinner-border spinner-border-sm text-primary loading-icon" *ngIf="cargando"></div>
+    </div>
+
+    <!-- Nota informativa debajo del campo -->
+    <div class="publico-general-hint">
+      <i class="bi bi-info-circle"></i>
+      Sin cliente seleccionado, la venta se registrará como <strong>Público General</strong>
+    </div>
+
+    <!-- Dropdown resultados -->
+    <div class="dropdown-resultados" *ngIf="mostrarDropdown && resultados.length > 0">
+      <div class="resultado-item" *ngFor="let c of resultados" (click)="seleccionar(c)">
+        <div>
+          <div class="cliente-nombre-r">{{ c.nombreComercial || c.razonSocial || c.nombre_comercial || c.razon_social || 'Sin nombre' }}</div>
+          <div class="resultado-meta">
+            <span *ngIf="c.rfc">RFC: {{ c.rfc }}</span>
+            <span *ngIf="c.rfc && c.email">&nbsp;&middot;&nbsp;</span>
+            <span *ngIf="c.email">{{ c.email }}</span>
+          </div>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </div>
+    </div>
+
+    <div class="dropdown-resultados sin-resultados"
+      *ngIf="mostrarDropdown && resultados.length===0 && !cargando">
+      <i class="bi bi-search"></i> Sin resultados
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,90 @@
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { LineaCarrito } from '../../../../../services/pos.service';
+import { PosService } from '../../../../../services/pos.service';
+
+@Component({
+  selector: 'app-pos-carrito',
+  templateUrl: './carrito.component.html',
+  styleUrls: ['./carrito.component.scss']
+})
+export class CarritoComponent implements OnChanges {
+
+  @Input() carrito: LineaCarrito[] = [];
+  @Input() descuentoGlobalPct = 0;
+  @Output() carritoActualizado = new EventEmitter<LineaCarrito[]>();
+  @Output() limpiarCarrito     = new EventEmitter<void>();
+
+  constructor(private posService: PosService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Nada adicional necesario
+  }
+
+  // ── Cantidades ────────────────────────────────────────────────
+
+  incrementar(linea: LineaCarrito): void {
+    linea.cantidad += 1;
+    this.recalcularLinea(linea);
+    this.emitir();
+  }
+
+  decrementar(linea: LineaCarrito): void {
+    if (linea.cantidad <= 1) {
+      this.eliminar(linea);
+      return;
+    }
+    linea.cantidad -= 1;
+    this.recalcularLinea(linea);
+    this.emitir();
+  }
+
+  onCantidadChange(linea: LineaCarrito, valor: string): void {
+    const num = parseFloat(valor);
+    if (isNaN(num) || num <= 0) { this.eliminar(linea); return; }
+    linea.cantidad = num;
+    this.recalcularLinea(linea);
+    this.emitir();
+  }
+
+  // ── Descuentos por línea ──────────────────────────────────────
+
+  onDescuentoLinea(linea: LineaCarrito, valor: string): void {
+    const pct = Math.min(100, Math.max(0, parseFloat(valor) || 0));
+    linea.descuento_linea_pct = pct;
+    this.recalcularLinea(linea);
+    this.emitir();
+  }
+
+  // ── CRUD carrito ──────────────────────────────────────────────
+
+  eliminar(linea: LineaCarrito): void {
+    const idx = this.carrito.findIndex(c => c._id_ui === linea._id_ui);
+    if (idx > -1) this.carrito.splice(idx, 1);
+    this.emitir();
+  }
+
+  confirmarLimpiar(): void {
+    if (this.carrito.length === 0 || confirm('¿Vaciar el carrito?')) {
+      this.limpiarCarrito.emit();
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+
+  private recalcularLinea(linea: LineaCarrito): void {
+    linea.subtotal_linea = this.posService.calcularSubtotalLinea(linea);
+    linea.descuento_linea_monto = parseFloat(((linea.cantidad * linea.precio_unitario) * linea.descuento_linea_pct / 100).toFixed(2));
+  }
+
+  private emitir(): void {
+    this.carritoActualizado.emit([...this.carrito]);
+  }
+
+  trackById(_: number, linea: LineaCarrito): string {
+    return linea._id_ui || '';
+  }
+
+  get totalItems(): number {
+    return this.carrito.reduce((s, i) => s + i.cantidad, 0);
+  }
+}

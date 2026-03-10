@@ -48,6 +48,21 @@ async function initializeDatabase() {
     // Probar conexión
     const client = await pool.connect();
     const result = await client.query('SELECT NOW() as current_time, version() as postgres_version');
+
+    // Crear tabla de auditoría de seguridad si no existe
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pos_alertas_seguridad (
+        id            SERIAL PRIMARY KEY,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        tipo          VARCHAR(60)  NOT NULL,
+        usuario_id    INTEGER,
+        usuario_nombre VARCHAR(120),
+        ip            VARCHAR(60),
+        detalle       JSONB,
+        descripcion   TEXT
+      )
+    `);
+
     client.release();
     
     console.log('✅ PostgreSQL conectado exitosamente');

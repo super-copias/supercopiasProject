@@ -1,0 +1,113 @@
+// Ocupa el espacio restante de pos-col-right después del carrito
+:host {
+  display:        flex;
+  flex-direction: column;
+  flex:           1;
+  min-height:     0;
+  overflow-y:     auto;
+  border-radius:  8px;
+  border:         1px solid #dee2e6;
+  background:     #fff;
+}
+
+.panel-cobro { padding: .75rem; }
+
+// Totales
+.totales-box {
+  background: var(--color-deep-blue, #003d80);
+  color: #fff;
+  border-radius: 10px;
+  padding: .75rem 1rem;
+}
+.totales-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: .9rem;
+  margin-bottom: .2rem;
+  &.desc { opacity: .8; font-size: .82rem; }
+  &.total {
+    border-top: 1px solid rgba(255,255,255,.3);
+    margin-top: .4rem;
+    padding-top: .4rem;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+}
+.total-val { font-size: 1.3rem; }
+
+// Secciones
+.seccion { background: #f8f9fa; border-radius: 8px; padding: .6rem .75rem; }
+.seccion-titulo { font-size: .72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; color: #6c757d; margin-bottom: .35rem; }
+
+// Descuento rápido
+.descuento-rapido .btn.active {
+  background: var(--color-deep-blue, #003d80);
+  color: #fff;
+  border-color: var(--color-deep-blue, #003d80);
+}
+
+// Métodos de pago
+.metodo-btn {
+  background: #fff;
+  border: 1.5px solid #dee2e6;
+  font-size: .78rem;
+  &.activo {
+    background: var(--color-cyber-yellow, #ffd302);
+    border-color: var(--color-cyber-yellow, #ffd302);
+    color: #000;
+    font-weight: 600;
+  }
+}
+
+// Cambio
+.cambio-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: .88rem;
+  font-weight: 600;
+  padding: .25rem .5rem;
+  background: #e9f7ef;
+  border-radius: 6px;
+}
+
+// Botón cobrar
+.btn-cobrar {
+  background: #28a745;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-radius: 10px;
+  padding: .75rem;
+  border: none;
+  transition: background 0.2s;
+  &:hover:not(:disabled) { background: #218838; }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+}
+
+// Modal autorización
+.modal-auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-auth-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  width: 320px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+}
+.modal-auth-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: .75rem;
+  color: var(--color-deep-blue, #003d80);
+}
+
+// Print: ocultar este panel
+@media print { :host { display: none !important; } }

@@ -6,20 +6,20 @@ import { InventariosComponent } from './inventarios.component';
 import { InventariosListComponent } from './inventarios-list/inventarios-list.component';
 import { InventarioFormComponent } from './inventario-form/inventario-form.component';
 import { InventarioDetalleComponent } from './inventario-detalle/inventario-detalle.component';
-import { CategoriasListComponent } from './categorias-list/categorias-list.component';
-import { ReglasStockComponent } from './reglas-stock/reglas-stock.component';
+import { DepartamentosComponent } from './departamentos/departamentos.component';
+import { MovimientosHistorialComponent } from './movimientos-historial/movimientos-historial.component';
 
 const routes: Routes = [
   {
     path: '',
     component: InventariosComponent,
     children: [
-      { path: '', component: InventariosListComponent },
-      { path: 'nuevo', component: InventarioFormComponent },
-      { path: 'editar/:id', component: InventarioFormComponent },
-      { path: 'detalle/:id', component: InventarioDetalleComponent },
-      { path: 'categorias', component: CategoriasListComponent },
-      { path: ':id/reglas-stock', component: ReglasStockComponent }
+      { path: '',               component: InventariosListComponent },
+      { path: 'nuevo',          component: InventarioFormComponent },
+      { path: 'editar/:id',     component: InventarioFormComponent },
+      { path: 'detalle/:id',    component: InventarioDetalleComponent },
+      { path: 'departamentos',  component: DepartamentosComponent },
+      { path: 'movimientos',    component: MovimientosHistorialComponent }
     ]
   }
 ];
@@ -30,8 +30,8 @@ const routes: Routes = [
     InventariosListComponent,
     InventarioFormComponent,
     InventarioDetalleComponent,
-    CategoriasListComponent,
-    ReglasStockComponent
+    DepartamentosComponent,
+    MovimientosHistorialComponent
   ],
   imports: [
     CommonModule,
@@ -40,3 +40,4 @@ const routes: Routes = [
   ]
 })
 export class InventariosModule { }
+

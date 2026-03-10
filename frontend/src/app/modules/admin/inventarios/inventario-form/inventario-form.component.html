@@ -1,323 +1,195 @@
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-7">
+
       <!-- Encabezado -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">
-          <i class="fas fa-box me-2"></i>
-          {{isEditMode ? 'Editar Artículo' : 'Nuevo Artículo'}}
-        </h4>
+        <h5 class="mb-0 fs-6 fs-md-5">{{isEditMode ? 'Editar artículo' : 'Nuevo artículo'}}</h5>
+        <button class="btn btn-sm btn-outline-secondary" (click)="cancelar()">
+          <i class="fas fa-arrow-left me-1"></i><span class="d-none d-sm-inline">Volver</span>
+        </button>
       </div>
 
-      <form #inventarioForm="ngForm" (ngSubmit)="onSubmit()">
-        
-        <!-- Información Básica -->
-        <div class="card mb-3">
-          <div class="card-header bg-primary text-white">
-            <i class="fas fa-info-circle me-2"></i>Información Básica
-          </div>
-          <div class="card-body">
-            <div class="row">
-              
-              <div class="col-12 col-md-4 mb-3">
-                <label for="tipo" class="form-label">Tipo de Artículo <span class="text-danger">*</span></label>
-                <select class="form-select" 
-                        id="tipo" 
-                        name="tipo" 
-                        [(ngModel)]="inventario.tipo" 
-                        (change)="onTipoChange()"
-                        required
-                        [disabled]="loading">
-                  <option value="">Seleccione tipo</option>
-                  <option *ngFor="let tipo of tipos" [value]="tipo.value">{{tipo.label}}</option>
-                </select>
-              </div>
-              
-              <div class="col-12 col-md-4 mb-3">
-                <label for="categoria" class="form-label">Categoría <span class="text-danger">*</span></label>
-                <select class="form-select" 
-                        id="categoria" 
-                        name="categoria" 
-                        [(ngModel)]="inventario.categoria" 
-                        (change)="onCategoriaChange()"
-                        required
-                        [disabled]="loading || !inventario.tipo">
-                  <option value="">Seleccione categoría</option>
-                  <option *ngFor="let cat of getCategoriasFiltradas()" [value]="cat.nombre">
-                    {{cat.nombre}}
-                  </option>
-                </select>
-              </div>
-              
-              <div class="col-12 col-md-4 mb-3">
-                <label for="codigo_sku" class="form-label">Código SKU</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="codigo_sku" 
-                       name="codigo_sku" 
-                       [(ngModel)]="inventario.codigo_sku"
-                       placeholder="Código único del producto"
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-12 col-md-6 mb-3">
-                <label for="nombre" class="form-label">Nombre del Artículo <span class="text-danger">*</span></label>
-                <input type="text" 
-                       class="form-control" 
-                       id="nombre" 
-                       name="nombre" 
-                       [(ngModel)]="inventario.nombre"
-                       required
-                       placeholder="Nombre descriptivo"
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-6 col-md-3 mb-3">
-                <label for="marca" class="form-label">Marca</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="marca" 
-                       name="marca" 
-                       [(ngModel)]="inventario.marca"
-                       placeholder="Marca del producto"
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-6 col-md-3 mb-3">
-                <label for="modelo" class="form-label">Modelo</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="modelo" 
-                       name="modelo" 
-                       [(ngModel)]="inventario.modelo"
-                       placeholder="Modelo del producto"
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-12 mb-3">
-                <label for="descripcion" class="form-label">Descripción</label>
-                <textarea class="form-control" 
-                          id="descripcion" 
-                          name="descripcion" 
-                          [(ngModel)]="inventario.descripcion"
-                          rows="3"
-                          placeholder="Descripción detallada del artículo"
-                          [disabled]="loading"></textarea>
+      <!-- ── PASO 1: Selector de tipo ──────────────────────────────────── -->
+      <div *ngIf="paso === 1">
+        <p class="text-muted mb-3">¿Qué tipo de artículo deseas agregar?</p>
+        <div class="row g-3">
+          <div class="col-6" *ngFor="let t of tiposArticulo">
+            <div class="card h-100 card-tipo" (click)="seleccionarTipo(t.value)" style="cursor:pointer">
+              <div class="card-body text-center py-4">
+                <div class="mb-2" [style.color]="t.color">
+                  <i [class]="'fas ' + t.icon + ' fa-2x'"></i>
+                </div>
+                <div class="fw-semibold">{{t.label}}</div>
+                <div class="text-muted small mt-1">{{t.desc}}</div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Características Específicas -->
-        <div class="card mb-3" *ngIf="camposCategoria.length > 0">
-          <div class="card-header bg-info text-white">
-            <i class="fas fa-sliders-h me-2"></i>Características Específicas (Opcional)
-          </div>
-          <div class="card-body">
-            <div class="row">
-              
-              <div class="col-md-4 mb-3" *ngFor="let campo of camposCategoria">
-                <label [for]="'campo_' + campo.nombre" class="form-label">
-                  {{campo.etiqueta || campo.nombre}}
-                  <span class="text-danger" *ngIf="campo.requerido">*</span>
-                </label>
-                
-                <input *ngIf="!campo.opciones"
-                       [type]="getInputType(campo.tipo)" 
-                       class="form-control" 
-                       [id]="'campo_' + campo.nombre"
-                       [name]="'campo_' + campo.nombre"
-                       [(ngModel)]="inventario.caracteristicas[campo.nombre]"
-                       [required]="campo.requerido"
-                       [disabled]="loading">
-                
-                <select *ngIf="campo.opciones"
-                        class="form-select"
-                        [id]="'campo_' + campo.nombre"
-                        [name]="'campo_' + campo.nombre"
-                        [(ngModel)]="inventario.caracteristicas[campo.nombre]"
-                        [required]="campo.requerido"
-                        [disabled]="loading">
-                  <option value="">Seleccione...</option>
-                  <option *ngFor="let opcion of campo.opciones" [value]="opcion">{{opcion}}</option>
-                </select>
-              </div>
-            </div>
-          </div>
+      <!-- ── PASO 2: Formulario ─────────────────────────────────────────── -->
+      <div *ngIf="paso === 2">
+
+        <!-- Tipo seleccionado (pill) -->
+        <div class="mb-3 d-flex align-items-center gap-2" *ngIf="!isEditMode">
+          <span class="badge rounded-pill px-3 py-2" [style.background-color]="tipoSeleccionado?.color || '#6c757d'">
+            <i [class]="'fas ' + (tipoSeleccionado?.icon || 'fa-cube') + ' me-1'"></i>
+            {{tipoSeleccionado?.label}}
+          </span>
+          <button class="btn btn-sm btn-link text-muted p-0" (click)="volver()">Cambiar tipo</button>
         </div>
 
-        <!-- Control de Stock -->
-        <div class="card mb-3">
-          <div class="card-header" style="background-color: #6c757d; color: white;">
-            <i class="fas fa-boxes me-2"></i>Control de Stock
-          </div>
-          <div class="card-body">
-            <div class="row">
-              
-              <div class="col-12 col-md-3 mb-3">
-                <label for="unidad_medida" class="form-label">Unidad de Medida <span class="text-danger">*</span></label>
-                <select class="form-select" 
-                        id="unidad_medida" 
-                        name="unidad_medida" 
-                        [(ngModel)]="inventario.unidad_medida"
-                        required
-                        [disabled]="loading">
-                  <option value="">Seleccione...</option>
-                  <option *ngFor="let unidad of unidadesMedida" [value]="unidad.value">{{unidad.label}}</option>
-                </select>
-              </div>
-              
-              <div class="col-4 col-md-3 mb-3">
-                <label for="existencia_actual" class="form-label">Existencia Actual</label>
-                <input type="number" 
-                       class="form-control" 
-                       id="existencia_actual" 
-                       name="existencia_actual" 
-                       [(ngModel)]="inventario.existencia_actual"
-                       min="0"
-                       step="1"
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-4 col-md-3 mb-3">
-                <label for="stock_minimo" class="form-label">Stock Mínimo <span class="text-danger">*</span></label>
-                <input type="number" 
-                       class="form-control" 
-                       id="stock_minimo" 
-                       name="stock_minimo" 
-                       [(ngModel)]="inventario.stock_minimo"
-                       min="0"
-                       step="1"
-                       required
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-4 col-md-3 mb-3">
-                <label for="stock_maximo" class="form-label">Stock Máximo</label>
-                <input type="number" 
-                       class="form-control" 
-                       id="stock_maximo" 
-                       name="stock_maximo" 
-                       [(ngModel)]="inventario.stock_maximo"
-                       min="0"
-                       step="1"
-                       [disabled]="loading">
-              </div>
-            </div>
-          </div>
-        </div>
+        <form (ngSubmit)="onSubmit()" #f="ngForm">
 
-        <!-- Información Comercial -->
-        <div class="card mb-3">
-          <div class="card-header" style="background-color: #ffc107;">
-            <i class="fas fa-dollar-sign me-2"></i>Información Comercial
-          </div>
-          <div class="card-body">
-            <div class="row">
-              
-              <div class="col-12 col-md-4 mb-3">
-                <label for="costo_compra" class="form-label">Precio de Compra</label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input type="text" 
-                         class="form-control" 
-                         id="costo_compra" 
-                         name="costo_compra" 
-                         [(ngModel)]="inventario.costo_compra"
-                         (blur)="formatPrecio('costo_compra')"
-                         pattern="[0-9]+(\.[0-9]{1,2})?"
-                         placeholder="0.00"
-                         [disabled]="loading">
+          <!-- SECCIÓN: Información básica -->
+          <div class="card mb-3">
+            <div class="card-header py-2 fw-semibold">Información básica</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Nombre del artículo <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" [(ngModel)]="form.nombre" name="nombre" required placeholder="Ej. Resma papel bond A4">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Departamento <span class="text-danger">*</span></label>
+                  <select class="form-select" [(ngModel)]="form.departamento_id" name="departamento_id" required>
+                    <option [value]="undefined">— Seleccionar —</option>
+                    <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Código / SKU</label>
+                  <input type="text" class="form-control" [(ngModel)]="form.codigo_sku" name="codigo_sku" placeholder="Ej. PAP-A4-500">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Unidad de medida</label>
+                  <select class="form-select" [(ngModel)]="form.unidad_medida" name="unidad_medida">
+                    <option *ngFor="let u of unidadesMedida" [value]="u">{{u}}</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-6">
+                  <label class="form-label">Marca</label>
+                  <input type="text" class="form-control" [(ngModel)]="form.marca" name="marca" placeholder="Ej. HP, Xerox">
+                </div>
+                <div class="col-6 col-md-6">
+                  <label class="form-label">Modelo</label>
+                  <input type="text" class="form-control" [(ngModel)]="form.modelo" name="modelo">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Descripción</label>
+                  <textarea class="form-control" [(ngModel)]="form.descripcion" name="descripcion" rows="2" placeholder="Descripción opcional"></textarea>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Proveedor</label>
+                  <select class="form-select" [(ngModel)]="form.proveedor_id" name="proveedor_id">
+                    <option [ngValue]="null">— Sin proveedor —</option>
+                    <option *ngFor="let p of proveedores" [ngValue]="p.id">{{p.nombre_comercial || p.razon_social || p.nombre}}</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Ubicación física</label>
+                  <input type="text" class="form-control" [(ngModel)]="form.ubicacion_fisica" name="ubicacion_fisica" placeholder="Ej. Bodega A, Estante 3">
                 </div>
               </div>
-              
-              <div class="col-12 col-md-4 mb-3">
-                <label for="precio_venta" class="form-label">Precio de Venta</label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input type="text" 
-                         class="form-control" 
-                         id="precio_venta" 
-                         name="precio_venta" 
-                         [(ngModel)]="inventario.precio_venta"
-                         (blur)="formatPrecio('precio_venta')"
-                         pattern="[0-9]+(\.[0-9]{1,2})?"
-                         placeholder="0.00"
-                         [disabled]="loading">
+            </div>
+          </div>
+
+          <!-- SECCIÓN: Stock (oculto para servicios) -->
+          <div class="card mb-3" *ngIf="!esServicio">
+            <div class="card-header py-2 fw-semibold">Stock</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-6 col-md-4">
+                  <label class="form-label">Existencia actual</label>
+                  <input type="number" class="form-control" [(ngModel)]="form.existencia_actual" name="existencia_actual" min="0" step="1">
+                </div>
+                <div class="col-6 col-md-4">
+                  <label class="form-label">Stock mínimo</label>
+                  <input type="number" class="form-control" [(ngModel)]="form.stock_minimo" name="stock_minimo" min="0" step="1">
+                </div>
+                <div class="col-6 col-md-4">
+                  <label class="form-label">Stock máximo</label>
+                  <input type="number" class="form-control" [(ngModel)]="form.stock_maximo" name="stock_maximo" min="0" step="1" placeholder="Opcional">
                 </div>
               </div>
-              
-              <div class="col-12 col-md-4 mb-3">
-                <label for="proveedor_id" class="form-label">
-                  Proveedor <small class="text-muted">(Opcional)</small>
-                </label>
-                <select class="form-select" 
-                        id="proveedor_id" 
-                        name="proveedor_id" 
-                        [(ngModel)]="inventario.proveedor_id"
-                        [disabled]="loading">
-                  <option [ngValue]="null">-- Seleccione un proveedor (opcional) --</option>
-                  <option *ngFor="let prov of proveedores" [value]="prov.id">
-                    {{prov.nombre_comercial}}
-                  </option>
-                </select>
+            </div>
+          </div>
+
+          <!-- SECCIÓN: Precios -->
+          <div class="card mb-3">
+            <div class="card-header py-2 fw-semibold">Precios</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Costo de compra</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" [(ngModel)]="form.costo_compra" name="costo_compra"
+                           min="0" step="0.01" placeholder="0.00"
+                           (blur)="redondearDecimales('costo_compra')">
+                  </div>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">
+                    Precio de venta
+                    <span class="text-danger" *ngIf="form.tipo === 'venta' || esServicio">*</span>
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" [(ngModel)]="form.precio_venta" name="precio_venta"
+                           [disabled]="!mostrarPrecioVenta && !esServicio" min="0" step="0.01" placeholder="0.00"
+                           (blur)="redondearDecimales('precio_venta')">
+                  </div>
+                </div>
+
+                <!-- Margen calculado -->
+                <div class="col-12" *ngIf="margenPorcentaje !== null">
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">Margen:</small>
+                    <span class="badge" [class.bg-success]="margenPorcentaje >= 20" [class.bg-warning]="margenPorcentaje >= 0 && margenPorcentaje < 20" [class.bg-danger]="margenPorcentaje < 0">
+                      {{margenPorcentaje}}%
+                    </span>
+                    <div class="progress flex-grow-1" style="height:6px">
+                      <div class="progress-bar"
+                           [class.bg-success]="margenPorcentaje >= 20"
+                           [class.bg-warning]="margenPorcentaje >= 0 && margenPorcentaje < 20"
+                           [class.bg-danger]="margenPorcentaje < 0"
+                           [style.width]="(margenPorcentaje > 100 ? 100 : margenPorcentaje < 0 ? 0 : margenPorcentaje) + '%'"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Toggle disponible en caja (POS) - visible para todos los tipos -->
+                <div class="col-12">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkPos"
+                           [(ngModel)]="form.disponible_en_pos" name="disponible_en_pos" (change)="onTogglePos()">
+                    <label class="form-check-label" for="chkPos">
+                      <i class="fas fa-cash-register me-1 text-muted"></i>
+                      Disponible en caja
+                      <span class="text-muted small ms-1" *ngIf="!esServicio && form.tipo !== 'venta'">
+                        (habilita precio de venta)
+                      </span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Ubicación y Notas -->
-        <div class="card mb-3">
-          <div class="card-header" style="background-color: #6c757d; color: white;">
-            <i class="fas fa-map-marker-alt me-2"></i>Ubicación y Notas
+          <!-- Botones -->
+          <div class="form-actions d-flex justify-content-end gap-2 mb-4 pt-2">
+            <button type="button" class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+              {{isEditMode ? 'Actualizar' : 'Crear artículo'}}
+            </button>
           </div>
-          <div class="card-body">
-            <div class="row">
-              
-              <div class="col-md-6 mb-3">
-                <label for="ubicacion_fisica" class="form-label">Ubicación Física</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="ubicacion_fisica" 
-                       name="ubicacion_fisica" 
-                       [(ngModel)]="inventario.ubicacion_fisica"
-                       placeholder="Ej: Almacén A, Estante 3, Nivel 2"
-                       [disabled]="loading">
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <label for="notas" class="form-label">Notas</label>
-                <textarea class="form-control" 
-                          id="notas" 
-                          name="notas" 
-                          [(ngModel)]="inventario.notas"
-                          rows="2"
-                          placeholder="Notas adicionales"
-                          [disabled]="loading"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Botones de Acción -->
-        <div class="d-flex justify-content-end gap-2">
-          <button type="button" 
-                  class="btn btn-secondary" 
-                  (click)="onCancel()"
-                  [disabled]="loading">
-            <i class="fas fa-times me-1"></i>
-            Cancelar
-          </button>
-          <button type="submit" 
-                  class="btn btn-primary" 
-                  [disabled]="!inventarioForm.form.valid || loading">
-            <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
-            <i *ngIf="!loading" class="fas fa-save me-1"></i>
-            {{isEditMode ? 'Actualizar' : 'Guardar'}}
-          </button>
-        </div>
+        </form>
+      </div>
 
-      </form>
     </div>
   </div>
 </div>

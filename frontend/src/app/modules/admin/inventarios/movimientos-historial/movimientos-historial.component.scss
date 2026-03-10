@@ -1,0 +1,11 @@
+/* Movimientos historial */
+.card { box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.table th { font-size: .78rem; white-space: nowrap; }
+.table td { font-size: .84rem; vertical-align: middle; }
+
+@media (max-width: 767px) {
+  .container-fluid { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .table th, .table td { padding: 0.4rem 0.35rem; font-size: 0.8rem; }
+  /* Header: título más compacto */
+  h5 { font-size: 1rem; }
+}
