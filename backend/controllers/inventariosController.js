@@ -293,9 +293,9 @@ async function createInventario(req, res) {
     `, [
       departamento_id, categoriaNombre, tipo, esServicio, nombre.trim(), descripcion||null,
       codigo_sku||null, marca||null, modelo||null, provId,
-      esServicio ? null : (unidad_medida||null),
-      esServicio ? null : (existencia_actual||0),
-      esServicio ? null : (stock_minimo||0),
+      esServicio ? 'Servicio' : (unidad_medida||null),
+      esServicio ? 0 : (existencia_actual||0),
+      esServicio ? 0 : (stock_minimo||0),
       esServicio ? null : (stock_maximo||null),
       ubicacion_fisica||null, costo_compra||null, precio_venta||null, costo_compra||0, posFlag
     ]);
