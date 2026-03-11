@@ -3686,7 +3686,7 @@ CREATE TABLE public.pos_ventas (
     total                       numeric(12,2) NOT NULL,
     monto_recibido              numeric(12,2),
     cambio                      numeric(12,2) DEFAULT 0,
-    metodo_pago_codigo          character varying(10),
+    metodo_pago_codigo          character varying(30),
     metodo_pago_descripcion     character varying(100),
     descuento_config_id         integer,
     descuento_autorizado_por    character varying(255),

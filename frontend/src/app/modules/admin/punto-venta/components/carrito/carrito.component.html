@@ -41,8 +41,10 @@
           <i class="bi" [class.bi-trash3]="linea.cantidad<=1" [class.bi-dash-lg]="linea.cantidad>1"></i>
         </button>
         <input type="number" class="qty-input" [value]="linea.cantidad" min="0.01" step="1"
+          [max]="(!linea.es_servicio && !linea.es_item_libre && linea._existencia_actual !== undefined) ? linea._existencia_actual : null"
           (change)="onCantidadChange(linea, $any($event.target).value)">
-        <button class="btn-qty btn-qty-plus" (click)="incrementar(linea)" title="Agregar más">
+        <button class="btn-qty btn-qty-plus" (click)="incrementar(linea)" title="Agregar más"
+          [disabled]="!linea.es_servicio && !linea.es_item_libre && linea._existencia_actual !== undefined && linea.cantidad >= linea._existencia_actual">
           <i class="bi bi-plus-lg"></i>
         </button>
       </div>

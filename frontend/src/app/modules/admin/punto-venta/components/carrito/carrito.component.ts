@@ -23,6 +23,10 @@ export class CarritoComponent implements OnChanges {
   // ── Cantidades ────────────────────────────────────────────────
 
   incrementar(linea: LineaCarrito): void {
+    if (!linea.es_servicio && !linea.es_item_libre &&
+        linea._existencia_actual !== undefined && linea.cantidad >= linea._existencia_actual) {
+      return;
+    }
     linea.cantidad += 1;
     this.recalcularLinea(linea);
     this.emitir();
@@ -41,7 +45,12 @@ export class CarritoComponent implements OnChanges {
   onCantidadChange(linea: LineaCarrito, valor: string): void {
     const num = parseFloat(valor);
     if (isNaN(num) || num <= 0) { this.eliminar(linea); return; }
-    linea.cantidad = num;
+    if (!linea.es_servicio && !linea.es_item_libre &&
+        linea._existencia_actual !== undefined && num > linea._existencia_actual) {
+      linea.cantidad = linea._existencia_actual;
+    } else {
+      linea.cantidad = num;
+    }
     this.recalcularLinea(linea);
     this.emitir();
   }

@@ -48,6 +48,9 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
   onAgregarAlCarrito(item: CatalogoItem): void {
     const existing = this.carrito.find(c => c.inventario_id === item.id && !c.es_item_libre);
     if (existing) {
+      if (!item.es_servicio && item.existencia_actual !== undefined && existing.cantidad >= item.existencia_actual) {
+        return;
+      }
       existing.cantidad += 1;
       existing.subtotal_linea = this.posService.calcularSubtotalLinea(existing);
     } else {
