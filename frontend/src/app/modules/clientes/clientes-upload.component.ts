@@ -426,8 +426,9 @@ export class ClientesUploadComponent {
     this.descargandoPlantilla = true;
 
     this.clientesService.descargarPlantillaExcel().subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
+
+      next: (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = 'plantilla_clientes.xlsx';
@@ -435,17 +436,16 @@ export class ClientesUploadComponent {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
+        URL.revokeObjectURL(url);
         this.notificationService.info(
-          'La plantilla se ha descargado correctamente',
-          'Descarga completada'
+          'La plantilla se está descargando',
+          'Descarga iniciada'
         );
         this.descargandoPlantilla = false;
       },
       error: () => {
         this.notificationService.error(
-          'Error al descargar la plantilla. Intenta nuevamente.',
+          'No se pudo descargar la plantilla',
           'Error de descarga'
         );
         this.descargandoPlantilla = false;

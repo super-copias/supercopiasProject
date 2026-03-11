@@ -852,8 +852,12 @@ async function uploadExcelClientes(req, res) {
     }
     
     // Leer archivo Excel
+    // Buscar hoja "Clientes" específicamente; si no existe, usar la primera
     const workbook = XLSX.readFile(req.file.path);
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const sheetName = workbook.SheetNames.includes('Clientes')
+      ? 'Clientes'
+      : workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
     
     const resultados = {
@@ -893,6 +897,16 @@ async function uploadExcelClientes(req, res) {
           }
         }
 
+        // Validar formato de segundo correo si se proporciona
+        const segundoCorreoRaw = fila['segundo correo'] || fila.segundo_correo || fila.segundoCorreo || null;
+        if (segundoCorreoRaw && segundoCorreoRaw.toString().trim().length > 0) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(segundoCorreoRaw.toString().trim())) {
+            resultados.errores.push(`Fila ${i + 2}: Formato de segundo correo electrónico inválido`);
+            continue;
+          }
+        }
+
         // Validar formato de teléfono
         const telefonoRegex = /^[\d\-\+\(\)\s]+$/;
         if (!telefonoRegex.test(fila.telefono.toString().trim())) {
@@ -925,11 +939,11 @@ async function uploadExcelClientes(req, res) {
         // Crear cliente con nueva estructura
         const insertQuery = `
           INSERT INTO clientes (
-            razon_social, nombre_comercial, email, telefono, segundo_telefono,
+            razon_social, nombre_comercial, email, segundo_email, telefono, segundo_telefono,
             rfc, regimen_fiscal, uso_cfdi,
             direccion_entrega, direccion_facturacion, direccion_codigo_postal,
             activo, fecha_registro, fecha_modificacion
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, NOW(), NOW())
           RETURNING *
         `;
         
@@ -963,10 +977,13 @@ async function uploadExcelClientes(req, res) {
         cfdiLimpio = extraerCodigoCFDI(fila['uso cfdi'] || fila.cfdi);
         regimenLimpio = extraerCodigoRegimen(fila['regimen fiscal'] || fila.regimen);
         
+        const segundoCorreoLimpio = segundoCorreoRaw ? segundoCorreoRaw.toString().trim().toLowerCase() : null;
+
         const values = [
           fila['razon social'] || fila.razon || fila.nombre.trim(), // razon_social
           fila.nombre.trim(), // nombre_comercial
           correo ? correo.toLowerCase() : null, // email
+          segundoCorreoLimpio, // segundo_email
           telefonoLimpio, // telefono (solo dígitos)
           segundoTelefonoLimpio, // segundo_telefono
           fila.rfc ? fila.rfc.toUpperCase() : null, // rfc
@@ -1158,13 +1175,13 @@ async function getUsosCFDI(req, res) {
  * @param {Object} res - Response object
  * @returns {File} Archivo Excel con plantilla y ejemplos
  */
-function descargarPlantillaExcel(req, res) {
+async function descargarPlantillaExcel(req, res) {
   try {
     const { generarPlantillaClientes } = require('../utils/plantillaClientes');
     const path = require('path');
     
-    // Generar plantilla
-    const filePath = generarPlantillaClientes();
+    // Generar plantilla (consulta catálogos en BD y crea el Excel)
+    const filePath = await generarPlantillaClientes();
     
     // Configurar headers para descarga
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
