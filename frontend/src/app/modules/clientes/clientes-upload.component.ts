@@ -420,34 +420,37 @@ export class ClientesUploadComponent {
 
   /**
    * Descarga la plantilla Excel de ejemplo
+   * Usa HttpClient para incluir el token de autenticación en la petición
    */
   descargarPlantilla(): void {
     this.descargandoPlantilla = true;
-    
-    // Crear enlace para descarga
-    const url = '/api/clientes/plantilla-excel';
-    
-    // Crear elemento <a> temporal para descarga
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'plantilla_clientes.xlsx';
-    link.style.display = 'none';
-    
-    // Agregar al DOM, hacer clic y remover
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Mostrar notificación
-    this.notificationService.info(
-      'La plantilla se está descargando',
-      'Descarga iniciada'
-    );
-    
-    // Simular delay para UX
-    setTimeout(() => {
-      this.descargandoPlantilla = false;
-    }, 1000);
+
+    this.clientesService.descargarPlantillaExcel().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla_clientes.xlsx';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        this.notificationService.info(
+          'La plantilla se ha descargado correctamente',
+          'Descarga completada'
+        );
+        this.descargandoPlantilla = false;
+      },
+      error: () => {
+        this.notificationService.error(
+          'Error al descargar la plantilla. Intenta nuevamente.',
+          'Error de descarga'
+        );
+        this.descargandoPlantilla = false;
+      }
+    });
   }
 
   /**

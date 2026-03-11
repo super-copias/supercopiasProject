@@ -156,6 +156,14 @@ export class ClientesService {
       );
   }
 
+  /**
+   * Descargar plantilla Excel para carga masiva
+   * Realiza la petición con autenticación para obtener el archivo correctamente
+   */
+  descargarPlantillaExcel(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/plantilla-excel`, { responseType: 'blob' });
+  }
+
   // ============================================================================
   // MÉTODOS DE COMPATIBILIDAD PARA COMPONENTES EXISTENTES
   // ============================================================================
