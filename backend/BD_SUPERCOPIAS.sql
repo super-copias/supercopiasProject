@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict xdokERlp8GM8wCgwycKIBMrgblOsZfVAkMA5Px5EKv1K3bzIq9hP6VvxXwYojuN
-
 -- Dumped from database version 15.15 (Homebrew)
 -- Dumped by pg_dump version 18.1
 
@@ -3912,9 +3910,68 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 
+-- ============================================================
+-- MÓDULO COTIZACIONES
+-- ============================================================
+
+CREATE SEQUENCE IF NOT EXISTS public.pos_cotizaciones_folio_seq START 1;
+
+CREATE TABLE IF NOT EXISTS public.pos_cotizaciones (
+    id                    SERIAL PRIMARY KEY,
+    folio                 VARCHAR(20) UNIQUE NOT NULL,
+    estatus               VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+    cliente_id            INTEGER,
+    cliente_nombre        VARCHAR(200) NOT NULL DEFAULT 'Público General',
+    vendedor_usuario_id   INTEGER,
+    vendedor_nombre       VARCHAR(200),
+    subtotal              NUMERIC(12,2) NOT NULL DEFAULT 0,
+    descuento_pct         NUMERIC(5,2)  NOT NULL DEFAULT 0,
+    descuento_monto       NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total                 NUMERIC(12,2) NOT NULL DEFAULT 0,
+    notas                 TEXT,
+    fecha_vencimiento     DATE,
+    venta_id              INTEGER,
+    fecha_creacion        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    fecha_modificacion    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT chk_cotizacion_estatus CHECK (estatus IN ('pendiente','aceptada','rechazada','vencida'))
+);
+
+CREATE TABLE IF NOT EXISTS public.pos_cotizaciones_detalle (
+    id                    SERIAL PRIMARY KEY,
+    cotizacion_id         INTEGER NOT NULL,
+    inventario_id         INTEGER,
+    nombre_producto       VARCHAR(300) NOT NULL,
+    sku                   VARCHAR(100),
+    es_servicio           BOOLEAN NOT NULL DEFAULT FALSE,
+    es_item_libre         BOOLEAN NOT NULL DEFAULT FALSE,
+    cantidad              NUMERIC(10,2) NOT NULL,
+    precio_unitario       NUMERIC(12,2) NOT NULL,
+    descuento_linea_pct   NUMERIC(5,2)  NOT NULL DEFAULT 0,
+    descuento_linea_monto NUMERIC(12,2) NOT NULL DEFAULT 0,
+    subtotal_linea        NUMERIC(12,2) NOT NULL
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_pos_cotizaciones_estatus       ON public.pos_cotizaciones(estatus);
+CREATE INDEX IF NOT EXISTS idx_pos_cotizaciones_cliente       ON public.pos_cotizaciones(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_pos_cotizaciones_detalle_cot   ON public.pos_cotizaciones_detalle(cotizacion_id);
+
+-- Foreign keys
+ALTER TABLE ONLY public.pos_cotizaciones
+    ADD CONSTRAINT fk_cotizaciones_cliente   FOREIGN KEY (cliente_id)  REFERENCES public.clientes(id)    ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_cotizaciones
+    ADD CONSTRAINT fk_cotizaciones_venta     FOREIGN KEY (venta_id)    REFERENCES public.pos_ventas(id)  ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_cotizaciones_detalle
+    ADD CONSTRAINT fk_cotizaciones_det_cot   FOREIGN KEY (cotizacion_id) REFERENCES public.pos_cotizaciones(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.pos_cotizaciones_detalle
+    ADD CONSTRAINT fk_cotizaciones_det_inv   FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE SET NULL;
+
+-- Trigger updated_at
+CREATE TRIGGER trg_pos_cotizaciones_updated_at
+    BEFORE UPDATE ON public.pos_cotizaciones
+    FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict xdokERlp8GM8wCgwycKIBMrgblOsZfVAkMA5Px5EKv1K3bzIq9hP6VvxXwYojuN
 

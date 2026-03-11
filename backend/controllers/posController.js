@@ -430,18 +430,19 @@ async function listVentas(req, res) {
   try {
     const {
       fecha_inicio, fecha_fin, cliente_id, vendedor_id,
-      estatus, page = 1, limit = 25,
+      estatus, folio, page = 1, limit = 25,
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const params = [];
     let where = 'WHERE 1=1';
 
-    if (fecha_inicio) { params.push(fecha_inicio); where += ` AND v.fecha_venta >= $${params.length}::date`; }
-    if (fecha_fin)    { params.push(fecha_fin);    where += ` AND v.fecha_venta < ($${params.length}::date + interval '1 day')`; }
-    if (cliente_id)   { params.push(cliente_id);   where += ` AND v.cliente_id = $${params.length}`; }
-    if (vendedor_id)  { params.push(vendedor_id);  where += ` AND v.vendedor_usuario_id = $${params.length}`; }
-    if (estatus)      { params.push(estatus);      where += ` AND v.estatus = $${params.length}`; }
+    if (fecha_inicio) { params.push(fecha_inicio);        where += ` AND v.fecha_venta >= $${params.length}::date`; }
+    if (fecha_fin)    { params.push(fecha_fin);            where += ` AND v.fecha_venta < ($${params.length}::date + interval '1 day')`; }
+    if (cliente_id)   { params.push(cliente_id);           where += ` AND v.cliente_id = $${params.length}`; }
+    if (vendedor_id)  { params.push(vendedor_id);          where += ` AND v.vendedor_usuario_id = $${params.length}`; }
+    if (estatus)      { params.push(estatus);              where += ` AND v.estatus = $${params.length}`; }
+    if (folio)        { params.push(`%${folio.trim()}%`);  where += ` AND v.folio ILIKE $${params.length}`; }
 
     const totalQ = await query(`SELECT COUNT(*) FROM pos_ventas v ${where}`, params);
     const total  = parseInt(totalQ.rows[0].count);
@@ -722,6 +723,326 @@ async function marcarTicketGenerado(req, res) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// COTIZACIONES
+// ─────────────────────────────────────────────────────────────
+
+async function generarFolioCotizacion(client) {
+  const anio = new Date().getFullYear();
+  const r = await client.query(
+    `SELECT COUNT(*) + 1 AS siguiente FROM pos_cotizaciones WHERE EXTRACT(YEAR FROM fecha_creacion) = $1`,
+    [anio]
+  );
+  const consecutivo = parseInt(r.rows[0].siguiente, 10);
+  return `CQ-${anio}-${String(consecutivo).padStart(5, '0')}`;
+}
+
+async function getCotizacionDetalle(id) {
+  const r = await query(`
+    SELECT c.*,
+           cl.nombre_comercial AS cliente_nombre_comercial,
+           cl.rfc AS cliente_rfc,
+           cl.email AS cliente_email
+    FROM pos_cotizaciones c
+    LEFT JOIN clientes cl ON cl.id = c.cliente_id
+    WHERE c.id = $1
+  `, [id]);
+  if (r.rows.length === 0) return null;
+  const cotiz = r.rows[0];
+  const detR = await query(
+    'SELECT * FROM pos_cotizaciones_detalle WHERE cotizacion_id=$1 ORDER BY id ASC',
+    [id]
+  );
+  return { ...cotiz, detalle: detR.rows.map(d => ({
+    ...d,
+    cantidad: parseFloat(d.cantidad),
+    precio_unitario: parseFloat(d.precio_unitario),
+    descuento_linea_pct: parseFloat(d.descuento_linea_pct),
+    descuento_linea_monto: parseFloat(d.descuento_linea_monto),
+    subtotal_linea: parseFloat(d.subtotal_linea),
+  })) };
+}
+
+// POST /api/pos/cotizaciones
+async function createCotizacion(req, res) {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const { cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0)
+      return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    const vendedorNombre = req.user?.nombre || req.user?.username || 'Sistema';
+    const vendedorId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
+
+    // Calcular totales
+    let subtotal = 0;
+    const lineas = [];
+    for (const item of items) {
+      const cantidad   = parseFloat(item.cantidad);
+      const precioUnit = parseFloat(item.precio_unitario);
+      const descLinPct = parseFloat(item.descuento_linea_pct || 0);
+      if (cantidad <= 0 || precioUnit < 0) continue;
+      const descLinMonto  = parseFloat(((cantidad * precioUnit) * descLinPct / 100).toFixed(2));
+      const subtotalLinea = parseFloat(((cantidad * precioUnit) - descLinMonto).toFixed(2));
+      subtotal += subtotalLinea;
+      lineas.push({ ...item, cantidad, precio_unitario: precioUnit, descuento_linea_pct: descLinPct, descuento_linea_monto: descLinMonto, subtotal_linea: subtotalLinea });
+    }
+    subtotal = parseFloat(subtotal.toFixed(2));
+    const descPct   = Math.min(parseFloat(descuento_pct || 0), 100);
+    const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
+    const total     = parseFloat((subtotal - descMonto).toFixed(2));
+
+    let clienteNombre = 'Público General';
+    if (cliente_id) {
+      const cliQ = await client.query(
+        'SELECT COALESCE(nombre_comercial, razon_social) AS nombre FROM clientes WHERE id=$1 AND activo=true',
+        [cliente_id]
+      );
+      if (cliQ.rows.length > 0) clienteNombre = cliQ.rows[0].nombre;
+    }
+
+    const folio = await generarFolioCotizacion(client);
+
+    const cotizQ = await client.query(`
+      INSERT INTO pos_cotizaciones
+        (folio, estatus, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
+         subtotal, descuento_pct, descuento_monto, total, notas, fecha_vencimiento)
+      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      RETURNING *
+    `, [folio, cliente_id || null, clienteNombre, vendedorId, vendedorNombre,
+        subtotal, descPct, descMonto, total, notas || null, fecha_vencimiento || null]);
+
+    const cotizId = cotizQ.rows[0].id;
+
+    for (const l of lineas) {
+      await client.query(`
+        INSERT INTO pos_cotizaciones_detalle
+          (cotizacion_id, inventario_id, nombre_producto, sku, es_servicio, es_item_libre,
+           cantidad, precio_unitario, descuento_linea_pct, descuento_linea_monto, subtotal_linea)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `, [cotizId, l.inventario_id || null, l.nombre_producto, l.sku || null,
+          !!l.es_servicio, !!l.es_item_libre, l.cantidad, l.precio_unitario,
+          l.descuento_linea_pct, l.descuento_linea_monto, l.subtotal_linea]);
+    }
+
+    await client.query('COMMIT');
+    const cotizCompleta = await getCotizacionDetalle(cotizId);
+    return res.status(201).json(createResponse(true, cotizCompleta, 'Cotización creada exitosamente'));
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('createCotizacion:', err);
+    return res.status(500).json(createErrorResponse('Error al crear cotización', CODIGOS_ERROR.ERROR_SERVIDOR));
+  } finally {
+    client.release();
+  }
+}
+
+// GET /api/pos/cotizaciones
+async function listCotizaciones(req, res) {
+  try {
+    const { folio, cliente_id, estatus, fecha_inicio, fecha_fin, page = 1, limit = 20 } = req.query;
+    const params = [];
+    const where  = [];
+    let p = 1;
+
+    if (folio)        { where.push(`c.folio ILIKE $${p}`);        params.push(`%${folio}%`);     p++; }
+    if (cliente_id)   { where.push(`c.cliente_id = $${p}`);       params.push(parseInt(cliente_id)); p++; }
+    if (estatus)      { where.push(`c.estatus = $${p}`);          params.push(estatus);           p++; }
+    if (fecha_inicio) { where.push(`c.fecha_creacion >= $${p}`);  params.push(fecha_inicio);      p++; }
+    if (fecha_fin)    { where.push(`c.fecha_creacion < ($${p}::date + interval '1 day')`); params.push(fecha_fin); p++; }
+
+    const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const offset   = (parseInt(page) - 1) * parseInt(limit);
+
+    const [dataR, countR] = await Promise.all([
+      query(`SELECT c.*, cl.nombre_comercial AS cliente_nombre_comercial
+             FROM pos_cotizaciones c
+             LEFT JOIN clientes cl ON cl.id = c.cliente_id
+             ${whereStr} ORDER BY c.fecha_creacion DESC
+             LIMIT $${p} OFFSET $${p+1}`, [...params, parseInt(limit), offset]),
+      query(`SELECT COUNT(*) FROM pos_cotizaciones c ${whereStr}`, params),
+    ]);
+
+    const total = parseInt(countR.rows[0].count);
+    return res.json(createPaginatedResponse(dataR.rows.map(r => ({
+      ...r,
+      subtotal: parseFloat(r.subtotal),
+      descuento_pct: parseFloat(r.descuento_pct),
+      descuento_monto: parseFloat(r.descuento_monto),
+      total: parseFloat(r.total),
+    })), parseInt(page), parseInt(limit), total));
+  } catch (err) {
+    console.error('listCotizaciones:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener cotizaciones', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// GET /api/pos/cotizaciones/:id
+async function getCotizacionById(req, res) {
+  try {
+    const cotiz = await getCotizacionDetalle(parseInt(req.params.id));
+    if (!cotiz) return res.status(404).json(createErrorResponse('Cotización no encontrada', CODIGOS_ERROR.NOT_FOUND));
+    return res.json(createResponse(true, cotiz, 'Cotización obtenida'));
+  } catch (err) {
+    console.error('getCotizacionById:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener cotización', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// PATCH /api/pos/cotizaciones/:id/estatus
+async function updateEstatusCotizacion(req, res) {
+  try {
+    const { id } = req.params;
+    const { estatus } = req.body;
+    const permitidos = ['rechazada', 'vencida'];
+    if (!permitidos.includes(estatus))
+      return res.status(400).json(createErrorResponse(`Estatus inválido. Use: ${permitidos.join(', ')}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    const r = await query(
+      `UPDATE pos_cotizaciones SET estatus=$1, fecha_modificacion=NOW() WHERE id=$2 AND estatus='pendiente' RETURNING *`,
+      [estatus, parseInt(id)]
+    );
+    if (r.rowCount === 0)
+      return res.status(404).json(createErrorResponse('Cotización no encontrada o ya no está pendiente', CODIGOS_ERROR.NOT_FOUND));
+
+    return res.json(createResponse(true, r.rows[0], `Cotización marcada como ${estatus}`));
+  } catch (err) {
+    console.error('updateEstatusCotizacion:', err);
+    return res.status(500).json(createErrorResponse('Error al actualizar estatus', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// POST /api/pos/cotizaciones/:id/convertir
+async function convertirCotizacion(req, res) {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const cotizId = parseInt(req.params.id);
+    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas } = req.body;
+
+    if (!metodo_pago_codigo)
+      return res.status(400).json(createErrorResponse('Método de pago requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    const cotizR = await client.query(
+      `SELECT * FROM pos_cotizaciones WHERE id=$1 FOR UPDATE`, [cotizId]
+    );
+    if (cotizR.rows.length === 0)
+      return res.status(404).json(createErrorResponse('Cotización no encontrada', CODIGOS_ERROR.NOT_FOUND));
+
+    const cotiz = cotizR.rows[0];
+    if (cotiz.estatus !== 'pendiente')
+      return res.status(400).json(createErrorResponse('Solo se pueden convertir cotizaciones pendientes', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    const detR = await client.query(
+      'SELECT * FROM pos_cotizaciones_detalle WHERE cotizacion_id=$1', [cotizId]
+    );
+    const items = detR.rows;
+
+    // Reutilizar lógica de createVenta: verificar stock y descontar
+    const vendedorNombre = req.user?.nombre || req.user?.username || 'Sistema';
+    const vendedorId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
+
+    let subtotal = 0;
+    const lineasProcesadas = [];
+
+    for (const item of items) {
+      const cantidad   = parseFloat(item.cantidad);
+      const descLinPct = parseFloat(item.descuento_linea_pct || 0);
+      let precioUnit   = parseFloat(item.precio_unitario);
+
+      if (item.inventario_id && !item.es_servicio && !item.es_item_libre) {
+        const stockQ = await client.query(
+          'SELECT existencia_actual, nombre, precio_venta FROM inventarios WHERE id=$1 AND activo=true FOR UPDATE',
+          [item.inventario_id]
+        );
+        if (stockQ.rows.length === 0) throw new Error(`Artículo no encontrado: ${item.nombre_producto}`);
+        const stock = parseFloat(stockQ.rows[0].existencia_actual);
+        if (stock < cantidad) throw new Error(`Stock insuficiente para "${stockQ.rows[0].nombre}": disponible ${stock}, solicitado ${cantidad}`);
+        const precioReal = parseFloat(stockQ.rows[0].precio_venta);
+        if (!isNaN(precioReal) && precioReal >= 0) precioUnit = precioReal;
+      }
+
+      const descLinMonto  = parseFloat(((cantidad * precioUnit) * descLinPct / 100).toFixed(2));
+      const subtotalLinea = parseFloat(((cantidad * precioUnit) - descLinMonto).toFixed(2));
+      subtotal += subtotalLinea;
+      lineasProcesadas.push({ ...item, cantidad, precio_unitario: precioUnit, descuento_linea_pct: descLinPct, descuento_linea_monto: descLinMonto, subtotal_linea: subtotalLinea });
+    }
+
+    subtotal = parseFloat(subtotal.toFixed(2));
+    const descPct   = parseFloat(cotiz.descuento_pct);
+    const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
+    const total     = parseFloat((subtotal - descMonto).toFixed(2));
+    const montoRecibido = monto_recibido ? parseFloat(monto_recibido) : null;
+    const cambio    = montoRecibido ? parseFloat((montoRecibido - total).toFixed(2)) : 0;
+
+    const folio = await generarFolio(client);
+
+    const ventaQ = await client.query(`
+      INSERT INTO pos_ventas (
+        folio, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
+        subtotal, descuento_pct, descuento_monto, total, monto_recibido, cambio,
+        metodo_pago_codigo, metodo_pago_descripcion, notas
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING *
+    `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
+        subtotal, descPct, descMonto, total, montoRecibido, cambio,
+        metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
+        notas || cotiz.notas || null]);
+
+    const venta   = ventaQ.rows[0];
+    const ventaId = venta.id;
+
+    for (const linea of lineasProcesadas) {
+      await client.query(`
+        INSERT INTO pos_ventas_detalle
+          (venta_id, inventario_id, nombre_producto, sku, es_servicio, es_item_libre,
+           cantidad, precio_unitario, descuento_linea_pct, descuento_linea_monto, subtotal_linea)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `, [ventaId, linea.inventario_id, linea.nombre_producto, linea.sku,
+          linea.es_servicio, linea.es_item_libre, linea.cantidad, linea.precio_unitario,
+          linea.descuento_linea_pct, linea.descuento_linea_monto, linea.subtotal_linea]);
+
+      if (linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
+        const stockQ = await client.query(
+          'SELECT existencia_actual FROM inventarios WHERE id=$1 FOR UPDATE', [linea.inventario_id]
+        );
+        const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
+        const saldoNuevo    = parseFloat((saldoAnterior - linea.cantidad).toFixed(2));
+        await client.query(
+          'UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=NOW() WHERE id=$2',
+          [saldoNuevo, linea.inventario_id]
+        );
+        await client.query(`
+          INSERT INTO inventarios_movimientos
+            (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo, usuario_nombre, area_servicio, notas, venta_id)
+          VALUES ($1,'salida','venta',$2,$3,$4,$5,'Punto de Venta',$6,$7)
+        `, [linea.inventario_id, -linea.cantidad, saldoAnterior, saldoNuevo, vendedorNombre, `Folio POS: ${folio}`, ventaId]);
+      }
+    }
+
+    // Marcar cotización como aceptada y vincular a la venta
+    await client.query(
+      `UPDATE pos_cotizaciones SET estatus='aceptada', venta_id=$1, fecha_modificacion=NOW() WHERE id=$2`,
+      [ventaId, cotizId]
+    );
+
+    await client.query('COMMIT');
+
+    const ventaCompleta = await getVentaDetalle(ventaId);
+    return res.status(201).json(createResponse(true, ventaCompleta, `Cotización ${cotiz.folio} convertida a venta ${folio}`));
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('convertirCotizacion:', err);
+    return res.status(500).json(createErrorResponse(err.message || 'Error al convertir cotización', CODIGOS_ERROR.ERROR_SERVIDOR));
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   getCatalogo,
   createVenta,
@@ -732,4 +1053,9 @@ module.exports = {
   getDescuentos,
   getPuntosByCliente,
   marcarTicketGenerado,
+  createCotizacion,
+  listCotizaciones,
+  getCotizacionById,
+  updateEstatusCotizacion,
+  convertirCotizacion,
 };

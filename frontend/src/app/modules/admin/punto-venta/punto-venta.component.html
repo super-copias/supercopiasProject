@@ -18,6 +18,11 @@
           (click)="cambiarVista('historial')">
           <i class="bi bi-clock-history me-1"></i>Historial
         </button>
+        <button class="btn" [class.btn-primary]="vistaActiva==='cotizaciones'"
+          [class.btn-outline-primary]="vistaActiva!=='cotizaciones'"
+          (click)="cambiarVista('cotizaciones')">
+          <i class="bi bi-file-earmark-text me-1"></i>Cotizaciones
+        </button>
       </div>
     </div>
     <!-- Stats del día -->
@@ -74,7 +79,8 @@
         [descuentoConfigId]="descuentoConfigId"
         [descuentoAutorizadoPor]="descuentoAutorizadoPor"
         (descuentoCambiado)="onDescuentoCambiado($event)"
-        (ventaCompletada)="onVentaCompletada()">
+        (ventaCompletada)="onVentaCompletada()"
+        (cotizacionGuardada)="onCotizacionGuardada($event)">
       </app-pos-panel-cobro>
     </div>
   </div>
@@ -85,5 +91,14 @@
   <div class="pos-historial-wrapper" *ngIf="vistaActiva==='historial'">
     <app-pos-historial-ventas (irANuevaVenta)="cambiarVista('pos')"></app-pos-historial-ventas>
   </div>
-
+  <!-- ════════════════════════════════════════════ -->
+  <!-- VISTA COTIZACIONES                        -->
+  <!-- ════════════════════════════════════════════ -->
+  <div class="pos-historial-wrapper" *ngIf="vistaActiva==='cotizaciones'">
+    <app-pos-cotizaciones-list
+      (cargarAlCarrito)="onCargarCotizacion($event)"
+      (cotizacionConvertida)="cargarStats()"
+      (irANuevaVenta)="cambiarVista('pos')">
+    </app-pos-cotizaciones-list>
+  </div>
 </div>

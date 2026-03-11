@@ -6,8 +6,17 @@
   (nuevaVenta)="nuevaVenta()"
 ></app-pos-ticket>
 
+<!-- ── Ticket post-cotización ───────────────────────────────────── -->
+<app-pos-ticket
+  *ngIf="mostrarTicketCotizacion && cotizacionExitosa"
+  [esCotizacion]="true"
+  [cotizacion]="cotizacionExitosa"
+  (imprimir)="imprimirTicket()"
+  (nuevaVenta)="nuevaVenta()"
+></app-pos-ticket>
+
 <!-- ── Panel cobro normal ────────────────────────────────────── -->
-<div class="panel-cobro d-flex flex-column h-100" *ngIf="!mostrarTicket">
+<div class="panel-cobro d-flex flex-column h-100" *ngIf="!mostrarTicket && !mostrarTicketCotizacion">
 
   <!-- Totales -->
   <div class="totales-box mb-2">
@@ -89,12 +98,28 @@
     <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas" placeholder="Observaciones..."></textarea>
   </div>
 
+  <!-- Fecha vencimiento cotización (opcional) -->
+  <div class="seccion mb-2">
+    <div class="seccion-titulo">Vigencia cotización <span class="text-muted fw-normal">(opcional)</span></div>
+    <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
+      [min]="('' | date:'yyyy-MM-dd') ?? ''">
+  </div>
+
   <!-- Error -->
   <div class="alert alert-danger py-1 px-2 small mb-2" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-danger py-1 px-2 small mb-2" *ngIf="errorCotizacion">{{ errorCotizacion }}</div>
 
-  <!-- Botón cobrar -->
+  <!-- Botones -->
   <div class="mt-auto">
-    <button class="btn btn-cobrar w-100"
+    <button class="btn btn-cotizar w-100"
+      [disabled]="!puedeGuardarCotizacion"
+      (click)="guardarCotizacion()">
+      <span *ngIf="procesandoCotizacion" class="spinner-border spinner-border-sm me-1"></span>
+      <span *ngIf="!procesandoCotizacion"><i class="bi bi-file-earmark-plus me-1"></i></span>
+      {{ procesandoCotizacion ? 'Guardando...' : 'Guardar cotización' }}
+    </button>
+
+    <button class="btn btn-cobrar w-100 mt-2"
       [disabled]="!puedeVender"
       (click)="procesarVenta()">
       <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>

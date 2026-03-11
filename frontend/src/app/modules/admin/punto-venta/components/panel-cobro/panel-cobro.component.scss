@@ -85,6 +85,20 @@
   &:disabled { opacity: .55; cursor: not-allowed; }
 }
 
+// Botón guardar cotización — tono azul-índigo para diferenciar de cobrar
+.btn-cotizar {
+  background: #4361ee;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-radius: 10px;
+  padding: .75rem;
+  border: none;
+  transition: background 0.2s;
+  &:hover:not(:disabled) { background: #3451d1; }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
 // Modal autorización
 .modal-auth-overlay {
   position: fixed;

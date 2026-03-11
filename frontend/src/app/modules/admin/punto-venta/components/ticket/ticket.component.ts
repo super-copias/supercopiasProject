@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { VentaDetalle } from '../../../../../services/pos.service';
+import { VentaDetalle, CotizacionDetalle } from '../../../../../services/pos.service';
 
 @Component({
   selector: 'app-pos-ticket',
@@ -9,12 +9,22 @@ import { VentaDetalle } from '../../../../../services/pos.service';
 export class TicketComponent {
 
   @Input() venta: VentaDetalle | null = null;
+  @Input() cotizacion: CotizacionDetalle | null = null;
+  @Input() esCotizacion = false;
 
-  @Output() imprimir   = new EventEmitter<void>();
-  @Output() nuevaVenta = new EventEmitter<void>();
+  @Output() imprimir      = new EventEmitter<void>();
+  @Output() nuevaVenta    = new EventEmitter<void>();
+  @Output() cargarAlCarrito = new EventEmitter<CotizacionDetalle>();
 
   onImprimir(): void    { this.imprimir.emit(); }
   onNuevaVenta(): void  { this.nuevaVenta.emit(); }
+  onCargarAlCarrito(): void {
+    if (this.cotizacion) this.cargarAlCarrito.emit(this.cotizacion);
+  }
+
+  get esVisible(): boolean {
+    return this.esCotizacion ? !!this.cotizacion : !!this.venta;
+  }
 
   get cambio(): number {
     if (!this.venta) return 0;

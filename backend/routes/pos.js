@@ -16,6 +16,11 @@ const {
   getDescuentos,
   getPuntosByCliente,
   marcarTicketGenerado,
+  createCotizacion,
+  listCotizaciones,
+  getCotizacionById,
+  updateEstatusCotizacion,
+  convertirCotizacion,
 } = require('../controllers/posController');
 
 // ── Catálogo de productos disponibles en POS ──────────────────
@@ -36,5 +41,12 @@ router.patch('/ventas/:id/ticket',   auth, marcarTicketGenerado);
 
 // ── Clientes - Puntos ─────────────────────────────────────────
 router.get('/clientes/:id/puntos', auth, getPuntosByCliente);
+
+// ── Cotizaciones ──────────────────────────────────────────────
+router.get('/cotizaciones',                 auth, listCotizaciones);
+router.post('/cotizaciones',                auth, createCotizacion);
+router.get('/cotizaciones/:id',             auth, getCotizacionById);
+router.patch('/cotizaciones/:id/estatus',   auth, updateEstatusCotizacion);
+router.post('/cotizaciones/:id/convertir',  auth, convertirCotizacion);
 
 module.exports = router;

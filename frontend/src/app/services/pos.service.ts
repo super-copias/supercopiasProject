@@ -141,6 +141,59 @@ export interface StatsHoy {
   pagos_transferencia: number;
 }
 
+export interface CotizacionPayload {
+  cliente_id?: number | null;
+  items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui'>[];
+  descuento_pct?: number;
+  notas?: string;
+  fecha_vencimiento?: string | null;
+}
+
+export interface CotizacionLinea {
+  id: number;
+  cotizacion_id: number;
+  inventario_id?: number;
+  nombre_producto: string;
+  sku?: string;
+  es_servicio: boolean;
+  es_item_libre: boolean;
+  cantidad: number;
+  precio_unitario: number;
+  descuento_linea_pct: number;
+  descuento_linea_monto: number;
+  subtotal_linea: number;
+}
+
+export interface CotizacionDetalle {
+  id: number;
+  folio: string;
+  estatus: 'pendiente' | 'aceptada' | 'rechazada' | 'vencida';
+  cliente_id?: number;
+  cliente_nombre: string;
+  cliente_nombre_comercial?: string;
+  vendedor_nombre?: string;
+  subtotal: number;
+  descuento_pct: number;
+  descuento_monto: number;
+  total: number;
+  notas?: string;
+  fecha_vencimiento?: string;
+  venta_id?: number;
+  fecha_creacion: string;
+  fecha_modificacion: string;
+  detalle: CotizacionLinea[];
+}
+
+export interface FiltrosCotizaciones {
+  folio?: string;
+  cliente_id?: number;
+  estatus?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  page?: number;
+  limit?: number;
+}
+
 export interface FiltrosVentas {
   fecha_inicio?: string;
   fecha_fin?: string;
@@ -191,8 +244,11 @@ export class PosService {
     if (filtros?.cliente_id)   httpParams = httpParams.set('cliente_id', filtros.cliente_id.toString());
     if (filtros?.vendedor_id)  httpParams = httpParams.set('vendedor_id', filtros.vendedor_id.toString());
     if (filtros?.estatus)      httpParams = httpParams.set('estatus', filtros.estatus);
-    if (filtros?.page)         httpParams = httpParams.set('page', filtros.page.toString());
-    if (filtros?.limit)        httpParams = httpParams.set('limit', filtros.limit.toString());
+    if (filtros?.folio)        httpParams = httpParams.set('folio', filtros.folio);
+    const page  = filtros?.page  ?? filtros?.pagina;
+    const limit = filtros?.limit ?? filtros?.por_pagina;
+    if (page)  httpParams = httpParams.set('page',  page.toString());
+    if (limit) httpParams = httpParams.set('limit', limit.toString());
     return this.http.get<any>(`${this.baseUrl}/ventas`, { params: httpParams });
   }
 
@@ -218,6 +274,41 @@ export class PosService {
 
   getPuntosByCliente(clienteId: number): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/clientes/${clienteId}/puntos`);
+  }
+
+  // ── Cotizaciones ──────────────────────────────────────────────
+
+  createCotizacion(payload: CotizacionPayload): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/cotizaciones`, payload);
+  }
+
+  listCotizaciones(filtros?: FiltrosCotizaciones): Observable<any> {
+    let p = new HttpParams();
+    if (filtros?.folio)        p = p.set('folio', filtros.folio);
+    if (filtros?.cliente_id)   p = p.set('cliente_id', filtros.cliente_id.toString());
+    if (filtros?.estatus)      p = p.set('estatus', filtros.estatus);
+    if (filtros?.fecha_inicio) p = p.set('fecha_inicio', filtros.fecha_inicio);
+    if (filtros?.fecha_fin)    p = p.set('fecha_fin', filtros.fecha_fin);
+    if (filtros?.page)         p = p.set('page', filtros.page.toString());
+    if (filtros?.limit)        p = p.set('limit', filtros.limit.toString());
+    return this.http.get<any>(`${this.baseUrl}/cotizaciones`, { params: p });
+  }
+
+  getCotizacionById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/cotizaciones/${id}`);
+  }
+
+  updateEstatusCotizacion(id: number, estatus: 'rechazada' | 'vencida'): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/cotizaciones/${id}/estatus`, { estatus });
+  }
+
+  convertirCotizacion(id: number, metodoPago: string, metodoPagoDesc?: string, montoRecibido?: number | null, notas?: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/cotizaciones/${id}/convertir`, {
+      metodo_pago_codigo: metodoPago,
+      metodo_pago_descripcion: metodoPagoDesc || metodoPago,
+      monto_recibido: montoRecibido || null,
+      notas,
+    });
   }
 
   // ── Helpers locales ───────────────────────────────────────────
