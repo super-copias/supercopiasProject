@@ -144,6 +144,17 @@ export class ClientesService {
   }
 
   /**
+   * Descargar plantilla Excel para carga masiva
+   * Usa HttpClient para que el interceptor incluya el token JWT
+   */
+  descargarPlantillaExcel(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/plantilla-excel`, { responseType: 'blob' })
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
    * Subir archivo Excel con clientes
    */
   uploadExcel(file: File): Observable<ApiResponse<any>> {

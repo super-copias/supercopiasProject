@@ -423,31 +423,33 @@ export class ClientesUploadComponent {
    */
   descargarPlantilla(): void {
     this.descargandoPlantilla = true;
-    
-    // Crear enlace para descarga
-    const url = '/api/clientes/plantilla-excel';
-    
-    // Crear elemento <a> temporal para descarga
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'plantilla_clientes.xlsx';
-    link.style.display = 'none';
-    
-    // Agregar al DOM, hacer clic y remover
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Mostrar notificación
-    this.notificationService.info(
-      'La plantilla se está descargando',
-      'Descarga iniciada'
-    );
-    
-    // Simular delay para UX
-    setTimeout(() => {
-      this.descargandoPlantilla = false;
-    }, 1000);
+
+    this.clientesService.descargarPlantillaExcel().subscribe({
+      next: (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla_clientes.xlsx';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        this.notificationService.info(
+          'La plantilla se está descargando',
+          'Descarga iniciada'
+        );
+        this.descargandoPlantilla = false;
+      },
+      error: () => {
+        this.notificationService.error(
+          'No se pudo descargar la plantilla',
+          'Error de descarga'
+        );
+        this.descargandoPlantilla = false;
+      }
+    });
   }
 
   /**
