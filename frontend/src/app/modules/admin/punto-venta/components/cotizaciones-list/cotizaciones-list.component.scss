@@ -39,7 +39,7 @@
 .paginador { flex-shrink: 0; background: #fff; }
 .page-link { cursor: pointer; }
 
-// Overlay de detalle
+// Panel lateral detalle (igual que historial)
 .detalle-overlay {
   position: fixed;
   inset: 0;
@@ -69,7 +69,7 @@
 }
 .detalle-body { padding: 1rem 1.25rem; flex: 1; overflow-y: auto; }
 
-// Info grid
+// Info grid (igual que historial)
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -95,8 +95,25 @@
   gap: .3rem;
 }
 
-// Print
-@media print {
-  .historial-wrapper { display: none !important; }
-  .filtros-bar { display: none !important; }
+// Modal flotante centrado (solo para "Convertir a venta")
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
+.modal-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+}
+

@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { LineaCarrito, Descuento, VentaDetalle, PosService } from '../../../../../services/pos.service';
+import { LineaCarrito, Descuento, VentaDetalle, CotizacionDetalle, PosService } from '../../../../../services/pos.service';
 
 @Component({
   selector: 'app-pos-panel-cobro',
@@ -17,8 +17,9 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   @Input() descuentoConfigId: number | null = null;
   @Input() descuentoAutorizadoPor: string | null = null;
 
-  @Output() descuentoCambiado = new EventEmitter<{ pct: number; configId: number | null; autorizadoPor: string | null }>();
-  @Output() ventaCompletada   = new EventEmitter<void>();
+  @Output() descuentoCambiado    = new EventEmitter<{ pct: number; configId: number | null; autorizadoPor: string | null }>();
+  @Output() ventaCompletada       = new EventEmitter<void>();
+  @Output() cotizacionGuardada    = new EventEmitter<CotizacionDetalle>();
 
   private destroy$ = new Subject<void>();
 
@@ -29,6 +30,13 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   procesando = false;
   error = '';
   ventaExitosa: VentaDetalle | null = null;
+
+  // Cotización
+  procesandoCotizacion = false;
+  errorCotizacion = '';
+  cotizacionExitosa: CotizacionDetalle | null = null;
+  mostrarTicketCotizacion = false;
+  fechaVencimientoCotizacion = '';
 
   // Descuento manual
   descuentoManualPct = 0;
@@ -49,7 +57,14 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   constructor(private posService: PosService) {}
 
+  private fechaHoyMasDias(dias: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + dias);
+    return d.toISOString().split('T')[0];
+  }
+
   ngOnInit(): void {
+    this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
     this.posService.getDescuentos().pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.descuentos = r.data || []; }
     });
@@ -220,9 +235,45 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   nuevaVenta(): void {
     this.ventaExitosa = null;
     this.mostrarTicket = false;
+    this.cotizacionExitosa = null;
+    this.mostrarTicketCotizacion = false;
     this.montoRecibido = null;
     this.notas = '';
     this.descuentoManualPct = 0;
+    this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
+  }
+
+  // ── Cotización ────────────────────────────────────────────────
+
+  get puedeGuardarCotizacion(): boolean {
+    return this.carrito.length > 0 && !this.procesandoCotizacion;
+  }
+
+  guardarCotizacion(): void {
+    if (!this.puedeGuardarCotizacion) return;
+    this.procesandoCotizacion = true;
+    this.errorCotizacion = '';
+
+    const payload = {
+      cliente_id: this.clienteSeleccionado?.id || null,
+      items: this.carrito.map(({ _foto_url, _nivel_stock, _existencia_actual, _id_ui, ...rest }) => rest),
+      descuento_pct: this.descuentoGlobalPct,
+      notas: this.notas || undefined,
+      fecha_vencimiento: this.fechaVencimientoCotizacion || undefined,
+    };
+
+    this.posService.createCotizacion(payload).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r) => {
+        this.cotizacionExitosa = r.data;
+        this.mostrarTicketCotizacion = true;
+        this.procesandoCotizacion = false;
+        this.cotizacionGuardada.emit(r.data);
+      },
+      error: (e) => {
+        this.errorCotizacion = e?.error?.error?.message || 'Error al guardar la cotización';
+        this.procesandoCotizacion = false;
+      }
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────────

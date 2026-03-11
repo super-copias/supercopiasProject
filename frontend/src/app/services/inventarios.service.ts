@@ -13,6 +13,7 @@ export interface Departamento {
   orden?: number;
   activo?: boolean;
   total_articulos?: number;
+  costo_total?: number;
 }
 
 export interface Articulo {

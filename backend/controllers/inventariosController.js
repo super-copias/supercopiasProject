@@ -48,7 +48,9 @@ function nivelStock(existencia, stockMin) {
 async function getDepartamentos(req, res) {
   try {
     const result = await query(`
-      SELECT d.*, COUNT(i.id) FILTER (WHERE i.activo = true) AS total_articulos
+      SELECT d.*,
+             COUNT(i.id) FILTER (WHERE i.activo = true) AS total_articulos,
+             COALESCE(SUM(i.costo_compra * i.existencia_actual) FILTER (WHERE i.activo = true), 0) AS costo_total
       FROM inv_departamentos d
       LEFT JOIN inventarios i ON i.departamento_id = d.id
       WHERE d.activo = true
@@ -201,7 +203,8 @@ async function getInventariosPorDepartamento(req, res) {
     const deptoWhere = filtroDepartamento ? `AND d.id = ${filtroDepartamento}` : '';
 
     const deptos = await query(`
-      SELECT d.*, COUNT(i.id) AS total_articulos
+      SELECT d.*, COUNT(i.id) AS total_articulos,
+             COALESCE(SUM(i.costo_compra * i.existencia_actual), 0) AS costo_total
       FROM inv_departamentos d
       INNER JOIN inventarios i ON i.departamento_id=d.id AND i.activo=true
       WHERE d.activo=true ${deptoWhere} GROUP BY d.id ORDER BY d.orden ASC, d.nombre ASC
@@ -216,6 +219,7 @@ async function getInventariosPorDepartamento(req, res) {
       return {
         ...depto,
         total_articulos: parseInt(depto.total_articulos),
+        costo_total: parseFloat(depto.costo_total) || 0,
         articulos: artResult.rows.map(r => ({
           ...parseNumericFields(r),
           nivel_stock: r.es_servicio ? null : nivelStock(r.existencia_actual, r.stock_minimo)

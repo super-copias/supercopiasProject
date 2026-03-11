@@ -155,6 +155,7 @@
                 [style.background-color]="depto.color || '#6c757d'"></span>
           <strong>{{depto.nombre}}</strong>
           <span class="badge bg-secondary">{{depto.total_articulos || depto.articulos.length}} art.</span>
+          <span class="badge bg-light text-dark border">Costo: ${{(depto.costo_total || 0) | number:'1.2-2'}}</span>
         </div>
         <i class="fas" [class.fa-chevron-up]="estaAbierto(depto.id!)" [class.fa-chevron-down]="!estaAbierto(depto.id!)"></i>
       </div>
@@ -168,6 +169,7 @@
                 <th>Artículo</th>
                 <th class="d-none d-md-table-cell">Tipo</th>
                 <th>Stock</th>
+                <th class="d-none d-md-table-cell">Costo compra</th>
                 <th class="d-none d-md-table-cell">Precio venta</th>
                 <th class="text-center d-none d-md-table-cell">En caja</th>
                 <th class="text-end">Acciones</th>
@@ -187,7 +189,15 @@
                   <i [class]="getTipoIcon(art) + ' me-1 text-muted'"></i>
                   <span>{{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}</span>
                 </td>
-                <td><span [class]="getBadgeStock(art)">{{getStockLabel(art)}}</span></td>
+                <td>
+                  <span [class]="getBadgeStock(art)">{{getStockLabel(art)}}</span>
+                  <span *ngIf="art.nivel_stock === 'critico' || art.nivel_stock === 'bajo' || art.nivel_stock === 'sin_stock'"
+                        class="ms-1 text-muted small">({{art.existencia_actual ?? 0}} {{art.unidad_medida || ''}})</span>
+                </td>
+                <td class="d-none d-md-table-cell">
+                  <span *ngIf="art.costo_compra">{{formatCurrency(art.costo_compra)}}</span>
+                  <span *ngIf="!art.costo_compra" class="text-muted">—</span>
+                </td>
                 <td class="d-none d-md-table-cell">
                   <span *ngIf="art.precio_venta">{{formatCurrency(art.precio_venta)}}</span>
                   <span *ngIf="!art.precio_venta" class="text-muted">—</span>

@@ -1,4 +1,7 @@
-<div class="ticket-wrapper" *ngIf="venta">
+<div class="ticket-wrapper" *ngIf="esVisible">
+
+  <!-- ══════════════════════════ TICKET VENTA ══════════════════════════ -->
+  <ng-container *ngIf="!esCotizacion && venta">
 
   <!-- ── Acciones (no se imprimen) ──────────────────────────── -->
   <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
@@ -118,4 +121,103 @@
     </div>
 
   </div><!-- /ticket-papel -->
+
+  </ng-container>
+
+  <!-- ══════════════════════════ TICKET COTIZACIÓN ══════════════════════════ -->
+  <ng-container *ngIf="esCotizacion && cotizacion">
+
+  <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
+    <button class="btn btn-outline-secondary btn-sm" (click)="onNuevaVenta()">
+      <i class="bi bi-plus-circle me-1"></i>Nueva Venta
+    </button>
+    <button class="btn btn-outline-success btn-sm" (click)="onCargarAlCarrito()">
+      <i class="bi bi-cart-plus me-1"></i>Cargar al carrito
+    </button>
+    <button class="btn btn-primary btn-sm" (click)="onImprimir()">
+      <i class="bi bi-printer me-1"></i>Imprimir
+    </button>
+  </div>
+
+  <div class="ticket-papel">
+
+    <div class="t-header">
+      <div class="t-empresa">SUPERCOPIAS</div>
+      <div class="t-sub">Soluciones de impresión</div>
+      <div class="t-sep"></div>
+      <div class="text-center fw-bold" style="font-size:13px;letter-spacing:1px;">COTIZACIÓN</div>
+      <div class="t-sep"></div>
+    </div>
+
+    <div class="t-meta">
+      <div><b>Folio:</b> {{ cotizacion.folio }}</div>
+      <div><b>Fecha:</b> {{ cotizacion.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+      <div *ngIf="cotizacion.fecha_vencimiento"><b>Vigente hasta:</b> {{ cotizacion.fecha_vencimiento | date:'dd/MM/yyyy' }}</div>
+      <div *ngIf="cotizacion.vendedor_nombre"><b>Atendió:</b> {{ cotizacion.vendedor_nombre }}</div>
+    </div>
+
+    <ng-container *ngIf="cotizacion.cliente_id">
+      <div class="t-sep"></div>
+      <div class="t-cliente">
+        <div class="t-cliente-titulo">Cliente</div>
+        <div class="t-cliente-nombre">{{ cotizacion.cliente_nombre }}</div>
+      </div>
+    </ng-container>
+
+    <div class="t-sep"></div>
+
+    <table class="t-items">
+      <thead>
+        <tr>
+          <th class="t-desc">Descripción</th>
+          <th class="t-qty">Cant</th>
+          <th class="t-price">Precio</th>
+          <th class="t-tot">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of cotizacion.detalle">
+          <td class="t-desc">
+            {{ item.nombre_producto }}
+            <span *ngIf="item.descuento_linea_pct > 0" class="t-badge-desc">-{{ item.descuento_linea_pct }}%</span>
+          </td>
+          <td class="t-qty">{{ item.cantidad }}</td>
+          <td class="t-price">${{ item.precio_unitario | number:'1.2-2' }}</td>
+          <td class="t-tot">${{ item.subtotal_linea | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="t-sep"></div>
+
+    <div class="t-totales">
+      <div class="t-trow">
+        <span>Subtotal</span>
+        <span>${{ cotizacion.subtotal | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow" *ngIf="cotizacion.descuento_monto > 0">
+        <span>Descuento ({{ cotizacion.descuento_pct }}%)</span>
+        <span>-${{ cotizacion.descuento_monto | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow t-total-row">
+        <span>TOTAL COTIZADO</span>
+        <span>${{ cotizacion.total | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <div class="t-notas" *ngIf="cotizacion.notas">
+      <div class="t-sep"></div>
+      {{ cotizacion.notas }}
+    </div>
+
+    <div class="t-sep"></div>
+    <div class="t-footer">
+      Esta cotización es informativa y no garantiza disponibilidad.<br>
+      www.supercopias.com
+    </div>
+
+  </div><!-- /ticket-papel cotización -->
+
+  </ng-container>
+
 </div>

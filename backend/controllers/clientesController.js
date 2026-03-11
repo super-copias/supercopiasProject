@@ -382,23 +382,50 @@ async function createCliente(req, res) {
       }
     }
 
-    // Verificar si el email ya existe (solo si se proporciona)
-    if (email && email.trim().length > 0) {
-      const emailResult = await query(
-        'SELECT id FROM clientes WHERE email = $1 AND activo = true',
-        [email.toLowerCase()]
+    // Verificar si el nombre comercial ya existe
+    const nombreResult = await query(
+      'SELECT id FROM clientes WHERE LOWER(nombre_comercial) = LOWER($1) AND activo = true',
+      [nombreComercial.trim()]
+    );
+    if (nombreResult.rows.length > 0) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.ALREADY_EXISTS,
+          'Ya existe un cliente con este nombre comercial'
+        )
       );
-      
-      if (emailResult.rows.length > 0) {
+    }
+
+    // Verificar si el teléfono ya existe
+    const telefonoResult = await query(
+      'SELECT id FROM clientes WHERE telefono = $1 AND activo = true',
+      [telefono.trim()]
+    );
+    if (telefonoResult.rows.length > 0) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.ALREADY_EXISTS,
+          'Ya existe un cliente con este teléfono'
+        )
+      );
+    }
+
+    // Verificar si el segundo teléfono ya existe (solo si se proporciona)
+    if (segundoTelefono && segundoTelefono.trim().length > 0) {
+      const segundoTelResult = await query(
+        'SELECT id FROM clientes WHERE telefono = $1 OR segundo_telefono = $1 AND activo = true',
+        [segundoTelefono.trim()]
+      );
+      if (segundoTelResult.rows.length > 0) {
         return res.status(400).json(
           createErrorResponse(
             CODIGOS_ERROR.ALREADY_EXISTS,
-            'Ya existe un cliente con este correo electrónico'
+            'Ya existe un cliente con este segundo teléfono'
           )
         );
       }
     }
-    
+
     // Crear nuevo cliente con estructura simplificada de dirección
     const insertQuery = `
       INSERT INTO clientes (
@@ -606,6 +633,52 @@ async function updateCliente(req, res) {
       }
     }
     
+    // Verificar duplicados para los campos únicos (excluyendo el cliente actual)
+    if (updateData.nombreComercial && updateData.nombreComercial.trim().length > 0) {
+      const nombreDupResult = await query(
+        'SELECT id FROM clientes WHERE LOWER(nombre_comercial) = LOWER($1) AND activo = true AND id <> $2',
+        [updateData.nombreComercial.trim(), clienteId]
+      );
+      if (nombreDupResult.rows.length > 0) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.ALREADY_EXISTS,
+            'Ya existe un cliente con este nombre comercial'
+          )
+        );
+      }
+    }
+
+    if (updateData.telefono && updateData.telefono.trim().length > 0) {
+      const telefonoDupResult = await query(
+        'SELECT id FROM clientes WHERE telefono = $1 AND activo = true AND id <> $2',
+        [updateData.telefono.trim(), clienteId]
+      );
+      if (telefonoDupResult.rows.length > 0) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.ALREADY_EXISTS,
+            'Ya existe un cliente con este teléfono'
+          )
+        );
+      }
+    }
+
+    if (updateData.segundoTelefono && updateData.segundoTelefono.trim().length > 0) {
+      const segundoTelDupResult = await query(
+        'SELECT id FROM clientes WHERE (telefono = $1 OR segundo_telefono = $1) AND activo = true AND id <> $2',
+        [updateData.segundoTelefono.trim(), clienteId]
+      );
+      if (segundoTelDupResult.rows.length > 0) {
+        return res.status(400).json(
+          createErrorResponse(
+            CODIGOS_ERROR.ALREADY_EXISTS,
+            'Ya existe un cliente con este segundo teléfono'
+          )
+        );
+      }
+    }
+
     // Preparar campos dinámicos para actualizar con nueva estructura
     const camposActualizar = [];
     const valores = [];
@@ -923,19 +996,41 @@ async function uploadExcelClientes(req, res) {
           }
         }
 
-        // Verificar email duplicado solo si se proporciona
-        if (correo && correo.toString().trim().length > 0) {
-          const emailResult = await query(
-            'SELECT id FROM clientes WHERE email = $1 AND activo = true',
-            [correo.toString().toLowerCase()]
+        // Verificar nombre comercial duplicado
+        const nombreDupResult = await query(
+          'SELECT id FROM clientes WHERE LOWER(nombre_comercial) = LOWER($1) AND activo = true',
+          [fila.nombre.toString().trim()]
+        );
+        if (nombreDupResult.rows.length > 0) {
+          resultados.errores.push(`Fila ${i + 2}: Ya existe un cliente con el nombre "${fila.nombre}"`);
+          continue;
+        }
+
+        // Verificar teléfono duplicado
+        const telefonoParaVerificar = fila.telefono.toString().trim();
+        const telefonoDupResult = await query(
+          'SELECT id FROM clientes WHERE telefono = $1 AND activo = true',
+          [telefonoParaVerificar]
+        );
+        if (telefonoDupResult.rows.length > 0) {
+          resultados.errores.push(`Fila ${i + 2}: Ya existe un cliente con el teléfono "${fila.telefono}"`);
+          continue;
+        }
+
+        // Verificar segundo teléfono duplicado (solo si se proporciona)
+        const segundoTelRaw = fila['segundo telefono'] || fila.segundoTelefono || fila.telefono2;
+        if (segundoTelRaw && segundoTelRaw.toString().trim().length > 0) {
+          const segundoTelParaVerificar = segundoTelRaw.toString().trim();
+          const segundoTelDupResult = await query(
+            'SELECT id FROM clientes WHERE (telefono = $1 OR segundo_telefono = $1) AND activo = true',
+            [segundoTelParaVerificar]
           );
-          
-          if (emailResult.rows.length > 0) {
-            resultados.errores.push(`Fila ${i + 2}: Email ${correo} ya existe`);
+          if (segundoTelDupResult.rows.length > 0) {
+            resultados.errores.push(`Fila ${i + 2}: Ya existe un cliente con el segundo teléfono "${segundoTelRaw}"`);
             continue;
           }
         }
-        
+
         // Crear cliente con nueva estructura
         const insertQuery = `
           INSERT INTO clientes (

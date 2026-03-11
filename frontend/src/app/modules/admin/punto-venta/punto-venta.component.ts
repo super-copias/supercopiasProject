@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
-import { PosService, LineaCarrito, CatalogoItem, StatsHoy } from '../../../services/pos.service';
+import { PosService, LineaCarrito, CatalogoItem, StatsHoy, CotizacionDetalle } from '../../../services/pos.service';
 
 @Component({
   selector: 'app-punto-venta',
@@ -13,7 +13,7 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  vistaActiva: 'pos' | 'historial' = 'pos';
+  vistaActiva: 'pos' | 'historial' | 'cotizaciones' = 'pos';
 
   carrito: LineaCarrito[] = [];
   clienteSeleccionado: any = null;
@@ -48,6 +48,9 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
   onAgregarAlCarrito(item: CatalogoItem): void {
     const existing = this.carrito.find(c => c.inventario_id === item.id && !c.es_item_libre);
     if (existing) {
+      if (!item.es_servicio && item.existencia_actual !== undefined && existing.cantidad >= item.existencia_actual) {
+        return;
+      }
       existing.cantidad += 1;
       existing.subtotal_linea = this.posService.calcularSubtotalLinea(existing);
     } else {
@@ -124,12 +127,45 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
     this.onLimpiarCarrito();
   }
 
+  onCotizacionGuardada(cotiz: CotizacionDetalle): void {
+    // El ticket de cotización se muestra dentro del panel-cobro;
+    // solo actualizamos las estadísticas del día.
+    this.cargarStats();
+  }
+
+  onCargarCotizacion(cotiz: CotizacionDetalle): void {
+    // Limpiar carrito actual y cargar items de la cotización
+    this.carrito = [];
+    this.descuentoGlobalPct = cotiz.descuento_pct || 0;
+    this.descuentoConfigId = null;
+    this.descuentoAutorizadoPor = null;
+
+    for (const linea of cotiz.detalle) {
+      this.carrito.push({
+        inventario_id:       linea.inventario_id,
+        nombre_producto:     linea.nombre_producto,
+        sku:                 linea.sku,
+        es_servicio:         linea.es_servicio,
+        es_item_libre:       linea.es_item_libre,
+        cantidad:            linea.cantidad,
+        precio_unitario:     linea.precio_unitario,
+        descuento_linea_pct: linea.descuento_linea_pct,
+        descuento_linea_monto: linea.descuento_linea_monto,
+        subtotal_linea:      linea.subtotal_linea,
+        _id_ui:              `cotiz-${linea.id}-${Date.now()}`,
+      });
+    }
+
+    this.recalcularTotales();
+    this.cambiarVista('pos');
+  }
+
   recalcularTotales(): void {
     this.totales = this.posService.calcularTotalesCarrito(this.carrito, this.descuentoGlobalPct);
   }
 
-  cambiarVista(vista: 'pos' | 'historial'): void {
+  cambiarVista(vista: 'pos' | 'historial' | 'cotizaciones'): void {
     this.vistaActiva = vista;
-    if (vista === 'historial') this.cargarStats();
+    if (vista === 'historial' || vista === 'cotizaciones') this.cargarStats();
   }
 }

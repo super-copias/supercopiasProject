@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { Subject } from 'rxjs';
-import { takeUntil, debounceTime } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { PosService, FiltrosVentas, VentaDetalle } from '../../../../../services/pos.service';
 
@@ -54,14 +54,6 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
     this.filtroFechaFin.setValue(this.toISO(hoy));
 
     this.cargarVentas();
-
-    // Recargar al cambiar filtros
-    [this.filtroFechaInicio, this.filtroFechaFin, this.filtroEstatus].forEach(ctrl => {
-      ctrl.valueChanges.pipe(debounceTime(400), takeUntil(this.destroy$))
-        .subscribe(() => { this.paginaActual = 1; this.cargarVentas(); });
-    });
-    this.filtroFolio.valueChanges.pipe(debounceTime(600), takeUntil(this.destroy$))
-      .subscribe(() => { this.paginaActual = 1; this.cargarVentas(); });
   }
 
   ngOnDestroy(): void {
@@ -71,6 +63,22 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
 
   private toISO(d: Date): string {
     return d.toISOString().split('T')[0];
+  }
+
+  buscar(): void {
+    this.paginaActual = 1;
+    this.cargarVentas();
+  }
+
+  limpiarFiltros(): void {
+    const hoy = new Date();
+    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    this.filtroFechaInicio.setValue(this.toISO(primerDia));
+    this.filtroFechaFin.setValue(this.toISO(hoy));
+    this.filtroEstatus.setValue('');
+    this.filtroFolio.setValue('');
+    this.paginaActual = 1;
+    this.cargarVentas();
   }
 
   cargarVentas(): void {

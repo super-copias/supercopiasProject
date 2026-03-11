@@ -1,0 +1,323 @@
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COTIZACIONES LIST                                            -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="historial-wrapper">
+
+  <!-- ── Filtros ─────────────────────────────────────────────── -->
+  <div class="filtros-bar">
+    <div class="filtros-titulo">
+      <span><i class="bi bi-file-earmark-text me-2"></i>Cotizaciones</span>
+      <button class="btn btn-sm btn-outline-primary" (click)="irANuevaVenta.emit()">
+        <i class="bi bi-plus-circle me-1"></i>Nueva Venta
+      </button>
+    </div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Desde</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroDesde">
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Hasta</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroHasta">
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Estatus</label>
+        <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus">
+          <option *ngFor="let op of estatusOpciones" [value]="op.valor">{{ op.label }}</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="form-label form-label-sm mb-0">Folio</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="filtroFolio"
+          placeholder="CQ-2026-..." (keydown.enter)="buscar()">
+      </div>
+      <div class="col-auto d-flex gap-1 align-items-end">
+        <button class="btn btn-sm btn-primary" (click)="buscar()">
+          <i class="bi bi-search me-1"></i>Buscar
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltros()" title="Limpiar filtros">
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="cargar()" title="Actualizar">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tabla ─────────────────────────────────────────────────── -->
+  <div class="tabla-wrapper">
+    <div class="text-center py-4" *ngIf="cargando">
+      <div class="spinner-border text-primary"></div>
+    </div>
+    <div class="alert alert-danger m-3" *ngIf="error">{{ error }}</div>
+
+    <table class="table table-sm table-hover mb-0" *ngIf="!cargando && !error">
+      <thead>
+        <tr>
+          <th>Folio</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th class="text-end">Total</th>
+          <th>Vigencia</th>
+          <th>Estatus</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of cotizaciones" class="cursor-pointer" (click)="verDetalle(c.id)">
+          <td><code class="folio">{{ c.folio }}</code></td>
+          <td>{{ c.fecha_creacion | date:'dd/MM/yy HH:mm' }}</td>
+          <td>{{ c.cliente_nombre }}</td>
+          <td class="text-end fw-semibold">${{ c.total | number:'1.2-2' }}</td>
+          <td>
+            <span *ngIf="c.fecha_vencimiento">{{ c.fecha_vencimiento | date:'dd/MM/yy' }}</span>
+            <span *ngIf="!c.fecha_vencimiento" class="text-muted">—</span>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="badgeEstatus(c.estatus)">{{ c.estatus }}</span>
+          </td>
+          <td>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-xs btn-outline-primary"
+                (click)="verDetalle(c.id); $event.stopPropagation()" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </button>
+              <ng-container *ngIf="c.estatus === 'pendiente'">
+                <button class="btn btn-xs btn-outline-success"
+                  (click)="abrirConvertir(c); $event.stopPropagation()" title="Convertir a venta">
+                  <i class="bi bi-cash-stack"></i>
+                </button>
+                <button class="btn btn-xs btn-outline-danger"
+                  (click)="rechazar(c.id); $event.stopPropagation()" title="Rechazar">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </ng-container>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="cotizaciones.length === 0">
+          <td colspan="7" class="text-center text-muted py-4">No se encontraron cotizaciones</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Paginador ─────────────────────────────────────────────── -->
+  <div class="paginador d-flex justify-content-between align-items-center px-3 py-2 border-top" *ngIf="total > 0">
+    <small class="text-muted">{{ total }} cotizacion{{ total !== 1 ? 'es' : '' }}</small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="pagina === 1">
+          <a class="page-link" (click)="cambiarPagina(pagina - 1)">&lsaquo;</a>
+        </li>
+        <li *ngFor="let p of paginas" class="page-item" [class.active]="p === pagina">
+          <a class="page-link" (click)="cambiarPagina(p)">{{ p }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="pagina === totalPags">
+          <a class="page-link" (click)="cambiarPagina(pagina + 1)">&rsaquo;</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- PANEL LATERAL DETALLE                                        -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="detalle-overlay" *ngIf="cotizacionDetalle || cargandoDetalle" (click)="cerrarDetalle()">
+  <div class="detalle-panel" (click)="$event.stopPropagation()">
+
+    <div class="detalle-header">
+      <div>
+        <div class="fw-bold fs-5" *ngIf="cotizacionDetalle">{{ cotizacionDetalle.folio }}</div>
+        <small class="text-muted" *ngIf="cotizacionDetalle">
+          {{ cotizacionDetalle.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}
+        </small>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-sm btn-outline-secondary"
+          *ngIf="cotizacionDetalle && !mostrarTicketEnDetalle"
+          (click)="mostrarTicketEnDetalle = true" title="Ver ticket">
+          <i class="bi bi-printer"></i> Ticket
+        </button>
+        <button class="btn btn-sm btn-outline-secondary"
+          *ngIf="mostrarTicketEnDetalle"
+          (click)="mostrarTicketEnDetalle = false">
+          <i class="bi bi-arrow-left me-1"></i>Detalle
+        </button>
+        <button class="btn btn-sm btn-outline-dark" (click)="cerrarDetalle()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="text-center py-4" *ngIf="cargandoDetalle">
+      <div class="spinner-border text-primary"></div>
+    </div>
+    <div class="alert alert-danger mx-3 mt-2" *ngIf="errorDetalle">{{ errorDetalle }}</div>
+
+    <!-- Modo ticket -->
+    <ng-container *ngIf="cotizacionDetalle && !cargandoDetalle && mostrarTicketEnDetalle">
+      <app-pos-ticket
+        [esCotizacion]="true"
+        [cotizacion]="cotizacionDetalle"
+        (imprimir)="imprimirTicketCotizacion()"
+        (nuevaVenta)="mostrarTicketEnDetalle = false"
+      ></app-pos-ticket>
+    </ng-container>
+
+    <!-- Modo detalle -->
+    <ng-container *ngIf="cotizacionDetalle && !cargandoDetalle && !mostrarTicketEnDetalle">
+      <div class="detalle-body">
+
+        <!-- Info general -->
+        <div class="info-grid mb-3">
+          <div>
+            <span>Estatus</span>
+            <span><span class="badge" [ngClass]="badgeEstatus(cotizacionDetalle.estatus)">{{ cotizacionDetalle.estatus }}</span></span>
+          </div>
+          <div>
+            <span>Cliente</span>
+            <span>{{ cotizacionDetalle.cliente_nombre }}</span>
+          </div>
+          <div *ngIf="cotizacionDetalle.vendedor_nombre">
+            <span>Vendedor</span>
+            <span>{{ cotizacionDetalle.vendedor_nombre }}</span>
+          </div>
+          <div *ngIf="cotizacionDetalle.fecha_vencimiento">
+            <span>Vigencia</span>
+            <span>{{ cotizacionDetalle.fecha_vencimiento | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+
+        <!-- Items -->
+        <table class="table table-sm mb-3">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cant</th>
+              <th>Dto</th>
+              <th class="text-end">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of cotizacionDetalle.detalle">
+              <td>{{ l.nombre_producto }}<span *ngIf="l.sku" class="text-muted small"> ({{ l.sku }})</span></td>
+              <td>{{ l.cantidad }}</td>
+              <td>{{ l.descuento_linea_pct > 0 ? l.descuento_linea_pct + '%' : '—' }}</td>
+              <td class="text-end">${{ l.subtotal_linea | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totales -->
+        <div class="detalle-totales">
+          <div class="d-flex justify-content-between">
+            <span>Subtotal</span><span>${{ cotizacionDetalle.subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="d-flex justify-content-between" *ngIf="cotizacionDetalle.descuento_monto > 0">
+            <span>Descuento ({{ cotizacionDetalle.descuento_pct }}%)</span>
+            <span>-${{ cotizacionDetalle.descuento_monto | number:'1.2-2' }}</span>
+          </div>
+          <div class="d-flex justify-content-between fw-bold fs-5">
+            <span>TOTAL</span><span>${{ cotizacionDetalle.total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Notas -->
+        <p class="text-muted small mt-3" *ngIf="cotizacionDetalle.notas">
+          <b>Notas:</b> {{ cotizacionDetalle.notas }}
+        </p>
+
+        <!-- Acciones pendiente -->
+        <div class="d-flex gap-2 mt-3" *ngIf="cotizacionDetalle.estatus === 'pendiente'">
+          <button class="btn btn-outline-success btn-sm flex-fill"
+            (click)="abrirConvertir(cotizacionDetalle); cerrarDetalle()">
+            <i class="bi bi-cash-stack me-1"></i>Convertir a venta
+          </button>
+          <button class="btn btn-outline-primary btn-sm flex-fill"
+            (click)="onCargarAlCarrito(); cerrarDetalle()">
+            <i class="bi bi-cart-plus me-1"></i>Cargar al carrito
+          </button>
+          <button class="btn btn-outline-danger btn-sm"
+            (click)="rechazar(cotizacionDetalle.id); cerrarDetalle()" title="Rechazar">
+            <i class="bi bi-x-circle"></i>
+          </button>
+        </div>
+
+      </div>
+    </ng-container>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- MODAL CONVERTIR A VENTA                                       -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="mostrarPanelConvertir" (click)="cerrarConvertir()">
+  <div class="modal-panel modal-panel-sm" (click)="$event.stopPropagation()">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Convertir a venta</h6>
+      <button class="btn btn-sm btn-outline-secondary" (click)="cerrarConvertir()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="mb-3">
+      <div class="text-muted small mb-1">Total a cobrar</div>
+      <div class="fw-bold fs-5">${{ cotizacionConvertirTotal | number:'1.2-2' }}</div>
+    </div>
+
+    <!-- Método de pago -->
+    <div class="mb-3">
+      <div class="text-muted small mb-1">Método de pago</div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm flex-fill"
+          [class.btn-primary]="metodoPagoConvertir==='efectivo'"
+          [class.btn-outline-secondary]="metodoPagoConvertir!=='efectivo'"
+          (click)="metodoPagoConvertir='efectivo'">
+          <i class="bi bi-cash me-1"></i>Efectivo
+        </button>
+        <button class="btn btn-sm flex-fill"
+          [class.btn-primary]="metodoPagoConvertir==='tarjeta'"
+          [class.btn-outline-secondary]="metodoPagoConvertir!=='tarjeta'"
+          (click)="metodoPagoConvertir='tarjeta'">
+          <i class="bi bi-credit-card me-1"></i>Tarjeta
+        </button>
+        <button class="btn btn-sm flex-fill"
+          [class.btn-primary]="metodoPagoConvertir==='transferencia'"
+          [class.btn-outline-secondary]="metodoPagoConvertir!=='transferencia'"
+          (click)="metodoPagoConvertir='transferencia'">
+          <i class="bi bi-bank me-1"></i>Trans.
+        </button>
+      </div>
+    </div>
+
+    <!-- Efectivo: recibido + cambio -->
+    <ng-container *ngIf="metodoPagoConvertir==='efectivo'">
+      <div class="input-group input-group-sm mb-2">
+        <span class="input-group-text">Recibido $</span>
+        <input type="number" class="form-control" min="0" step="0.5"
+          [(ngModel)]="montoRecibidoConvertir" placeholder="0.00">
+      </div>
+      <div class="d-flex justify-content-between small mb-3"
+        *ngIf="montoRecibidoConvertir !== null && montoRecibidoConvertir > 0">
+        <span>Cambio</span>
+        <span [class.text-danger]="montoRecibidoConvertir < cotizacionConvertirTotal">
+          ${{ cambioConvertir | number:'1.2-2' }}
+        </span>
+      </div>
+    </ng-container>
+
+    <div class="alert alert-danger small" *ngIf="errorConvertir">{{ errorConvertir }}</div>
+
+    <button class="btn btn-success w-100"
+      [disabled]="procesandoConvertir"
+      (click)="confirmarConvertir()">
+      <span *ngIf="procesandoConvertir" class="spinner-border spinner-border-sm me-1"></span>
+      {{ procesandoConvertir ? 'Procesando...' : 'Confirmar venta' }}
+    </button>
+
+  </div>
+</div>
