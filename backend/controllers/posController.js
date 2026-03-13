@@ -73,6 +73,13 @@ async function getCatalogo(req, res) {
         d.nombre AS departamento_nombre,
         d.color  AS departamento_color,
         d.id     AS departamento_id,
+        COALESCE((
+          SELECT SUM(det.cantidad)
+          FROM pos_ventas_detalle det
+          JOIN pos_ventas v ON v.id = det.venta_id
+          WHERE det.inventario_id = i.id
+            AND v.estatus = 'completada'
+        ), 0) AS veces_vendido,
         CASE
           WHEN i.es_servicio = true THEN 'servicio'
           WHEN i.existencia_actual <= 0 THEN 'sin_stock'
@@ -99,13 +106,14 @@ async function getCatalogo(req, res) {
       sql += ` AND i.departamento_id = $${params.length}`;
     }
 
-    sql += ' ORDER BY d.orden ASC NULLS LAST, i.nombre ASC';
+    sql += ' ORDER BY veces_vendido DESC, d.orden ASC NULLS LAST, i.nombre ASC';
 
     const result = await query(sql, params);
     const items = result.rows.map(r => ({
       ...r,
       precio_venta: parseFloat(r.precio_venta),
       existencia_actual: parseFloat(r.existencia_actual),
+      veces_vendido: parseFloat(r.veces_vendido) || 0,
     }));
 
     return res.json(createResponse(true, items, `${items.length} artículos disponibles`));

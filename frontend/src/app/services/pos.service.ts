@@ -20,6 +20,7 @@ export interface CatalogoItem {
   departamento_color?: string;
   departamento_id?: number;
   nivel_stock: 'ok' | 'bajo' | 'critico' | 'sin_stock' | 'servicio';
+  veces_vendido?: number;
 }
 
 export interface LineaCarrito {
