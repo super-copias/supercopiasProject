@@ -20,6 +20,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Cabeceras de caché ──────────────────────────────────────
+// index.html y runtime: NUNCA cachear → el browser siempre pide la versión más reciente
+app.use((req, res, next) => {
+  const url = req.url.split('?')[0];
+  const isIndexOrRuntime = url === '/' || url === '/index.html' || /\/runtime\.[^.]+\.js$/.test(url);
+  if (isIndexOrRuntime) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  } else if (/\.[0-9a-f]{16,}\.[^.]+$/.test(url)) {
+    // Archivos con hash en el nombre → inmutables, caché agresivo
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  next();
+});
+
 // Servir archivos estáticos
 app.use(express.static(distPath));
 
@@ -27,6 +43,10 @@ app.use(express.static(distPath));
 // Esta es la clave para resolver el error 404 en rutas como /admin/empleados
 app.get('*', (_req, res) => {
   console.log(`SPA Fallback: ${_req.url} -> index.html`);
+  // Asegurar no-cache también en el fallback
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
