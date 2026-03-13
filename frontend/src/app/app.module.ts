@@ -1,9 +1,9 @@
-import { NgModule } from '@angular/core';
+import { NgModule, ErrorHandler } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { RouterModule, Routes } from '@angular/router';
 
-import { AppComponent } from './app.component';
+import { AppComponent, ChunkErrorHandler } from './app.component';
 import { LoginModule } from './modules/login/login.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
@@ -23,6 +23,7 @@ const routes: Routes = [
   declarations: [AppComponent],
   imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes), SharedModule],
   providers: [
+    { provide: ErrorHandler, useClass: ChunkErrorHandler },
     { provide: HTTP_INTERCEPTORS, useClass: HttpLoggerInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
   ],
