@@ -26,7 +26,7 @@
   </div>
 
   <!-- Líneas -->
-  <div class="carrito-items" *ngIf="carrito.length>0">
+  <div class="carrito-items" #carritoItems *ngIf="carrito.length>0">
     <div class="linea-item" [class.linea-item--servicio]="linea.es_servicio" *ngFor="let linea of carrito; trackBy: trackById">
 
       <!-- Info del producto -->

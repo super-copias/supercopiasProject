@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { LineaCarrito } from '../../../../../services/pos.service';
 import { PosService } from '../../../../../services/pos.service';
 
@@ -13,6 +13,8 @@ export class CarritoComponent implements OnChanges {
   @Input() descuentoGlobalPct = 0;
   @Output() carritoActualizado = new EventEmitter<LineaCarrito[]>();
   @Output() limpiarCarrito     = new EventEmitter<void>();
+
+  @ViewChild('carritoItems') carritoItemsRef!: ElementRef<HTMLElement>;
 
   modalAbierto = false;
 
@@ -32,7 +34,18 @@ export class CarritoComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Nada adicional necesario
+    const carritoChange = changes['carrito'];
+    if (carritoChange && !carritoChange.firstChange) {
+      const prev: LineaCarrito[] = carritoChange.previousValue || [];
+      const curr: LineaCarrito[] = carritoChange.currentValue || [];
+      // Solo hacer scroll cuando se agrega un item nuevo (longitud aumenta)
+      if (curr.length > prev.length) {
+        setTimeout(() => {
+          const el = this.carritoItemsRef?.nativeElement;
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 50);
+      }
+    }
   }
 
   // ── Cantidades ────────────────────────────────────────────────

@@ -176,6 +176,22 @@ export class InventarioFormComponent implements OnInit {
     }
   }
 
+  /** Bloquea en tiempo real cualquier tecla que no sea dígito, punto o coma */
+  soloNumericos(event: KeyboardEvent): void {
+    const allowed = /[0-9.,]/;
+    if (!allowed.test(event.key) && event.key !== 'Backspace' && event.key !== 'Tab'
+        && event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Delete') {
+      event.preventDefault();
+    }
+  }
+
+  /** Sanea el valor al pegar texto o en otros eventos input (cubre Safari/Firefox) */
+  sanitizarNumerico(campo: 'costo_compra' | 'precio_venta', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const num = parseFloat(input.value);
+    this.form[campo] = (isNaN(num) ? null : num) as any;
+  }
+
   cancelar() { this.router.navigate(['/admin/inventarios']); }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
