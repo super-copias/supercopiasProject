@@ -127,6 +127,8 @@
                     <span class="input-group-text">$</span>
                     <input type="number" class="form-control" [(ngModel)]="form.costo_compra" name="costo_compra"
                            min="0" step="0.01" placeholder="0.00"
+                           (keypress)="soloNumericos($event)"
+                           (input)="sanitizarNumerico('costo_compra', $event)"
                            (blur)="redondearDecimales('costo_compra')">
                   </div>
                 </div>
@@ -139,6 +141,8 @@
                     <span class="input-group-text">$</span>
                     <input type="number" class="form-control" [(ngModel)]="form.precio_venta" name="precio_venta"
                            [disabled]="!mostrarPrecioVenta && !esServicio" min="0" step="0.01" placeholder="0.00"
+                           (keypress)="soloNumericos($event)"
+                           (input)="sanitizarNumerico('precio_venta', $event)"
                            (blur)="redondearDecimales('precio_venta')">
                   </div>
                 </div>
