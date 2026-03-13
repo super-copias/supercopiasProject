@@ -51,42 +51,66 @@
     <p class="mt-2">Sin resultados</p>
   </div>
 
-  <!-- Grid de productos -->
-  <div class="catalogo-grid" *ngIf="!cargando && !error">
-    <div class="producto-card" *ngFor="let item of itemsFiltrados"
-      [class.sin-stock]="item.nivel_stock==='sin_stock'"
-      (click)="agregar(item)"
-      [title]="item.nivel_stock==='sin_stock' ? 'Sin stock disponible' : 'Clic para agregar al carrito'">
+  <!-- Área de productos: grid + paginador -->
+  <div class="catalogo-body" *ngIf="!cargando && !error && itemsFiltrados.length > 0">
 
-      <!-- Imagen / Icono -->
-      <div class="prod-img">
-        <img *ngIf="item.foto_url" [src]="item.foto_url" [alt]="item.nombre">
-        <div class="prod-icon" *ngIf="!item.foto_url">
-          <i class="bi" [class.bi-printer]="!item.es_servicio" [class.bi-tools]="item.es_servicio"></i>
-        </div>
-        <span class="badge-stock badge bg-{{ badgeNivelStock(item.nivel_stock) }}">
-          {{ labelNivelStock(item.nivel_stock) }}
-        </span>
-      </div>
+    <!-- Grid de productos -->
+    <div class="catalogo-grid">
+      <div class="producto-card" *ngFor="let item of itemsPaginados"
+        [class.sin-stock]="item.nivel_stock==='sin_stock'"
+        (click)="agregar(item)"
+        [title]="item.nivel_stock==='sin_stock' ? 'Sin stock disponible' : 'Clic para agregar al carrito'">
 
-      <!-- Info -->
-      <div class="prod-info">
-        <div class="prod-nombre">{{ item.nombre }}</div>
-        <div class="prod-sku text-muted" *ngIf="item.sku">SKU: {{ item.sku }}</div>
-        <div class="prod-precio">{{ item.precio_venta | currency:'MXN':'symbol':'1.2-2' }}</div>
-        <div class="prod-stock text-muted" *ngIf="!item.es_servicio">
-          <i class="bi bi-box-seam me-1"></i>{{ item.existencia_actual }} {{ item.unidad_medida }}
+        <!-- Imagen / Icono -->
+        <div class="prod-img">
+          <img *ngIf="item.foto_url" [src]="item.foto_url" [alt]="item.nombre">
+          <div class="prod-icon" *ngIf="!item.foto_url">
+            <i class="bi" [class.bi-printer]="!item.es_servicio" [class.bi-tools]="item.es_servicio"></i>
+          </div>
+          <span class="badge-stock badge bg-{{ badgeNivelStock(item.nivel_stock) }}">
+            {{ labelNivelStock(item.nivel_stock) }}
+          </span>
+          <!-- Indicador más vendido -->
+          <span class="badge-top-sold" *ngIf="item.veces_vendido && item.veces_vendido > 0" title="Más vendido">
+            <i class="bi bi-fire"></i>
+          </span>
         </div>
-        <div class="prod-stock text-info" *ngIf="item.es_servicio">
-          <i class="bi bi-gear me-1"></i>Servicio
-        </div>
-      </div>
 
-      <!-- Botón de agregar -->
-      <div class="prod-accion">
-        <i class="bi bi-plus-circle-fill"></i>
+        <!-- Info -->
+        <div class="prod-info">
+          <div class="prod-nombre">{{ item.nombre }}</div>
+          <div class="prod-sku text-muted" *ngIf="item.sku">SKU: {{ item.sku }}</div>
+          <div class="prod-precio">{{ item.precio_venta | currency:'MXN':'symbol-narrow':'1.2-2' }}</div>
+          <div class="prod-stock text-muted" *ngIf="!item.es_servicio">
+            <i class="bi bi-box-seam me-1"></i>{{ item.existencia_actual }} {{ item.unidad_medida }}
+          </div>
+          <div class="prod-stock text-info" *ngIf="item.es_servicio">
+            <i class="bi bi-gear me-1"></i>Servicio
+          </div>
+        </div>
+
+        <!-- Botón de agregar -->
+        <div class="prod-accion">
+          <i class="bi bi-plus-circle-fill"></i>
+        </div>
       </div>
     </div>
+
+    <!-- Paginador -->
+    <nav class="catalogo-paginador" *ngIf="totalPaginas > 1" aria-label="Páginas del catálogo">
+      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(paginaActual - 1)" title="Anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <ng-container *ngFor="let p of paginasVisibles">
+        <button class="pag-btn" *ngIf="p !== '...'" [class.active]="p === paginaActual" (click)="irAPagina(p)">{{ p }}</button>
+        <span class="pag-ellipsis" *ngIf="p === '...'">...</span>
+      </ng-container>
+      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(paginaActual + 1)" title="Siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      <span class="pag-info">{{ paginaActual }} / {{ totalPaginas }}</span>
+    </nav>
+
   </div>
 
 </div>

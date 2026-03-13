@@ -25,9 +25,39 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   cargando = false;
   error = '';
 
+  // Paginación
+  paginaActual = 1;
+  readonly ITEMS_POR_PAGINA = 12; // 4 columnas × 3 filas
+
   // Modal ítem libre
   mostrarModalLibre = false;
   itemLibre = { nombre: '', precio: 0, cantidad: 1 };
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.itemsFiltrados.length / this.ITEMS_POR_PAGINA));
+  }
+
+  get itemsPaginados(): CatalogoItem[] {
+    const inicio = (this.paginaActual - 1) * this.ITEMS_POR_PAGINA;
+    return this.itemsFiltrados.slice(inicio, inicio + this.ITEMS_POR_PAGINA);
+  }
+
+  get paginasVisibles(): (number | '...')[] {
+    const total = this.totalPaginas;
+    const cur   = this.paginaActual;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | '...')[] = [1];
+    if (cur > 3) pages.push('...');
+    for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p);
+    if (cur < total - 2) pages.push('...');
+    pages.push(total);
+    return pages;
+  }
+
+  irAPagina(p: number | '...'): void {
+    if (p === '...' || +p < 1 || +p > this.totalPaginas) return;
+    this.paginaActual = +p;
+  }
 
   constructor(private posService: PosService) {}
 
@@ -78,11 +108,14 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
   filtrar(): void {
     const q = (this.busqueda.value || '').toLowerCase().trim();
-    this.itemsFiltrados = this.items.filter(i => {
-      const matchQ = !q || i.nombre.toLowerCase().includes(q) || (i.sku || '').toLowerCase().includes(q);
-      const matchDep = this.departamentoActivo === null || i.departamento_id === this.departamentoActivo;
-      return matchQ && matchDep;
-    });
+    this.itemsFiltrados = this.items
+      .filter(i => {
+        const matchQ   = !q || i.nombre.toLowerCase().includes(q) || (i.sku || '').toLowerCase().includes(q);
+        const matchDep = this.departamentoActivo === null || i.departamento_id === this.departamentoActivo;
+        return matchQ && matchDep;
+      })
+      .sort((a, b) => (b.veces_vendido ?? 0) - (a.veces_vendido ?? 0));
+    this.paginaActual = 1;
   }
 
   seleccionarDepartamento(id: number | null): void {

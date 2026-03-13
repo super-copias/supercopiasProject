@@ -92,7 +92,7 @@ $body-pad:  1.5rem;   // padding de .content-body en admin.component.scss
 .pos-col-right {
   display:        flex;
   flex-direction: column;
-  width:          380px;
+  width:          480px;
   flex-shrink:    0;
   min-height:     0;
   overflow:       hidden;   // carrito + panel-cobro manejan su scroll
@@ -114,12 +114,12 @@ $body-pad:  1.5rem;   // padding de .content-body en admin.component.scss
 
 // Desktop pequeño
 @media (max-width: 1200px) {
-  .pos-col-right { width: 340px; }
+  .pos-col-right { width: 420px; }
 }
 
 // Tablet landscape
 @media (max-width: 1024px) {
-  .pos-col-right { width: 300px; }
+  .pos-col-right { width: 360px; }
 
   .pos-topbar { padding: .4rem .75rem; }
 }
