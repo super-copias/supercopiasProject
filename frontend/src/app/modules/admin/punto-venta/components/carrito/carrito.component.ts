@@ -1,22 +1,26 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnDestroy, AfterViewInit, HostListener, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { LineaCarrito } from '../../../../../services/pos.service';
 import { PosService } from '../../../../../services/pos.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-pos-carrito',
   templateUrl: './carrito.component.html',
   styleUrls: ['./carrito.component.scss']
 })
-export class CarritoComponent implements OnChanges {
+export class CarritoComponent implements OnChanges, AfterViewInit, OnDestroy {
 
   @Input() carrito: LineaCarrito[] = [];
   @Input() descuentoGlobalPct = 0;
   @Output() carritoActualizado = new EventEmitter<LineaCarrito[]>();
   @Output() limpiarCarrito     = new EventEmitter<void>();
 
-  @ViewChild('carritoItems') carritoItemsRef!: ElementRef<HTMLElement>;
+  // Referencia a cada fila del carrito para detectar cuando se agrega una nueva
+  @ViewChildren('lineaRef') lineaRefs!: QueryList<ElementRef<HTMLElement>>;
 
   modalAbierto = false;
+  private _lineaRefsSub?: Subscription;
+  private _cantidadAnterior = 0;
 
   constructor(private posService: PosService) {}
 
@@ -25,27 +29,29 @@ export class CarritoComponent implements OnChanges {
     if (this.modalAbierto) this.cerrarModal();
   }
 
-  abrirModal(): void {
-    this.modalAbierto = true;
-  }
-
-  cerrarModal(): void {
-    this.modalAbierto = false;
-  }
+  abrirModal(): void { this.modalAbierto = true; }
+  cerrarModal(): void { this.modalAbierto = false; }
 
   ngOnChanges(changes: SimpleChanges): void {
-    const carritoChange = changes['carrito'];
-    if (carritoChange && !carritoChange.firstChange) {
-      const prev: LineaCarrito[] = carritoChange.previousValue || [];
-      const curr: LineaCarrito[] = carritoChange.currentValue || [];
-      // Solo hacer scroll cuando se agrega un item nuevo (longitud aumenta)
-      if (curr.length > prev.length) {
-        setTimeout(() => {
-          const el = this.carritoItemsRef?.nativeElement;
-          if (el) el.scrollTop = el.scrollHeight;
-        }, 50);
-      }
+    // Trackéamos la longitud para saber si en el próximo QueryList.changes hubo adición
+    if (changes['carrito']) {
+      this._cantidadAnterior = (changes['carrito'].previousValue || []).length;
     }
+  }
+
+  ngAfterViewInit(): void {
+    // QueryList.changes dispara SIEMPRE que Angular añade/quita elementos *ngFor del DOM
+    this._lineaRefsSub = this.lineaRefs.changes.subscribe((lista: QueryList<ElementRef<HTMLElement>>) => {
+      const items = lista.toArray();
+      if (items.length > this._cantidadAnterior && items.length > 0) {
+        // Scroll al último item agregado
+        items[items.length - 1].nativeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this._lineaRefsSub?.unsubscribe();
   }
 
   // ── Cantidades ────────────────────────────────────────────────
