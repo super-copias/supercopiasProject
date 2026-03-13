@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
 import { LineaCarrito } from '../../../../../services/pos.service';
 import { PosService } from '../../../../../services/pos.service';
 
@@ -14,7 +14,22 @@ export class CarritoComponent implements OnChanges {
   @Output() carritoActualizado = new EventEmitter<LineaCarrito[]>();
   @Output() limpiarCarrito     = new EventEmitter<void>();
 
+  modalAbierto = false;
+
   constructor(private posService: PosService) {}
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.modalAbierto) this.cerrarModal();
+  }
+
+  abrirModal(): void {
+    this.modalAbierto = true;
+  }
+
+  cerrarModal(): void {
+    this.modalAbierto = false;
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Nada adicional necesario

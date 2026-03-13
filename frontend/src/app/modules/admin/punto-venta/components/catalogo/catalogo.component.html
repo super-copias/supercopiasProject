@@ -73,7 +73,7 @@
       <div class="prod-info">
         <div class="prod-nombre">{{ item.nombre }}</div>
         <div class="prod-sku text-muted" *ngIf="item.sku">SKU: {{ item.sku }}</div>
-        <div class="prod-precio">{{ item.precio_venta | currency:'MXN':'symbol':'1.2-2' }}</div>
+        <div class="prod-precio">{{ item.precio_venta | currency:'MXN':'symbol-narrow':'1.2-2' }}</div>
         <div class="prod-stock text-muted" *ngIf="!item.es_servicio">
           <i class="bi bi-box-seam me-1"></i>{{ item.existencia_actual }} {{ item.unidad_medida }}
         </div>

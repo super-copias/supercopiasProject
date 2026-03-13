@@ -72,8 +72,16 @@
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #f0f0f0;
   font-size: 0.8rem;
+  border-left: 3px solid transparent;
 
   &:hover { background: #fafafa; }
+
+  &.linea-item--servicio {
+    border-left-color: #0dcaf0;
+    background: #f0fbff;
+
+    &:hover { background: #e3f6fc; }
+  }
 }
 
 .linea-nombre {
@@ -145,4 +153,127 @@
   border-radius: 4px;
 
   &:hover { background: #dc354520; }
+}
+
+// ── Botón expandir (en header normal) ──────────────────────
+.btn-expandir {
+  background:    transparent;
+  border:        1px solid rgba(255,255,255,0.4);
+  color:         rgba(255,255,255,0.85);
+  border-radius: 4px;
+  width:         28px;
+  height:        28px;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  cursor:        pointer;
+  font-size:     0.75rem;
+  padding:       0;
+  transition:    background 0.18s, border-color 0.18s, color 0.18s;
+
+  &:hover, &:focus {
+    background:   var(--color-cyber-yellow);
+    border-color: var(--color-cyber-yellow);
+    color:        #000;
+  }
+}
+
+// ── Modal backdrop ───────────────────────────────────────────
+.carrito-modal-backdrop {
+  position:       fixed;
+  inset:          0;
+  z-index:        1050;
+  background:     rgba(0, 0, 0, 0.55);
+  display:        flex;
+  align-items:    center;
+  justify-content: center;
+  padding:        1rem;
+  animation:      fadeBackdropIn 0.2s ease;
+}
+
+@keyframes fadeBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Modal contenedor ─────────────────────────────────────────
+.carrito-modal {
+  background:    #fff;
+  border-radius: 12px;
+  width:         min(700px, 96vw);
+  max-height:    85vh;
+  display:       flex;
+  flex-direction: column;
+  box-shadow:    0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow:      hidden;
+  animation:     slideModalIn 0.22s ease;
+}
+
+@keyframes slideModalIn {
+  from { transform: translateY(-18px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+// ── Header del modal ─────────────────────────────────────────
+.carrito-modal-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0.75rem 1rem;
+  background:      var(--color-dark-blue);
+  color:           #fff;
+  font-size:       0.95rem;
+  flex-shrink:     0;
+
+  i { color: var(--color-cyber-yellow); }
+}
+
+// ── Botón contraer (en header del modal) ─────────────────────
+.btn-contraer {
+  background:    transparent;
+  border:        1px solid rgba(255,255,255,0.4);
+  color:         rgba(255,255,255,0.85);
+  border-radius: 4px;
+  width:         32px;
+  height:        32px;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  cursor:        pointer;
+  font-size:     0.85rem;
+  padding:       0;
+  transition:    background 0.18s, border-color 0.18s, color 0.18s;
+
+  &:hover, &:focus {
+    background:   var(--color-cyber-yellow);
+    border-color: var(--color-cyber-yellow);
+    color:        #000;
+    i { color: #000; }
+  }
+}
+
+// ── Items en el modal (sin límite de altura, scroll interno) ─
+.carrito-modal-items {
+  overflow-y: auto;
+  flex:       1;
+  min-height: 0;
+}
+
+// ── Fila de item en modo modal (más generosa) ───────────────
+.linea-item--modal {
+  font-size: 0.88rem;
+  padding:   0.65rem 1rem;
+
+  .linea-nombre { font-size: 0.9rem; -webkit-line-clamp: unset; }
+  .linea-precio { font-size: 0.85rem; }
+  .linea-subtotal { font-size: 0.9rem; }
+
+  .btn-qty { width: 30px; height: 30px; }
+  .qty-input { width: 48px; height: 26px; }
+}
+
+// ── Vacío en modal ───────────────────────────────────────────
+.carrito-vacio--modal {
+  padding: 3rem 2rem;
+  i { font-size: 3.5rem; }
 }
