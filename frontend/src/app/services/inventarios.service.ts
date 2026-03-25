@@ -5,6 +5,13 @@ import { environment } from '../../environments/environment';
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 
+export interface TabuladorFila {
+  id?: number;
+  cantidad_desde: number;
+  precio: number;
+  orden?: number;
+}
+
 export interface Departamento {
   id?: number;
   nombre: string;
@@ -36,6 +43,8 @@ export interface Articulo {
   costo_compra?: number;
   precio_venta?: number;
   disponible_en_pos?: boolean;
+  tabulador_activo?: boolean;
+  tabulador?: TabuladorFila[];
   ubicacion_fisica?: string;
   archivado?: boolean;
   nivel_stock?: 'ok' | 'bajo' | 'critico' | 'sin_stock' | 'servicio';
@@ -137,6 +146,16 @@ export class InventariosService {
 
   archivarInventario(id: number, archivado: boolean): Observable<any> {
     return this.http.put<any>(`${this.baseUrl}/${id}/archivar`, { archivado });
+  }
+
+  // ── Tabulador de precios por volumen ────────────────────────────────────────
+
+  getTabulador(inventarioId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/${inventarioId}/tabulador`);
+  }
+
+  saveTabulador(inventarioId: number, filas: TabuladorFila[]): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/${inventarioId}/tabulador`, { filas });
   }
 
   // ── Movimientos ────────────────────────────────────────────────────────────

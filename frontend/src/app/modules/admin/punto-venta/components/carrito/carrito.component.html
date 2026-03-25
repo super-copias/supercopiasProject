@@ -37,7 +37,11 @@
       </div>
 
       <!-- Precio unitario -->
-      <div class="linea-precio">{{ linea.precio_unitario | currency:'MXN':'symbol-narrow':'1.2-2' }}</div>
+      <div class="linea-precio">
+        {{ linea.precio_unitario | currency:'MXN':'symbol-narrow':'1.2-2' }}
+        <span *ngIf="linea._tabulador_activo && linea._precio_base && linea.precio_unitario < linea._precio_base"
+              class="badge bg-info text-dark ms-1" style="font-size:0.6rem" title="Precio por volumen aplicado">Vol.</span>
+      </div>
 
       <!-- Control de cantidad -->
       <div class="linea-qty">
@@ -106,7 +110,11 @@
           <div class="linea-sku text-muted" *ngIf="linea.sku">{{ linea.sku }}</div>
         </div>
 
-        <div class="linea-precio">{{ linea.precio_unitario | currency:'MXN':'symbol-narrow':'1.2-2' }}</div>
+        <div class="linea-precio">
+          {{ linea.precio_unitario | currency:'MXN':'symbol-narrow':'1.2-2' }}
+          <span *ngIf="linea._tabulador_activo && linea._precio_base && linea.precio_unitario < linea._precio_base"
+                class="badge bg-info text-dark ms-1" style="font-size:0.6rem" title="Precio por volumen aplicado">Vol.</span>
+        </div>
 
         <div class="linea-qty">
           <button class="btn-qty btn-qty-minus" (click)="decrementar(linea)" title="Reducir cantidad">

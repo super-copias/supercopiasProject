@@ -52,8 +52,19 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
         return;
       }
       existing.cantidad += 1;
+      // Recalcular precio con tabulador si aplica
+      if (existing._tabulador_activo && existing._tabulador && existing._precio_base !== undefined) {
+        existing.precio_unitario = this.posService.resolverPrecioTabulador(
+          existing.cantidad, existing._precio_base, existing._tabulador
+        );
+      }
       existing.subtotal_linea = this.posService.calcularSubtotalLinea(existing);
     } else {
+      const precioBase = item.precio_venta;
+      const tabuladorActivo = !!item.tabulador_activo && !!item.tabulador && item.tabulador.length > 0;
+      const precioEfectivo = tabuladorActivo
+        ? this.posService.resolverPrecioTabulador(1, precioBase, item.tabulador!)
+        : precioBase;
       this.carrito.push({
         inventario_id: item.id,
         nombre_producto: item.nombre,
@@ -61,14 +72,17 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
         es_servicio: item.es_servicio,
         es_item_libre: false,
         cantidad: 1,
-        precio_unitario: item.precio_venta,
+        precio_unitario: precioEfectivo,
         descuento_linea_pct: 0,
         descuento_linea_monto: 0,
-        subtotal_linea: item.precio_venta,
+        subtotal_linea: precioEfectivo,
         _foto_url: item.foto_url,
         _nivel_stock: item.nivel_stock,
         _existencia_actual: item.existencia_actual,
         _id_ui: `inv-${item.id}-${Date.now()}`,
+        _precio_base: precioBase,
+        _tabulador: item.tabulador ?? [],
+        _tabulador_activo: tabuladorActivo,
       });
     }
     this.recalcularTotales();

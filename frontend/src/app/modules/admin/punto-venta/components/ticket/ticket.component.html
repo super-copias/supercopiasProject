@@ -60,6 +60,7 @@
           <td class="t-desc">
             {{ item.nombre_producto }}
             <span *ngIf="item.descuento_linea_pct > 0" class="t-badge-desc">-{{ item.descuento_linea_pct }}%</span>
+            <span *ngIf="item.tabulador_aplicado" class="t-badge-desc">*Vol</span>
           </td>
           <td class="t-qty">{{ item.cantidad }}</td>
           <td class="t-price">${{ item.precio_unitario | number:'1.2-2' }}</td>
@@ -115,6 +116,7 @@
 
     <!-- Pie -->
     <div class="t-sep"></div>
+    <div class="t-nota-vol" *ngIf="tieneDescuentoVolumen">* Precio especial por volumen aplicado</div>
     <div class="t-footer">
       ¡Gracias por su preferencia!<br>
       www.supercopias.com

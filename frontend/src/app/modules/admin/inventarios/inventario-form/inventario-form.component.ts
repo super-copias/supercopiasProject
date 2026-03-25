@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { InventariosService, Articulo, Departamento } from '../../../../services/inventarios.service';
+import { InventariosService, Articulo, Departamento, TabuladorFila } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { ProveedoresService } from '../../../../services/proveedores.service';
 
@@ -44,6 +44,10 @@ export class InventarioFormComponent implements OnInit {
   departamentos: Departamento[] = [];
   proveedores: any[] = [];
   unidadesMedida = this.inventariosService.getUnidadesMedida();
+
+  // ── Tabulador de precios ──────────────────────────────────────────────────
+  tabuladorActivo = false;
+  tabuladorFilas: TabuladorFila[] = [{ cantidad_desde: 1, precio: 0 }];
 
   // ── Computed helpers ─────────────────────────────────────────────────────
   get esServicio(): boolean { return !!this.form.es_servicio; }
@@ -100,7 +104,17 @@ export class InventarioFormComponent implements OnInit {
         this.loading = false;
         if (r.success) {
           this.form = { ...this.form, ...r.data };
-          this.paso = 2;  // ir directo al formulario en modo edición
+          this.tabuladorActivo = !!r.data.tabulador_activo;
+          if (r.data.tabulador && r.data.tabulador.length > 0) {
+            this.tabuladorFilas = r.data.tabulador.map((f: TabuladorFila) => ({
+              id: f.id,
+              cantidad_desde: f.cantidad_desde,
+              precio: f.precio
+            }));
+          } else {
+            this.tabuladorFilas = [{ cantidad_desde: 1, precio: 0 }];
+          }
+          this.paso = 2;
         }
       },
       error: () => { this.loading = false; this.notif.error('Error al cargar el artículo'); }
@@ -134,7 +148,42 @@ export class InventarioFormComponent implements OnInit {
   // ── Toggle disponible en POS ─────────────────────────────────────────────
 
   onTogglePos() {
-    if (!this.form.disponible_en_pos) this.form.precio_venta = null as any;
+    if (!this.form.disponible_en_pos) {
+      this.form.precio_venta = null as any;
+      this.tabuladorActivo = false;
+    }
+  }
+
+  // ── Tabulador ─────────────────────────────────────────────────────────────
+
+  agregarFila(): void {
+    this.tabuladorFilas.push({ cantidad_desde: 0, precio: 0 });
+  }
+
+  eliminarFila(index: number): void {
+    if (this.tabuladorFilas.length > 1) {
+      this.tabuladorFilas.splice(index, 1);
+    }
+  }
+
+  /** Valida las filas del tabulador antes de guardar. Retorna mensaje de error o null. */
+  private validarTabulador(): string | null {
+    if (!this.tabuladorActivo) return null;
+    const precioBase = Number(this.form.precio_venta);
+    const cantidades = new Set<number>();
+    for (let i = 0; i < this.tabuladorFilas.length; i++) {
+      const f = this.tabuladorFilas[i];
+      if (!f.cantidad_desde || f.cantidad_desde <= 0)
+        return `Fila ${i + 1} del tabulador: la cantidad debe ser mayor a 0`;
+      if (!f.precio || f.precio <= 0)
+        return `Fila ${i + 1} del tabulador: el precio debe ser mayor a 0`;
+      if (precioBase > 0 && f.precio >= precioBase)
+        return `Fila ${i + 1} del tabulador: el precio ($${f.precio}) debe ser menor al precio de venta ($${precioBase})`;
+      if (cantidades.has(f.cantidad_desde))
+        return `Fila ${i + 1} del tabulador: la cantidad ${f.cantidad_desde} está duplicada`;
+      cantidades.add(f.cantidad_desde);
+    }
+    return null;
   }
 
   // ── Guardar ─────────────────────────────────────────────────────────────
@@ -146,7 +195,10 @@ export class InventarioFormComponent implements OnInit {
       this.notif.warning('El precio de venta es obligatorio para productos venta y servicios'); return;
     }
 
-    const data = { ...this.form };
+    const errorTabulador = this.validarTabulador();
+    if (errorTabulador) { this.notif.warning(errorTabulador); return; }
+
+    const data: Partial<Articulo> = { ...this.form, tabulador_activo: this.tabuladorActivo };
     if (this.esServicio) { data.existencia_actual = 0; data.stock_minimo = 0; data.stock_maximo = null as any; }
 
     this.loading = true;
@@ -156,11 +208,21 @@ export class InventarioFormComponent implements OnInit {
 
     req.subscribe({
       next: r => {
-        this.loading = false;
-        if (r.success) {
-          this.notif.success(this.isEditMode ? 'Artículo actualizado' : 'Artículo creado correctamente');
-          this.router.navigate(['/admin/inventarios']);
-        }
+        if (!r.success) { this.loading = false; return; }
+        const articuloId: number = r.data.id;
+        // Guardar tabulador (siempre, para borrar si se desactivó)
+        this.inventariosService.saveTabulador(articuloId, this.tabuladorActivo ? this.tabuladorFilas : []).subscribe({
+          next: () => {
+            this.loading = false;
+            this.notif.success(this.isEditMode ? 'Artículo actualizado' : 'Artículo creado correctamente');
+            this.router.navigate(['/admin/inventarios']);
+          },
+          error: () => {
+            this.loading = false;
+            this.notif.warning('Artículo guardado, pero ocurrió un error al guardar el tabulador');
+            this.router.navigate(['/admin/inventarios']);
+          }
+        });
       },
       error: e => {
         this.loading = false;
