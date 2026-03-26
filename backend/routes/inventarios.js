@@ -11,7 +11,8 @@ const {
   listInventarios, getInventariosPorDepartamento, getInventarioById,
   createInventario, updateInventario, deleteInventario, archivarInventario,
   addMovimiento, getHistorialMovimientos, getHistorialGlobal,
-  getStats, getAlertas, getCatalogoPos
+  getStats, getAlertas, getCatalogoPos,
+  getTabuladorPrecios, saveTabuladorPrecios
 } = require('../controllers/inventariosController');
 
 // ── Rutas fijas (deben ir ANTES de /:id) ─────────────────────────────────────
@@ -38,5 +39,9 @@ router.patch('/:id/archivar', auth, archivarInventario);
 // ── Movimientos por artículo ──────────────────────────────────────────────────
 router.post('/:id/movimientos', auth, addMovimiento);
 router.get('/:id/movimientos',  auth, getHistorialMovimientos);
+
+// ── Tabulador de precios por volumen ──────────────────────────────────────────
+router.get('/:id/tabulador',  auth, getTabuladorPrecios);
+router.post('/:id/tabulador', auth, saveTabuladorPrecios);
 
 module.exports = router;

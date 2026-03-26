@@ -1089,6 +1089,7 @@ CREATE TABLE public.inventarios (
     es_servicio boolean DEFAULT false NOT NULL,
     disponible_en_pos boolean DEFAULT false NOT NULL,
     descripcion text,
+    tabulador_activo boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_inventarios_estatus CHECK (((estatus)::text = ANY (ARRAY[('activo'::character varying)::text, ('inactivo'::character varying)::text]))),
     CONSTRAINT chk_inventarios_tipo CHECK (((tipo)::text = ANY (ARRAY[('venta'::character varying)::text, ('insumo'::character varying)::text, ('generico'::character varying)::text])))
 );
@@ -1147,6 +1148,49 @@ CREATE SEQUENCE public.inventarios_id_seq
 --
 
 ALTER SEQUENCE public.inventarios_id_seq OWNED BY public.inventarios.id;
+
+
+--
+-- Name: inv_tabulador_precios; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inv_tabulador_precios (
+    id integer NOT NULL,
+    inventario_id integer NOT NULL,
+    cantidad_desde numeric(12,2) NOT NULL,
+    precio numeric(12,4) NOT NULL,
+    orden integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_tabulador_cantidad_positiva CHECK (cantidad_desde > 0),
+    CONSTRAINT chk_tabulador_precio_positivo CHECK (precio > 0)
+);
+
+
+--
+-- Name: COMMENT inv_tabulador_precios; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.inv_tabulador_precios IS 'Tabulador de precios por volumen para artículos del inventario. Cada fila define un precio a partir de cierta cantidad.';
+
+
+--
+-- Name: inv_tabulador_precios_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inv_tabulador_precios_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inv_tabulador_precios_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inv_tabulador_precios_id_seq OWNED BY public.inv_tabulador_precios.id;
 
 
 --
@@ -1754,6 +1798,13 @@ ALTER TABLE ONLY public.inv_departamentos ALTER COLUMN id SET DEFAULT nextval('p
 --
 
 ALTER TABLE ONLY public.inventarios ALTER COLUMN id SET DEFAULT nextval('public.inventarios_id_seq'::regclass);
+
+
+--
+-- Name: inv_tabulador_precios id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inv_tabulador_precios ALTER COLUMN id SET DEFAULT nextval('public.inv_tabulador_precios_id_seq'::regclass);
 
 
 --
@@ -2727,6 +2778,22 @@ ALTER TABLE ONLY public.inventarios
 
 
 --
+-- Name: inv_tabulador_precios inv_tabulador_precios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inv_tabulador_precios
+    ADD CONSTRAINT inv_tabulador_precios_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inv_tabulador_precios inv_tabulador_precios_inventario_cantidad_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inv_tabulador_precios
+    ADD CONSTRAINT inv_tabulador_precios_inventario_cantidad_key UNIQUE (inventario_id, cantidad_desde);
+
+
+--
 -- Name: metodos_pago metodos_pago_codigo_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3576,6 +3643,14 @@ ALTER TABLE ONLY public.inventarios
 
 
 --
+-- Name: inv_tabulador_precios fk_tabulador_inventario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inv_tabulador_precios
+    ADD CONSTRAINT fk_tabulador_inventario FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE CASCADE;
+
+
+--
 -- Name: equipos_mantenimiento fk_mantenimiento_equipo; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3740,6 +3815,7 @@ CREATE TABLE public.pos_ventas_detalle (
     descuento_linea_pct     numeric(5,2) DEFAULT 0,
     descuento_linea_monto   numeric(12,2) DEFAULT 0,
     subtotal_linea          numeric(12,2) NOT NULL,
+    tabulador_aplicado      boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_pos_detalle_cantidad CHECK (cantidad > 0),
     CONSTRAINT chk_pos_detalle_precio CHECK (precio_unitario >= 0),
     CONSTRAINT chk_pos_detalle_desc_pct CHECK (descuento_linea_pct BETWEEN 0 AND 100),
@@ -3760,6 +3836,7 @@ ALTER TABLE ONLY public.pos_ventas_detalle
 
 CREATE INDEX idx_pos_detalle_venta      ON public.pos_ventas_detalle (venta_id);
 CREATE INDEX idx_pos_detalle_inventario ON public.pos_ventas_detalle (inventario_id);
+CREATE INDEX idx_tabulador_inventario_id ON public.inv_tabulador_precios (inventario_id, cantidad_desde ASC);
 
 
 --

@@ -38,13 +38,18 @@ function calcularPuntosPorVenta(total) {
 
 async function generarFolio(client) {
   const anio = new Date().getFullYear();
-  // Cuenta cuántas ventas existen en el año actual y genera el siguiente consecutivo.
-  // Reinicia automáticamente cada año y soporta cualquier volumen.
+  // Advisory lock de transacción: solo una TX a la vez genera el folio,
+  // se libera automáticamente al hacer COMMIT o ROLLBACK.
+  await client.query('SELECT pg_advisory_xact_lock(987654321)');
+  // Usa MAX del consecutivo en lugar de COUNT para que
+  // ventas canceladas/eliminadas no provoquen colisiones.
   const r = await client.query(
-    `SELECT COUNT(*) + 1 AS siguiente
+    `SELECT COALESCE(
+       MAX(CAST(SPLIT_PART(folio, '-', 3) AS INTEGER)),
+     0) + 1 AS siguiente
      FROM pos_ventas
-     WHERE EXTRACT(YEAR FROM fecha_venta) = $1`,
-    [anio]
+     WHERE folio LIKE $1`,
+    [`PV-${anio}-%`]
   );
   const consecutivo = parseInt(r.rows[0].siguiente, 10);
   return `PV-${anio}-${String(consecutivo).padStart(5, '0')}`;
@@ -70,6 +75,7 @@ async function getCatalogo(req, res) {
         i.existencia_actual,
         i.unidad_medida,
         i.foto_url,
+        i.tabulador_activo,
         d.nombre AS departamento_nombre,
         d.color  AS departamento_color,
         d.id     AS departamento_id,
@@ -86,7 +92,15 @@ async function getCatalogo(req, res) {
           WHEN i.stock_minimo > 0 AND i.existencia_actual < i.stock_minimo THEN 'critico'
           WHEN i.stock_minimo > 0 AND i.existencia_actual <= i.stock_minimo * 1.1 THEN 'bajo'
           ELSE 'ok'
-        END AS nivel_stock
+        END AS nivel_stock,
+        COALESCE((
+          SELECT json_agg(
+            json_build_object('cantidad_desde', tp.cantidad_desde, 'precio', tp.precio)
+            ORDER BY tp.cantidad_desde ASC
+          )
+          FROM inv_tabulador_precios tp
+          WHERE tp.inventario_id = i.id
+        ), '[]'::json) AS tabulador
       FROM inventarios i
       LEFT JOIN inv_departamentos d ON d.id = i.departamento_id
       WHERE i.activo = true
@@ -114,6 +128,10 @@ async function getCatalogo(req, res) {
       precio_venta: parseFloat(r.precio_venta),
       existencia_actual: parseFloat(r.existencia_actual),
       veces_vendido: parseFloat(r.veces_vendido) || 0,
+      tabulador: (r.tabulador || []).map(t => ({
+        cantidad_desde: parseFloat(t.cantidad_desde),
+        precio: parseFloat(t.precio),
+      })),
     }));
 
     return res.json(createResponse(true, items, `${items.length} artículos disponibles`));
@@ -172,9 +190,10 @@ async function createVenta(req, res) {
       // Seguridad: para productos físicos del inventario, obtener precio y stock de la BD
       // El precio_unitario del frontend se ignora para estos ítems (previene manipulación)
       let precioUnit = parseFloat(item.precio_unitario);
+      let tabuladorAplicado = false;
       if (item.inventario_id && !item.es_servicio && !item.es_item_libre) {
         const stockQ = await client.query(
-          'SELECT existencia_actual, nombre, precio_venta FROM inventarios WHERE id=$1 AND activo=true FOR UPDATE',
+          'SELECT existencia_actual, nombre, precio_venta, tabulador_activo FROM inventarios WHERE id=$1 AND activo=true FOR UPDATE',
           [item.inventario_id]
         );
         if (stockQ.rows.length === 0)
@@ -184,9 +203,34 @@ async function createVenta(req, res) {
           throw new Error(`Stock insuficiente para "${stockQ.rows[0].nombre}": disponible ${stock}, solicitado ${cantidad}`);
 
         const precioReal = parseFloat(stockQ.rows[0].precio_venta);
+        const tabuladorActivo = stockQ.rows[0].tabulador_activo;
         if (!isNaN(precioReal) && precioReal >= 0) {
-          // Detectar y registrar intento de manipulación de precio
-          if (Math.abs(precioUnit - precioReal) > 0.001) {
+          // Si el artículo tiene tabulador activo, verificar si el precio enviado
+          // corresponde al tramo válido para la cantidad solicitada.
+          if (tabuladorActivo && Math.abs(precioUnit - precioReal) > 0.001) {
+            const tabQ = await client.query(
+              `SELECT precio FROM inv_tabulador_precios
+               WHERE inventario_id = $1 AND cantidad_desde <= $2
+               ORDER BY cantidad_desde DESC LIMIT 1`,
+              [item.inventario_id, cantidad]
+            );
+            if (tabQ.rows.length > 0) {
+              const precioTabulador = parseFloat(tabQ.rows[0].precio);
+              if (Math.abs(precioUnit - precioTabulador) <= 0.01) {
+                // Precio coincide con el tabulador: es legítimo
+                precioUnit = precioTabulador;
+                tabuladorAplicado = true;
+              } else {
+                // El precio no coincide con el tabulador ni con el base: manipulación
+                precioUnit = precioReal;
+              }
+            } else {
+              // No hay tramo de tabulador para esta cantidad: usar precio base
+              precioUnit = precioReal;
+            }
+          }
+          // Detectar y registrar intento de manipulación de precio (excluyendo tabulador)
+          if (!tabuladorAplicado && Math.abs(precioUnit - precioReal) > 0.001) {
             const usuarioId     = req.user?.id || null;
             const usuarioNombre = req.user?.nombre || req.user?.username || 'desconocido';
             const ip            = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'desconocida';
@@ -214,7 +258,10 @@ async function createVenta(req, res) {
               ]
             ).catch(err => console.error('Error guardando alerta seguridad:', err.message));
           }
-          precioUnit = precioReal; // precio tomado de BD, no del frontend
+          // Si no hubo tabulador, forzar el precio de BD (seguridad)
+          if (!tabuladorAplicado) {
+            precioUnit = precioReal;
+          }
         }
       }
 
@@ -236,6 +283,7 @@ async function createVenta(req, res) {
         descuento_linea_pct:   descLinPct,
         descuento_linea_monto: descLinMonto,
         subtotal_linea:        subtotalLinea,
+        tabulador_aplicado:    tabuladorAplicado,
       });
     }
 
@@ -288,13 +336,15 @@ async function createVenta(req, res) {
           venta_id, inventario_id, nombre_producto, sku,
           es_servicio, es_item_libre,
           cantidad, precio_unitario,
-          descuento_linea_pct, descuento_linea_monto, subtotal_linea
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+          descuento_linea_pct, descuento_linea_monto, subtotal_linea,
+          tabulador_aplicado
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       `, [
         ventaId, linea.inventario_id, linea.nombre_producto, linea.sku,
         linea.es_servicio, linea.es_item_libre,
         linea.cantidad, linea.precio_unitario,
         linea.descuento_linea_pct, linea.descuento_linea_monto, linea.subtotal_linea,
+        linea.tabulador_aplicado || false,
       ]);
 
       // Descontar inventario solo para productos físicos
@@ -1008,11 +1058,13 @@ async function convertirCotizacion(req, res) {
       await client.query(`
         INSERT INTO pos_ventas_detalle
           (venta_id, inventario_id, nombre_producto, sku, es_servicio, es_item_libre,
-           cantidad, precio_unitario, descuento_linea_pct, descuento_linea_monto, subtotal_linea)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+           cantidad, precio_unitario, descuento_linea_pct, descuento_linea_monto, subtotal_linea,
+           tabulador_aplicado)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       `, [ventaId, linea.inventario_id, linea.nombre_producto, linea.sku,
           linea.es_servicio, linea.es_item_libre, linea.cantidad, linea.precio_unitario,
-          linea.descuento_linea_pct, linea.descuento_linea_monto, linea.subtotal_linea]);
+          linea.descuento_linea_pct, linea.descuento_linea_monto, linea.subtotal_linea,
+          linea.tabulador_aplicado || false]);
 
       if (linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
         const stockQ = await client.query(

@@ -246,6 +246,14 @@ async function getInventarioById(req, res) {
 
     const art = parseNumericFields(r.rows[0]);
     art.nivel_stock = art.es_servicio ? null : nivelStock(art.existencia_actual, art.stock_minimo);
+
+    // Incluir filas del tabulador
+    const tabResult = await query(
+      'SELECT id, cantidad_desde, precio, orden FROM inv_tabulador_precios WHERE inventario_id=$1 ORDER BY cantidad_desde ASC',
+      [id]
+    );
+    art.tabulador = tabResult.rows.map(parseNumericFields);
+
     return res.json(createResponse(true, art, 'Artículo obtenido'));
   } catch (err) {
     console.error('getInventarioById:', err);
@@ -259,7 +267,7 @@ async function createInventario(req, res) {
       departamento_id, tipo, es_servicio, nombre, descripcion,
       codigo_sku, marca, modelo, proveedor_id,
       unidad_medida, existencia_actual, stock_minimo, stock_maximo,
-      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos
+      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, tabulador_activo
     } = req.body;
 
     if (!departamento_id)
@@ -292,8 +300,8 @@ async function createInventario(req, res) {
       INSERT INTO inventarios (
         departamento_id, categoria, tipo, es_servicio, nombre, descripcion, codigo_sku, marca, modelo, proveedor_id,
         unidad_medida, existencia_actual, stock_minimo, stock_maximo, ubicacion_fisica,
-        costo_compra, precio_venta, costo_promedio, disponible_en_pos, activo, estatus
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,true,'activo') RETURNING *
+        costo_compra, precio_venta, costo_promedio, disponible_en_pos, tabulador_activo, activo, estatus
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,true,'activo') RETURNING *
     `, [
       departamento_id, categoriaNombre, tipo, esServicio, nombre.trim(), descripcion||null,
       codigo_sku||null, marca||null, modelo||null, provId,
@@ -301,7 +309,8 @@ async function createInventario(req, res) {
       esServicio ? 0 : (existencia_actual||0),
       esServicio ? 0 : (stock_minimo||0),
       esServicio ? null : (stock_maximo||null),
-      ubicacion_fisica||null, costo_compra||null, precio_venta||null, costo_compra||0, posFlag
+      ubicacion_fisica||null, costo_compra||null, precio_venta||null, costo_compra||0, posFlag,
+      tabulador_activo === true || tabulador_activo === 'true'
     ]);
 
     const art = r.rows[0];
@@ -326,7 +335,7 @@ async function updateInventario(req, res) {
     const {
       departamento_id, tipo, nombre, descripcion, codigo_sku,
       marca, modelo, proveedor_id, unidad_medida, stock_minimo, stock_maximo,
-      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus
+      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, tabulador_activo
     } = req.body;
 
     const check = await query('SELECT id, tipo, es_servicio FROM inventarios WHERE id=$1', [id]);
@@ -348,6 +357,7 @@ async function updateInventario(req, res) {
         ubicacion_fisica=$12, costo_compra=$13, precio_venta=$14,
         costo_promedio=COALESCE($13,costo_compra,costo_promedio),
         disponible_en_pos=COALESCE($15,disponible_en_pos), estatus=COALESCE($16,estatus),
+        tabulador_activo=COALESCE($18,tabulador_activo),
         fecha_modificacion=CURRENT_TIMESTAMP
       WHERE id=$17 RETURNING *
     `, [
@@ -355,7 +365,8 @@ async function updateInventario(req, res) {
       esServicio ? null : unidad_medida,
       esServicio ? null : stock_minimo,
       esServicio ? null : stock_maximo,
-      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, id
+      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, id,
+      tabulador_activo !== undefined ? (tabulador_activo === true || tabulador_activo === 'true') : undefined
     ]);
 
     return res.json(createResponse(true, r.rows[0], 'Artículo actualizado'));
@@ -576,18 +587,118 @@ async function getCatalogoPos(req, res) {
     const resultado = await Promise.all(deptos.rows.map(async (d) => {
       const arts = await query(`
         SELECT id, nombre, descripcion, precio_venta, unidad_medida,
-               es_servicio, existencia_actual, stock_minimo, codigo_sku
+               es_servicio, existencia_actual, stock_minimo, codigo_sku,
+               tabulador_activo
         FROM inventarios
         WHERE departamento_id=$1 AND activo=true AND estatus='activo' AND disponible_en_pos=true
         ORDER BY nombre ASC
       `, [d.id]);
-      return { ...d, articulos: arts.rows.map(parseNumericFields) };
+
+      const articulos = await Promise.all(arts.rows.map(async (a) => {
+        const parsed = parseNumericFields(a);
+        if (parsed.tabulador_activo) {
+          const tab = await query(
+            'SELECT cantidad_desde, precio FROM inv_tabulador_precios WHERE inventario_id=$1 ORDER BY cantidad_desde ASC',
+            [a.id]
+          );
+          parsed.tabulador = tab.rows.map(parseNumericFields);
+        } else {
+          parsed.tabulador = [];
+        }
+        return parsed;
+      }));
+
+      return { ...d, articulos };
     }));
 
     return res.json(createResponse(true, resultado, 'Catálogo POS obtenido'));
   } catch (err) {
     console.error('getCatalogoPos:', err);
     return res.status(500).json(createErrorResponse('Error al obtener catálogo POS', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// TABULADOR DE PRECIOS POR VOLUMEN
+// ─────────────────────────────────────────────────────────────
+
+async function getTabuladorPrecios(req, res) {
+  try {
+    const { id } = req.params;
+    const check = await query('SELECT id FROM inventarios WHERE id=$1', [id]);
+    if (check.rows.length === 0)
+      return res.status(404).json(createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
+
+    const r = await query(
+      'SELECT id, cantidad_desde, precio, orden FROM inv_tabulador_precios WHERE inventario_id=$1 ORDER BY cantidad_desde ASC',
+      [id]
+    );
+    return res.json(createResponse(true, r.rows.map(parseNumericFields), 'Tabulador obtenido'));
+  } catch (err) {
+    console.error('getTabuladorPrecios:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener tabulador', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+/** Reemplaza todas las filas del tabulador para un artículo (replace-all strategy). */
+async function saveTabuladorPrecios(req, res) {
+  try {
+    const { id } = req.params;
+    const { filas } = req.body; // array de { cantidad_desde, precio }
+
+    const artResult = await query(
+      'SELECT id, precio_venta, disponible_en_pos FROM inventarios WHERE id=$1 AND activo=true', [id]
+    );
+    if (artResult.rows.length === 0)
+      return res.status(404).json(createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
+
+    const precioBase = parseFloat(artResult.rows[0].precio_venta);
+
+    if (!Array.isArray(filas))
+      return res.status(400).json(createErrorResponse('Se esperaba un array de filas', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    // Validaciones
+    for (let i = 0; i < filas.length; i++) {
+      const f = filas[i];
+      const desde = parseFloat(f.cantidad_desde);
+      const precio = parseFloat(f.precio);
+      if (isNaN(desde) || desde <= 0)
+        return res.status(400).json(createErrorResponse(`Fila ${i + 1}: "cantidad_desde" debe ser mayor a 0`, CODIGOS_ERROR.DATOS_INVALIDOS));
+      if (isNaN(precio) || precio <= 0)
+        return res.status(400).json(createErrorResponse(`Fila ${i + 1}: "precio" debe ser mayor a 0`, CODIGOS_ERROR.DATOS_INVALIDOS));
+      if (!isNaN(precioBase) && precioBase > 0 && precio >= precioBase)
+        return res.status(400).json(createErrorResponse(
+          `Fila ${i + 1}: el precio del tabulador ($${precio}) debe ser menor al precio de venta base ($${precioBase})`,
+          CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+    }
+
+    // Verificar que no haya cantidades duplicadas
+    const cantidades = filas.map(f => parseFloat(f.cantidad_desde));
+    const uniqueCantidades = new Set(cantidades);
+    if (uniqueCantidades.size !== cantidades.length)
+      return res.status(400).json(createErrorResponse('No puede haber filas con la misma cantidad', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    // Reemplazar todas las filas en una transacción
+    await query('BEGIN');
+    await query('DELETE FROM inv_tabulador_precios WHERE inventario_id=$1', [id]);
+    for (let i = 0; i < filas.length; i++) {
+      await query(
+        'INSERT INTO inv_tabulador_precios (inventario_id, cantidad_desde, precio, orden) VALUES ($1,$2,$3,$4)',
+        [id, parseFloat(filas[i].cantidad_desde), parseFloat(filas[i].precio), i]
+      );
+    }
+    await query('COMMIT');
+
+    const r = await query(
+      'SELECT id, cantidad_desde, precio, orden FROM inv_tabulador_precios WHERE inventario_id=$1 ORDER BY cantidad_desde ASC',
+      [id]
+    );
+    return res.json(createResponse(true, r.rows.map(parseNumericFields), 'Tabulador guardado correctamente'));
+  } catch (err) {
+    await query('ROLLBACK').catch(() => {});
+    console.error('saveTabuladorPrecios:', err);
+    return res.status(500).json(createErrorResponse('Error al guardar tabulador', CODIGOS_ERROR.ERROR_SERVIDOR));
   }
 }
 
@@ -599,6 +710,7 @@ module.exports = {
   listInventarios, getInventariosPorDepartamento, getInventarioById,
   createInventario, updateInventario, deleteInventario, archivarInventario,
   addMovimiento, getHistorialMovimientos, getHistorialGlobal,
-  getStats, getAlertas, getCatalogoPos
+  getStats, getAlertas, getCatalogoPos,
+  getTabuladorPrecios, saveTabuladorPrecios
 };
 /* ── FIN DEL CONTROLADOR ── */

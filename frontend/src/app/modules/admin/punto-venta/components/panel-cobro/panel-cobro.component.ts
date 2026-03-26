@@ -144,7 +144,10 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
     const payload = {
       cliente_id: this.clienteSeleccionado?.id || null,
-      items: this.carrito.map(({ _foto_url, _nivel_stock, _existencia_actual, _id_ui, ...rest }) => rest),
+      items: this.carrito.map(({ _foto_url, _nivel_stock, _existencia_actual, _id_ui, _precio_base, _tabulador, _tabulador_activo, ...rest }) => ({
+        ...rest,
+        tabulador_aplicado: !!_tabulador_activo && _precio_base !== undefined && rest.precio_unitario < _precio_base,
+      })),
       metodo_pago_codigo: this.metodoPago,
       metodo_pago_descripcion: this.labelMetodo(this.metodoPago),
       monto_recibido: this.metodoPago === 'efectivo' ? this.montoRecibido : null,

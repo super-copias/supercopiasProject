@@ -62,6 +62,7 @@ export class CarritoComponent implements OnChanges, AfterViewInit, OnDestroy {
       return;
     }
     linea.cantidad += 1;
+    this.aplicarTabulador(linea);
     this.recalcularLinea(linea);
     this.emitir();
   }
@@ -72,6 +73,7 @@ export class CarritoComponent implements OnChanges, AfterViewInit, OnDestroy {
       return;
     }
     linea.cantidad -= 1;
+    this.aplicarTabulador(linea);
     this.recalcularLinea(linea);
     this.emitir();
   }
@@ -85,6 +87,7 @@ export class CarritoComponent implements OnChanges, AfterViewInit, OnDestroy {
     } else {
       linea.cantidad = num;
     }
+    this.aplicarTabulador(linea);
     this.recalcularLinea(linea);
     this.emitir();
   }
@@ -113,6 +116,14 @@ export class CarritoComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   // ── Helpers ───────────────────────────────────────────────────
+
+  private aplicarTabulador(linea: LineaCarrito): void {
+    if (linea._tabulador_activo && linea._tabulador && linea._precio_base !== undefined) {
+      linea.precio_unitario = this.posService.resolverPrecioTabulador(
+        linea.cantidad, linea._precio_base, linea._tabulador
+      );
+    }
+  }
 
   private recalcularLinea(linea: LineaCarrito): void {
     linea.subtotal_linea = this.posService.calcularSubtotalLinea(linea);

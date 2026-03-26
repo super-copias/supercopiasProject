@@ -2,6 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { TabuladorFila } from './inventarios.service';
+
+export { TabuladorFila };
 
 // ── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -21,6 +24,8 @@ export interface CatalogoItem {
   departamento_id?: number;
   nivel_stock: 'ok' | 'bajo' | 'critico' | 'sin_stock' | 'servicio';
   veces_vendido?: number;
+  tabulador_activo?: boolean;
+  tabulador?: TabuladorFila[];
 }
 
 export interface LineaCarrito {
@@ -40,12 +45,15 @@ export interface LineaCarrito {
   _foto_url?: string;
   _nivel_stock?: string;
   _existencia_actual?: number;
-  _id_ui?: string; // id temporal para control en el carrito
+  _id_ui?: string;
+  _precio_base?: number;          // precio_venta original antes del tabulador
+  _tabulador?: TabuladorFila[];   // filas del tabulador para recalcular al cambiar cantidad
+  _tabulador_activo?: boolean;
 }
 
 export interface VentaPayload {
   cliente_id?: number | null;
-  items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui'>[];
+  items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui' | '_precio_base' | '_tabulador' | '_tabulador_activo'>[];
   metodo_pago_codigo: string;
   metodo_pago_descripcion?: string;
   monto_recibido?: number | null;
@@ -94,6 +102,7 @@ export interface LineaDetalle {
   descuento_linea_pct: number;
   descuento_linea_monto: number;
   subtotal_linea: number;
+  tabulador_aplicado?: boolean;
 }
 
 export interface PuntosCliente {
@@ -313,6 +322,24 @@ export class PosService {
   }
 
   // ── Helpers locales ───────────────────────────────────────────
+
+  /**
+   * Devuelve el precio efectivo según el tabulador dado una cantidad.
+   * Si no hay tabulador activo o no aplica ningún tramo, devuelve precioBase.
+   */
+  resolverPrecioTabulador(cantidad: number, precioBase: number, tabulador: TabuladorFila[]): number {
+    if (!tabulador || tabulador.length === 0) return precioBase;
+    const ordenado = [...tabulador].sort((a, b) => a.cantidad_desde - b.cantidad_desde);
+    let precioEfectivo = precioBase;
+    for (const fila of ordenado) {
+      if (cantidad >= fila.cantidad_desde) {
+        precioEfectivo = fila.precio;
+      } else {
+        break;
+      }
+    }
+    return precioEfectivo;
+  }
 
   calcularSubtotalLinea(linea: Partial<LineaCarrito>): number {
     const base = (linea.cantidad || 0) * (linea.precio_unitario || 0);

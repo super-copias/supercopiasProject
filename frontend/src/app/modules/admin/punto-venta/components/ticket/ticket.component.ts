@@ -38,4 +38,8 @@ export class TicketComponent {
     if (!this.venta?.cliente_id || !this.venta?.total) return 0;
     return Math.floor(parseFloat(String(this.venta.total)) / 10);
   }
+
+  get tieneDescuentoVolumen(): boolean {
+    return !!this.venta?.detalle?.some(d => d.tabulador_aplicado);
+  }
 }
