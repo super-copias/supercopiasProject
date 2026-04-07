@@ -136,8 +136,7 @@ export class RolesGuard implements CanActivate {
       'proveedores/edit': { modulo: MODULOS.PROVEEDORES, accion: 'actualizar' },
       'inventarios': { modulo: MODULOS.INVENTARIOS, accion: 'leer' },
       'ventas': { modulo: MODULOS.VENTAS, accion: 'leer' },
-      'reportes': { modulo: MODULOS.REPORTES, accion: 'leer' },
-      'configuracion': { modulo: MODULOS.CONFIGURACION, accion: 'leer' }
+      'reportes': { modulo: MODULOS.REPORTES, accion: 'leer' }
     };
 
     // Buscar coincidencias exactas

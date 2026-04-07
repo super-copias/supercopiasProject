@@ -26,8 +26,7 @@ export class RolesService {
         proveedores: { crear: true, leer: true, actualizar: true, eliminar: true, administrar: true },
         inventarios: { crear: true, leer: true, actualizar: true, eliminar: true, administrar: true },
         ventas: { crear: true, leer: true, actualizar: true, eliminar: true, administrar: true },
-        reportes: { crear: true, leer: true, actualizar: true, eliminar: true, administrar: true },
-        configuracion: { crear: true, leer: true, actualizar: true, eliminar: true, administrar: true }
+        reportes: { crear: true, leer: true, actualizar: true, eliminar: true, administrar: true }
       }
     },
     {
@@ -41,8 +40,7 @@ export class RolesService {
         proveedores: { crear: false, leer: true, actualizar: true, eliminar: false, administrar: false },
         inventarios: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false },
         ventas: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false },
-        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false }
       }
     },
     {
@@ -56,8 +54,7 @@ export class RolesService {
         proveedores: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         inventarios: { crear: false, leer: true, actualizar: true, eliminar: false, administrar: false },
         ventas: { crear: true, leer: true, actualizar: false, eliminar: false, administrar: false },
-        reportes: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
       }
     },
     {
@@ -71,8 +68,7 @@ export class RolesService {
         proveedores: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false },
         inventarios: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         ventas: { crear: true, leer: true, actualizar: false, eliminar: false, administrar: false },
-        reportes: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
       }
     },
     {
@@ -86,8 +82,7 @@ export class RolesService {
         proveedores: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         inventarios: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         ventas: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false }
       }
     },
     {
@@ -101,8 +96,7 @@ export class RolesService {
         proveedores: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false },
         inventarios: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false },
         ventas: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false }
       }
     },
     {
@@ -116,8 +110,7 @@ export class RolesService {
         proveedores: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         inventarios: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         ventas: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false },
-        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false }
       }
     },
     {
@@ -131,8 +124,7 @@ export class RolesService {
         proveedores: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         inventarios: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
         ventas: { crear: false, leer: true, actualizar: false, eliminar: false, administrar: false },
-        reportes: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false },
-        configuracion: { crear: false, leer: false, actualizar: false, eliminar: false, administrar: false }
+        reportes: { crear: true, leer: true, actualizar: true, eliminar: false, administrar: false }
       }
     }
   ];

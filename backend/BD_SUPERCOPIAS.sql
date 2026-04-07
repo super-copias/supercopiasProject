@@ -2239,7 +2239,7 @@ COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FR
 6	punto_venta	Punto de Venta	fas fa-cash-register	t	6	2025-12-08 00:00:00-06
 7	equipos	Equipos	fas fa-desktop	t	7	2025-12-08 00:00:00-06
 8	reportes	Reportes	fas fa-chart-bar	t	8	2025-12-08 00:00:00-06
-9	configuracion	Configuración	fas fa-cogs	t	9	2025-12-08 00:00:00-06
+9	configuracion	Configuración	fas fa-cogs	f	9	2025-12-08 00:00:00-06
 \.
 
 

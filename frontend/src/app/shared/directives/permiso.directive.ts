@@ -123,8 +123,7 @@ export class PermisoDirective implements OnInit, OnDestroy {
       'ventas': ['admin', 'supervisor', 'gestor_ventas', 'cajero'],
       'inventarios': ['admin', 'supervisor', 'gestor_inventarios', 'operador'],
       'proveedores': ['admin', 'supervisor', 'gestor_inventarios'],
-      'reportes': ['admin', 'supervisor', 'contabilidad'],
-      'configuracion': ['admin']
+      'reportes': ['admin', 'supervisor', 'contabilidad']
     };
 
     const allowedRoles = moduleRoleMap[this.appPermisoModulo] || [];

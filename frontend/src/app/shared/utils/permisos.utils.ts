@@ -199,8 +199,7 @@ export class PermisosUtils {
       proveedores: 'Proveedores',
       inventarios: 'Inventarios',
       ventas: 'Ventas',
-      reportes: 'Reportes',
-      configuracion: 'Configuración'
+      reportes: 'Reportes'
     };
 
     const accionNames: { [key: string]: string } = {
@@ -244,8 +243,7 @@ export const MODULOS = {
   PROVEEDORES: 'proveedores',
   INVENTARIOS: 'inventarios',
   VENTAS: 'ventas',
-  REPORTES: 'reportes',
-  CONFIGURACION: 'configuracion'
+  REPORTES: 'reportes'
 } as const;
 
 /**

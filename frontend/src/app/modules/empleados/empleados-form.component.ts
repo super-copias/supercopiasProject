@@ -306,7 +306,7 @@ import { NotificationService } from '../../services/notification.service';
                 <div *ngIf="tipoPermiso === 'administrador'" class="mt-3">
                   <div class="alert alert-warning border-warning">
                     <i class="fas fa-crown me-2"></i>
-                    <strong>👑 Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema con permisos de administrador. Podrá gestionar empleados, clientes, proveedores, inventarios, equipos, reportes y configuraciones.
+                    <strong>👑 Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema con permisos de administrador. Podrá gestionar empleados, clientes, proveedores, inventarios, equipos y reportes.
                   </div>
                 </div>
               </div>
