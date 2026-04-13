@@ -38,9 +38,17 @@
                     <small>{{e.turno || '-'}}</small>
                 </td>
                 <td>
-                    <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo">
-                        {{e.activo ? 'Activo' : 'Inactivo'}}
-                    </span>
+                    <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               [checked]="e.activo"
+                               (change)="onToggleEstado(e)"
+                               [title]="e.activo ? 'Desactivar empleado' : 'Activar empleado'"
+                               style="cursor:pointer; width:2.2em; height:1.2em;">
+                        <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo"
+                              style="font-size:0.72em;">
+                            {{e.activo ? 'Activo' : 'Inactivo'}}
+                        </span>
+                    </div>
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
@@ -80,9 +88,17 @@
                                     <small class="text-muted">ID: {{e.id}}</small>
                                 </div>
                                 <div class="flex-shrink-0">
-                                    <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo">
-                                        {{e.activo ? 'Activo' : 'Inactivo'}}
-                                    </span>
+                                    <div class="form-check form-switch d-flex align-items-center gap-1 mb-0">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               [checked]="e.activo"
+                                               (change)="onToggleEstado(e)"
+                                               [title]="e.activo ? 'Desactivar' : 'Activar'"
+                                               style="cursor:pointer; width:2em; height:1.1em;">
+                                        <span class="badge" [class.bg-success]="e.activo" [class.bg-secondary]="!e.activo"
+                                              style="font-size:0.7em;">
+                                            {{e.activo ? 'Activo' : 'Inactivo'}}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             

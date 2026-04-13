@@ -5,6 +5,7 @@
  */
 
 const { query, transaction } = require('../config/database');
+const { reiniciarScheduler } = require('../utils/horariosScheduler');
 const { 
   createResponse,
   createErrorResponse, 
@@ -307,6 +308,127 @@ async function createPuesto(req, res) {
   }
 }
 
+// ============================================================================
+// HORARIOS DE ACCESO
+// ============================================================================
+
+/**
+ * Obtener todos los horarios de acceso
+ * GET /api/catalogos/horarios
+ */
+async function getHorarios(req, res) {
+  try {
+    const result = await query(
+      'SELECT * FROM horarios_acceso ORDER BY hora_inicio ASC'
+    );
+    res.status(200).json({
+      success: true,
+      data: result.rows,
+      message: 'Horarios obtenidos correctamente',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error obteniendo horarios'));
+  }
+}
+
+/**
+ * Crear horario de acceso
+ * POST /api/catalogos/horarios
+ */
+async function createHorario(req, res) {
+  try {
+    const { nombre, hora_inicio, hora_fin, activo = true } = req.body;
+
+    if (!nombre || !hora_inicio || !hora_fin) {
+      return res.status(400).json(createErrorResponse(
+        CODIGOS_ERROR.DATOS_INVALIDOS,
+        'Nombre, hora_inicio y hora_fin son obligatorios'
+      ));
+    }
+
+    const result = await query(
+      `INSERT INTO horarios_acceso (nombre, hora_inicio, hora_fin, activo, fecha_creacion)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING *`,
+      [nombre, hora_inicio, hora_fin, activo]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: result.rows[0],
+      message: 'Horario creado exitosamente'
+    });
+    // Reprogramar timers con el nuevo horario
+    reiniciarScheduler().catch(() => {});
+  } catch (error) {
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error creando horario'));
+  }
+}
+
+/**
+ * Actualizar horario de acceso
+ * PUT /api/catalogos/horarios/:id
+ */
+async function updateHorario(req, res) {
+  try {
+    const { id } = req.params;
+    const { nombre, hora_inicio, hora_fin, activo } = req.body;
+
+    const existing = await query('SELECT id FROM horarios_acceso WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json(createErrorResponse(CODIGOS_ERROR.NOT_FOUND, 'Horario no encontrado'));
+    }
+
+    const result = await query(
+      `UPDATE horarios_acceso
+       SET nombre = COALESCE($1, nombre),
+           hora_inicio = COALESCE($2, hora_inicio),
+           hora_fin = COALESCE($3, hora_fin),
+           activo = COALESCE($4, activo)
+       WHERE id = $5
+       RETURNING *`,
+      [nombre, hora_inicio, hora_fin, activo, id]
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result.rows[0],
+      message: 'Horario actualizado exitosamente'
+    });
+    // Reprogramar timers con los tiempos actualizados
+    reiniciarScheduler().catch(() => {});
+  } catch (error) {
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error actualizando horario'));
+  }
+}
+
+/**
+ * Eliminar horario de acceso
+ * DELETE /api/catalogos/horarios/:id
+ */
+async function deleteHorario(req, res) {
+  try {
+    const { id } = req.params;
+    const existing = await query('SELECT id FROM horarios_acceso WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json(createErrorResponse(CODIGOS_ERROR.NOT_FOUND, 'Horario no encontrado'));
+    }
+
+    await query('DELETE FROM horarios_acceso WHERE id = $1', [id]);
+
+    res.status(200).json({
+      success: true,
+      data: { id: parseInt(id) },
+      message: 'Horario eliminado exitosamente'
+    });
+    // Reprogramar timers quitando el horario eliminado
+    reiniciarScheduler().catch(() => {});
+  } catch (error) {
+    res.status(500).json(createErrorResponse(CODIGOS_ERROR.ERROR_INTERNO, 'Error eliminando horario'));
+  }
+}
+
 module.exports = {
   // Catálogos SAT
   getEstados,
@@ -320,5 +442,11 @@ module.exports = {
   getSucursales,
   createSucursal,
   getPuestos,
-  createPuesto
+  createPuesto,
+
+  // Horarios de acceso
+  getHorarios,
+  createHorario,
+  updateHorario,
+  deleteHorario
 };

@@ -19,6 +19,9 @@ const bodyParser = require('body-parser');
 // Importar configuración de base de datos
 const { initializeDatabase } = require('./config/database');
 
+// Scheduler de horarios de acceso
+const { iniciarScheduler, detenerScheduler } = require('./utils/horariosScheduler');
+
 // Importar rutas
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
@@ -165,6 +168,9 @@ async function startServer() {
     await initializeDatabase();
     console.log('✅ Conexión a PostgreSQL establecida');
 
+    // Iniciar scheduler de horarios de acceso
+    await iniciarScheduler();
+
     // Iniciar el servidor Express
     app.listen(PORT, '0.0.0.0', () => {
       console.log('='.repeat(60));
@@ -207,11 +213,13 @@ async function startServer() {
 // Manejar cierre graceful del servidor
 process.on('SIGINT', () => {
   console.log('\n🛑 Cerrando servidor...');
+  detenerScheduler();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\n🛑 Cerrando servidor...');
+  detenerScheduler();
   process.exit(0);
 });
 

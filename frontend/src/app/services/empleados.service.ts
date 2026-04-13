@@ -122,6 +122,16 @@ export class EmpleadosService {
   }
 
   /**
+   * Activar / desactivar empleado (toggle de estado)
+   */
+  toggleEstado(id: number): Observable<ApiResponse<{ id: number; activo: boolean }>> {
+    return this.http.patch<ApiResponse<{ id: number; activo: boolean }>>(`${this.baseUrl}/${id}/toggle-estado`, {})
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
    * Obtener catálogo de puestos con caché
    */
   getPuestos(forceRefresh = false): Observable<ApiResponse<string[]>> {

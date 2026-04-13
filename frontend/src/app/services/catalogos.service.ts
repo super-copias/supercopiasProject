@@ -318,6 +318,30 @@ export class CatalogosService {
   }
 
   // ============================================================================
+  // HORARIOS DE ACCESO
+  // ============================================================================
+
+  getHorarios(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/horarios`)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  createHorario(horario: { nombre: string; hora_inicio: string; hora_fin: string; activo?: boolean }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/horarios`, horario)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  updateHorario(id: number, horario: Partial<{ nombre: string; hora_inicio: string; hora_fin: string; activo: boolean }>): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/horarios/${id}`, horario)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  deleteHorario(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/horarios/${id}`)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  // ============================================================================
   // MANEJO DE ERRORES
   // ============================================================================
 

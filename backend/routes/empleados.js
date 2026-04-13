@@ -20,7 +20,8 @@ const {
   updateEmpleado, 
   deleteEmpleado,
   getPuestos,
-  getModulos
+  getModulos,
+  toggleEstadoEmpleado
 } = require('../controllers/empleadosController');
 
 /**
@@ -67,6 +68,12 @@ router.put('/:id', auth, updateEmpleado);
  * Eliminar un empleado (desactivar)
  */
 router.delete('/:id', auth, deleteEmpleado);
+
+/**
+ * PATCH /api/empleados/:id/toggle-estado
+ * Activar o desactivar un empleado
+ */
+router.patch('/:id/toggle-estado', auth, toggleEstadoEmpleado);
 
 /**
  * Rutas anidadas de eventos de personal

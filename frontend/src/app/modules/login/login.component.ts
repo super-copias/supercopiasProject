@@ -65,11 +65,19 @@ export class LoginComponent implements OnInit {
           );
         }
       }, error: err => {
-        const msg = (err && err.error && err.error.message) ? err.error.message : (err.statusText || err.message || 'Error desconocido');
-        this.notificationService.error(
-          msg,
-          'Error al iniciar sesión'
-        );
+        // Detectar cuenta desactivada (403 + código específico)
+        const errorCode = err?.error?.error?.code || err?.error?.code;
+        const errorMsg  = err?.error?.error?.message || err?.error?.message || err?.message;
+
+        if (err.status === 403 && errorCode === 'CUENTA_DESACTIVADA') {
+          this.notificationService.error(
+            errorMsg || 'Tu cuenta está desactivada. Contacta al administrador.',
+            'Acceso denegado'
+          );
+        } else {
+          const msg = errorMsg || err.statusText || 'Error desconocido';
+          this.notificationService.error(msg, 'Error al iniciar sesión');
+        }
       }
     });
   }

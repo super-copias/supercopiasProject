@@ -38,6 +38,10 @@ import { NotificationService } from '../../services/notification.service';
             </button>
           </div>
           <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm d-flex align-items-center" [routerLink]="['/admin/empleados/horarios']" title="Gestionar horarios de acceso">
+              <i class="fas fa-clock"></i>
+              <span class="ms-1 d-none d-sm-inline">Horarios</span>
+            </a>
             <a class="btn btn-primary btn-sm d-flex align-items-center" [routerLink]="['/admin/empleados/nuevo']">
               <i class="fas fa-plus d-none d-sm-inline"></i>
               <span class="ms-0 ms-sm-1">Nuevo</span>
@@ -50,7 +54,8 @@ import { NotificationService } from '../../services/notification.service';
       <app-empleados-table [empleados]="empleados" 
                           (verDetalle)="onVerDetalle($event)"
                           (editar)="onEditar($event)" 
-                          (eliminar)="onEliminar($event)"></app-empleados-table>
+                          (eliminar)="onEliminar($event)"
+                          (toggleEstado)="onToggleEstado($event)"></app-empleados-table>
       <div *ngIf="loading" class="my-2">
         <small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</small>
       </div>
@@ -321,6 +326,59 @@ export class EmpleadosListComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.mostrarModalDetalle = false;
+      }
+    });
+  }
+
+  /**
+   * Activar / desactivar empleado
+   * Revierte el toggle visual si el usuario cancela o si el backend rechaza la acción.
+   */
+  onToggleEstado(empleado: any): void {
+    const estadoOriginal = empleado.activo;
+    const accion = estadoOriginal ? 'desactivar' : 'activar';
+
+    const confirmar = confirm(`¿Está seguro que desea ${accion} al empleado "${empleado.nombre}"?`);
+    if (!confirmar) {
+      // El checkbox ya cambió visualmente en el DOM; revertimos forzando un nuevo arreglo
+      // para que Angular re-evalúe el binding [checked]=
+      this.empleados = this.empleados.map(e =>
+        e.id === empleado.id ? { ...e, activo: estadoOriginal } : e
+      );
+      return;
+    }
+
+    this.empleadosService.toggleEstado(empleado.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        if (response?.success) {
+          const nuevoEstado = response.data?.activo;
+          const msg = nuevoEstado ? 'activado' : 'desactivado';
+          this.notificationService.success(
+            `El empleado "${empleado.nombre}" ha sido ${msg} correctamente.`,
+            `Empleado ${msg}`
+          );
+          this.load();
+        }
+      },
+      error: (error) => {
+        const errorCode = error?.error?.error?.code || error?.error?.code;
+        if (errorCode === 'ADMIN_PROTEGIDO') {
+          this.notificationService.warning(
+            error?.error?.error?.message || 'No es posible desactivar a un administrador del sistema.',
+            'Acción no permitida'
+          );
+        } else {
+          this.notificationService.error(
+            error?.error?.error?.message || error?.error?.message || 'No se pudo cambiar el estado del empleado.',
+            'Error al cambiar estado'
+          );
+        }
+        // Revertir visual en cualquier caso de error
+        this.empleados = this.empleados.map(e =>
+          e.id === empleado.id ? { ...e, activo: estadoOriginal } : e
+        );
       }
     });
   }

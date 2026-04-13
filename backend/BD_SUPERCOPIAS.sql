@@ -4048,6 +4048,31 @@ CREATE TRIGGER trg_pos_cotizaciones_updated_at
     BEFORE UPDATE ON public.pos_cotizaciones
     FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
 
+-- ============================================================
+-- Horarios de Acceso
+-- Controla automáticamente el acceso de empleados al sistema
+-- según franjas horarias configuradas.
+-- Migración: 2026-04-13
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.horarios_acceso (
+    id             SERIAL PRIMARY KEY,
+    nombre         CHARACTER VARYING(100) NOT NULL,
+    hora_inicio    TIME NOT NULL,
+    hora_fin       TIME NOT NULL,
+    activo         BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_horarios_rango CHECK (hora_fin > hora_inicio)
+);
+
+COMMENT ON TABLE public.horarios_acceso IS
+    'Franjas horarias que controlan el acceso automático de empleados al sistema';
+
+-- Horario laboral por defecto: 6:40 am – 9:30 pm
+INSERT INTO public.horarios_acceso (nombre, hora_inicio, hora_fin, activo)
+VALUES ('Horario laboral', '06:40', '21:30', true)
+ON CONFLICT DO NOTHING;
+
 --
 -- PostgreSQL database dump complete
 --

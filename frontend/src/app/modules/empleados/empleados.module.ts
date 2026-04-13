@@ -18,6 +18,7 @@ import { FormVacacionesComponent } from './form-vacaciones.component';
 import { FormFaltaComponent } from './form-falta.component';
 import { FormPermisoComponent } from './form-permiso.component';
 import { FormOtroComponent } from './form-otro.component';
+import { HorariosAccesoComponent } from './horarios-acceso.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
@@ -32,7 +33,8 @@ import { SharedModule } from '../../shared/shared.module';
     FormVacacionesComponent,
     FormFaltaComponent,
     FormPermisoComponent,
-    FormOtroComponent
+    FormOtroComponent,
+    HorariosAccesoComponent
   ],
   imports: [
     CommonModule, 
@@ -42,7 +44,8 @@ import { SharedModule } from '../../shared/shared.module';
     RouterModule.forChild([
       { path: '', component: EmpleadosListComponent },
       { path: 'nuevo', component: EmpleadosFormComponent },
-      { path: 'editar/:id', component: EmpleadosFormComponent }
+      { path: 'editar/:id', component: EmpleadosFormComponent },
+      { path: 'horarios', component: HorariosAccesoComponent }
     ])
   ]
 })

@@ -12,6 +12,7 @@ export class EmpleadosTableComponent {
   @Output() editar = new EventEmitter<any>();
   @Output() eliminar = new EventEmitter<any>();
   @Output() asignarRole = new EventEmitter<any>();
+  @Output() toggleEstado = new EventEmitter<any>();
 
   selectedEmpleado: any = null;
   showDetalles = false;
@@ -42,6 +43,10 @@ export class EmpleadosTableComponent {
 
   asignarRoleEmpleado(empleado: any) {
     this.asignarRole.emit(empleado);
+  }
+
+  onToggleEstado(empleado: any) {
+    this.toggleEstado.emit(empleado);
   }
 
   imprimirEmpleado() {

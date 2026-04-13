@@ -57,8 +57,9 @@ async function listEmpleados(req, res) {
     const limit = parseInt(req.query.limit || '10');
     const offset = (page - 1) * limit;
     
+    const includeInactive = req.query.includeInactive === 'true';
     let queryParams = [];
-    let whereCondition = 'WHERE e.activo = true';
+    let whereCondition = includeInactive ? 'WHERE 1=1' : 'WHERE e.activo = true';
     
     // Filtrar por búsqueda si se proporciona
     if (q) {
@@ -757,6 +758,16 @@ async function updateEmpleado(req, res) {
     const tipoAccesoNuevo = empleadoActualizado.tipo_acceso;
     const debeCrearUsuario = (tipoAccesoNuevo === 'completo' || tipoAccesoNuevo === 'limitado') 
                              && !empleadoActualizado.usuario_id;
+
+    // Si ya tiene usuario vinculado y cambió tipo_acceso, sincronizar su role
+    if (!debeCrearUsuario && empleadoActualizado.usuario_id && datosConvertidos.tipoAcceso !== undefined) {
+      const nuevoRole = tipoAccesoNuevo === 'completo' ? 'admin' : 'empleado';
+      const nuevosRoles = JSON.stringify([nuevoRole]);
+      await query(
+        'UPDATE usuarios SET role = $1, roles = $2, fecha_modificacion = NOW() WHERE id = $3',
+        [nuevoRole, nuevosRoles, empleadoActualizado.usuario_id]
+      );
+    }
     
     if (debeCrearUsuario) {
       const { generateUserCredentials } = require('../utils/rolesSystem');
@@ -998,6 +1009,77 @@ async function getModulos(req, res) {
   }
 }
 
+/**
+ * Activar o desactivar un empleado (toggle de estado)
+ * Endpoint: PATCH /api/empleados/:id/toggle-estado
+ * Actualiza activo en empleados y en el usuario vinculado (excepto admins del sistema)
+ */
+async function toggleEstadoEmpleado(req, res) {
+  try {
+    const empleadoId = parseInt(req.params.id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(CODIGOS_ERROR.INVALID_DATA, 'ID del empleado inválido')
+      );
+    }
+
+    // Obtener empleado con su usuario vinculado
+    const result = await query(
+      `SELECT e.*, u.id as usuario_id, u.role as usuario_role
+       FROM empleados e
+       LEFT JOIN usuarios u ON u.empleado_id = e.id
+       WHERE e.id = $1`,
+      [empleadoId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse(CODIGOS_ERROR.NOT_FOUND, 'Empleado no encontrado')
+      );
+    }
+
+    const empleado = result.rows[0];
+
+    // Bloquear acción sobre administradores del sistema
+    // Se verifica tanto el role del usuario como el tipo_acceso del empleado
+    // para cubrir el caso en que el role aún no fue sincronizado
+    if (empleado.usuario_role === 'admin' || empleado.tipo_acceso === 'completo') {
+      return res.status(403).json(
+        createErrorResponse(
+          'ADMIN_PROTEGIDO',
+          'No es posible desactivar a un administrador del sistema. Para desactivarlo, primero cambia sus permisos a "Personalizado" o "Sin permisos" desde el formulario de edición.'
+        )
+      );
+    }
+
+    const nuevoEstado = !empleado.activo;
+
+    // Actualizar estado del empleado
+    await query(
+      'UPDATE empleados SET activo = $1, fecha_modificacion = NOW() WHERE id = $2',
+      [nuevoEstado, empleadoId]
+    );
+
+    // Actualizar estado del usuario vinculado
+    if (empleado.usuario_id) {
+      await query(
+        'UPDATE usuarios SET activo = $1, fecha_modificacion = NOW() WHERE id = $2',
+        [nuevoEstado, empleado.usuario_id]
+      );
+    }
+
+    const accion = nuevoEstado ? 'activado' : 'desactivado';
+
+    return res.json(
+      createResponse(true, { id: empleadoId, activo: nuevoEstado }, `Empleado ${accion} exitosamente`)
+    );
+  } catch (error) {
+    return res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.DATABASE_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
 module.exports = {
   listEmpleados,
   getEmpleado,
@@ -1005,5 +1087,6 @@ module.exports = {
   updateEmpleado,
   deleteEmpleado,
   getPuestos,
-  getModulos
+  getModulos,
+  toggleEstadoEmpleado
 };

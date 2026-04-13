@@ -33,9 +33,9 @@ async function login(req, res) {
       );
     }
     
-    // Buscar usuario por username o email
+    // Buscar usuario por username o email (incluir inactivos para dar mensaje específico)
     const result = await query(
-      'SELECT * FROM usuarios WHERE (username = $1 OR email = $1) AND activo = true',
+      'SELECT * FROM usuarios WHERE (username = $1 OR email = $1)',
       [identifier]
     );
     
@@ -49,6 +49,16 @@ async function login(req, res) {
     }
     
     const user = result.rows[0];
+
+    // Verificar si la cuenta está desactivada antes de validar la contraseña
+    if (!user.activo) {
+      return res.status(403).json(
+        createErrorResponse(
+          'CUENTA_DESACTIVADA',
+          'Tu cuenta está desactivada. Contacta al administrador.'
+        )
+      );
+    }
     
     // Verificar contraseña
     const match = bcrypt.compareSync(password, user.password);
