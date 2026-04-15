@@ -4073,6 +4073,37 @@ INSERT INTO public.horarios_acceso (nombre, hora_inicio, hora_fin, activo)
 VALUES ('Horario laboral', '06:40', '21:30', true)
 ON CONFLICT DO NOTHING;
 
+-- ============================================================
+-- MÓDULO: Control de Sesiones
+-- Sesión única por usuario + cierre por inactividad (15 min)
+-- Migración: 2026-04-14
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.user_sessions (
+    id            SERIAL PRIMARY KEY,
+    usuario_id    INTEGER NOT NULL,
+    token_hash    CHARACTER VARYING(64) NOT NULL,
+    ip_address    CHARACTER VARYING(45),
+    user_agent    TEXT,
+    created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    last_activity TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    active        BOOLEAN DEFAULT true NOT NULL,
+    CONSTRAINT uq_user_sessions_token_hash UNIQUE (token_hash)
+);
+
+COMMENT ON TABLE  public.user_sessions IS 'Sesiones activas por usuario. Garantiza sesión única y controla inactividad (15 min).';
+COMMENT ON COLUMN public.user_sessions.token_hash   IS 'SHA-256 del JWT. No se almacena el token crudo.';
+COMMENT ON COLUMN public.user_sessions.expires_at   IS 'Expiración máxima del JWT (8 horas desde creación).';
+COMMENT ON COLUMN public.user_sessions.active        IS 'false cuando la sesión fue desplazada, cerrada manualmente o expiró por inactividad.';
+
+CREATE INDEX IF NOT EXISTS idx_user_sessions_usuario_active ON public.user_sessions (usuario_id, active);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_token_hash     ON public.user_sessions (token_hash);
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT fk_user_sessions_usuario
+    FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
 --
 -- PostgreSQL database dump complete
 --

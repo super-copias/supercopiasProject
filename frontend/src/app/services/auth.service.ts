@@ -145,12 +145,59 @@ export class AuthService {
   }
 
   /**
-   * Cerrar sesión del usuario
-   * Limpia localStorage, actualiza estado y redirige al login
+   * Cerrar sesión del usuario (logout manual)
+   * Notifica al backend y limpia el estado local.
    */
   logout(): void {
+    this.notifyBackendLogout();
     this.clearSession();
     this.navigateToLogin();
+  }
+
+  /**
+   * Cerrar sesión por inactividad (15 minutos sin actividad)
+   */
+  logoutByInactivity(): void {
+    this.notifyBackendLogout();
+    this.clearSession();
+    try {
+      this.router.navigate(['/login'], { replaceUrl: true, queryParams: { sessionExpired: 'inactivity' } });
+    } catch (e) {
+      window.location.href = '/login?sessionExpired=inactivity';
+    }
+  }
+
+  /**
+   * Cerrar sesión porque fue desplazada por un nuevo login del mismo usuario
+   */
+  logoutByDisplaced(): void {
+    this.notifyBackendLogout();
+    this.clearSession();
+    try {
+      this.router.navigate(['/login'], { replaceUrl: true, queryParams: { sessionExpired: 'displaced' } });
+    } catch (e) {
+      window.location.href = '/login?sessionExpired=displaced';
+    }
+  }
+
+  /**
+   * Enviar heartbeat de actividad al backend.
+   * Llamado por InactivityService con throttle de 2 minutos.
+   */
+  activityHeartbeat(): Observable<any> {
+    return this.http.post(`${this.base}/activity`, {}).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  /**
+   * Notificar al backend el cierre de sesión (fire & forget).
+   */
+  private notifyBackendLogout(): void {
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.http.post(`${this.base}/logout`, {}).subscribe({ error: () => {} });
+    }
   }
 
   /**

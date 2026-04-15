@@ -5,11 +5,17 @@
 
 const { query } = require('../config/database');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jwt    = require('jsonwebtoken');
+const crypto = require('crypto');
 const { createResponse, createErrorResponse, CODIGOS_ERROR } = require('../utils/apiStandard');
 
 // Clave secreta para firmar tokens JWT
 const SECRET = process.env.JWT_SECRET || 'supercopias_secret';
+
+// Genera SHA-256 del token. El token crudo nunca se persiste en BD.
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 /**
  * Autenticar usuario y generar token JWT
@@ -87,6 +93,23 @@ async function login(req, res) {
       'UPDATE usuarios SET ultimo_acceso = NOW(), fecha_modificacion = NOW() WHERE id = $1',
       [user.id]
     );
+
+    // --- Sesión única: invalidar sesiones previas del mismo usuario ---
+    await query(
+      'UPDATE user_sessions SET active = false WHERE usuario_id = $1 AND active = true',
+      [user.id]
+    );
+
+    // Registrar nueva sesión en BD
+    const tokenHash = hashToken(token);
+    const ipAddress = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
+    const userAgent = req.headers['user-agent'] || null;
+    await query(
+      `INSERT INTO user_sessions (usuario_id, token_hash, ip_address, user_agent, expires_at)
+       VALUES ($1, $2, $3, $4, NOW() + INTERVAL '8 hours')`,
+      [user.id, tokenHash, ipAddress, userAgent]
+    );
+    // -----------------------------------------------------------------
 
     // Obtener información adicional del empleado si existe
     let empleadoInfo = null;
@@ -171,6 +194,12 @@ async function verifyToken(req, res) {
     // Verificar y decodificar token
     const decoded = jwt.verify(token, SECRET);
     
+    // Actualizar last_activity de la sesión activa
+    await query(
+      'UPDATE user_sessions SET last_activity = NOW() WHERE token_hash = $1 AND active = true',
+      [hashToken(token)]
+    );
+
     // Buscar usuario actual
     const result = await query(
       'SELECT * FROM usuarios WHERE id = $1 AND activo = true',
@@ -247,7 +276,39 @@ async function verifyToken(req, res) {
   }
 }
 
+/**
+ * Cerrar sesión del usuario
+ * Endpoint: POST /api/auth/logout
+ */
+async function logout(req, res) {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      await query(
+        'UPDATE user_sessions SET active = false WHERE token_hash = $1',
+        [hashToken(token)]
+      );
+    }
+    res.json(createResponse(true, null, 'Sesión cerrada correctamente'));
+  } catch (error) {
+    res.status(500).json(
+      createErrorResponse('Error al cerrar sesión', CODIGOS_ERROR.INTERNAL_ERROR)
+    );
+  }
+}
+
+/**
+ * Registrar actividad del usuario (heartbeat desde frontend)
+ * Endpoint: POST /api/auth/activity
+ * El middleware ya actualiza last_activity; este endpoint solo confirma.
+ */
+async function activityHeartbeat(req, res) {
+  res.json(createResponse(true, null, 'Actividad registrada'));
+}
+
 module.exports = { 
   login,
-  verifyToken
+  verifyToken,
+  logout,
+  activityHeartbeat
 };
