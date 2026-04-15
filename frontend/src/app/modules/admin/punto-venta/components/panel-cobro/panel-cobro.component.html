@@ -34,25 +34,18 @@
     </div>
   </div>
 
-  <!-- Descuento global -->
-  <div class="seccion mb-2">
-    <div class="seccion-titulo">Descuento global</div>
-    <div class="descuento-rapido d-flex gap-1 mb-1">
-      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===5"  (click)="aplicarDescuentoRapido(5)">5%</button>
-      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===10" (click)="aplicarDescuentoRapido(10)">10%</button>
-      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===15" (click)="aplicarDescuentoRapido(15)">15%</button>
-      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===20" (click)="aplicarDescuentoRapido(20)">20%</button>
-    </div>
-    <div class="input-group input-group-sm">
-      <input type="number" class="form-control" min="0" max="100" step="0.5"
-        [value]="descuentoManualPct"
-        (change)="onDescuentoManualChange($any($event.target).value)"
-        placeholder="0">
-      <span class="input-group-text">%</span>
-    </div>
-    <small class="text-muted" *ngIf="descuentoAutorizadoPor">
-      <i class="bi bi-shield-check text-success"></i> Autorizado por {{ descuentoAutorizadoPor }}
-    </small>
+  <!-- Acciones rápidas -->
+  <div class="acciones-rapidas mb-2">
+    <button class="btn-accion" [class.btn-accion--activo]="descuentoGlobalPct > 0"
+      (click)="mostrarModalDescuento=true" title="Descuento global">
+      <i class="bi bi-percent"></i>
+      <span class="accion-label">Descuento</span>
+      <span class="accion-badge" *ngIf="descuentoGlobalPct > 0">{{ descuentoGlobalPct }}%</span>
+    </button>
+    <button class="btn-accion" (click)="mostrarModalFacturacion=true" title="Facturación">
+      <i class="bi bi-receipt"></i>
+      <span class="accion-label">Facturación</span>
+    </button>
   </div>
 
   <!-- Método de pago -->
@@ -94,15 +87,9 @@
 
   <!-- Notas -->
   <div class="seccion mb-2">
-    <div class="seccion-titulo">Notas (opcional)</div>
-    <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas" placeholder="Observaciones..."></textarea>
-  </div>
-
-  <!-- Fecha vencimiento cotización (opcional) -->
-  <div class="seccion mb-2">
-    <div class="seccion-titulo">Vigencia cotización <span class="text-muted fw-normal">(opcional)</span></div>
-    <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
-      [min]="('' | date:'yyyy-MM-dd') ?? ''">
+    <div class="seccion-titulo">Nota</div>
+    <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas"
+      [placeholder]="metodoPago==='efectivo' ? 'Observaciones...' : 'Número de folio'"></textarea>
   </div>
 
   <!-- Error -->
@@ -113,15 +100,17 @@
   <div class="mt-auto">
     <button class="btn btn-cotizar w-100"
       [disabled]="!puedeGuardarCotizacion"
-      (click)="guardarCotizacion()">
+      (click)="solicitarConfirmacion('cotizacion')"
+      style="font-size:.82rem;padding:.45rem .75rem">
       <span *ngIf="procesandoCotizacion" class="spinner-border spinner-border-sm me-1"></span>
       <span *ngIf="!procesandoCotizacion"><i class="bi bi-file-earmark-plus me-1"></i></span>
-      {{ procesandoCotizacion ? 'Guardando...' : 'Guardar cotización' }}
+      {{ procesandoCotizacion ? 'Guardando...' : 'GUARDAR COTIZACIÓN' }}
     </button>
 
     <button class="btn btn-cobrar w-100 mt-2"
       [disabled]="!puedeVender"
-      (click)="procesarVenta()">
+      (click)="solicitarConfirmacion('venta')"
+      style="font-size:.88rem;padding:.5rem .75rem">
       <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>
       <span *ngIf="!procesando"><i class="bi bi-cash-stack me-1"></i></span>
       {{ procesando ? 'Procesando...' : 'COBRAR $' + (totales.total | number:'1.2-2') }}
@@ -129,6 +118,79 @@
 
     <div class="text-muted text-center small mt-1" *ngIf="carrito.length === 0">
       Agrega productos al carrito para cobrar
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal descuento global ──────────────────────────────── -->
+<div class="modal-auth-overlay" *ngIf="mostrarModalDescuento" (click)="mostrarModalDescuento=false">
+  <div class="modal-auth-box modal-descuento" (click)="$event.stopPropagation()">
+    <div class="modal-auth-title"><i class="bi bi-percent me-2"></i>Descuento global</div>
+    <div class="descuento-rapido d-flex gap-1 mb-2">
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===5"  (click)="aplicarDescuentoRapido(5)">5%</button>
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===10" (click)="aplicarDescuentoRapido(10)">10%</button>
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===15" (click)="aplicarDescuentoRapido(15)">15%</button>
+      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===20" (click)="aplicarDescuentoRapido(20)">20%</button>
+    </div>
+    <div class="input-group input-group-sm mb-2">
+      <input type="number" class="form-control" min="0" max="100" step="0.5"
+        [value]="descuentoManualPct"
+        (change)="onDescuentoManualChange($any($event.target).value)"
+        placeholder="0">
+      <span class="input-group-text">%</span>
+    </div>
+    <small class="text-muted d-block mb-3" *ngIf="descuentoAutorizadoPor">
+      <i class="bi bi-shield-check text-success"></i> Autorizado por {{ descuentoAutorizadoPor }}
+    </small>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="aplicarDescuentoRapido(0); mostrarModalDescuento=false">Quitar descuento</button>
+      <button class="btn btn-sm btn-primary flex-fill" (click)="mostrarModalDescuento=false">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal facturación ────────────────────────────────────── -->
+<div class="modal-auth-overlay" *ngIf="mostrarModalFacturacion" (click)="mostrarModalFacturacion=false">
+  <div class="modal-auth-box" (click)="$event.stopPropagation()">
+    <div class="modal-auth-title"><i class="bi bi-receipt me-2"></i>Facturación</div>
+    <div class="text-center py-3 text-muted">
+      <i class="bi bi-tools" style="font-size:2.5rem"></i>
+      <p class="mt-2 mb-0 small">Módulo de facturación en desarrollo.</p>
+    </div>
+    <div class="d-flex mt-3">
+      <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="mostrarModalFacturacion=false">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal confirmación de cobro / cotización ─────────────── -->
+<div class="modal-auth-overlay" *ngIf="mostrarConfirmacion" (click)="cancelarConfirmacion()">
+  <div class="modal-auth-box" (click)="$event.stopPropagation()">
+    <div class="modal-auth-title">
+      <i class="bi me-2" [class.bi-cash-stack]="accionPendiente==='venta'" [class.bi-file-earmark-plus]="accionPendiente==='cotizacion'"></i>
+      {{ accionPendiente === 'venta' ? 'Confirmar cobro' : 'Confirmar cotización' }}
+    </div>
+    <p class="small text-muted mb-3">
+      <ng-container *ngIf="accionPendiente === 'venta'">
+        ¿Deseas procesar la venta por <strong>${{ totales.total | number:'1.2-2' }}</strong> ({{ labelMetodo(metodoPago) }})?
+      </ng-container>
+      <ng-container *ngIf="accionPendiente === 'cotizacion'">
+        ¿Deseas guardar la cotización con <strong>{{ carrito.length }}</strong> {{ carrito.length === 1 ? 'artículo' : 'artículos' }}?
+        <div class="mt-2">
+          <label class="form-label mb-1 small fw-semibold">Vigencia <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
+            [min]="('' | date:'yyyy-MM-dd') ?? ''">
+        </div>
+      </ng-container>
+    </p>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="cancelarConfirmacion()">Cancelar</button>
+      <button class="btn btn-sm flex-fill fw-bold"
+        [class.btn-success]="accionPendiente==='venta'"
+        [class.btn-primary]="accionPendiente==='cotizacion'"
+        (click)="confirmarAccion()">
+        {{ accionPendiente === 'venta' ? 'Sí, cobrar' : 'Sí, guardar' }}
+      </button>
     </div>
   </div>
 </div>

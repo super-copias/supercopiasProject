@@ -41,6 +41,14 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   // Descuento manual
   descuentoManualPct = 0;
 
+  // Confirmación de acciones
+  mostrarConfirmacion = false;
+  accionPendiente: 'venta' | 'cotizacion' | null = null;
+
+  // Modales de herramientas
+  mostrarModalDescuento   = false;
+  mostrarModalFacturacion = false;
+
   // Autorización de descuento elevado
   mostrarAutorizacion = false;
   pinAutorizacion = '';
@@ -52,6 +60,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   // Notas
   notas = '';
+  folioOperacion = '';
 
   readonly LIMITE_CAJERO = 15;
 
@@ -134,7 +143,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   get puedeVender(): boolean {
     return this.carrito.length > 0 && !this.procesando &&
-      (this.metodoPago !== 'efectivo' || !this.montoRecibido || this.montoRecibido >= this.totales.total);
+      (this.metodoPago !== 'efectivo' || (!!this.montoRecibido && this.montoRecibido >= this.totales.total));
   }
 
   procesarVenta(): void {
@@ -155,6 +164,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       descuento_config_id: this.descuentoConfigId,
       descuento_autorizado_por: this.descuentoAutorizadoPor,
       notas: this.notas || undefined,
+      folio_operacion: this.folioOperacion || undefined,
     };
 
     this.posService.createVenta(payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -241,6 +251,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.cotizacionExitosa = null;
     this.mostrarTicketCotizacion = false;
     this.montoRecibido = null;
+    this.folioOperacion = '';
     this.notas = '';
     this.descuentoManualPct = 0;
     this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
@@ -277,6 +288,28 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
         this.procesandoCotizacion = false;
       }
     });
+  }
+
+  // ── Confirmación ──────────────────────────────────────────────
+
+  solicitarConfirmacion(accion: 'venta' | 'cotizacion'): void {
+    if (accion === 'venta' && !this.puedeVender) return;
+    if (accion === 'cotizacion' && !this.puedeGuardarCotizacion) return;
+    this.accionPendiente = accion;
+    this.mostrarConfirmacion = true;
+  }
+
+  confirmarAccion(): void {
+    this.mostrarConfirmacion = false;
+    const accion = this.accionPendiente;
+    this.accionPendiente = null;
+    if (accion === 'venta') this.procesarVenta();
+    else if (accion === 'cotizacion') this.guardarCotizacion();
+  }
+
+  cancelarConfirmacion(): void {
+    this.mostrarConfirmacion = false;
+    this.accionPendiente = null;
   }
 
   // ── Helpers ───────────────────────────────────────────────────

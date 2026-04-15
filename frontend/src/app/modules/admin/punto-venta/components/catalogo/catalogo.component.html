@@ -21,7 +21,7 @@
 
   <!-- Filtros por departamento -->
   <div class="departamentos-bar" *ngIf="departamentos.length > 0">
-    <button class="dep-chip" [class.active]="departamentoActivo===null"
+    <button class="dep-chip dep-chip--all" [class.active]="departamentoActivo===null"
       (click)="seleccionarDepartamento(null)">Todos</button>
     <button class="dep-chip" *ngFor="let d of departamentos"
       [class.active]="departamentoActivo===d.id"

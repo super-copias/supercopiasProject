@@ -40,11 +40,65 @@
 .seccion-titulo { font-size: .72rem; font-weight: 600; text-transform: uppercase;
   letter-spacing: .05em; color: #6c757d; margin-bottom: .35rem; }
 
-// Descuento rápido
+// Descuento rápido (dentro del modal)
 .descuento-rapido .btn.active {
   background: var(--color-deep-blue, #003d80);
   color: #fff;
   border-color: var(--color-deep-blue, #003d80);
+}
+
+// Barra de acciones rápidas (iconos)
+.acciones-rapidas {
+  display:         flex;
+  gap:             0.5rem;
+  padding:         0.3rem 0;
+}
+
+.btn-accion {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             0.3rem;
+  padding:         0.35rem 0.75rem;
+  border-radius:   8px;
+  border:          1.5px solid #dee2e6;
+  background:      #f8f9fa;
+  color:           #6c757d;
+  font-size:       0.78rem;
+  font-weight:     600;
+  cursor:          pointer;
+  transition:      all .15s;
+  position:        relative;
+
+  i { font-size: 0.95rem; }
+
+  &:hover {
+    border-color: var(--color-deep-blue);
+    color:        var(--color-deep-blue);
+    background:   #eef2ff;
+  }
+
+  &--activo {
+    border-color: var(--color-deep-blue);
+    color:        var(--color-deep-blue);
+    background:   #eef2ff;
+  }
+}
+
+.accion-label { font-size: 0.76rem; }
+
+.accion-badge {
+  display:      inline-flex;
+  align-items:  center;
+  justify-content: center;
+  background:   var(--color-deep-blue, #003d80);
+  color:        #fff;
+  font-size:    0.65rem;
+  font-weight:  700;
+  padding:      0 0.35rem;
+  border-radius: 999px;
+  min-width:    1.2rem;
+  height:       1.2rem;
+  line-height:  1;
 }
 
 // Métodos de pago
@@ -76,9 +130,9 @@
   background: #28a745;
   color: #fff;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: .88rem;
   border-radius: 10px;
-  padding: .75rem;
+  padding: .5rem .75rem;
   border: none;
   transition: background 0.2s;
   &:hover:not(:disabled) { background: #218838; }
@@ -90,9 +144,9 @@
   background: #4361ee;
   color: #fff;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: .82rem;
   border-radius: 10px;
-  padding: .75rem;
+  padding: .45rem .75rem;
   border: none;
   transition: background 0.2s;
   &:hover:not(:disabled) { background: #3451d1; }
@@ -115,6 +169,8 @@
   padding: 1.5rem;
   width: 320px;
   box-shadow: 0 8px 32px rgba(0,0,0,.25);
+
+  &.modal-descuento { width: 340px; }
 }
 .modal-auth-title {
   font-weight: 700;

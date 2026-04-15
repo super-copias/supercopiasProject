@@ -143,8 +143,9 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
 
   onCotizacionGuardada(cotiz: CotizacionDetalle): void {
     // El ticket de cotización se muestra dentro del panel-cobro;
-    // solo actualizamos las estadísticas del día.
+    // actualizamos estadísticas y limpiamos el carrito.
     this.cargarStats();
+    this.onLimpiarCarrito();
   }
 
   onCargarCotizacion(cotiz: CotizacionDetalle): void {
