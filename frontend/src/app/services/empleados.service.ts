@@ -292,6 +292,14 @@ export class EmpleadosService {
   }
 
   /**
+   * Asignar contrase\u00f1a temporal a un empleado (solo administradores)
+   */
+  resetPassword(empleadoId: number, nuevaPassword: string): Observable<ApiResponse<null>> {
+    return this.http.patch<ApiResponse<null>>(`${this.baseUrl}/${empleadoId}/reset-password`, { nuevaPassword })
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  /**
    * Convierte fecha del backend al formato requerido por input type="date" (YYYY-MM-DD)
    */
   private formatDateForInput(dateString: string): string {

@@ -148,6 +148,7 @@ async function login(req, res) {
             role: user.role,
             roles: typeof user.roles === 'string' ? [user.roles] : (Array.isArray(user.roles) ? user.roles : [user.role]),
             activo: user.activo,
+            mustResetPassword: user.must_reset_password || false,
             fechaRegistro: user.fecha_registro,
             ultimoAcceso: user.ultimo_acceso,
             empleadoId: user.empleado_id,
@@ -254,6 +255,7 @@ async function verifyToken(req, res) {
             role: user.role,
             roles: typeof user.roles === 'string' ? [user.roles] : (Array.isArray(user.roles) ? user.roles : [user.role]),
             activo: user.activo,
+            mustResetPassword: user.must_reset_password || false,
             fechaRegistro: user.fecha_registro,
             ultimoAcceso: user.ultimo_acceso,
             empleadoId: user.empleado_id,
@@ -306,9 +308,47 @@ async function activityHeartbeat(req, res) {
   res.json(createResponse(true, null, 'Actividad registrada'));
 }
 
+/**
+ * Cambiar contraseña en sesión activa (para reseteo forzado)
+ * Endpoint: PUT /api/auth/change-password
+ * Requiere: auth middleware (JWT válido)
+ * Body: { nuevaPassword }
+ */
+async function changePassword(req, res) {
+  try {
+    const userId = req.user.id;
+    const { nuevaPassword } = req.body;
+
+    if (!nuevaPassword || nuevaPassword.length < 8) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'La nueva contraseña debe tener al menos 8 caracteres'
+        )
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
+
+    await query(
+      `UPDATE usuarios
+       SET password = $1, must_reset_password = false, fecha_modificacion = NOW()
+       WHERE id = $2`,
+      [hashedPassword, userId]
+    );
+
+    return res.json(createResponse(true, null, 'Contraseña actualizada exitosamente'));
+  } catch (error) {
+    return res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.INTERNAL_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
 module.exports = { 
   login,
   verifyToken,
   logout,
-  activityHeartbeat
+  activityHeartbeat,
+  changePassword
 };

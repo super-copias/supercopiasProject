@@ -16,6 +16,7 @@ import { SharedModule } from './shared/shared.module';
 const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', loadChildren: () => import('./modules/login/login.module').then(m => m.LoginModule) },
+  { path: 'cambiar-password', loadChildren: () => import('./modules/cambiar-password/cambiar-password.module').then(m => m.CambiarPasswordModule), canActivate: [AuthGuard] },
   { path: 'admin', loadChildren: () => import('./modules/admin/admin.module').then(m => m.AdminModule), canLoad: [AuthGuard] }
 ];
 

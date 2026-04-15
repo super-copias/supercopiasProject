@@ -303,6 +303,15 @@ export class AuthService {
   }
 
   /**
+   * Cambiar contraseña en sesión activa (reseteo forzado por admin)
+   * Endpoint: PUT /api/auth/change-password
+   */
+  changePassword(nuevaPassword: string): Observable<ApiResponse<null>> {
+    return this.http.put<ApiResponse<null>>(`${this.base}/change-password`, { nuevaPassword })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Manejo estándar de errores HTTP
    * 
    * @param error - Error HTTP recibido

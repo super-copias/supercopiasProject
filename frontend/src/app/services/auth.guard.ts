@@ -9,11 +9,11 @@ export class AuthGuard implements CanActivate, CanLoad, CanActivateChild {
   constructor(private auth: AuthService, private router: Router) {}
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | boolean | UrlTree {
-    return this.checkAuth();
+    return this.checkAuth(state.url);
   }
 
   canLoad(route: Route, segments: UrlSegment[]): Observable<boolean> | boolean {
-    const authCheck = this.checkAuth();
+    const authCheck = this.checkAuth('/' + (route.path || ''));
     if (typeof authCheck === 'boolean') {
       return authCheck;
     }
@@ -33,10 +33,10 @@ export class AuthGuard implements CanActivate, CanLoad, CanActivateChild {
   }
 
   canActivateChild(childRoute: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | boolean | UrlTree {
-    return this.checkAuth();
+    return this.checkAuth(state.url);
   }
 
-  private checkAuth(): Observable<boolean | UrlTree> | boolean | UrlTree {
+  private checkAuth(currentUrl = ''): Observable<boolean | UrlTree> | boolean | UrlTree {
     // Primera verificación rápida del localStorage
     if (!this.auth.isLoggedIn()) {
       return this.router.parseUrl('/login');
@@ -46,6 +46,10 @@ export class AuthGuard implements CanActivate, CanLoad, CanActivateChild {
     return this.auth.verifyToken().pipe(
       map(response => {
         if (response.success && response.data?.valid) {
+          // Si el usuario debe cambiar contraseña y no está ya en esa ruta, redirigir
+          if (response.data.usuario?.mustResetPassword && currentUrl !== '/cambiar-password') {
+            return this.router.parseUrl('/cambiar-password');
+          }
           return true;
         } else {
           return this.router.parseUrl('/login');

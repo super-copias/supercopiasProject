@@ -328,6 +328,16 @@ import { NotificationService } from '../../services/notification.service';
               {{isEditing ? 'Actualizar' : 'Guardar'}}
             </span>
           </button>
+
+          <!-- Botón de contraseña temporal — solo en edición con usuario asociado -->
+          <button
+            *ngIf="isEditing && tipoPermiso !== 'sin_permisos'"
+            type="button"
+            class="btn btn-outline-warning"
+            (click)="abrirModalPassword()">
+            <i class="fas fa-key me-1"></i>
+            Contraseña temporal
+          </button>
           
           <button 
             type="button" 
@@ -340,6 +350,73 @@ import { NotificationService } from '../../services/notification.service';
         </div>
       </form>
       
+      <!-- ===================================================== -->
+      <!-- MODAL: Asignar contraseña temporal                     -->
+      <!-- ===================================================== -->
+      <div class="modal-backdrop-custom" *ngIf="mostrarModalPassword" (click)="cerrarModalPassword()"></div>
+      <div class="modal-custom" *ngIf="mostrarModalPassword" role="dialog" aria-modal="true">
+        <div class="modal-custom-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-custom-header">
+            <h5 class="modal-custom-title">
+              <i class="fas fa-key me-2 text-warning"></i>
+              Asignar Contraseña Temporal
+            </h5>
+            <button type="button" class="btn-close" (click)="cerrarModalPassword()"></button>
+          </div>
+          <div class="modal-custom-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              Asigna una contraseña temporal al empleado
+              <strong *ngIf="empleadoActual">{{empleadoActual.nombre}}</strong>.
+              Al iniciar sesión, el sistema le solicitará cambiarla obligatoriamente.
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Nueva contraseña temporal *</label>
+              <input
+                type="password"
+                class="form-control"
+                [(ngModel)]="resetPwd"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Mínimo 8 caracteres"
+                autocomplete="new-password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Confirmar contraseña *</label>
+              <input
+                type="password"
+                class="form-control"
+                [class.is-invalid]="resetPwd && resetPwdConfirm && resetPwd !== resetPwdConfirm"
+                [(ngModel)]="resetPwdConfirm"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Repite la contraseña"
+                autocomplete="new-password">
+              <div class="invalid-feedback">Las contraseñas no coinciden</div>
+            </div>
+          </div>
+          <div class="modal-custom-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="cerrarModalPassword()"
+              [disabled]="loadingReset">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-warning"
+              (click)="onResetPassword()"
+              [disabled]="loadingReset || !resetPwd || resetPwd.length < 8 || resetPwd !== resetPwdConfirm">
+              <span *ngIf="loadingReset">
+                <i class="fas fa-spinner fa-spin me-1"></i>Guardando...
+              </span>
+              <span *ngIf="!loadingReset">
+                <i class="fas fa-key me-1"></i>Asignar contraseña
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Modal de credenciales -->
       <app-credenciales-modal
         [visible]="mostrarModalCredenciales"
@@ -378,6 +455,25 @@ export class EmpleadosFormComponent implements OnInit {
   isEditing = false;
   empleadoId: number | null = null;
   empleadoActual: any = null;
+
+  // Seguridad de cuenta — reset de contraseña temporal
+  resetPwd = '';
+  resetPwdConfirm = '';
+  loadingReset = false;
+  mostrarModalPassword = false;
+
+  abrirModalPassword() {
+    this.resetPwd = '';
+    this.resetPwdConfirm = '';
+    this.mostrarModalPassword = true;
+  }
+
+  cerrarModalPassword() {
+    if (this.loadingReset) return;
+    this.resetPwd = '';
+    this.resetPwdConfirm = '';
+    this.mostrarModalPassword = false;
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -777,6 +873,31 @@ export class EmpleadosFormComponent implements OnInit {
         this.notificationService.error(
           error.error?.message || 'Error al actualizar el empleado',
           'Error al actualizar'
+        );
+      }
+    });
+  }
+
+  onResetPassword() {
+    if (!this.empleadoId || !this.resetPwd || this.resetPwd !== this.resetPwdConfirm) return;
+
+    this.loadingReset = true;
+    this.empleadosService.resetPassword(this.empleadoId, this.resetPwd).subscribe({
+      next: () => {
+        this.loadingReset = false;
+        this.mostrarModalPassword = false;
+        this.resetPwd = '';
+        this.resetPwdConfirm = '';
+        this.notificationService.success(
+          'Contraseña temporal asignada. El empleado deberá cambiarla en su próximo acceso.',
+          'Contraseña actualizada'
+        );
+      },
+      error: (error: any) => {
+        this.loadingReset = false;
+        this.notificationService.error(
+          error?.error?.message || 'Error al asignar la contraseña temporal',
+          'Error'
         );
       }
     });

@@ -1554,6 +1554,7 @@ CREATE TABLE public.usuarios (
     phone character varying(20),
     bio text,
     profile_image character varying(500),
+    must_reset_password boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_usuarios_email CHECK (((email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
     CONSTRAINT chk_usuarios_role CHECK (((role)::text = ANY (ARRAY[('admin'::character varying)::text, ('gerente'::character varying)::text, ('empleado'::character varying)::text, ('invitado'::character varying)::text])))
 );
@@ -1564,6 +1565,12 @@ CREATE TABLE public.usuarios (
 --
 
 COMMENT ON TABLE public.usuarios IS 'Usuarios del sistema con autenticación y autorización';
+
+--
+-- Name: COLUMN usuarios.must_reset_password; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.usuarios.must_reset_password IS 'Bandera que obliga al usuario a cambiar su contraseña en el próximo inicio de sesión. Se activa cuando un administrador asigna una contraseña temporal desde el módulo de empleados.';
 
 
 --

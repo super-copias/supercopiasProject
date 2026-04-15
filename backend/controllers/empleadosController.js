@@ -1080,6 +1080,91 @@ async function toggleEstadoEmpleado(req, res) {
   }
 }
 
+/**
+ * Asignar contraseña temporal a un empleado (solo administradores)
+ * Endpoint: PATCH /api/empleados/:id/reset-password
+ * 
+ * Guarda la contraseña hasheada, activa must_reset_password e invalida
+ * todas las sesiones activas del usuario para forzar un nuevo login.
+ */
+async function resetPassword(req, res) {
+  try {
+    const empleadoId = parseInt(req.params.id);
+    if (isNaN(empleadoId)) {
+      return res.status(400).json(
+        createErrorResponse(CODIGOS_ERROR.INVALID_DATA, 'ID del empleado inválido')
+      );
+    }
+
+    const { nuevaPassword } = req.body;
+    if (!nuevaPassword || nuevaPassword.length < 8) {
+      return res.status(400).json(
+        createErrorResponse(CODIGOS_ERROR.VALIDATION_ERROR, 'La contraseña debe tener al menos 8 caracteres')
+      );
+    }
+
+    // Obtener usuario_id vinculado al empleado
+    const empleadoResult = await query(
+      `SELECT e.usuario_id FROM empleados e WHERE e.id = $1`,
+      [empleadoId]
+    );
+
+    if (empleadoResult.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse(CODIGOS_ERROR.NOT_FOUND, 'Empleado no encontrado')
+      );
+    }
+
+    const { usuario_id } = empleadoResult.rows[0];
+    if (!usuario_id) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'Este empleado no tiene usuario del sistema asociado'
+        )
+      );
+    }
+
+    // Impedir que el admin resetee su propia contraseña desde aquí
+    if (req.user && req.user.id === usuario_id) {
+      return res.status(400).json(
+        createErrorResponse(
+          CODIGOS_ERROR.VALIDATION_ERROR,
+          'No puedes asignarte una contraseña temporal a ti mismo'
+        )
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
+
+    // Actualizar contraseña y activar bandera de reset obligatorio
+    await query(
+      `UPDATE usuarios
+       SET password = $1, must_reset_password = true, fecha_modificacion = NOW()
+       WHERE id = $2`,
+      [hashedPassword, usuario_id]
+    );
+
+    // Invalidar todas las sesiones activas del usuario afectado
+    await query(
+      'UPDATE user_sessions SET active = false WHERE usuario_id = $1 AND active = true',
+      [usuario_id]
+    );
+
+    return res.json(
+      createResponse(
+        true,
+        null,
+        'Contraseña temporal asignada. El empleado deberá cambiarla en su próximo acceso.'
+      )
+    );
+  } catch (error) {
+    return res.status(500).json(
+      createErrorResponse(CODIGOS_ERROR.DATABASE_ERROR, 'Error interno del servidor')
+    );
+  }
+}
+
 module.exports = {
   listEmpleados,
   getEmpleado,
@@ -1088,5 +1173,6 @@ module.exports = {
   deleteEmpleado,
   getPuestos,
   getModulos,
-  toggleEstadoEmpleado
+  toggleEstadoEmpleado,
+  resetPassword
 };

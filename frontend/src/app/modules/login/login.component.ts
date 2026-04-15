@@ -56,8 +56,12 @@ export class LoginComponent implements OnInit {
       next: (res: any) => {
         if (res && res.success && res.data && res.data.token) {
           localStorage.setItem('token', res.data.token);
-          localStorage.setItem('user', JSON.stringify(res.data.user || {}));
-          this.router.navigate(['/admin/dashboard'], { replaceUrl: true });
+          localStorage.setItem('user', JSON.stringify(res.data.usuario || {}));
+          if (res.data.usuario?.mustResetPassword) {
+            this.router.navigate(['/cambiar-password'], { replaceUrl: true });
+          } else {
+            this.router.navigate(['/admin/dashboard'], { replaceUrl: true });
+          }
         } else {
           this.notificationService.error(
             'No se recibió un token válido del servidor',
