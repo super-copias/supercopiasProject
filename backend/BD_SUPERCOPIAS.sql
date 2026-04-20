@@ -489,6 +489,27 @@ ALTER SEQUENCE public.cat_tipos_proveedor_id_seq OWNED BY public.cat_tipos_prove
 
 
 --
+-- Name: cat_impuestos_facturacion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.cat_impuestos_facturacion (
+    id                 SERIAL PRIMARY KEY,
+    nombre             VARCHAR(100)  NOT NULL,
+    tipo               VARCHAR(30)   NOT NULL,  -- 'iva' | 'isr_retencion'
+    porcentaje         NUMERIC(6,4)  NOT NULL,  -- 0.1600 / 0.0125
+    activo             BOOLEAN       DEFAULT TRUE,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT chk_impuesto_tipo CHECK (tipo IN ('iva','isr_retencion')),
+    CONSTRAINT chk_impuesto_pct  CHECK (porcentaje >= 0 AND porcentaje <= 1)
+);
+
+INSERT INTO public.cat_impuestos_facturacion (nombre, tipo, porcentaje) VALUES
+  ('IVA 16%',       'iva',          0.1600),
+  ('ISR Retención', 'isr_retencion',0.0125)
+ON CONFLICT DO NOTHING;
+
+
+--
 -- Name: clientes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3774,6 +3795,10 @@ CREATE TABLE public.pos_ventas (
     motivo_cancelacion          text,
     notas                       text,
     ticket_generado             boolean DEFAULT false,
+    requiere_factura            boolean DEFAULT false,
+    factura_id                  integer,
+    iva_monto                   numeric(12,2) DEFAULT 0,
+    isr_monto                   numeric(12,2) DEFAULT 0,
     fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_pos_ventas_estatus CHECK (((estatus)::text = ANY (ARRAY[
         ('completada'::character varying)::text,
@@ -4015,6 +4040,8 @@ CREATE TABLE IF NOT EXISTS public.pos_cotizaciones (
     notas                 TEXT,
     fecha_vencimiento     DATE,
     venta_id              INTEGER,
+    requiere_factura      BOOLEAN NOT NULL DEFAULT FALSE,
+    factura_id            INTEGER,
     fecha_creacion        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     fecha_modificacion    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT chk_cotizacion_estatus CHECK (estatus IN ('pendiente','aceptada','rechazada','vencida'))
@@ -4189,6 +4216,9 @@ CREATE TABLE IF NOT EXISTS public.pos_pedidos (
     -- Venta generada al finalizar
     venta_id                    INTEGER,
 
+    -- Factura asociada
+    factura_id                  INTEGER,
+
     fecha_modificacion          TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -4254,6 +4284,89 @@ ALTER TABLE ONLY public.pos_pedidos_historial
 CREATE TRIGGER trg_pos_pedidos_updated_at
     BEFORE UPDATE ON public.pos_pedidos
     FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
+
+-- ============================================================
+-- Módulo de Facturación CFDI 4.0
+-- ============================================================
+
+-- Secuencia para folio de facturas
+CREATE SEQUENCE IF NOT EXISTS public.facturas_folio_seq START WITH 1;
+
+--
+-- Name: facturas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.facturas (
+    id                   SERIAL PRIMARY KEY,
+    folio                VARCHAR(25) UNIQUE NOT NULL,  -- FA-2026-00001
+
+    -- Estatus del flujo
+    estatus              VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+    CONSTRAINT chk_factura_estatus CHECK (
+        estatus IN ('pendiente','generada','cancelada')
+    ),
+
+    -- Origen (solo uno de los tres será no-nulo)
+    venta_id             INTEGER REFERENCES public.pos_ventas(id)       ON DELETE SET NULL,
+    pedido_id            INTEGER REFERENCES public.pos_pedidos(id)      ON DELETE SET NULL,
+    cotizacion_id        INTEGER REFERENCES public.pos_cotizaciones(id) ON DELETE SET NULL,
+    tipo_origen          VARCHAR(20) NOT NULL,
+    CONSTRAINT chk_factura_origen CHECK (tipo_origen IN ('venta','pedido','cotizacion')),
+
+    -- Datos fiscales del cliente (snapshot al momento de emitir)
+    cliente_id           INTEGER NOT NULL REFERENCES public.clientes(id),
+    cliente_nombre       VARCHAR(500),
+    cliente_rfc          VARCHAR(13),
+    cliente_razon_social VARCHAR(500),
+    cliente_regimen      VARCHAR(10),
+    cliente_uso_cfdi     VARCHAR(10),
+    cliente_cp           VARCHAR(10),
+
+    -- Montos calculados (snapshot de tasas)
+    subtotal             NUMERIC(12,2) NOT NULL,
+    iva_pct              NUMERIC(6,4)  NOT NULL,
+    iva_monto            NUMERIC(12,2) NOT NULL,
+    isr_pct              NUMERIC(6,4)  NOT NULL,
+    isr_monto            NUMERIC(12,2) NOT NULL,
+    total_factura        NUMERIC(12,2) NOT NULL,  -- subtotal + iva - isr
+
+    -- Datos SAT (reservados para integración PAC futura)
+    uuid_cfdi            VARCHAR(36),
+    xml_cfdi             TEXT,
+    pdf_url              VARCHAR(500),
+    fecha_timbrado       TIMESTAMP WITH TIME ZONE,
+
+    -- Auditoría
+    creado_por_id        INTEGER,
+    creado_por_nombre    VARCHAR(255),
+    notas                TEXT,
+    motivo_cancelacion   TEXT,
+    fecha_creacion       TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    fecha_modificacion   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+COMMENT ON TABLE public.facturas IS 'Registro de facturas CFDI 4.0. Puede originarse de una venta, pedido o cotización.';
+
+CREATE INDEX IF NOT EXISTS idx_facturas_venta      ON public.facturas(venta_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_pedido     ON public.facturas(pedido_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_cotizacion ON public.facturas(cotizacion_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_cliente    ON public.facturas(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_estatus    ON public.facturas(estatus);
+CREATE INDEX IF NOT EXISTS idx_facturas_fecha      ON public.facturas(fecha_creacion DESC);
+
+-- FK: pos_ventas.factura_id → facturas
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT fk_pos_ventas_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
+
+-- FK: pos_cotizaciones.factura_id → facturas
+ALTER TABLE ONLY public.pos_cotizaciones
+    ADD CONSTRAINT fk_cotizaciones_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
+
+-- FK: pos_pedidos.factura_id → facturas
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
+
 
 --
 -- PostgreSQL database dump complete

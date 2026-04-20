@@ -20,6 +20,7 @@ const {
   createErrorResponse,
   CODIGOS_ERROR
 } = require('../utils/apiStandard');
+const { crearFacturaEnTransaccion } = require('./facturasController');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -165,6 +166,7 @@ async function createVenta(req, res) {
       descuento_config_id,
       descuento_autorizado_por,
       notas,
+      requiere_factura = false,
     } = req.body;
 
     // Validaciones básicas
@@ -315,8 +317,8 @@ async function createVenta(req, res) {
         subtotal, descuento_pct, descuento_monto, total,
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
-        descuento_config_id, descuento_autorizado_por, notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        descuento_config_id, descuento_autorizado_por, notas, requiere_factura
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *
     `, [
       folio, cliente_id || null, clienteNombre,
@@ -325,6 +327,7 @@ async function createVenta(req, res) {
       montoRecibido, cambio,
       metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
       descuento_config_id || null, descuento_autorizado_por || null, notas || null,
+      !!requiere_factura,
     ]);
     const venta = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -410,6 +413,19 @@ async function createVenta(req, res) {
           (cliente_id, venta_id, tipo, puntos, saldo_puntos, notas)
         VALUES ($1,$2,'acumulado',$3,$4,$5)
       `, [cliente_id, ventaId, puntosGanados, saldoPuntos, `Venta ${folio} · $${total}`]);
+    }
+
+    // Crear registro de factura si se requiere y hay cliente registrado
+    if (requiere_factura && cliente_id) {
+      await crearFacturaEnTransaccion(client, {
+        tipo_origen: 'venta',
+        venta_id: ventaId,
+        cliente_id,
+        subtotal: total,
+        usuario_id: vendedorId,
+        usuario_nombre: vendedorNombre,
+        notas: notas || null,
+      });
     }
 
     await client.query('COMMIT');
@@ -827,7 +843,7 @@ async function createCotizacion(req, res) {
   try {
     await client.query('BEGIN');
 
-    const { cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento } = req.body;
+    const { cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento, requiere_factura = false } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -867,11 +883,11 @@ async function createCotizacion(req, res) {
     const cotizQ = await client.query(`
       INSERT INTO pos_cotizaciones
         (folio, estatus, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
-         subtotal, descuento_pct, descuento_monto, total, notas, fecha_vencimiento)
-      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         subtotal, descuento_pct, descuento_monto, total, notas, fecha_vencimiento, requiere_factura)
+      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
     `, [folio, cliente_id || null, clienteNombre, vendedorId, vendedorNombre,
-        subtotal, descPct, descMonto, total, notas || null, fecha_vencimiento || null]);
+        subtotal, descPct, descMonto, total, notas || null, fecha_vencimiento || null, !!requiere_factura]);
 
     const cotizId = cotizQ.rows[0].id;
 
@@ -980,7 +996,7 @@ async function convertirCotizacion(req, res) {
     await client.query('BEGIN');
 
     const cotizId = parseInt(req.params.id);
-    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas } = req.body;
+    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas, requiere_factura, cliente_factura_id } = req.body;
 
     if (!metodo_pago_codigo)
       return res.status(400).json(createErrorResponse('Método de pago requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -1039,17 +1055,19 @@ async function convertirCotizacion(req, res) {
 
     const folio = await generarFolio(client);
 
+    const rfactura = requiere_factura !== undefined ? !!requiere_factura : !!(cotiz.requiere_factura);
+
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
         folio, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total, monto_recibido, cambio,
-        metodo_pago_codigo, metodo_pago_descripcion, notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *
     `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total, montoRecibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
-        notas || cotiz.notas || null]);
+        notas || cotiz.notas || null, rfactura]);
 
     const venta   = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -1089,6 +1107,20 @@ async function convertirCotizacion(req, res) {
       `UPDATE pos_cotizaciones SET estatus='aceptada', venta_id=$1, fecha_modificacion=NOW() WHERE id=$2`,
       [ventaId, cotizId]
     );
+
+    // Crear registro de factura si se requiere y hay cliente registrado
+    const clienteParaFacturaCotiz = parseInt(cliente_factura_id) || cotiz.cliente_id || null;
+    if (rfactura && clienteParaFacturaCotiz) {
+      await crearFacturaEnTransaccion(client, {
+        tipo_origen: 'venta',
+        venta_id: ventaId,
+        cliente_id: clienteParaFacturaCotiz,
+        subtotal: total,
+        usuario_id: vendedorId,
+        usuario_nombre: vendedorNombre,
+        notas: notas || cotiz.notas || null,
+      });
+    }
 
     await client.query('COMMIT');
 

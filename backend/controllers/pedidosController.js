@@ -15,6 +15,7 @@ const {
   createErrorResponse,
   CODIGOS_ERROR,
 } = require('../utils/apiStandard');
+const { crearFacturaEnTransaccion } = require('./facturasController');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers internos
@@ -230,6 +231,19 @@ async function createPedido(req, res) {
 
     // Registrar en historial
     await registrarHistorial(client, pedidoId, null, 'pendiente', creadoPorId, creadoPorNombre, 'Pedido creado');
+
+    // Crear registro de factura si se requiere y hay cliente registrado
+    if (requiere_factura && cliente_id) {
+      await crearFacturaEnTransaccion(client, {
+        tipo_origen: 'pedido',
+        pedido_id: pedidoId,
+        cliente_id,
+        subtotal: total,
+        usuario_id: creadoPorId,
+        usuario_nombre: creadoPorNombre,
+        notas: notas || null,
+      });
+    }
 
     await client.query('COMMIT');
 
@@ -471,7 +485,7 @@ async function entregarPedido(req, res) {
     await client.query('BEGIN');
 
     const pedidoId = parseInt(req.params.id);
-    const { metodo_pago_saldo, monto_recibido_saldo, notas } = req.body;
+    const { metodo_pago_saldo, monto_recibido_saldo, notas, requiere_factura, cliente_factura_id } = req.body;
 
     const usuarioNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const usuarioId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
@@ -646,6 +660,20 @@ async function entregarPedido(req, res) {
 
     await registrarHistorial(client, pedidoId, 'terminado', 'finalizado', usuarioId, usuarioNombre,
       `Entregado. Venta generada: ${folio}`);
+
+    // Crear registro de factura si se solicita
+    const clienteParaFactura = parseInt(cliente_factura_id) || pedido.cliente_id || null;
+    if (requiere_factura && clienteParaFactura) {
+      await crearFacturaEnTransaccion(client, {
+        tipo_origen: 'venta',
+        venta_id: ventaId,
+        cliente_id: clienteParaFactura,
+        subtotal: total,
+        usuario_id: usuarioId,
+        usuario_nombre: usuarioNombre,
+        notas: `Pedido: ${pedido.folio}`,
+      });
+    }
 
     await client.query('COMMIT');
 
