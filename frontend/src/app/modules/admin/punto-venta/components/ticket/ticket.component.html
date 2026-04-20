@@ -129,10 +129,6 @@
       <div class="t-cliente">
         <div class="t-cliente-titulo">Cliente</div>
         <div class="t-cliente-nombre">{{ venta.cliente_nombre }}</div>
-        <div *ngIf="venta.puntos_cliente" class="t-cliente-puntos">
-          <i class="bi bi-star-fill"></i>
-          Puntos disponibles: <b>{{ venta.puntos_cliente.puntos_disponibles }}</b>
-        </div>
       </div>
     </ng-container>
 
@@ -191,15 +187,6 @@
         <span>{{ venta.metodo_pago_descripcion }}</span>
       </div>
     </div>
-
-    <!-- Puntos ganados en esta compra -->
-    <ng-container *ngIf="puntosGanados > 0">
-      <div class="t-sep"></div>
-      <div class="t-puntos">
-        <i class="bi bi-star-fill"></i>
-        ¡Ganaste {{ puntosGanados }} punto{{ puntosGanados !== 1 ? 's' : '' }} en esta compra!
-      </div>
-    </ng-container>
 
     <!-- Notas -->
     <div class="t-notas" *ngIf="venta.notas">
