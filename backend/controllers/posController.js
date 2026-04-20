@@ -526,7 +526,8 @@ async function listVentas(req, res) {
     const sql = `
       SELECT
         v.id, v.folio, v.fecha_venta, v.cliente_id, v.cliente_nombre,
-        v.vendedor_nombre, v.subtotal, v.descuento_pct, v.descuento_monto,
+        v.vendedor_usuario_id, v.vendedor_nombre,
+        v.subtotal, v.descuento_pct, v.descuento_monto,
         v.total, v.metodo_pago_codigo, v.metodo_pago_descripcion,
         v.estatus, v.ticket_generado,
         (SELECT COUNT(*) FROM pos_ventas_detalle d WHERE d.venta_id = v.id) AS num_items
@@ -1135,6 +1136,132 @@ async function convertirCotizacion(req, res) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// GET /api/pos/reportes/vendedores
+// Resumen de ventas agrupado por vendedor
+// Query params: fecha_inicio, fecha_fin, vendedor_id
+// ─────────────────────────────────────────────────────────────
+async function getReporteVendedores(req, res) {
+  try {
+    const { fecha_inicio, fecha_fin, vendedor_id } = req.query;
+
+    const params = [];
+    const where = [];
+    where.push(`estatus = 'completada'`);
+
+    if (fecha_inicio) { params.push(fecha_inicio); where.push(`fecha_venta >= $${params.length}::date`); }
+    if (fecha_fin)    { params.push(fecha_fin);     where.push(`fecha_venta < ($${params.length}::date + interval '1 day')`); }
+    if (vendedor_id)  { params.push(vendedor_id);   where.push(`vendedor_usuario_id = $${params.length}`); }
+
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const result = await query(`
+      SELECT
+        vendedor_usuario_id,
+        vendedor_nombre,
+        COUNT(*)                      AS total_ventas,
+        SUM(total)                    AS total_ingresos,
+        AVG(total)                    AS ticket_promedio,
+        SUM(descuento_monto)          AS total_descuentos,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'efectivo')     AS pagos_efectivo,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'tarjeta')      AS pagos_tarjeta,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'transferencia') AS pagos_transferencia,
+        MIN(fecha_venta)              AS primera_venta,
+        MAX(fecha_venta)              AS ultima_venta
+      FROM pos_ventas
+      ${whereClause}
+      GROUP BY vendedor_usuario_id, vendedor_nombre
+      ORDER BY total_ingresos DESC
+    `, params);
+
+    const rows = result.rows.map(r => ({
+      vendedor_usuario_id:  r.vendedor_usuario_id,
+      vendedor_nombre:      r.vendedor_nombre,
+      total_ventas:         parseInt(r.total_ventas),
+      total_ingresos:       parseFloat(parseFloat(r.total_ingresos).toFixed(2)),
+      ticket_promedio:      parseFloat(parseFloat(r.ticket_promedio).toFixed(2)),
+      total_descuentos:     parseFloat(parseFloat(r.total_descuentos).toFixed(2)),
+      pagos_efectivo:       parseInt(r.pagos_efectivo),
+      pagos_tarjeta:        parseInt(r.pagos_tarjeta),
+      pagos_transferencia:  parseInt(r.pagos_transferencia),
+      primera_venta:        r.primera_venta,
+      ultima_venta:         r.ultima_venta,
+    }));
+
+    return res.json(createResponse(true, rows, 'Reporte de ventas por vendedor'));
+  } catch (err) {
+    console.error('getReporteVendedores POS:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener reporte de vendedores', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/pos/reportes/clientes
+// Resumen de compras agrupado por cliente registrado
+// Query params: fecha_inicio, fecha_fin, cliente_id
+// ─────────────────────────────────────────────────────────────
+async function getReporteClientes(req, res) {
+  try {
+    const { fecha_inicio, fecha_fin, cliente_id } = req.query;
+
+    const params = [];
+    const where = [];
+    where.push(`v.estatus = 'completada'`);
+    where.push(`v.cliente_id IS NOT NULL`);
+
+    if (fecha_inicio) { params.push(fecha_inicio); where.push(`v.fecha_venta >= $${params.length}::date`); }
+    if (fecha_fin)    { params.push(fecha_fin);     where.push(`v.fecha_venta < ($${params.length}::date + interval '1 day')`); }
+    if (cliente_id)   { params.push(cliente_id);    where.push(`v.cliente_id = $${params.length}`); }
+
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const result = await query(`
+      SELECT
+        v.cliente_id,
+        v.cliente_nombre,
+        c.email              AS cliente_email,
+        c.telefono           AS cliente_telefono,
+        COUNT(v.id)          AS total_compras,
+        SUM(v.total)         AS total_gastado,
+        AVG(v.total)         AS ticket_promedio,
+        MIN(v.fecha_venta)   AS primera_compra,
+        MAX(v.fecha_venta)   AS ultima_compra,
+        cp.puntos_acumulados,
+        cp.puntos_canjeados,
+        (cp.puntos_acumulados - cp.puntos_canjeados) AS puntos_disponibles,
+        cp.nivel_cliente
+      FROM pos_ventas v
+      LEFT JOIN clientes c ON c.id = v.cliente_id
+      LEFT JOIN pos_clientes_puntos cp ON cp.cliente_id = v.cliente_id
+      ${whereClause}
+      GROUP BY v.cliente_id, v.cliente_nombre, c.email, c.telefono,
+               cp.puntos_acumulados, cp.puntos_canjeados, cp.nivel_cliente
+      ORDER BY total_gastado DESC
+    `, params);
+
+    const rows = result.rows.map(r => ({
+      cliente_id:          r.cliente_id,
+      cliente_nombre:      r.cliente_nombre,
+      cliente_email:       r.cliente_email,
+      cliente_telefono:    r.cliente_telefono,
+      total_compras:       parseInt(r.total_compras),
+      total_gastado:       parseFloat(parseFloat(r.total_gastado).toFixed(2)),
+      ticket_promedio:     parseFloat(parseFloat(r.ticket_promedio).toFixed(2)),
+      primera_compra:      r.primera_compra,
+      ultima_compra:       r.ultima_compra,
+      puntos_acumulados:   parseInt(r.puntos_acumulados || 0),
+      puntos_canjeados:    parseInt(r.puntos_canjeados  || 0),
+      puntos_disponibles:  parseInt(r.puntos_disponibles || 0),
+      nivel_cliente:       r.nivel_cliente || 'estandar',
+    }));
+
+    return res.json(createResponse(true, rows, 'Reporte de compras por cliente'));
+  } catch (err) {
+    console.error('getReporteClientes POS:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener reporte de clientes', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
 module.exports = {
   getCatalogo,
   createVenta,
@@ -1150,4 +1277,6 @@ module.exports = {
   getCotizacionById,
   updateEstatusCotizacion,
   convertirCotizacion,
+  getReporteVendedores,
+  getReporteClientes,
 };

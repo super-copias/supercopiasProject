@@ -21,6 +21,8 @@ const {
   getCotizacionById,
   updateEstatusCotizacion,
   convertirCotizacion,
+  getReporteVendedores,
+  getReporteClientes,
 } = require('../controllers/posController');
 
 // ── Catálogo de productos disponibles en POS ──────────────────
@@ -41,6 +43,10 @@ router.patch('/ventas/:id/ticket',   auth, marcarTicketGenerado);
 
 // ── Clientes - Puntos ─────────────────────────────────────────
 router.get('/clientes/:id/puntos', auth, getPuntosByCliente);
+
+// ── Reportes ──────────────────────────────────────────────────
+router.get('/reportes/vendedores', auth, getReporteVendedores);
+router.get('/reportes/clientes',   auth, getReporteClientes);
 
 // ── Cotizaciones ──────────────────────────────────────────────
 router.get('/cotizaciones',                 auth, listCotizaciones);
