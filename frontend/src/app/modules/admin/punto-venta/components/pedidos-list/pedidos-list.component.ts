@@ -18,8 +18,14 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   cargando = false;
   error = '';
 
+  // Paginación
+  readonly LIMIT = 18;
+  paginaActual = 1;
+  totalPaginas = 1;
+  totalRegistros = 0;
+
   // Filtros
-  filtroEstatus = '';
+  filtroEstatus = '';      // '' = solo activos (pendiente/en_proceso/terminado)
   filtroBusqueda = '';
 
   // Modales
@@ -81,9 +87,17 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   cargar(): void {
     this.cargando = true;
     this.error = '';
-    const f: any = {};
-    if (this.filtroEstatus) f.estatus = this.filtroEstatus;
-    if (this.filtroBusqueda) f.q = this.filtroBusqueda;
+
+    const f: any = { page: this.paginaActual, limit: this.LIMIT };
+
+    // '' = solo activos; 'todos' = sin filtro de estatus; otro = estatus específico
+    if (this.filtroEstatus === '') {
+      f.solo_activos = true;
+    } else if (this.filtroEstatus !== 'todos') {
+      f.estatus = this.filtroEstatus;
+    }
+
+    if (this.filtroBusqueda.trim()) f.busqueda = this.filtroBusqueda.trim();
 
     this.posService.listPedidos(f).pipe(
       takeUntil(this.destroy$),
@@ -91,6 +105,8 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (r) => {
         this.pedidos = r.data || [];
+        this.totalRegistros = r.pagination?.total ?? this.pedidos.length;
+        this.totalPaginas   = r.pagination?.pages ?? 1;
         // Emitir conteo activos
         const activos = this.pedidos.filter(p =>
           ['pendiente','en_proceso','terminado'].includes(p.estatus)).length;
@@ -100,8 +116,30 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     });
   }
 
-  get pedidosFiltrados(): any[] {
-    return this.pedidos;
+  cambiarFiltro(): void {
+    this.paginaActual = 1;
+    this.cargar();
+  }
+
+  irAPagina(n: number): void {
+    if (n < 1 || n > this.totalPaginas || n === this.paginaActual) return;
+    this.paginaActual = n;
+    this.cargar();
+  }
+
+  get paginasVisibles(): number[] {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+    const rango = 2; // páginas a cada lado
+    const inicio = Math.max(1, actual - rango);
+    const fin    = Math.min(total, actual + rango);
+    const paginas: number[] = [];
+    for (let i = inicio; i <= fin; i++) paginas.push(i);
+    return paginas;
+  }
+
+  get rangoFin(): number {
+    return Math.min(this.paginaActual * this.LIMIT, this.totalRegistros);
   }
 
   esAtrasado(p: any): boolean {

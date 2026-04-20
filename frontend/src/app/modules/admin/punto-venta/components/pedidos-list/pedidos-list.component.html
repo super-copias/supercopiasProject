@@ -5,20 +5,23 @@
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard-list me-2"></i>Pedidos</h5>
 
-      <select class="form-select form-select-sm w-auto" [(ngModel)]="filtroEstatus" (change)="cargar()">
-        <option value="">Todos</option>
-        <option value="pendiente">Pendientes</option>
-        <option value="en_proceso">En proceso</option>
-        <option value="terminado">Terminados</option>
-        <option value="finalizado">Finalizados</option>
-        <option value="cancelado">Cancelados</option>
+      <select class="form-select form-select-sm w-auto" [(ngModel)]="filtroEstatus" (change)="cambiarFiltro()">
+        <option value="">Activos</option>
+        <option value="todos">Todos los pedidos</option>
+        <optgroup label="──────────────">
+          <option value="pendiente">Solo Pendientes</option>
+          <option value="en_proceso">Solo En proceso</option>
+          <option value="terminado">Solo Terminados</option>
+          <option value="finalizado">Solo Finalizados</option>
+          <option value="cancelado">Solo Cancelados</option>
+        </optgroup>
       </select>
 
       <input class="form-control form-control-sm w-auto"
         style="min-width:180px"
-        placeholder="Buscar folio, cliente..."
+        placeholder="Buscar folio o cliente..."
         [(ngModel)]="filtroBusqueda"
-        (input)="cargar()" />
+        (input)="cambiarFiltro()" />
 
       <button class="btn btn-sm btn-outline-primary ms-auto" (click)="cargar()">
         <i class="bi bi-arrow-clockwise"></i>
@@ -123,6 +126,28 @@
           <i class="bi bi-x-circle"></i>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Paginador -->
+  <div class="pedidos-pagination" *ngIf="totalPaginas > 1">
+    <span class="pag-info">{{ (paginaActual - 1) * LIMIT + 1 }} – {{ rangoFin }} de {{ totalRegistros }}</span>
+    <div class="pag-btns">
+      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(1)" title="Primera">
+        <i class="bi bi-chevron-double-left"></i>
+      </button>
+      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(paginaActual - 1)" title="Anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button *ngFor="let pg of paginasVisibles"
+        class="pag-btn" [class.activa]="pg === paginaActual"
+        (click)="irAPagina(pg)">{{ pg }}</button>
+      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(paginaActual + 1)" title="Siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(totalPaginas)" title="Última">
+        <i class="bi bi-chevron-double-right"></i>
+      </button>
     </div>
   </div>
 

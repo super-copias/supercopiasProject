@@ -252,24 +252,41 @@ async function listPedidos(req, res) {
   try {
     const {
       estatus, cliente_id, creado_por_id, tomado_por_id,
-      folio, fecha_inicio, fecha_fin,
-      page = 1, limit = 20,
+      folio, busqueda, fecha_inicio, fecha_fin,
+      solo_activos,
+      page = 1, limit = 18,
     } = req.query;
 
     const params = [];
     const where  = [];
     let p = 1;
 
-    if (estatus)       { where.push(`p.estatus = $${p}`);               params.push(estatus);            p++; }
+    // Filtro por estatus único
+    if (estatus) {
+      where.push(`p.estatus = $${p}`); params.push(estatus); p++;
+    } else if (solo_activos === 'true') {
+      // Solo muestra pedidos activos (pendiente, en_proceso, terminado)
+      where.push(`p.estatus IN ('pendiente','en_proceso','terminado')`);
+    }
+
     if (cliente_id)    { where.push(`p.cliente_id = $${p}`);            params.push(parseInt(cliente_id)); p++; }
     if (creado_por_id) { where.push(`p.creado_por_id = $${p}`);         params.push(parseInt(creado_por_id)); p++; }
     if (tomado_por_id) { where.push(`p.tomado_por_id = $${p}`);         params.push(parseInt(tomado_por_id)); p++; }
-    if (folio)         { where.push(`p.folio ILIKE $${p}`);             params.push(`%${folio}%`);       p++; }
+
+    // Búsqueda general: folio o nombre de cliente
+    if (busqueda) {
+      where.push(`(p.folio ILIKE $${p} OR p.cliente_nombre ILIKE $${p})`);
+      params.push(`%${busqueda}%`); p++;
+    } else if (folio) {
+      where.push(`p.folio ILIKE $${p}`); params.push(`%${folio}%`); p++;
+    }
+
     if (fecha_inicio)  { where.push(`p.fecha_creacion >= $${p}`);       params.push(fecha_inicio);       p++; }
     if (fecha_fin)     { where.push(`p.fecha_creacion < ($${p}::date + interval '1 day')`); params.push(fecha_fin); p++; }
 
     const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const offset   = (parseInt(page) - 1) * parseInt(limit);
+    const limitInt = parseInt(limit);
+    const offset   = (parseInt(page) - 1) * limitInt;
 
     const [dataR, countR] = await Promise.all([
       query(`
@@ -296,7 +313,7 @@ async function listPedidos(req, res) {
           END,
           p.fecha_creacion DESC
         LIMIT $${p} OFFSET $${p + 1}
-      `, [...params, parseInt(limit), offset]),
+      `, [...params, limitInt, offset]),
       query(`SELECT COUNT(*) FROM pos_pedidos p ${whereStr}`, params),
     ]);
 
@@ -311,10 +328,7 @@ async function listPedidos(req, res) {
       saldo_pendiente: parseFloat((parseFloat(r.total) - parseFloat(r.anticipo)).toFixed(2)),
     }));
 
-    return res.json(createPaginatedResponse(pedidos, {
-      page: parseInt(page), limit: parseInt(limit), total,
-      pages: Math.ceil(total / parseInt(limit)),
-    }, 'Pedidos obtenidos'));
+    return res.json(createPaginatedResponse(pedidos, parseInt(page), limitInt, total));
   } catch (err) {
     console.error('listPedidos:', err);
     return res.status(500).json(createErrorResponse('Error al obtener pedidos', CODIGOS_ERROR.ERROR_SERVIDOR));

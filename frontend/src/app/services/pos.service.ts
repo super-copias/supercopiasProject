@@ -285,6 +285,8 @@ export interface PedidoDetalle {
 
 export interface FiltrosPedidos {
   estatus?: string;
+  solo_activos?: boolean;
+  busqueda?: string;
   cliente_id?: number;
   creado_por_id?: number;
   tomado_por_id?: number;
@@ -447,6 +449,8 @@ export class PosService {
   listPedidos(filtros?: FiltrosPedidos): Observable<any> {
     let p = new HttpParams();
     if (filtros?.estatus)       p = p.set('estatus', filtros.estatus);
+    if (filtros?.solo_activos)  p = p.set('solo_activos', 'true');
+    if (filtros?.busqueda)      p = p.set('busqueda', filtros.busqueda);
     if (filtros?.cliente_id)    p = p.set('cliente_id', filtros.cliente_id.toString());
     if (filtros?.creado_por_id) p = p.set('creado_por_id', filtros.creado_por_id.toString());
     if (filtros?.tomado_por_id) p = p.set('tomado_por_id', filtros.tomado_por_id.toString());
