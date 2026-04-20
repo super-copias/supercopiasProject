@@ -1,280 +1,450 @@
 <div class="dashboard-container">
-  <!-- Header del Dashboard -->
-  <div class="dashboard-header">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h2 class="mb-1">Dashboard General</h2>
-        <p class="text-muted mb-0">Vista general del sistema SuperCopias</p>
-      </div>
-      <button class="btn btn-primary" (click)="recargar()" [disabled]="loading">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="dash-header mb-4">
+    <div class="dash-header__left">
+      <div class="dash-header__greeting">Bienvenido, <strong>{{ nombreUsuario }}</strong></div>
+      <h2 class="dash-header__title">Dashboard General</h2>
+      <p class="dash-header__date">{{ fechaHoy }}</p>
+    </div>
+    <div class="dash-header__right">
+      <span *ngIf="ultimaActualizacion" class="last-update">
+        <i class="fas fa-clock me-1"></i>
+        Actualizado: {{ ultimaActualizacion | date:'HH:mm:ss' }}
+      </span>
+      <button class="btn-refresh" (click)="recargar()" [disabled]="loading">
         <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
         {{ loading ? 'Cargando...' : 'Actualizar' }}
       </button>
     </div>
   </div>
 
-  <!-- Tarjetas de Estadísticas Principales -->
-  <div class="row g-3 mb-4">
-    <!-- Total Clientes -->
+  <!-- ══ ESQUELETO DE CARGA ══ -->
+  <div *ngIf="loading && !ultimaActualizacion" class="loading-banner">
+    <i class="fas fa-circle-notch fa-spin me-2"></i> Cargando datos del sistema...
+  </div>
+
+  <!-- ═══ BLOQUE 1 — KPIs Primarios ═══ -->
+  <div class="row g-3 mb-3">
+
+    <!-- Ventas del día -->
     <div class="col-xl-3 col-md-6">
-      <div class="stat-card card-blue">
-        <div class="stat-icon">
+      <div class="kpi-card kpi-ventas" (click)="irA('punto-venta')">
+        <div class="kpi-card__icon">
+          <i class="fas fa-cash-register"></i>
+        </div>
+        <div class="kpi-card__body">
+          <div class="kpi-card__label">Ventas del Día</div>
+          <div class="kpi-card__value">{{ formatCurrency(statsVentas.total_ingresos) }}</div>
+          <div class="kpi-card__sub">
+            <span class="badge-mini badge-blue">{{ statsVentas.total_ventas }} transacciones</span>
+            <span *ngIf="statsVentas.ventas_canceladas > 0" class="badge-mini badge-red ms-1">
+              {{ statsVentas.ventas_canceladas }} canceladas
+            </span>
+          </div>
+        </div>
+        <div class="kpi-card__arrow"><i class="fas fa-chevron-right"></i></div>
+      </div>
+    </div>
+
+    <!-- Pedidos activos -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-pedidos" (click)="irA('punto-venta')">
+        <div class="kpi-card__icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="kpi-card__body">
+          <div class="kpi-card__label">Pedidos Activos</div>
+          <div class="kpi-card__value">{{ statsPedidos.activos }}</div>
+          <div class="kpi-card__sub">
+            <span class="badge-mini badge-orange">{{ statsPedidos.pendiente }} pendientes</span>
+            <span class="badge-mini badge-green ms-1">{{ statsPedidos.finalizados_hoy }} finalizados hoy</span>
+          </div>
+        </div>
+        <div class="kpi-card__arrow"><i class="fas fa-chevron-right"></i></div>
+      </div>
+    </div>
+
+    <!-- Clientes -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-clientes" (click)="irA('clientes')">
+        <div class="kpi-card__icon">
           <i class="fas fa-users"></i>
         </div>
-        <div class="stat-content">
-          <div class="stat-label">Total Clientes</div>
-          <div class="stat-value">{{ stats.totalClientes }}</div>
-          <div class="stat-footer">
-            <span class="badge bg-success">{{ stats.clientesActivos }} activos</span>
-            <span class="badge bg-secondary ms-1">{{ stats.clientesInactivos }} inactivos</span>
-          </div>
+        <div class="kpi-card__body">
+          <div class="kpi-card__label">Total Clientes</div>
+          <div class="kpi-card__value">{{ totalClientes | number }}</div>
+          <div class="kpi-card__sub">Clientes registrados</div>
         </div>
+        <div class="kpi-card__arrow"><i class="fas fa-chevron-right"></i></div>
       </div>
     </div>
 
-    <!-- Total Empleados -->
+    <!-- Empleados -->
     <div class="col-xl-3 col-md-6">
-      <div class="stat-card card-yellow">
-        <div class="stat-icon">
+      <div class="kpi-card kpi-empleados" (click)="irA('empleados')">
+        <div class="kpi-card__icon">
           <i class="fas fa-user-tie"></i>
         </div>
-        <div class="stat-content">
-          <div class="stat-label">Total Empleados</div>
-          <div class="stat-value">{{ stats.totalEmpleados }}</div>
-          <div class="stat-footer">
-            <span class="badge bg-success">{{ stats.empleadosActivos }} activos</span>
-            <span class="badge bg-secondary ms-1">{{ stats.empleadosInactivos }} inactivos</span>
+        <div class="kpi-card__body">
+          <div class="kpi-card__label">Total Empleados</div>
+          <div class="kpi-card__value">{{ totalEmpleados | number }}</div>
+          <div class="kpi-card__sub">Colaboradores del equipo</div>
+        </div>
+        <div class="kpi-card__arrow"><i class="fas fa-chevron-right"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BLOQUE 2 — KPIs Secundarios ═══ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Artículos inventario -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-sm kpi-sm-inv" (click)="irA('inventarios')">
+        <div class="kpi-sm__icon"><i class="fas fa-boxes"></i></div>
+        <div class="kpi-sm__body">
+          <div class="kpi-sm__value">{{ statsInventario.total_articulos | number }}</div>
+          <div class="kpi-sm__label">Artículos en Inventario</div>
+          <div class="kpi-sm__footer">{{ formatCurrency(statsInventario.valor_total_inventario) }} en existencia</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertas de stock -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-sm kpi-sm-alertas" (click)="irA('inventarios')">
+        <div class="kpi-sm__icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="kpi-sm__body">
+          <div class="kpi-sm__value">{{ totalAlertas }}</div>
+          <div class="kpi-sm__label">Alertas de Stock</div>
+          <div class="kpi-sm__footer">
+            <span class="text-danger fw-semibold">{{ statsInventario.alertas_criticas }} críticas</span>
+            &nbsp;·&nbsp;
+            <span class="text-warning fw-semibold">{{ statsInventario.alertas_bajas }} bajas</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Porcentaje Clientes Activos -->
+    <!-- Equipos -->
     <div class="col-xl-3 col-md-6">
-      <div class="stat-card card-green">
-        <div class="stat-icon">
-          <i class="fas fa-chart-line"></i>
+      <div class="kpi-sm kpi-sm-equipos" (click)="irA('equipos')">
+        <div class="kpi-sm__icon"><i class="fas fa-print"></i></div>
+        <div class="kpi-sm__body">
+          <div class="kpi-sm__value">{{ statsEquipos.total_activos | number }}</div>
+          <div class="kpi-sm__label">Equipos Registrados</div>
+          <div class="kpi-sm__footer">
+            <span *ngIf="statsEquipos.en_reparacion > 0" class="text-warning fw-semibold">
+              {{ statsEquipos.en_reparacion }} en reparación
+            </span>
+            <span *ngIf="statsEquipos.en_reparacion === 0" class="text-success fw-semibold">
+              Sin alertas de equipo
+            </span>
+          </div>
         </div>
-        <div class="stat-content">
-          <div class="stat-label">Clientes Activos</div>
-          <div class="stat-value">{{ getPorcentajeActivos(stats.clientesActivos, stats.totalClientes) }}%</div>
-          <div class="stat-footer">
-            <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-success" role="progressbar" 
-                   [style.width.%]="getPorcentajeActivos(stats.clientesActivos, stats.totalClientes)">
+      </div>
+    </div>
+
+    <!-- Proveedores -->
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-sm kpi-sm-prov" (click)="irA('proveedores')">
+        <div class="kpi-sm__icon"><i class="fas fa-truck"></i></div>
+        <div class="kpi-sm__body">
+          <div class="kpi-sm__value">{{ totalProveedores | number }}</div>
+          <div class="kpi-sm__label">Proveedores</div>
+          <div class="kpi-sm__footer">Proveedores registrados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BLOQUE 3 — Análisis del Día ═══ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Métodos de pago -->
+    <div class="col-lg-5">
+      <div class="panel h-100">
+        <div class="panel__header">
+          <i class="fas fa-wallet me-2 text-primary"></i>
+          <span>Métodos de Pago — Hoy</span>
+        </div>
+        <div class="panel__body">
+          <div *ngIf="statsVentas.total_ventas === 0" class="empty-state">
+            <i class="fas fa-receipt"></i>
+            <p>Sin ventas registradas hoy</p>
+          </div>
+          <ng-container *ngIf="statsVentas.total_ventas > 0">
+
+            <!-- Efectivo -->
+            <div class="pago-row mb-3">
+              <div class="pago-row__head">
+                <div class="pago-row__icon pago-icon-efectivo">
+                  <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div>
+                  <div class="pago-row__name">Efectivo</div>
+                  <div class="pago-row__count">{{ statsVentas.pagos_efectivo }} ventas</div>
+                </div>
+                <div class="pago-row__pct">{{ getPagoPercent(statsVentas.pagos_efectivo) }}%</div>
+              </div>
+              <div class="progress pago-progress">
+                <div class="progress-bar pago-bar-efectivo"
+                     [style.width.%]="getPagoPercent(statsVentas.pagos_efectivo)"></div>
+              </div>
+            </div>
+
+            <!-- Tarjeta -->
+            <div class="pago-row mb-3">
+              <div class="pago-row__head">
+                <div class="pago-row__icon pago-icon-tarjeta">
+                  <i class="fas fa-credit-card"></i>
+                </div>
+                <div>
+                  <div class="pago-row__name">Tarjeta</div>
+                  <div class="pago-row__count">{{ statsVentas.pagos_tarjeta }} ventas</div>
+                </div>
+                <div class="pago-row__pct">{{ getPagoPercent(statsVentas.pagos_tarjeta) }}%</div>
+              </div>
+              <div class="progress pago-progress">
+                <div class="progress-bar pago-bar-tarjeta"
+                     [style.width.%]="getPagoPercent(statsVentas.pagos_tarjeta)"></div>
+              </div>
+            </div>
+
+            <!-- Transferencia -->
+            <div class="pago-row">
+              <div class="pago-row__head">
+                <div class="pago-row__icon pago-icon-transfer">
+                  <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div>
+                  <div class="pago-row__name">Transferencia</div>
+                  <div class="pago-row__count">{{ statsVentas.pagos_transferencia }} ventas</div>
+                </div>
+                <div class="pago-row__pct">{{ getPagoPercent(statsVentas.pagos_transferencia) }}%</div>
+              </div>
+              <div class="progress pago-progress">
+                <div class="progress-bar pago-bar-transfer"
+                     [style.width.%]="getPagoPercent(statsVentas.pagos_transferencia)"></div>
+              </div>
+            </div>
+
+            <div class="pago-footer mt-3">
+              <div class="pago-footer__item">
+                <div class="pago-footer__label">Ticket promedio</div>
+                <div class="pago-footer__val">{{ formatCurrency(statsVentas.ticket_promedio) }}</div>
+              </div>
+              <div class="pago-footer__item">
+                <div class="pago-footer__label">Ingresos totales</div>
+                <div class="pago-footer__val text-success">{{ formatCurrency(statsVentas.total_ingresos) }}</div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado de pedidos -->
+    <div class="col-lg-7">
+      <div class="panel h-100">
+        <div class="panel__header">
+          <i class="fas fa-tasks me-2 text-warning"></i>
+          <span>Estado de Pedidos</span>
+          <span class="ms-auto badge bg-primary">{{ statsPedidos.activos }} activos</span>
+        </div>
+        <div class="panel__body">
+          <div class="pedidos-grid">
+
+            <div class="pedido-stat pedido-pendiente">
+              <div class="pedido-stat__icon"><i class="fas fa-hourglass-half"></i></div>
+              <div class="pedido-stat__num">{{ statsPedidos.pendiente }}</div>
+              <div class="pedido-stat__label">Pendientes</div>
+              <div class="pedido-stat__bar">
+                <div [style.width.%]="statsPedidos.activos > 0 ? (statsPedidos.pendiente / statsPedidos.activos * 100) : 0"></div>
+              </div>
+            </div>
+
+            <div class="pedido-stat pedido-proceso">
+              <div class="pedido-stat__icon"><i class="fas fa-cogs"></i></div>
+              <div class="pedido-stat__num">{{ statsPedidos.en_proceso }}</div>
+              <div class="pedido-stat__label">En Proceso</div>
+              <div class="pedido-stat__bar">
+                <div [style.width.%]="statsPedidos.activos > 0 ? (statsPedidos.en_proceso / statsPedidos.activos * 100) : 0"></div>
+              </div>
+            </div>
+
+            <div class="pedido-stat pedido-terminado">
+              <div class="pedido-stat__icon"><i class="fas fa-check-circle"></i></div>
+              <div class="pedido-stat__num">{{ statsPedidos.terminado }}</div>
+              <div class="pedido-stat__label">Terminados</div>
+              <div class="pedido-stat__bar">
+                <div [style.width.%]="statsPedidos.activos > 0 ? (statsPedidos.terminado / statsPedidos.activos * 100) : 0"></div>
+              </div>
+            </div>
+
+            <div class="pedido-stat pedido-hoy">
+              <div class="pedido-stat__icon"><i class="fas fa-flag-checkered"></i></div>
+              <div class="pedido-stat__num">{{ statsPedidos.finalizados_hoy }}</div>
+              <div class="pedido-stat__label">Entregados hoy</div>
+              <div class="pedido-stat__bar">
+                <div style="width: 100%"></div>
               </div>
             </div>
           </div>
+
+          <div *ngIf="statsPedidos.activos === 0 && statsPedidos.finalizados_hoy === 0" class="empty-state mt-3">
+            <i class="fas fa-clipboard-check"></i>
+            <p>Sin pedidos activos en este momento</p>
+          </div>
+
+          <button class="btn-action mt-3" (click)="irA('punto-venta')">
+            <i class="fas fa-external-link-alt me-1"></i> Ver todos los pedidos
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BLOQUE 4 — Tablas ═══ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Últimas ventas -->
+    <div class="col-lg-7">
+      <div class="panel">
+        <div class="panel__header">
+          <i class="fas fa-receipt me-2 text-success"></i>
+          <span>Últimas Ventas del Día</span>
+          <button class="ms-auto btn-link-sm" (click)="irA('punto-venta')">
+            Ver historial <i class="fas fa-arrow-right ms-1"></i>
+          </button>
+        </div>
+        <div class="panel__body p-0">
+          <div *ngIf="ultimasVentas.length === 0" class="empty-state py-4">
+            <i class="fas fa-receipt"></i>
+            <p>Sin ventas registradas hoy</p>
+          </div>
+          <div *ngIf="ultimasVentas.length > 0" class="table-responsive">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Cliente</th>
+                  <th>Total</th>
+                  <th>Método</th>
+                  <th>Estado</th>
+                  <th>Hora</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of ultimasVentas">
+                  <td><span class="folio-badge">{{ v.folio }}</span></td>
+                  <td>
+                    <span *ngIf="v.cliente_nombre; else sinCliente">{{ v.cliente_nombre }}</span>
+                    <ng-template #sinCliente><span class="text-muted">— Público general —</span></ng-template>
+                  </td>
+                  <td class="text-end fw-semibold">{{ formatCurrency(v.total) }}</td>
+                  <td>
+                    <span class="metodo-badge metodo-{{ v.metodo_pago_codigo }}">
+                      <i class="fas" [ngClass]="{
+                        'fa-money-bill-wave': v.metodo_pago_codigo === 'efectivo',
+                        'fa-credit-card': v.metodo_pago_codigo === 'tarjeta',
+                        'fa-exchange-alt': v.metodo_pago_codigo === 'transferencia'
+                      }"></i>
+                      {{ v.metodo_pago_descripcion || v.metodo_pago_codigo }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="estatus-badge" [ngClass]="{
+                      'estatus-ok': v.estatus === 'completada',
+                      'estatus-cancel': v.estatus === 'cancelada',
+                      'estatus-dev': v.estatus === 'devuelta'
+                    }">
+                      {{ v.estatus | titlecase }}
+                    </span>
+                  </td>
+                  <td class="text-muted small">{{ v.fecha_venta | date:'HH:mm' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Porcentaje Empleados Activos -->
-    <div class="col-xl-3 col-md-6">
-      <div class="stat-card card-purple">
-        <div class="stat-icon">
-          <i class="fas fa-chart-pie"></i>
+    <!-- Alertas de inventario -->
+    <div class="col-lg-5">
+      <div class="panel">
+        <div class="panel__header">
+          <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+          <span>Alertas de Stock</span>
+          <button class="ms-auto btn-link-sm" (click)="irA('inventarios')">
+            Ver inventario <i class="fas fa-arrow-right ms-1"></i>
+          </button>
         </div>
-        <div class="stat-content">
-          <div class="stat-label">Empleados Activos</div>
-          <div class="stat-value">{{ getPorcentajeActivos(stats.empleadosActivos, stats.totalEmpleados) }}%</div>
-          <div class="stat-footer">
-            <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-warning" role="progressbar" 
-                   [style.width.%]="getPorcentajeActivos(stats.empleadosActivos, stats.totalEmpleados)">
-              </div>
-            </div>
+        <div class="panel__body p-0">
+          <div *ngIf="alertasInventario.length === 0" class="empty-state py-4">
+            <i class="fas fa-check-circle text-success"></i>
+            <p class="text-success">Stock en niveles normales</p>
+          </div>
+          <div *ngIf="alertasInventario.length > 0" class="table-responsive">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Artículo</th>
+                  <th class="text-center">Existencia</th>
+                  <th class="text-center">Mínimo</th>
+                  <th class="text-center">Nivel</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of alertasInventario">
+                  <td>
+                    <div class="art-name">{{ a.nombre }}</div>
+                    <div *ngIf="a.departamento_nombre" class="art-dept"
+                         [style.color]="a.departamento_color || '#6c757d'">
+                      {{ a.departamento_nombre }}
+                    </div>
+                  </td>
+                  <td class="text-center fw-semibold"
+                      [class.text-danger]="a.nivel_stock === 'critico'"
+                      [class.text-warning]="a.nivel_stock === 'bajo'">
+                    {{ a.existencia_actual }}
+                  </td>
+                  <td class="text-center text-muted">{{ a.stock_minimo }}</td>
+                  <td class="text-center">
+                    <span class="nivel-badge nivel-{{ a.nivel_stock }}">
+                      <i class="fas" [class.fa-skull-crossbones]="a.nivel_stock === 'critico'"
+                                     [class.fa-arrow-down]="a.nivel_stock === 'bajo'"></i>
+                      {{ a.nivel_stock === 'critico' ? 'Crítico' : 'Bajo' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Sección de Clientes -->
-  <div class="card section-card mb-4">
-    <div class="card-header">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <i class="fas fa-users me-2 text-primary"></i>
-          <h5 class="mb-0">Módulo de Clientes</h5>
-        </div>
-        <button class="btn btn-sm btn-outline-primary" (click)="toggleClientes()">
-          <i class="fas" [class.fa-chevron-up]="mostrarClientes" [class.fa-chevron-down]="!mostrarClientes"></i>
+  <!-- ═══ BLOQUE 5 — Acceso rápido a módulos ═══ -->
+  <div class="panel mb-2">
+    <div class="panel__header">
+      <i class="fas fa-th-large me-2 text-secondary"></i>
+      <span>Acceso Rápido</span>
+    </div>
+    <div class="panel__body">
+      <div class="modulos-grid">
+        <button *ngFor="let m of modulos" class="modulo-btn"
+                [style.--m-color]="m.color"
+                [style.--m-bg]="m.bg"
+                (click)="irA(m.route)">
+          <div class="modulo-btn__icon"><i [class]="m.icon"></i></div>
+          <div class="modulo-btn__label">{{ m.label }}</div>
         </button>
       </div>
     </div>
-    <div class="card-body" *ngIf="mostrarClientes">
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <div class="info-box">
-            <div class="info-label">Total Registrados</div>
-            <div class="info-value text-primary">{{ stats.totalClientes }}</div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="info-box">
-            <div class="info-label">Clientes Activos</div>
-            <div class="info-value text-success">{{ stats.clientesActivos }}</div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="info-box">
-            <div class="info-label">Clientes Inactivos</div>
-            <div class="info-value text-secondary">{{ stats.clientesInactivos }}</div>
-          </div>
-        </div>
-      </div>
-
-      <h6 class="mb-3">Últimos 5 Clientes Registrados</h6>
-      <div class="table-responsive">
-        <table class="table table-hover table-sm">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre/Razón Social</th>
-              <th>RFC</th>
-              <th>Email</th>
-              <th>Estado</th>
-              <th>Fecha Registro</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let cliente of ultimosClientes">
-              <td>{{ cliente.id }}</td>
-              <td>
-                <span *ngIf="cliente.tipo_persona === 'moral'">{{ cliente.razon_social }}</span>
-                <span *ngIf="cliente.tipo_persona === 'fisica'">{{ cliente.nombre }} {{ cliente.apellido_paterno }} {{ cliente.apellido_materno }}</span>
-              </td>
-              <td>{{ cliente.rfc }}</td>
-              <td>{{ cliente.email }}</td>
-              <td>
-                <span class="badge" [class.bg-success]="cliente.activo" [class.bg-secondary]="!cliente.activo">
-                  {{ cliente.activo ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td>{{ cliente.fecha_registro | date:'dd/MM/yyyy' }}</td>
-            </tr>
-            <tr *ngIf="ultimosClientes.length === 0">
-              <td colspan="6" class="text-center text-muted">
-                <i class="fas fa-info-circle me-2"></i>No hay clientes registrados
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 
-  <!-- Sección de Empleados -->
-  <div class="card section-card mb-4">
-    <div class="card-header">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <i class="fas fa-user-tie me-2 text-warning"></i>
-          <h5 class="mb-0">Módulo de Empleados</h5>
-        </div>
-        <button class="btn btn-sm btn-outline-warning" (click)="toggleEmpleados()">
-          <i class="fas" [class.fa-chevron-up]="mostrarEmpleados" [class.fa-chevron-down]="!mostrarEmpleados"></i>
-        </button>
-      </div>
-    </div>
-    <div class="card-body" *ngIf="mostrarEmpleados">
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <div class="info-box">
-            <div class="info-label">Total Registrados</div>
-            <div class="info-value text-warning">{{ stats.totalEmpleados }}</div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="info-box">
-            <div class="info-label">Empleados Activos</div>
-            <div class="info-value text-success">{{ stats.empleadosActivos }}</div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="info-box">
-            <div class="info-label">Empleados Inactivos</div>
-            <div class="info-value text-secondary">{{ stats.empleadosInactivos }}</div>
-          </div>
-        </div>
-      </div>
-
-      <h6 class="mb-3">Últimos 5 Empleados Registrados</h6>
-      <div class="table-responsive">
-        <table class="table table-hover table-sm">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre Completo</th>
-              <th>Email</th>
-              <th>Teléfono</th>
-              <th>Puesto</th>
-              <th>Estado</th>
-              <th>Fecha Registro</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let empleado of ultimosEmpleados">
-              <td>{{ empleado.id }}</td>
-              <td>{{ empleado.nombre }}</td>
-              <td>{{ empleado.email }}</td>
-              <td>{{ empleado.telefono }}</td>
-              <td>{{ empleado.puesto || '-' }}</td>
-              <td>
-                <span class="badge" [class.bg-success]="empleado.activo" [class.bg-secondary]="!empleado.activo">
-                  {{ empleado.activo ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td>{{ empleado.fechaRegistro | date:'dd/MM/yyyy' }}</td>
-            </tr>
-            <tr *ngIf="ultimosEmpleados.length === 0">
-              <td colspan="7" class="text-center text-muted">
-                <i class="fas fa-info-circle me-2"></i>No hay empleados registrados
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Información adicional -->
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card info-card">
-        <div class="card-body">
-          <h6 class="mb-3"><i class="fas fa-info-circle text-info me-2"></i>Módulos Disponibles</h6>
-          <div class="d-flex flex-wrap gap-2">
-            <span class="badge bg-primary"><i class="fas fa-users me-1"></i>Clientes</span>
-            <span class="badge bg-warning"><i class="fas fa-user-tie me-1"></i>Empleados</span>
-            <span class="badge bg-secondary"><i class="fas fa-boxes me-1"></i>Inventarios</span>
-            <span class="badge bg-dark"><i class="fas fa-desktop me-1"></i>Equipos</span>
-            <span class="badge bg-secondary"><i class="fas fa-chart-bar me-1"></i>Reportes</span>
-            <span class="badge bg-secondary"><i class="fas fa-cash-register me-1"></i>Punto de Venta</span>
-            <span class="badge bg-info"><i class="fas fa-truck me-1"></i>Proveedores</span>
-          </div>
-          <p class="text-muted small mt-3 mb-0">
-            <i class="fas fa-lightbulb me-1"></i>
-            Los módulos marcados en colores están actualmente desarrollados. Los demás se agregarán progresivamente.
-          </p>
-        </div>
-      </div>
-    </div>
-    
-    <div class="col-md-6">
-      <div class="card info-card">
-        <div class="card-body">
-          <h6 class="mb-3"><i class="fas fa-clock text-success me-2"></i>Última Actualización</h6>
-          <p class="mb-2">
-            <strong>Fecha:</strong> {{ loading ? 'Actualizando...' : (Date.now() | date:'dd/MM/yyyy HH:mm:ss') }}
-          </p>
-          <p class="text-muted small mb-0">
-            <i class="fas fa-sync-alt me-1"></i>
-            Los datos se actualizan automáticamente al cargar el dashboard. Use el botón "Actualizar" para obtener información más reciente.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>

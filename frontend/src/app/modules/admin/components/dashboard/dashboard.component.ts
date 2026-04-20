@@ -1,22 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, forkJoin } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { EmpleadosService } from '../../../../services/empleados.service';
 import { ClientesService } from '../../../../services/clientes.service';
-
-interface DashboardStats {
-  totalClientes: number;
-  clientesActivos: number;
-  clientesInactivos: number;
-  totalEmpleados: number;
-  empleadosActivos: number;
-  empleadosInactivos: number;
-}
-
-interface UltimosRegistros {
-  clientes: any[];
-  empleados: any[];
-}
+import { InventariosService } from '../../../../services/inventarios.service';
+import { EquiposService } from '../../../../services/equipos.service';
+import { PosService } from '../../../../services/pos.service';
+import { ProveedoresService } from '../../../../services/proveedores.service';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -26,34 +18,87 @@ interface UltimosRegistros {
 export class DashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   loading = false;
+  ultimaActualizacion: Date | null = null;
 
-  // Para usar Date.now() en el template
-  Date = Date;
+  // Info del usuario
+  nombreUsuario = '';
 
-  // Estadísticas principales
-  stats: DashboardStats = {
-    totalClientes: 0,
-    clientesActivos: 0,
-    clientesInactivos: 0,
-    totalEmpleados: 0,
-    empleadosActivos: 0,
-    empleadosInactivos: 0
+  // Stats ventas del día
+  statsVentas = {
+    total_ventas: 0,
+    total_ingresos: 0,
+    ticket_promedio: 0,
+    ventas_canceladas: 0,
+    pagos_efectivo: 0,
+    pagos_tarjeta: 0,
+    pagos_transferencia: 0
   };
 
-  // Últimos registros
-  ultimosClientes: any[] = [];
-  ultimosEmpleados: any[] = [];
+  // Stats pedidos
+  statsPedidos = {
+    pendiente: 0,
+    en_proceso: 0,
+    terminado: 0,
+    finalizados_hoy: 0,
+    activos: 0
+  };
 
-  // Control de vista
-  mostrarClientes = true;
-  mostrarEmpleados = true;
+  // Clientes / empleados
+  totalClientes = 0;
+  totalEmpleados = 0;
+
+  // Stats inventario
+  statsInventario = {
+    total_articulos: 0,
+    total_productos: 0,
+    total_servicios: 0,
+    alertas_criticas: 0,
+    alertas_bajas: 0,
+    valor_total_inventario: 0
+  };
+  alertasInventario: any[] = [];
+
+  // Stats equipos
+  statsEquipos = {
+    total_activos: 0,
+    en_reparacion: 0,
+    fotocopiadoras: 0,
+    impresoras: 0
+  };
+
+  // Proveedores
+  totalProveedores = 0;
+
+  // Últimas ventas del día
+  ultimasVentas: any[] = [];
+
+  // Módulos del sistema para acceso rápido
+  readonly modulos = [
+    { label: 'Punto de Venta', icon: 'fas fa-cash-register', route: 'punto-venta', color: '#0d6efd', bg: '#e7f0ff' },
+    { label: 'Pedidos', icon: 'fas fa-clipboard-list', route: 'punto-venta', color: '#fd7e14', bg: '#fff3e7' },
+    { label: 'Clientes', icon: 'fas fa-users', route: 'clientes', color: '#198754', bg: '#e7f5ee' },
+    { label: 'Empleados', icon: 'fas fa-user-tie', route: 'empleados', color: '#ffc107', bg: '#fffbe7' },
+    { label: 'Inventarios', icon: 'fas fa-boxes', route: 'inventarios', color: '#0dcaf0', bg: '#e7fafd' },
+    { label: 'Equipos', icon: 'fas fa-print', route: 'equipos', color: '#6f42c1', bg: '#f0ebff' },
+    { label: 'Proveedores', icon: 'fas fa-truck', route: 'proveedores', color: '#20c997', bg: '#e7faf5' },
+    { label: 'Facturación', icon: 'fas fa-file-invoice-dollar', route: 'facturacion', color: '#dc3545', bg: '#fdecea' },
+    { label: 'Reportes', icon: 'fas fa-chart-bar', route: 'reportes', color: '#6c757d', bg: '#f1f3f5' },
+  ];
 
   constructor(
+    private authService: AuthService,
     private empleadosService: EmpleadosService,
-    private clientesService: ClientesService
+    private clientesService: ClientesService,
+    private inventariosService: InventariosService,
+    private equiposService: EquiposService,
+    private posService: PosService,
+    private proveedoresService: ProveedoresService,
+    private router: Router
   ) {}
 
   ngOnInit() {
+    const user = this.authService.getCurrentUser();
+    this.nombreUsuario = user?.nombre || (user as any)?.username || 'Usuario';
     this.cargarDashboard();
   }
 
@@ -62,79 +107,77 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  /**
-   * Carga todas las estadísticas del dashboard
-   */
   cargarDashboard() {
     this.loading = true;
 
     forkJoin({
-      // Obtener últimos 5 registros para mostrar en tablas
-      ultimosClientes: this.clientesService.getList({ page: 1, limit: 5 }),
-      ultimosEmpleados: this.empleadosService.getList({ page: 1, limit: 5 }),
-      // Obtener TODOS los registros para contar activos/inactivos correctamente
-      todosClientes: this.clientesService.getList({ page: 1, limit: 999999 }),
-      todosEmpleados: this.empleadosService.getList({ page: 1, limit: 999999 })
+      statsVentas:      this.posService.getStatsHoy().pipe(catchError(() => of({ success: false, data: null }))),
+      statsPedidos:     this.posService.getStatsPedidos().pipe(catchError(() => of({ success: false, data: null }))),
+      clientes:         this.clientesService.getList({ page: 1, limit: 1 }).pipe(catchError(() => of({ success: false, pagination: null }))),
+      empleados:        this.empleadosService.getList({ page: 1, limit: 1 }).pipe(catchError(() => of({ success: false, pagination: null }))),
+      statsInventario:  this.inventariosService.getEstadisticas().pipe(catchError(() => of({ success: false, data: null }))),
+      alertasInventario:this.inventariosService.getAlertas().pipe(catchError(() => of({ success: false, data: [] }))),
+      statsEquipos:     this.equiposService.getStats().pipe(catchError(() => of({ success: false, data: null }))),
+      proveedores:      this.proveedoresService.getList({ page: 1, limit: 1 }).pipe(catchError(() => of({ success: false, pagination: null }))),
+      ultimasVentas:    this.posService.listVentas({ page: 1, limit: 5 }).pipe(catchError(() => of({ success: false, data: [] }))),
     })
     .pipe(takeUntil(this.destroy$))
     .subscribe({
-      next: (resultado) => {
-        // Procesar clientes
-        if (resultado.ultimosClientes.success && resultado.todosClientes.success) {
-          this.stats.totalClientes = resultado.todosClientes.pagination?.total || 0;
-          this.ultimosClientes = resultado.ultimosClientes.data || [];
-          
-          // Contar activos e inactivos de TODOS los clientes (no solo los últimos 5)
-          const todosLosClientes = resultado.todosClientes.data || [];
-          this.stats.clientesActivos = todosLosClientes.filter(c => c.activo).length;
-          this.stats.clientesInactivos = todosLosClientes.filter(c => !c.activo).length;
-        }
+      next: (r: any) => {
+        if (r.statsVentas?.success && r.statsVentas.data)
+          this.statsVentas = r.statsVentas.data;
 
-        // Procesar empleados
-        if (resultado.ultimosEmpleados.success && resultado.todosEmpleados.success) {
-          this.stats.totalEmpleados = resultado.todosEmpleados.pagination?.total || 0;
-          this.ultimosEmpleados = resultado.ultimosEmpleados.data || [];
-          
-          // Contar activos e inactivos de TODOS los empleados (no solo los últimos 5)
-          const todosLosEmpleados = resultado.todosEmpleados.data || [];
-          this.stats.empleadosActivos = todosLosEmpleados.filter(e => e.activo).length;
-          this.stats.empleadosInactivos = todosLosEmpleados.filter(e => !e.activo).length;
-        }
+        if (r.statsPedidos?.success && r.statsPedidos.data)
+          this.statsPedidos = r.statsPedidos.data;
 
+        if (r.clientes?.success)
+          this.totalClientes = r.clientes.pagination?.total ?? 0;
+
+        if (r.empleados?.success)
+          this.totalEmpleados = r.empleados.pagination?.total ?? 0;
+
+        if (r.statsInventario?.success && r.statsInventario.data)
+          this.statsInventario = r.statsInventario.data;
+
+        if (r.alertasInventario?.success)
+          this.alertasInventario = (r.alertasInventario.data || []).slice(0, 5);
+
+        if (r.statsEquipos?.success && r.statsEquipos.data)
+          this.statsEquipos = r.statsEquipos.data;
+
+        if (r.proveedores?.success)
+          this.totalProveedores = r.proveedores.pagination?.total ?? 0;
+
+        if (r.ultimasVentas?.success)
+          this.ultimasVentas = r.ultimasVentas.data || [];
+
+        this.ultimaActualizacion = new Date();
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Error al cargar dashboard:', error);
-        this.loading = false;
-      }
+      error: () => { this.loading = false; }
     });
   }
 
-  /**
-   * Recarga las estadísticas
-   */
-  recargar() {
-    this.cargarDashboard();
+  recargar() { this.cargarDashboard(); }
+
+  irA(ruta: string) { this.router.navigate(['/admin', ruta]); }
+
+  formatCurrency(val: number): string {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val || 0);
   }
 
-  /**
-   * Alterna la visibilidad de la sección de clientes
-   */
-  toggleClientes() {
-    this.mostrarClientes = !this.mostrarClientes;
+  getPagoPercent(count: number): number {
+    const total = this.statsVentas.total_ventas || 1;
+    return Math.round((count / total) * 100);
   }
 
-  /**
-   * Alterna la visibilidad de la sección de empleados
-   */
-  toggleEmpleados() {
-    this.mostrarEmpleados = !this.mostrarEmpleados;
+  get fechaHoy(): string {
+    return new Date().toLocaleDateString('es-MX', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
   }
 
-  /**
-   * Obtiene el porcentaje de activos
-   */
-  getPorcentajeActivos(activos: number, total: number): number {
-    return total > 0 ? Math.round((activos / total) * 100) : 0;
+  get totalAlertas(): number {
+    return (this.statsInventario.alertas_criticas || 0) + (this.statsInventario.alertas_bajas || 0);
   }
 }
