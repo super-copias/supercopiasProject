@@ -688,13 +688,20 @@ async function getStatsHoy(req, res) {
 
     const statsQ = await query(`
       SELECT
-        COUNT(*)                                         AS total_ventas,
-        COALESCE(SUM(total) FILTER (WHERE estatus='completada'), 0) AS total_ingresos,
-        COALESCE(AVG(total) FILTER (WHERE estatus='completada'), 0) AS ticket_promedio,
-        COUNT(*) FILTER (WHERE estatus='cancelada')      AS ventas_canceladas,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo='efectivo') AS pagos_efectivo,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo='tarjeta')  AS pagos_tarjeta,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo='transferencia') AS pagos_transferencia
+        COUNT(*)                                                          AS total_ventas,
+        COUNT(*) FILTER (WHERE estatus='completada')                      AS ventas_completadas,
+        COUNT(*) FILTER (WHERE estatus='cancelada')                       AS ventas_canceladas,
+        COALESCE(SUM(total)           FILTER (WHERE estatus='completada'), 0) AS total_ingresos,
+        COALESCE(AVG(total)           FILTER (WHERE estatus='completada'), 0) AS ticket_promedio,
+        COALESCE(SUM(descuento_monto) FILTER (WHERE estatus='completada'), 0) AS total_descuentos,
+        -- Conteo por método de pago (solo ventas completadas)
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='efectivo')      AS pagos_efectivo,
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta')       AS pagos_tarjeta,
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia') AS pagos_transferencia,
+        -- Monto por método de pago (solo ventas completadas)
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='efectivo'),      0) AS monto_efectivo,
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta'),       0) AS monto_tarjeta,
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia'), 0) AS monto_transferencia
       FROM pos_ventas
       WHERE fecha_venta >= CURRENT_DATE
         AND fecha_venta <  CURRENT_DATE + interval '1 day'
@@ -704,13 +711,18 @@ async function getStatsHoy(req, res) {
     const stats = statsQ.rows[0];
 
     return res.json(createResponse(true, {
-      total_ventas:       parseInt(stats.total_ventas),
-      total_ingresos:     parseFloat(stats.total_ingresos),
-      ticket_promedio:    parseFloat(parseFloat(stats.ticket_promedio).toFixed(2)),
-      ventas_canceladas:  parseInt(stats.ventas_canceladas),
-      pagos_efectivo:     parseInt(stats.pagos_efectivo),
-      pagos_tarjeta:      parseInt(stats.pagos_tarjeta),
-      pagos_transferencia: parseInt(stats.pagos_transferencia),
+      total_ventas:         parseInt(stats.total_ventas),
+      ventas_completadas:   parseInt(stats.ventas_completadas),
+      ventas_canceladas:    parseInt(stats.ventas_canceladas),
+      total_ingresos:       parseFloat(parseFloat(stats.total_ingresos).toFixed(2)),
+      ticket_promedio:      parseFloat(parseFloat(stats.ticket_promedio).toFixed(2)),
+      total_descuentos:     parseFloat(parseFloat(stats.total_descuentos).toFixed(2)),
+      pagos_efectivo:       parseInt(stats.pagos_efectivo),
+      pagos_tarjeta:        parseInt(stats.pagos_tarjeta),
+      pagos_transferencia:  parseInt(stats.pagos_transferencia),
+      monto_efectivo:       parseFloat(parseFloat(stats.monto_efectivo).toFixed(2)),
+      monto_tarjeta:        parseFloat(parseFloat(stats.monto_tarjeta).toFixed(2)),
+      monto_transferencia:  parseFloat(parseFloat(stats.monto_transferencia).toFixed(2)),
     }, 'Estadísticas del día'));
   } catch (err) {
     console.error('getStatsHoy POS:', err);
@@ -1262,6 +1274,141 @@ async function getReporteClientes(req, res) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// GET /api/pos/corte
+// Corte de caja: desglose completo de ingresos por período
+// Query params: fecha (YYYY-MM-DD, default: hoy), vendedor_id
+// ─────────────────────────────────────────────────────────────
+async function getCorteCaja(req, res) {
+  try {
+    const { fecha, vendedor_id } = req.query;
+
+    // Si no se pasa fecha se usa hoy (zona horaria del servidor)
+    const fechaCorte = fecha || new Date().toISOString().slice(0, 10);
+
+    const params = [fechaCorte];
+    const whereVendedor = vendedor_id ? `AND vendedor_usuario_id = $${params.push(vendedor_id)}` : '';
+
+    // ── 1. Totales generales ──────────────────────────────────
+    const totalesQ = await query(`
+      SELECT
+        COUNT(*)                                                              AS total_ventas,
+        COUNT(*) FILTER (WHERE estatus = 'completada')                        AS ventas_completadas,
+        COUNT(*) FILTER (WHERE estatus = 'cancelada')                         AS ventas_canceladas,
+        COALESCE(SUM(total)           FILTER (WHERE estatus = 'completada'), 0) AS total_ingresos,
+        COALESCE(SUM(subtotal)        FILTER (WHERE estatus = 'completada'), 0) AS total_subtotal,
+        COALESCE(SUM(descuento_monto) FILTER (WHERE estatus = 'completada'), 0) AS total_descuentos,
+        COALESCE(SUM(iva_monto)       FILTER (WHERE estatus = 'completada'), 0) AS total_iva,
+        COALESCE(AVG(total)           FILTER (WHERE estatus = 'completada'), 0) AS ticket_promedio,
+        COALESCE(SUM(total)           FILTER (WHERE estatus = 'cancelada'),  0) AS monto_cancelado
+      FROM pos_ventas
+      WHERE fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+    `, params);
+
+    // ── 2. Desglose por método de pago ────────────────────────
+    // Agrupa todos los métodos registrados (no solo los 3 fijos)
+    const metodosQ = await query(`
+      SELECT
+        metodo_pago_codigo,
+        metodo_pago_descripcion,
+        COUNT(*)   AS cantidad_ventas,
+        SUM(total) AS total_monto,
+        AVG(total) AS ticket_promedio
+      FROM pos_ventas
+      WHERE estatus = 'completada'
+        AND fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+      GROUP BY metodo_pago_codigo, metodo_pago_descripcion
+      ORDER BY total_monto DESC
+    `, params);
+
+    // ── 3. Desglose por vendedor ──────────────────────────────
+    const vendedoresQ = await query(`
+      SELECT
+        vendedor_usuario_id,
+        vendedor_nombre,
+        COUNT(*) FILTER (WHERE estatus = 'completada')  AS ventas,
+        COUNT(*) FILTER (WHERE estatus = 'cancelada')   AS canceladas,
+        COALESCE(SUM(total) FILTER (WHERE estatus = 'completada'), 0) AS total
+      FROM pos_ventas
+      WHERE fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+      GROUP BY vendedor_usuario_id, vendedor_nombre
+      ORDER BY total DESC
+    `, params);
+
+    // ── 4. Listado de ventas del período ──────────────────────
+    const ventasQ = await query(`
+      SELECT
+        id, folio, fecha_venta,
+        cliente_nombre, vendedor_nombre,
+        subtotal, descuento_pct, descuento_monto, total,
+        monto_recibido, cambio,
+        metodo_pago_codigo, metodo_pago_descripcion,
+        estatus, motivo_cancelacion, ticket_generado
+      FROM pos_ventas
+      WHERE fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+      ORDER BY fecha_venta ASC
+    `, params);
+
+    const totales = totalesQ.rows[0];
+
+    return res.json(createResponse(true, {
+      fecha_corte:   fechaCorte,
+      vendedor_id:   vendedor_id || null,
+      generado_en:   new Date().toISOString(),
+
+      resumen: {
+        total_ventas:       parseInt(totales.total_ventas),
+        ventas_completadas: parseInt(totales.ventas_completadas),
+        ventas_canceladas:  parseInt(totales.ventas_canceladas),
+        total_subtotal:     parseFloat(parseFloat(totales.total_subtotal).toFixed(2)),
+        total_descuentos:   parseFloat(parseFloat(totales.total_descuentos).toFixed(2)),
+        total_iva:          parseFloat(parseFloat(totales.total_iva).toFixed(2)),
+        total_ingresos:     parseFloat(parseFloat(totales.total_ingresos).toFixed(2)),
+        ticket_promedio:    parseFloat(parseFloat(totales.ticket_promedio).toFixed(2)),
+        monto_cancelado:    parseFloat(parseFloat(totales.monto_cancelado).toFixed(2)),
+      },
+
+      metodos_pago: metodosQ.rows.map(m => ({
+        codigo:           m.metodo_pago_codigo,
+        descripcion:      m.metodo_pago_descripcion,
+        cantidad_ventas:  parseInt(m.cantidad_ventas),
+        total_monto:      parseFloat(parseFloat(m.total_monto).toFixed(2)),
+        ticket_promedio:  parseFloat(parseFloat(m.ticket_promedio).toFixed(2)),
+      })),
+
+      vendedores: vendedoresQ.rows.map(v => ({
+        vendedor_usuario_id: v.vendedor_usuario_id,
+        vendedor_nombre:     v.vendedor_nombre,
+        ventas:              parseInt(v.ventas),
+        canceladas:          parseInt(v.canceladas),
+        total:               parseFloat(parseFloat(v.total).toFixed(2)),
+      })),
+
+      ventas: ventasQ.rows.map(v => ({
+        ...v,
+        subtotal:        parseFloat(v.subtotal),
+        descuento_pct:   parseFloat(v.descuento_pct),
+        descuento_monto: parseFloat(v.descuento_monto),
+        total:           parseFloat(v.total),
+        monto_recibido:  v.monto_recibido ? parseFloat(v.monto_recibido) : null,
+        cambio:          parseFloat(v.cambio),
+      })),
+    }, `Corte de caja: ${fechaCorte}`));
+
+  } catch (err) {
+    console.error('getCorteCaja POS:', err);
+    return res.status(500).json(createErrorResponse('Error al generar corte de caja', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
 module.exports = {
   getCatalogo,
   createVenta,
@@ -1279,4 +1426,5 @@ module.exports = {
   convertirCotizacion,
   getReporteVendedores,
   getReporteClientes,
+  getCorteCaja,
 };
