@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { VentaDetalle, CotizacionDetalle } from '../../../../../services/pos.service';
 
 const TICKET_PRINT_STYLES = `
-  @page { size: 80mm auto; margin: 3mm; }
+  @page { size: 80mm auto; margin: 2mm; }
   html, body { margin: 0; padding: 12px; background: #e0e0e0;
                display: flex; justify-content: center; align-items: flex-start; }
   * { font-family: 'Courier New', Courier, monospace; font-size: 12px; box-sizing: border-box; }
@@ -33,8 +33,9 @@ const TICKET_PRINT_STYLES = `
                     letter-spacing:1px; padding: 2px 0; }
   .t-anticipo-row { background:#fff8dc; padding: 2px 4px; border-radius:3px; }
   @media print {
-    html, body { background: none; padding: 0; display: block; }
-    .ticket-papel { box-shadow: none; width: 100%; }
+    html, body { background: none; padding: 0; margin: 0;
+                 display: block; width: 80mm; overflow: visible; }
+    .ticket-papel { box-shadow: none; width: 100%; page-break-inside: avoid; overflow: visible; }
   }
 `;
 
@@ -93,16 +94,16 @@ export class TicketComponent {
   imprimirTicketInterno(): void {
     const papelEl = document.querySelector('.ticket-papel') as HTMLElement;
     if (!papelEl) { window.print(); return; }
-    const W = 320, H = 550;
-    const left = Math.round((screen.width  - W) / 2);
-    const top  = Math.round((screen.height - H) / 2);
+    const W = 320;
+    const left = Math.round((screen.width - W) / 2);
+    const top  = Math.round((screen.height - 600) / 2);
     const win = window.open('', '_blank',
-      `width=${W},height=${H},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,status=no,location=no`);
+      `width=${W},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,status=no,location=no`);
     if (!win) return;
     win.document.write(
       `<!DOCTYPE html><html><head><title>Ticket</title><style>${TICKET_PRINT_STYLES}</style>
         <script>
-          window.onload       = function(){ setTimeout(function(){ window.print(); }, 250); };
+          window.onload       = function(){ setTimeout(function(){ window.print(); }, 400); };
           window.onafterprint = function(){ window.close(); };
         <\/script>
        </head><body>${papelEl.outerHTML}</body></html>`
