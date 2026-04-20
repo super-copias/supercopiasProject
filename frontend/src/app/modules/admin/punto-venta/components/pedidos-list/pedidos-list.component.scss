@@ -235,3 +235,30 @@
     }
   }
 }
+
+// ── Dropdown buscador clientes (modal entrega) ────────────────
+.dropdown-clientes {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: 2px;
+  position: relative;
+  z-index: 1100;
+}
+
+.dropdown-cliente-item {
+  padding: .4rem .65rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f4ff; }
+}
+
+.btn-xs {
+  padding: .1rem .35rem;
+  font-size: .75rem;
+  line-height: 1.2;
+}

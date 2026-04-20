@@ -29,6 +29,7 @@ export class SideNavComponent implements OnChanges, OnInit {
         { icon: 'fas fa-boxes', text: 'Inventarios', link: '/admin/inventarios', module: 'inventarios' },
         { icon: 'fas fa-tv', text: 'Equipos', link: '/admin/equipos', module: 'equipos' },
         { icon: 'fas fa-chart-bar', text: 'Reportes', link: '/admin/reportes', module: 'reportes' },
+        { icon: 'fas fa-file-invoice-dollar', text: 'Facturación', link: '/admin/facturacion', module: 'facturacion' },
         { icon: 'fas fa-cash-register', text: 'Punto de Venta', link: '/admin/punto-venta', module: 'punto_venta' }
       ]
     }

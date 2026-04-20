@@ -1,0 +1,22 @@
+<div class="factura-impuestos-preview" [class.preview-sm]="small">
+  <div class="preview-row">
+    <span class="preview-lbl">Subtotal</span>
+    <span>${{ subtotal | number:'1.2-2' }}</span>
+  </div>
+  <div class="preview-row iva-row">
+    <span class="preview-lbl">
+      + IVA <span class="pct-badge">({{ (iva_pct * 100) | number:'1.0-1' }}%)</span>
+    </span>
+    <span class="text-success">+${{ iva_monto | number:'1.2-2' }}</span>
+  </div>
+  <div class="preview-row isr-row">
+    <span class="preview-lbl">
+      - ISR Ret. <span class="pct-badge">({{ (isr_pct * 100) | number:'1.0-2' }}%)</span>
+    </span>
+    <span class="text-danger">-${{ isr_monto | number:'1.2-2' }}</span>
+  </div>
+  <div class="preview-row total-row">
+    <span>TOTAL CON FACTURA</span>
+    <span>${{ total | number:'1.2-2' }}</span>
+  </div>
+</div>

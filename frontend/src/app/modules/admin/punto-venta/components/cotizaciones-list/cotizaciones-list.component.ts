@@ -1,7 +1,11 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../../../../../environments/environment';
 import { PosService, CotizacionDetalle, FiltrosCotizaciones } from '../../../../../services/pos.service';
+import { FacturasService } from '../../../../../services/facturas.service';
 
 @Component({
   selector: 'app-pos-cotizaciones-list',
@@ -41,11 +45,19 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   // Panel convertir
   mostrarPanelConvertir = false;
   cotizacionConvertirId: number | null = null;
+  cotizacionConvertirClienteId: number | null = null;
   cotizacionConvertirTotal = 0;
+  totalConFacturaConvertir: number | null = null;
   metodoPagoConvertir: 'efectivo' | 'tarjeta' | 'transferencia' = 'efectivo';
   montoRecibidoConvertir: number | null = null;
+  notasConvertir = '';
   procesandoConvertir = false;
   errorConvertir = '';
+  requiereFacturaConvertir = false;
+  clienteFacturaConvertir: any = null;
+  busquedaClienteConvertir = new FormControl('');
+  resultadosClienteConvertir: any[] = [];
+  buscandoClienteConvertir = false;
 
   estatusOpciones = [
     { valor: '',          label: 'Todos' },
@@ -55,10 +67,18 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     { valor: 'vencida',   label: 'Vencida' },
   ];
 
-  constructor(private posService: PosService) {}
+  constructor(private posService: PosService, private http: HttpClient, private facturasService: FacturasService) {}
 
   ngOnInit(): void {
     this.cargar();
+    this.busquedaClienteConvertir.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(q => {
+      if (!q || q.length < 2) { this.resultadosClienteConvertir = []; return; }
+      this.buscarClientesConvertir(q);
+    });
   }
 
   ngOnDestroy(): void {
@@ -217,27 +237,103 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   // ── Convertir a venta ─────────────────────────────────────────
 
   abrirConvertir(cot: any): void {
-    this.cotizacionConvertirId    = cot.id;
-    this.cotizacionConvertirTotal = parseFloat(cot.total);
-    this.metodoPagoConvertir      = 'efectivo';
-    this.montoRecibidoConvertir   = null;
-    this.errorConvertir           = '';
-    this.mostrarPanelConvertir    = true;
+    this.cotizacionConvertirId        = cot.id;
+    this.cotizacionConvertirClienteId = cot.cliente_id || null;
+    this.cotizacionConvertirTotal     = parseFloat(cot.total);
+    this.totalConFacturaConvertir     = null;
+    this.metodoPagoConvertir          = 'efectivo';
+    this.montoRecibidoConvertir       = null;
+    this.notasConvertir               = '';
+    this.errorConvertir               = '';
+    this.requiereFacturaConvertir     = !!(cot.requiere_factura);
+    this.clienteFacturaConvertir      = cot.cliente_id ? { id: cot.cliente_id, nombreComercial: cot.cliente_nombre } : null;
+    this.busquedaClienteConvertir.setValue('', { emitEvent: false });
+    this.resultadosClienteConvertir   = [];
+    this.mostrarPanelConvertir        = true;
+    if (this.requiereFacturaConvertir) this.recalcularTotalConFacturaConvertir();
+  }
+
+  recalcularTotalConFacturaConvertir(): void {
+    this.facturasService.calcularImpuestos(this.cotizacionConvertirTotal)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: (r) => { this.totalConFacturaConvertir = r.data?.total ?? null; } });
+  }
+
+  onToggleFacturaConvertir(): void {
+    if (this.requiereFacturaConvertir) {
+      this.recalcularTotalConFacturaConvertir();
+    } else {
+      this.totalConFacturaConvertir = null;
+    }
   }
 
   cerrarConvertir(): void {
-    this.mostrarPanelConvertir = false;
-    this.cotizacionConvertirId = null;
-    this.errorConvertir        = '';
+    this.mostrarPanelConvertir        = false;
+    this.cotizacionConvertirId        = null;
+    this.cotizacionConvertirClienteId = null;
+    this.totalConFacturaConvertir     = null;
+    this.errorConvertir               = '';
+    this.clienteFacturaConvertir      = null;
+    this.busquedaClienteConvertir.setValue('', { emitEvent: false });
+    this.resultadosClienteConvertir   = [];
+  }
+
+  private buscarClientesConvertir(q: string): void {
+    this.buscandoClienteConvertir = true;
+    const params = new HttpParams().set('q', q).set('limit', '8');
+    this.http.get<any>(`${environment.apiUrl}/clientes`, { params }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (r) => {
+        this.resultadosClienteConvertir = (r.data || r || []).map((c: any) => ({
+          id:              c.id,
+          nombreComercial: c.nombre_comercial || c.nombreComercial || c.razon_social || c.razonSocial,
+          rfc:             c.rfc,
+        }));
+        this.buscandoClienteConvertir = false;
+      },
+      error: () => { this.buscandoClienteConvertir = false; }
+    });
+  }
+
+  seleccionarClienteConvertir(c: any): void {
+    this.clienteFacturaConvertir = c;
+    this.resultadosClienteConvertir = [];
+    this.busquedaClienteConvertir.setValue('', { emitEvent: false });
+  }
+
+  quitarClienteConvertir(): void {
+    this.clienteFacturaConvertir = null;
+  }
+
+  get totalEfectivoConvertir(): number {
+    return this.requiereFacturaConvertir && this.totalConFacturaConvertir !== null
+      ? this.totalConFacturaConvertir
+      : this.cotizacionConvertirTotal;
   }
 
   get cambioConvertir(): number {
     if (!this.montoRecibidoConvertir || this.metodoPagoConvertir !== 'efectivo') return 0;
-    return Math.max(0, this.montoRecibidoConvertir - this.cotizacionConvertirTotal);
+    return Math.max(0, this.montoRecibidoConvertir - this.totalEfectivoConvertir);
+  }
+
+  get puedeConfirmarConvertir(): boolean {
+    if (this.procesandoConvertir) return false;
+    if (this.requiereFacturaConvertir && !this.clienteFacturaConvertir?.id) return false;
+    if (this.metodoPagoConvertir === 'efectivo') {
+      return !!this.montoRecibidoConvertir && this.montoRecibidoConvertir >= this.totalEfectivoConvertir;
+    }
+    return true;
   }
 
   confirmarConvertir(): void {
     if (!this.cotizacionConvertirId) return;
+
+    if (this.requiereFacturaConvertir && !this.clienteFacturaConvertir?.id) {
+      this.errorConvertir = 'Para facturar selecciona el cliente en el campo de búsqueda.';
+      return;
+    }
+
     this.procesandoConvertir = true;
     this.errorConvertir      = '';
 
@@ -245,7 +341,10 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
       this.cotizacionConvertirId,
       this.metodoPagoConvertir,
       this.label(this.metodoPagoConvertir),
-      this.metodoPagoConvertir === 'efectivo' ? this.montoRecibidoConvertir : null
+      this.metodoPagoConvertir === 'efectivo' ? this.montoRecibidoConvertir : null,
+      this.notasConvertir || undefined,
+      this.requiereFacturaConvertir,
+      this.clienteFacturaConvertir?.id || null
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.procesandoConvertir = false;

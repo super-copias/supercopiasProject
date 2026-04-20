@@ -61,6 +61,7 @@ export interface VentaPayload {
   descuento_config_id?: number | null;
   descuento_autorizado_por?: string | null;
   notas?: string;
+  requiere_factura?: boolean;
 }
 
 export interface VentaDetalle {
@@ -157,6 +158,7 @@ export interface CotizacionPayload {
   descuento_pct?: number;
   notas?: string;
   fecha_vencimiento?: string | null;
+  requiere_factura?: boolean;
 }
 
 export interface CotizacionLinea {
@@ -304,6 +306,13 @@ export class PosService {
 
   private baseUrl = `${environment.apiUrl}/pos`;
 
+  // ── Estado persistente del carrito (sobrevive navegación entre módulos) ──
+  _carritoGuardado: LineaCarrito[] = [];
+  _clienteGuardado: any = null;
+  _descuentoPctGuardado = 0;
+  _descuentoConfigIdGuardado: number | null = null;
+  _descuentoAutorizadoPorGuardado: string | null = null;
+
   constructor(private http: HttpClient) {}
 
   // ── Catálogo ──────────────────────────────────────────────────
@@ -392,12 +401,14 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/cotizaciones/${id}/estatus`, { estatus });
   }
 
-  convertirCotizacion(id: number, metodoPago: string, metodoPagoDesc?: string, montoRecibido?: number | null, notas?: string): Observable<any> {
+  convertirCotizacion(id: number, metodoPago: string, metodoPagoDesc?: string, montoRecibido?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/cotizaciones/${id}/convertir`, {
       metodo_pago_codigo: metodoPago,
       metodo_pago_descripcion: metodoPagoDesc || metodoPago,
       monto_recibido: montoRecibido || null,
       notas,
+      requiere_factura: requiereFactura ?? false,
+      cliente_factura_id: clienteFacturaId || null,
     });
   }
 
@@ -474,11 +485,13 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/terminar`, { notas });
   }
 
-  entregarPedido(id: number, metodoPagoSaldo: string, montoRecibidoSaldo?: number | null, notas?: string): Observable<any> {
+  entregarPedido(id: number, metodoPagoSaldo: string, montoRecibidoSaldo?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/entregar`, {
       metodo_pago_saldo: metodoPagoSaldo,
       monto_recibido_saldo: montoRecibidoSaldo || null,
       notas,
+      requiere_factura: requiereFactura || false,
+      cliente_factura_id: clienteFacturaId || null,
     });
   }
 

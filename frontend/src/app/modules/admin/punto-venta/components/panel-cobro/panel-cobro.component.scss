@@ -101,6 +101,16 @@
   line-height:  1;
 }
 
+// Botón de preview fiscal (icono ojo)
+.btn-accion--preview {
+  padding:      0.35rem 0.55rem;
+  border-color: var(--color-deep-blue);
+  color:        var(--color-deep-blue);
+  background:   #eef2ff;
+  i { font-size: 0.9rem; }
+  &:hover { background: #dde6ff; }
+}
+
 // Métodos de pago
 .metodo-btn {
   background: #fff;

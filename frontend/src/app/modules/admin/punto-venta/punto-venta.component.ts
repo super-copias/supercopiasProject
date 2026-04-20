@@ -31,10 +31,25 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
   constructor(private posService: PosService) {}
 
   ngOnInit(): void {
+    // Restaurar estado del carrito si el usuario navegó a otro módulo y volvió
+    if (this.posService._carritoGuardado.length > 0) {
+      this.carrito               = [...this.posService._carritoGuardado];
+      this.clienteSeleccionado   = this.posService._clienteGuardado;
+      this.descuentoGlobalPct    = this.posService._descuentoPctGuardado;
+      this.descuentoConfigId     = this.posService._descuentoConfigIdGuardado;
+      this.descuentoAutorizadoPor = this.posService._descuentoAutorizadoPorGuardado;
+      this.recalcularTotales();
+    }
     this.cargarStats();
   }
 
   ngOnDestroy(): void {
+    // Guardar estado del carrito para que persista si el usuario navega a otro módulo
+    this.posService._carritoGuardado            = [...this.carrito];
+    this.posService._clienteGuardado            = this.clienteSeleccionado;
+    this.posService._descuentoPctGuardado       = this.descuentoGlobalPct;
+    this.posService._descuentoConfigIdGuardado  = this.descuentoConfigId;
+    this.posService._descuentoAutorizadoPorGuardado = this.descuentoAutorizadoPor;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -117,6 +132,12 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
     this.descuentoAutorizadoPor = null;
     this.clienteSeleccionado = null;
     this.recalcularTotales();
+    // Limpiar también el estado guardado en el servicio
+    this.posService._carritoGuardado            = [];
+    this.posService._clienteGuardado            = null;
+    this.posService._descuentoPctGuardado       = 0;
+    this.posService._descuentoConfigIdGuardado  = null;
+    this.posService._descuentoAutorizadoPorGuardado = null;
   }
 
   onClienteSeleccionado(cliente: any): void {

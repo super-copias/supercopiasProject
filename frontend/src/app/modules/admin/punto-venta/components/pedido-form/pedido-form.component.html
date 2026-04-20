@@ -79,10 +79,11 @@
               <input type="checkbox" [(ngModel)]="form.via_whatsapp">
               <i class="bi bi-whatsapp text-success"></i> Vía WhatsApp
             </label>
-            <label class="check-chip">
-              <input type="checkbox" [(ngModel)]="form.requiere_factura">
-              <i class="bi bi-receipt text-primary"></i> Requiere factura
-            </label>
+          </div>
+          <!-- Indicador de facturación (heredado del POS) -->
+          <div class="d-flex align-items-center gap-1 mt-2" *ngIf="form.requiere_factura">
+            <i class="bi bi-receipt text-primary"></i>
+            <span class="small text-primary fw-semibold">Facturación activa (heredada del POS)</span>
           </div>
         </div>
 
@@ -138,9 +139,14 @@
             <span>Descuento {{ descuentoGlobalPct }}%</span>
             <span>-${{ totales.descuentoMonto | number:'1.2-2' }}</span>
           </div>
-          <div class="totales-fila total">
+          <div class="totales-fila total" *ngIf="!form.requiere_factura">
             <span>TOTAL</span>
             <span>${{ totales.total | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Desglose factura -->
+          <div class="mt-2" *ngIf="form.requiere_factura">
+            <app-factura-impuestos-preview [subtotal]="totales.total" [small]="true"></app-factura-impuestos-preview>
           </div>
 
           <!-- Anticipo -->
@@ -213,7 +219,7 @@
       <div class="alert alert-danger py-1 px-2 small mb-0 me-2" *ngIf="error">{{ error }}</div>
       <button class="btn btn-secondary btn-sm" (click)="cerrar()" [disabled]="procesando">Cancelar</button>
       <button class="btn btn-pedido btn-sm" (click)="confirmar()"
-        [disabled]="procesando || carrito.length === 0">
+        [disabled]="procesando || carrito.length === 0 || (form.requiere_factura && !clienteSeleccionado?.id)">
         <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>
         <i class="bi bi-clipboard-check me-1" *ngIf="!procesando"></i>
         {{ procesando ? 'Guardando...' : 'Guardar Pedido' }}

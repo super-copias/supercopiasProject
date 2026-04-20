@@ -1,7 +1,11 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { Subject } from 'rxjs';
-import { takeUntil, finalize } from 'rxjs/operators';
+import { takeUntil, finalize, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../../../../../environments/environment';
 import { PosService } from '../../../../../services/pos.service';
+import { FacturasService } from '../../../../../services/facturas.service';
 
 @Component({
   selector: 'app-pos-pedidos-list',
@@ -51,6 +55,14 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   procesandoEntrega = false;
   errorEntrega = '';
 
+  // Facturación en entrega
+  requiereFacturaEntregar = false;
+  clienteFacturaEntregar: any = null;
+  busquedaClienteEntregar = new FormControl('');
+  resultadosClienteEntregar: any[] = [];
+  buscandoClienteEntregar = false;
+  totalConFacturaEntregar: number | null = null;
+
   // Modal cancelar
   mostrarModalCancelar = false;
   pedidoCancelar: any = null;
@@ -73,10 +85,18 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     cancelado:  'badge-cancelado',
   };
 
-  constructor(private posService: PosService) {}
+  constructor(private posService: PosService, private http: HttpClient, private facturasService: FacturasService) {}
 
   ngOnInit(): void {
     this.cargar();
+    this.busquedaClienteEntregar.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(q => {
+      if (!q || q.length < 2) { this.resultadosClienteEntregar = []; return; }
+      this.buscarClientesEntregar(q);
+    });
   }
 
   ngOnDestroy(): void {
@@ -179,12 +199,67 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     this.montoRecibidoSaldo = null;
     this.notasEntrega = '';
     this.errorEntrega = '';
+    this.requiereFacturaEntregar = !!(p.requiere_factura);
+    this.clienteFacturaEntregar = p.cliente_id ? { id: p.cliente_id, nombreComercial: p.cliente_nombre } : null;
+    this.busquedaClienteEntregar.setValue('', { emitEvent: false });
+    this.resultadosClienteEntregar = [];
+    this.totalConFacturaEntregar = null;
     this.mostrarModalEntregar = true;
+    if (this.requiereFacturaEntregar) this.recalcularTotalConFactura();
+  }
+
+  recalcularTotalConFactura(): void {
+    if (!this.pedidoEntregar) return;
+    this.facturasService.calcularImpuestos(parseFloat(this.pedidoEntregar.total))
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: (r) => { this.totalConFacturaEntregar = r.data?.total ?? null; } });
+  }
+
+  onToggleFacturaEntregar(): void {
+    if (this.requiereFacturaEntregar) {
+      this.recalcularTotalConFactura();
+    } else {
+      this.totalConFacturaEntregar = null;
+    }
+  }
+
+  private buscarClientesEntregar(q: string): void {
+    this.buscandoClienteEntregar = true;
+    const params = new HttpParams().set('q', q).set('limit', '8');
+    this.http.get<any>(`${environment.apiUrl}/clientes`, { params }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (r) => {
+        this.resultadosClienteEntregar = (r.data || r || []).map((c: any) => ({
+          id:              c.id,
+          nombreComercial: c.nombre_comercial || c.nombreComercial || c.razon_social || c.razonSocial,
+          rfc:             c.rfc,
+        }));
+        this.buscandoClienteEntregar = false;
+      },
+      error: () => { this.buscandoClienteEntregar = false; }
+    });
+  }
+
+  seleccionarClienteEntregar(c: any): void {
+    this.clienteFacturaEntregar = c;
+    this.resultadosClienteEntregar = [];
+    this.busquedaClienteEntregar.setValue('', { emitEvent: false });
+  }
+
+  quitarClienteEntregar(): void {
+    this.clienteFacturaEntregar = null;
   }
 
   puedeConfirmarEntrega(): boolean {
     if (!this.pedidoEntregar) return false;
-    const saldo = this.pedidoEntregar.saldo_pendiente ?? (this.pedidoEntregar.total - this.pedidoEntregar.anticipo);
+    if (this.procesandoEntrega) return false;
+    if (this.requiereFacturaEntregar && !this.clienteFacturaEntregar?.id) return false;
+    const base = this.requiereFacturaEntregar && this.totalConFacturaEntregar !== null
+      ? this.totalConFacturaEntregar
+      : parseFloat(this.pedidoEntregar.total);
+    const anticipo = parseFloat(this.pedidoEntregar.anticipo || 0);
+    const saldo = parseFloat((base - anticipo).toFixed(2));
     return this.montoRecibidoSaldo !== null && this.montoRecibidoSaldo >= saldo;
   }
 
@@ -196,7 +271,9 @@ export class PedidosListComponent implements OnInit, OnDestroy {
       this.pedidoEntregar.id,
       this.metodoPagoSaldo,
       this.montoRecibidoSaldo ?? undefined,
-      this.notasEntrega || undefined
+      this.notasEntrega || undefined,
+      this.requiereFacturaEntregar,
+      this.clienteFacturaEntregar?.id || null,
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.procesandoEntrega = false;

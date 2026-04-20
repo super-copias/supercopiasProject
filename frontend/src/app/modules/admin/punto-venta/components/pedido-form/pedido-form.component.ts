@@ -19,6 +19,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   @Input() descuentoConfigId: number | null = null;
   @Input() descuentoAutorizadoPor: string | null = null;
   @Input() clientePreseleccionado: any = null;
+  @Input() requiereFactura = false;
 
   @Output() cerrado    = new EventEmitter<void>();
   @Output() generado   = new EventEmitter<any>();
@@ -61,6 +62,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     if (this.clientePreseleccionado) {
       this.clienteSeleccionado = this.clientePreseleccionado;
     }
+    this.form.requiere_factura = this.requiereFactura;
 
     this.busquedaCliente.valueChanges.pipe(
       debounceTime(300),
@@ -123,6 +125,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   confirmar(): void {
     if (this.carrito.length === 0) {
       this.error = 'El carrito está vacío';
+      return;
+    }
+
+    if (this.form.requiere_factura && !this.clienteSeleccionado?.id) {
+      this.error = 'Para generar factura debes seleccionar un cliente registrado en el sistema con RFC y datos fiscales.';
       return;
     }
 

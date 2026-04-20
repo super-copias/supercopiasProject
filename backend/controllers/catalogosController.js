@@ -126,24 +126,21 @@ async function getMetodosPago(req, res) {
  */
 async function getModulos(req, res) {
   try {
-    // Primero verificar si hay módulos, si no, insertarlos
-    let result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
-    
-    if (result.rows.length === 0) {
-      const modulos = [
-        { clave: 'dashboard', nombre: 'Dashboard', icono: 'fas fa-tachometer-alt', orden: 1 },
-        { clave: 'empleados', nombre: 'Empleados', icono: 'fas fa-users', orden: 2 },
-        { clave: 'clientes', nombre: 'Clientes', icono: 'fas fa-user-tie', orden: 3 },
-        { clave: 'proveedores', nombre: 'Proveedores', icono: 'fas fa-truck', orden: 4 },
-        { clave: 'inventarios', nombre: 'Inventarios', icono: 'fas fa-boxes', orden: 5 },
-        { clave: 'punto_venta', nombre: 'Punto de Venta', icono: 'fas fa-cash-register', orden: 6 },
-        { clave: 'equipos', nombre: 'Equipos', icono: 'fas fa-desktop', orden: 7 },
-        { clave: 'reportes', nombre: 'Reportes', icono: 'fas fa-chart-bar', orden: 8 },
-        { clave: 'configuracion', nombre: 'Configuración', icono: 'fas fa-cogs', orden: 9 }
-      ];
-      
-      for (const modulo of modulos) {
-        await query(`
+    // Siempre upsertear los módulos definidos para garantizar que existan todos
+    const modulos = [
+      { clave: 'dashboard',    nombre: 'Dashboard',       icono: 'fas fa-tachometer-alt', orden: 1 },
+      { clave: 'empleados',   nombre: 'Empleados',       icono: 'fas fa-users',          orden: 2 },
+      { clave: 'clientes',    nombre: 'Clientes',        icono: 'fas fa-user-tie',        orden: 3 },
+      { clave: 'proveedores', nombre: 'Proveedores',     icono: 'fas fa-truck',           orden: 4 },
+      { clave: 'inventarios', nombre: 'Inventarios',     icono: 'fas fa-boxes',           orden: 5 },
+      { clave: 'punto_venta', nombre: 'Punto de Venta',  icono: 'fas fa-cash-register',   orden: 6 },
+      { clave: 'equipos',     nombre: 'Equipos',         icono: 'fas fa-desktop',         orden: 7 },
+      { clave: 'reportes',    nombre: 'Reportes',        icono: 'fas fa-chart-bar',       orden: 8 },
+      { clave: 'facturacion', nombre: 'Facturación',     icono: 'fas fa-file-invoice',    orden: 9 },
+    ];
+
+    for (const modulo of modulos) {
+      await query(`
           INSERT INTO modulos (clave, nombre, icono, activo, orden) 
           VALUES ($1, $2, $3, true, $4)
           ON CONFLICT (clave) DO UPDATE SET
@@ -152,11 +149,9 @@ async function getModulos(req, res) {
               activo = EXCLUDED.activo,
               orden = EXCLUDED.orden
         `, [modulo.clave, modulo.nombre, modulo.icono, modulo.orden]);
-      }
-      
-      // Volver a consultar después de insertar
-      result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
     }
+
+    const result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
     
     // Respuesta directa sin funciones helper
     res.status(200).json({

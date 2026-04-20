@@ -2267,7 +2267,7 @@ COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FR
 6	punto_venta	Punto de Venta	fas fa-cash-register	t	6	2025-12-08 00:00:00-06
 7	equipos	Equipos	fas fa-desktop	t	7	2025-12-08 00:00:00-06
 8	reportes	Reportes	fas fa-chart-bar	t	8	2025-12-08 00:00:00-06
-9	configuracion	Configuración	fas fa-cogs	f	9	2025-12-08 00:00:00-06
+9	facturacion	Facturación	fas fa-file-invoice	t	9	2026-04-20 00:00:00-06
 \.
 
 
@@ -2536,7 +2536,7 @@ SELECT pg_catalog.setval('public.metodos_pago_id_seq', 4, true);
 -- Name: modulos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.modulos_id_seq', 9, true);
+SELECT pg_catalog.setval('public.modulos_id_seq', 10, true);
 
 
 --

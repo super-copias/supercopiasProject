@@ -1,0 +1,51 @@
+.factura-impuestos-preview {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+
+  &.preview-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid #d1fae5;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.preview-lbl {
+  color: #374151;
+}
+
+.pct-badge {
+  font-size: 0.7em;
+  color: #6b7280;
+}
+
+.iva-row span:last-child {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.isr-row span:last-child {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.total-row {
+  font-weight: 700;
+  font-size: 1.05em;
+  margin-top: 0.25rem;
+  padding-top: 0.4rem;
+  border-top: 2px solid #86efac !important;
+}

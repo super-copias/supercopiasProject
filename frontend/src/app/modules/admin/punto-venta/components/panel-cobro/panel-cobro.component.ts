@@ -48,8 +48,12 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   // Modales de herramientas
   mostrarModalDescuento   = false;
-  mostrarModalFacturacion = false;
+  mostrarModalFacturacion = false;  // preview desglose fiscal
   mostrarModalPedido      = false;
+
+  // ── Facturación (toggle en panel) ──────────────────────────────────────
+  requiereFactura    = false;
+  totalConFactura    = 0;  // calculado por el componente hijo vía event o input
 
   // Autorización de descuento elevado
   mostrarAutorizacion = false;
@@ -144,6 +148,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get puedeVender(): boolean {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
     return this.carrito.length > 0 && !this.procesando &&
       (this.metodoPago !== 'efectivo' || (!!this.montoRecibido && this.montoRecibido >= this.totales.total));
   }
@@ -167,6 +172,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       descuento_autorizado_por: this.descuentoAutorizadoPor,
       notas: this.notas || undefined,
       folio_operacion: this.folioOperacion || undefined,
+      requiere_factura: this.requiereFactura,
     };
 
     this.posService.createVenta(payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -276,6 +282,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   // ── Cotización ────────────────────────────────────────────────
 
   get puedeGuardarCotizacion(): boolean {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
     return this.carrito.length > 0 && !this.procesandoCotizacion;
   }
 
@@ -290,6 +297,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       descuento_pct: this.descuentoGlobalPct,
       notas: this.notas || undefined,
       fecha_vencimiento: this.fechaVencimientoCotizacion || undefined,
+      requiere_factura: this.requiereFactura,
     };
 
     this.posService.createCotizacion(payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -316,6 +324,11 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   confirmarAccion(): void {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) {
+      this.error = 'Para facturar debes seleccionar un cliente registrado en el sistema.';
+      this.mostrarConfirmacion = false;
+      return;
+    }
     this.mostrarConfirmacion = false;
     const accion = this.accionPendiente;
     this.accionPendiente = null;
@@ -325,7 +338,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   cancelarConfirmacion(): void {
     this.mostrarConfirmacion = false;
-    this.accionPendiente = null;
+    this.accionPendiente     = null;
   }
 
   // ── Helpers ───────────────────────────────────────────────────

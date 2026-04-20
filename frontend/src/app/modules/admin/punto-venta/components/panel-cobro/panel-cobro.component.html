@@ -28,10 +28,26 @@
       <span>Descuento</span>
       <span>-${{ totales.descuentoMonto | number:'1.2-2' }}</span>
     </div>
-    <div class="totales-row total">
+    <!-- Total sin factura -->
+    <div class="totales-row total" *ngIf="!requiereFactura">
       <span>TOTAL</span>
       <span class="total-val">${{ totales.total | number:'1.2-2' }}</span>
     </div>
+    <!-- Total con factura (calculado por app-factura-impuestos-preview) -->
+    <ng-container *ngIf="requiereFactura">
+      <div class="totales-row" style="font-size:.75rem;opacity:.85">
+        <span>+ IVA 16%</span>
+        <span class="text-success fw-semibold">+${{ totales.total * 0.16 | number:'1.2-2' }}</span>
+      </div>
+      <div class="totales-row" style="font-size:.75rem;opacity:.85">
+        <span>- ISR Ret. 1.25%</span>
+        <span class="text-danger fw-semibold">-${{ totales.total * 0.0125 | number:'1.2-2' }}</span>
+      </div>
+      <div class="totales-row total">
+        <span>TOTAL c/FACTURA</span>
+        <span class="total-val">${{ (totales.total + totales.total * 0.16 - totales.total * 0.0125) | number:'1.2-2' }}</span>
+      </div>
+    </ng-container>
   </div>
 
   <!-- Acciones rápidas -->
@@ -42,10 +58,22 @@
       <span class="accion-label">Descuento</span>
       <span class="accion-badge" *ngIf="descuentoGlobalPct > 0">{{ descuentoGlobalPct }}%</span>
     </button>
-    <button class="btn-accion" (click)="mostrarModalFacturacion=true" title="Facturación">
+    <!-- Botón facturación: toggle + icono previsualización -->
+    <button class="btn-accion" [class.btn-accion--activo]="requiereFactura"
+      (click)="requiereFactura=!requiereFactura" title="Activar/desactivar facturación">
       <i class="bi bi-receipt"></i>
       <span class="accion-label">Facturación</span>
+      <span class="accion-badge" *ngIf="requiereFactura">ON</span>
     </button>
+    <button class="btn-accion btn-accion--preview" *ngIf="requiereFactura"
+      (click)="mostrarModalFacturacion=true" title="Ver desglose fiscal">
+      <i class="bi bi-eye"></i>
+    </button>
+  </div>
+
+  <div class="alert alert-danger py-1 px-2 small mb-2" *ngIf="requiereFactura && !clienteSeleccionado?.id">
+    <i class="bi bi-person-exclamation me-1"></i>
+    Selecciona un <strong>cliente registrado</strong> en el panel izquierdo para poder facturar.
   </div>
 
   <!-- Método de pago -->
@@ -99,7 +127,7 @@
   <!-- Botones -->
   <div class="mt-auto">
     <button class="btn btn-pedido w-100"
-      [disabled]="carrito.length === 0"
+      [disabled]="carrito.length === 0 || (requiereFactura && !clienteSeleccionado?.id)"
       (click)="abrirModalPedido()"
       style="font-size:.82rem;padding:.45rem .75rem;background:#e67e00;color:#fff;border:none;border-radius:8px;font-weight:700;margin-bottom:.4rem">
       <i class="bi bi-clipboard-plus me-1"></i>GENERAR PEDIDO
@@ -129,6 +157,25 @@
   </div>
 </div>
 
+<!-- ── Modal desglose fiscal ───────────────────────────────── -->
+<div class="modal-auth-overlay" *ngIf="mostrarModalFacturacion" (click)="mostrarModalFacturacion=false">
+  <div class="modal-auth-box" (click)="$event.stopPropagation()">
+    <div class="modal-auth-title"><i class="bi bi-receipt me-2"></i>Desglose fiscal</div>
+    <div class="mb-3">
+      <app-factura-impuestos-preview [subtotal]="totales.total"></app-factura-impuestos-preview>
+    </div>
+    <p class="small text-muted mb-3" *ngIf="clienteSeleccionado?.id">
+      <i class="bi bi-person-check-fill text-success me-1"></i>
+      Factura para: <strong>{{ clienteSeleccionado.nombreComercial || clienteSeleccionado.nombre || clienteSeleccionado.cliente_nombre }}</strong>
+    </p>
+    <p class="small text-warning mb-3" *ngIf="!clienteSeleccionado?.id">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      Selecciona un cliente registrado para generar la factura.
+    </p>
+    <button class="btn btn-sm btn-primary w-100" (click)="mostrarModalFacturacion=false">Cerrar</button>
+  </div>
+</div>
+
 <!-- ── Modal descuento global ──────────────────────────────── -->
 <div class="modal-auth-overlay" *ngIf="mostrarModalDescuento" (click)="mostrarModalDescuento=false">
   <div class="modal-auth-box modal-descuento" (click)="$event.stopPropagation()">
@@ -154,20 +201,6 @@
   </div>
 </div>
 
-<!-- ── Modal facturación ────────────────────────────────────── -->
-<div class="modal-auth-overlay" *ngIf="mostrarModalFacturacion" (click)="mostrarModalFacturacion=false">
-  <div class="modal-auth-box" (click)="$event.stopPropagation()">
-    <div class="modal-auth-title"><i class="bi bi-receipt me-2"></i>Facturación</div>
-    <div class="text-center py-3 text-muted">
-      <i class="bi bi-tools" style="font-size:2.5rem"></i>
-      <p class="mt-2 mb-0 small">Módulo de facturación en desarrollo.</p>
-    </div>
-    <div class="d-flex mt-3">
-      <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="mostrarModalFacturacion=false">Cerrar</button>
-    </div>
-  </div>
-</div>
-
 <!-- ── Modal confirmación de cobro / cotización ─────────────── -->
 <div class="modal-auth-overlay" *ngIf="mostrarConfirmacion" (click)="cancelarConfirmacion()">
   <div class="modal-auth-box" (click)="$event.stopPropagation()">
@@ -177,7 +210,15 @@
     </div>
     <p class="small text-muted mb-3">
       <ng-container *ngIf="accionPendiente === 'venta'">
-        ¿Deseas procesar la venta por <strong>${{ totales.total | number:'1.2-2' }}</strong> ({{ labelMetodo(metodoPago) }})?
+        ¿Deseas procesar la venta por <strong>${{ totales.total | number:'1.2-2' }}</strong> ({{ labelMetodo(metodoPago) }})?<br>
+        <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
+          <i class="bi bi-receipt text-primary"></i>
+          <span class="text-primary fw-semibold">Con facturación activa</span>
+        </span>
+        <span class="d-flex align-items-center gap-1 mt-2" *ngIf="!requiereFactura">
+          <i class="bi bi-receipt-cutoff text-muted"></i>
+          <span class="text-muted">Sin factura</span>
+        </span>
       </ng-container>
       <ng-container *ngIf="accionPendiente === 'cotizacion'">
         ¿Deseas guardar la cotización con <strong>{{ carrito.length }}</strong> {{ carrito.length === 1 ? 'artículo' : 'artículos' }}?
@@ -186,6 +227,10 @@
           <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
             [min]="('' | date:'yyyy-MM-dd') ?? ''">
         </div>
+        <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
+          <i class="bi bi-receipt text-primary"></i>
+          <span class="text-primary fw-semibold">Se guardará con facturación activa</span>
+        </span>
       </ng-container>
     </p>
     <div class="d-flex gap-2">
@@ -224,6 +269,7 @@
   [descuentoConfigId]="descuentoConfigId"
   [descuentoAutorizadoPor]="descuentoAutorizadoPor"
   [clientePreseleccionado]="clienteSeleccionado"
+  [requiereFactura]="requiereFactura"
   (cerrado)="mostrarModalPedido=false"
   (generado)="onPedidoGenerado($event)">
 </app-pos-pedido-form>
