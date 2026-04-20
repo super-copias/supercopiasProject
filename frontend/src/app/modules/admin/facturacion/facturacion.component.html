@@ -230,11 +230,11 @@
           </div>
           <div class="col-6" *ngIf="facturaDetalle.cliente_regimen">
             <small class="text-muted d-block">Régimen fiscal</small>
-            <span>{{ facturaDetalle.cliente_regimen }}</span>
+            <span>{{ regimenLabel(facturaDetalle.cliente_regimen) }}</span>
           </div>
           <div class="col-6" *ngIf="facturaDetalle.cliente_uso_cfdi">
             <small class="text-muted d-block">Uso CFDI</small>
-            <span>{{ facturaDetalle.cliente_uso_cfdi }}</span>
+            <span>{{ usoCfdiLabel(facturaDetalle.cliente_uso_cfdi) }}</span>
           </div>
           <div class="col-6" *ngIf="facturaDetalle.cliente_cp">
             <small class="text-muted d-block">C.P.</small>

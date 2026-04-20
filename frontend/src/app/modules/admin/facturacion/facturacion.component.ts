@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { FacturasService, FacturaResumen, FacturaDetalle, FiltrosFacturas } from '../../../services/facturas.service';
+import { CatalogosService } from '../../../services/catalogos.service';
 
 @Component({
   selector: 'app-facturacion',
@@ -43,11 +44,16 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   errorCancelar        = '';
   procesandoCancelar   = false;
 
-  constructor(private facturasService: FacturasService) {}
+  // Catálogos SAT
+  regimenMap: Record<string, string> = {};
+  usoCfdiMap: Record<string, string> = {};
+
+  constructor(private facturasService: FacturasService, private catalogosService: CatalogosService) {}
 
   ngOnInit(): void {
     this.cargar();
     this.cargarContadores();
+    this.cargarCatalogos();
   }
 
   ngOnDestroy(): void {
@@ -96,6 +102,29 @@ export class FacturacionComponent implements OnInit, OnDestroy {
           next: (r) => { this.countEstatus[est] = r.data?.total || 0; },
         });
     });
+  }
+
+  private cargarCatalogos(): void {
+    this.catalogosService.getRegimenesFiscales().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (list) => {
+        this.regimenMap = {};
+        list.forEach((r: any) => { this.regimenMap[r.codigo] = r.descripcion || r.nombre || r.codigo; });
+      },
+    });
+    this.catalogosService.getUsosCFDI().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (list) => {
+        this.usoCfdiMap = {};
+        list.forEach(u => { this.usoCfdiMap[u.codigo] = u.descripcion; });
+      },
+    });
+  }
+
+  regimenLabel(codigo: string): string {
+    return this.regimenMap[codigo] ? `${codigo} - ${this.regimenMap[codigo]}` : codigo;
+  }
+
+  usoCfdiLabel(codigo: string): string {
+    return this.usoCfdiMap[codigo] ? `${codigo} - ${this.usoCfdiMap[codigo]}` : codigo;
   }
 
   buscar(): void {
