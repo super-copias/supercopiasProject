@@ -33,6 +33,7 @@ const equiposRoutes = require('./routes/equipos');
 const catalogosEquiposRoutes = require('./routes/catalogos-equipos');
 const inventariosRoutes = require('./routes/inventarios');
 const posRoutes = require('./routes/pos');
+const pedidosRoutes = require('./routes/pedidos');
 
 // Configuración del servidor Express
 const app = express();
@@ -94,6 +95,7 @@ app.use('/api/equipos', equiposRoutes);
 app.use('/api/catalogos-equipos', catalogosEquiposRoutes);
 app.use('/api/inventarios', inventariosRoutes);
 app.use('/api/pos', posRoutes);
+app.use('/api/pos/pedidos', pedidosRoutes);
 
 /**
  * Endpoint raíz - Información del API

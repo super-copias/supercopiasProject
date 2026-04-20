@@ -4111,6 +4111,150 @@ ALTER TABLE ONLY public.user_sessions
     ADD CONSTRAINT fk_user_sessions_usuario
     FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
 
+-- ============================================================
+-- MÓDULO: Pedidos POS
+-- Flujo de trabajo: pendiente → en_proceso → terminado → finalizado
+-- Al finalizar se convierte en venta (pos_ventas).
+-- Migración: 2026-04-19
+-- ============================================================
+
+-- Cabecera del pedido
+CREATE TABLE IF NOT EXISTS public.pos_pedidos (
+    id                          SERIAL PRIMARY KEY,
+    folio                       CHARACTER VARYING(25) UNIQUE NOT NULL,
+
+    -- Estado del pedido
+    estatus                     CHARACTER VARYING(20) NOT NULL DEFAULT 'pendiente',
+    CONSTRAINT chk_pedido_estatus CHECK (estatus IN (
+        'pendiente', 'en_proceso', 'terminado', 'finalizado', 'cancelado')),
+
+    -- Cliente (puede ser libre o registrado)
+    cliente_id                  INTEGER,
+    cliente_nombre              CHARACTER VARYING(200) NOT NULL DEFAULT 'Público General',
+    cliente_telefono            CHARACTER VARYING(30),
+
+    -- ¿Pedido originado por WhatsApp?
+    via_whatsapp                BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Facturación
+    requiere_factura            BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Totales
+    subtotal                    NUMERIC(12,2) NOT NULL DEFAULT 0,
+    descuento_pct               NUMERIC(5,2)  NOT NULL DEFAULT 0,
+    descuento_monto             NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total                       NUMERIC(12,2) NOT NULL DEFAULT 0,
+    anticipo                    NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+    -- Descuento
+    descuento_config_id         INTEGER,
+    descuento_autorizado_por    CHARACTER VARYING(200),
+
+    -- Pago del anticipo
+    metodo_pago_anticipo        CHARACTER VARYING(30),
+
+    -- Pago del saldo al entregar
+    metodo_pago_saldo           CHARACTER VARYING(30),
+    monto_recibido_saldo        NUMERIC(12,2),
+
+    -- Fecha acordada de entrega
+    fecha_acordada              TIMESTAMP WITH TIME ZONE,
+
+    -- Notas
+    notas                       TEXT,
+
+    -- Trazabilidad: quien levantó el pedido
+    creado_por_id               INTEGER NOT NULL,
+    creado_por_nombre           CHARACTER VARYING(200) NOT NULL,
+    fecha_creacion              TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Quien tomó el pedido (en_proceso)
+    tomado_por_id               INTEGER,
+    tomado_por_nombre           CHARACTER VARYING(200),
+    fecha_tomado                TIMESTAMP WITH TIME ZONE,
+
+    -- Quien terminó (terminado)
+    terminado_por_id            INTEGER,
+    terminado_por_nombre        CHARACTER VARYING(200),
+    fecha_terminado             TIMESTAMP WITH TIME ZONE,
+
+    -- Quien entregó (finalizado)
+    entregado_por_id            INTEGER,
+    entregado_por_nombre        CHARACTER VARYING(200),
+    fecha_entregado             TIMESTAMP WITH TIME ZONE,
+
+    -- Cancelación
+    motivo_cancelacion          TEXT,
+
+    -- Venta generada al finalizar
+    venta_id                    INTEGER,
+
+    fecha_modificacion          TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+COMMENT ON TABLE  public.pos_pedidos IS 'Pedidos levantados en el POS. Flujo: pendiente→en_proceso→terminado→finalizado. Al finalizar genera una venta.';
+COMMENT ON COLUMN public.pos_pedidos.folio          IS 'Folio único en formato PP-YYYY-NNNNN';
+COMMENT ON COLUMN public.pos_pedidos.anticipo       IS 'Monto cobrado por adelantado al levantar el pedido';
+COMMENT ON COLUMN public.pos_pedidos.via_whatsapp   IS 'true si el pedido fue recibido por WhatsApp';
+
+-- Detalle de ítems del pedido (estructura idéntica a pos_ventas_detalle)
+CREATE TABLE IF NOT EXISTS public.pos_pedidos_detalle (
+    id                    SERIAL PRIMARY KEY,
+    pedido_id             INTEGER NOT NULL,
+    inventario_id         INTEGER,
+    nombre_producto       CHARACTER VARYING(300) NOT NULL,
+    sku                   CHARACTER VARYING(100),
+    es_servicio           BOOLEAN NOT NULL DEFAULT FALSE,
+    es_item_libre         BOOLEAN NOT NULL DEFAULT FALSE,
+    cantidad              NUMERIC(10,2) NOT NULL,
+    precio_unitario       NUMERIC(12,2) NOT NULL,
+    descuento_linea_pct   NUMERIC(5,2)  NOT NULL DEFAULT 0,
+    descuento_linea_monto NUMERIC(12,2) NOT NULL DEFAULT 0,
+    subtotal_linea        NUMERIC(12,2) NOT NULL
+);
+
+COMMENT ON TABLE public.pos_pedidos_detalle IS 'Líneas de producto/servicio de cada pedido';
+
+-- Historial de cambios de estado (auditoría completa)
+CREATE TABLE IF NOT EXISTS public.pos_pedidos_historial (
+    id               SERIAL PRIMARY KEY,
+    pedido_id        INTEGER NOT NULL,
+    estatus_anterior CHARACTER VARYING(20),
+    estatus_nuevo    CHARACTER VARYING(20) NOT NULL,
+    usuario_id       INTEGER,
+    usuario_nombre   CHARACTER VARYING(200) NOT NULL,
+    notas            TEXT,
+    fecha            TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+COMMENT ON TABLE public.pos_pedidos_historial IS 'Auditoría de cada cambio de estado en un pedido';
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_estatus       ON public.pos_pedidos (estatus);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_cliente       ON public.pos_pedidos (cliente_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_creado_por    ON public.pos_pedidos (creado_por_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_tomado_por    ON public.pos_pedidos (tomado_por_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_fecha         ON public.pos_pedidos (fecha_creacion DESC);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_detalle_ped   ON public.pos_pedidos_detalle (pedido_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_hist_ped      ON public.pos_pedidos_historial (pedido_id);
+
+-- Foreign keys
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_cliente  FOREIGN KEY (cliente_id)  REFERENCES public.clientes(id)    ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_venta    FOREIGN KEY (venta_id)    REFERENCES public.pos_ventas(id)  ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos_detalle
+    ADD CONSTRAINT fk_pedidos_det_ped  FOREIGN KEY (pedido_id)   REFERENCES public.pos_pedidos(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.pos_pedidos_detalle
+    ADD CONSTRAINT fk_pedidos_det_inv  FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos_historial
+    ADD CONSTRAINT fk_pedidos_hist_ped FOREIGN KEY (pedido_id)   REFERENCES public.pos_pedidos(id) ON DELETE CASCADE;
+
+-- Trigger updated_at
+CREATE TRIGGER trg_pos_pedidos_updated_at
+    BEFORE UPDATE ON public.pos_pedidos
+    FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
 --
 -- PostgreSQL database dump complete
 --

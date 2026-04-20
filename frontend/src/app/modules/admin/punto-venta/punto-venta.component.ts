@@ -13,7 +13,9 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  vistaActiva: 'pos' | 'historial' | 'cotizaciones' = 'pos';
+  vistaActiva: 'pos' | 'historial' | 'cotizaciones' | 'pedidos' = 'pos';
+
+  pedidosActivos = 0;
 
   carrito: LineaCarrito[] = [];
   clienteSeleccionado: any = null;
@@ -179,7 +181,17 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
     this.totales = this.posService.calcularTotalesCarrito(this.carrito, this.descuentoGlobalPct);
   }
 
-  cambiarVista(vista: 'pos' | 'historial' | 'cotizaciones'): void {
+  onPedidoGuardado(pedido: any): void {
+    this.onLimpiarCarrito();
+    this.cargarStats();
+    this.vistaActiva = 'pedidos';
+  }
+
+  onStatsActualizadas(activos: number): void {
+    this.pedidosActivos = activos;
+  }
+
+  cambiarVista(vista: 'pos' | 'historial' | 'cotizaciones' | 'pedidos'): void {
     this.vistaActiva = vista;
     if (vista === 'historial' || vista === 'cotizaciones') this.cargarStats();
   }

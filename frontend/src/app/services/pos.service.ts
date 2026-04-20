@@ -217,6 +217,84 @@ export interface FiltrosVentas {
   por_pagina?: number;
 }
 
+// ── Pedidos ─────────────────────────────────────────────────
+
+export interface PedidoPayload {
+  cliente_id?: number | null;
+  cliente_nombre?: string;
+  cliente_telefono?: string;
+  via_whatsapp?: boolean;
+  requiere_factura?: boolean;
+  items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui' | '_precio_base' | '_tabulador' | '_tabulador_activo'>[];
+  descuento_pct?: number;
+  descuento_config_id?: number | null;
+  descuento_autorizado_por?: string | null;
+  anticipo?: number;
+  metodo_pago_anticipo?: string;
+  fecha_acordada?: string | null;
+  notas?: string;
+}
+
+export interface HistorialPedido {
+  id: number;
+  pedido_id: number;
+  estatus_anterior: string | null;
+  estatus_nuevo: string;
+  usuario_id: number | null;
+  usuario_nombre: string;
+  notas: string | null;
+  fecha: string;
+}
+
+export interface PedidoDetalle {
+  id: number;
+  folio: string;
+  estatus: 'pendiente' | 'en_proceso' | 'terminado' | 'finalizado' | 'cancelado';
+  cliente_id?: number;
+  cliente_nombre: string;
+  cliente_telefono?: string;
+  via_whatsapp: boolean;
+  requiere_factura: boolean;
+  subtotal: number;
+  descuento_pct: number;
+  descuento_monto: number;
+  total: number;
+  anticipo: number;
+  saldo_pendiente: number;
+  metodo_pago_anticipo?: string;
+  metodo_pago_saldo?: string;
+  fecha_acordada?: string;
+  notas?: string;
+  creado_por_id?: number;
+  creado_por_nombre: string;
+  fecha_creacion: string;
+  tomado_por_id?: number;
+  tomado_por_nombre?: string;
+  fecha_tomado?: string;
+  terminado_por_id?: number;
+  terminado_por_nombre?: string;
+  fecha_terminado?: string;
+  entregado_por_id?: number;
+  entregado_por_nombre?: string;
+  fecha_entregado?: string;
+  motivo_cancelacion?: string;
+  venta_id?: number;
+  detalle: any[];
+  historial: HistorialPedido[];
+}
+
+export interface FiltrosPedidos {
+  estatus?: string;
+  cliente_id?: number;
+  creado_por_id?: number;
+  tomado_por_id?: number;
+  folio?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  page?: number;
+  limit?: number;
+}
+
 // ── Servicio ────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
@@ -358,5 +436,53 @@ export class PosService {
 
   formatFolio(folio: string): string {
     return folio || '';
+  }
+
+  // ── Pedidos ───────────────────────────────────────────────────
+
+  createPedido(payload: PedidoPayload): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/pedidos`, payload);
+  }
+
+  listPedidos(filtros?: FiltrosPedidos): Observable<any> {
+    let p = new HttpParams();
+    if (filtros?.estatus)       p = p.set('estatus', filtros.estatus);
+    if (filtros?.cliente_id)    p = p.set('cliente_id', filtros.cliente_id.toString());
+    if (filtros?.creado_por_id) p = p.set('creado_por_id', filtros.creado_por_id.toString());
+    if (filtros?.tomado_por_id) p = p.set('tomado_por_id', filtros.tomado_por_id.toString());
+    if (filtros?.folio)         p = p.set('folio', filtros.folio);
+    if (filtros?.fecha_inicio)  p = p.set('fecha_inicio', filtros.fecha_inicio);
+    if (filtros?.fecha_fin)     p = p.set('fecha_fin', filtros.fecha_fin);
+    if (filtros?.page)          p = p.set('page', filtros.page.toString());
+    if (filtros?.limit)         p = p.set('limit', filtros.limit.toString());
+    return this.http.get<any>(`${this.baseUrl}/pedidos`, { params: p });
+  }
+
+  getPedidoById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/pedidos/${id}`);
+  }
+
+  tomarPedido(id: number): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/tomar`, {});
+  }
+
+  terminarPedido(id: number, notas?: string): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/terminar`, { notas });
+  }
+
+  entregarPedido(id: number, metodoPagoSaldo: string, montoRecibidoSaldo?: number | null, notas?: string): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/entregar`, {
+      metodo_pago_saldo: metodoPagoSaldo,
+      monto_recibido_saldo: montoRecibidoSaldo || null,
+      notas,
+    });
+  }
+
+  cancelarPedido(id: number, motivo?: string): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/cancelar`, { motivo });
+  }
+
+  getStatsPedidos(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/pedidos/stats`);
   }
 }

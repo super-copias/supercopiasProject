@@ -12,6 +12,8 @@ import { PanelCobroComponent }         from './components/panel-cobro/panel-cobr
 import { TicketComponent }             from './components/ticket/ticket.component';
 import { HistorialVentasComponent }    from './components/historial-ventas/historial-ventas.component';
 import { CotizacionesListComponent }   from './components/cotizaciones-list/cotizaciones-list.component';
+import { PedidoFormComponent }         from './components/pedido-form/pedido-form.component';
+import { PedidosListComponent }        from './components/pedidos-list/pedidos-list.component';
 
 @NgModule({
   declarations: [
@@ -23,6 +25,8 @@ import { CotizacionesListComponent }   from './components/cotizaciones-list/coti
     TicketComponent,
     HistorialVentasComponent,
     CotizacionesListComponent,
+    PedidoFormComponent,
+    PedidosListComponent,
   ],
   imports: [
     CommonModule,

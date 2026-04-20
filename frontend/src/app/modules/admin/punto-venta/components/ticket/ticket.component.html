@@ -1,7 +1,101 @@
 <div class="ticket-wrapper" *ngIf="esVisible">
 
+  <!-- ══════════════════════════ TICKET PEDIDO ══════════════════════════ -->
+  <ng-container *ngIf="esPedido && pedido">
+
+  <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
+    <button class="btn btn-outline-secondary btn-sm" (click)="cerrarPedido.emit()">
+      <i class="bi bi-x-circle me-1"></i>Cerrar
+    </button>
+    <button class="btn btn-primary btn-sm" (click)="imprimirTicketInterno()">
+      <i class="bi bi-printer me-1"></i>Imprimir comprobante
+    </button>
+  </div>
+
+  <div class="ticket-papel">
+
+    <div class="t-header">
+      <div class="t-empresa">SUPERCOPIAS</div>
+      <div class="t-sub">Soluciones de impresión</div>
+      <div class="t-sep"></div>
+      <div class="t-pedido-badge">COMPROBANTE DE PEDIDO</div>
+      <div class="t-sep"></div>
+    </div>
+
+    <div class="t-meta">
+      <div><b>Folio:</b> {{ pedido.folio }}</div>
+      <div><b>Fecha:</b> {{ pedido.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+      <div *ngIf="pedido.fecha_acordada"><b>Entrega acordada:</b> {{ pedido.fecha_acordada | date:'dd/MM/yyyy HH:mm' }}</div>
+      <div *ngIf="pedido.creado_por_nombre"><b>Atendió:</b> {{ pedido.creado_por_nombre }}</div>
+    </div>
+
+    <div class="t-sep"></div>
+    <div class="t-cliente">
+      <div class="t-cliente-titulo">Cliente</div>
+      <div class="t-cliente-nombre">{{ pedido.cliente_nombre || 'Público General' }}</div>
+      <div class="t-cliente-extra" *ngIf="pedido.cliente_telefono">Tel: {{ pedido.cliente_telefono }}</div>
+    </div>
+
+    <div class="t-sep"></div>
+
+    <table class="t-items">
+      <thead>
+        <tr>
+          <th class="t-desc">Descripción</th>
+          <th class="t-qty">Cant</th>
+          <th class="t-price">Precio</th>
+          <th class="t-tot">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of pedido.detalle">
+          <td class="t-desc">{{ item.nombre_producto }}</td>
+          <td class="t-qty">{{ item.cantidad }}</td>
+          <td class="t-price">${{ item.precio_unitario | number:'1.2-2' }}</td>
+          <td class="t-tot">${{ item.subtotal_linea | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="t-sep"></div>
+
+    <div class="t-totales">
+      <div class="t-trow" *ngIf="pedido.descuento_monto > 0">
+        <span>Descuento ({{ pedido.descuento_pct }}%)</span>
+        <span>-${{ pedido.descuento_monto | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow t-total-row">
+        <span>TOTAL</span>
+        <span>${{ pedido.total | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow t-anticipo-row">
+        <span>Anticipo ({{ pedido.metodo_pago_anticipo | titlecase }})</span>
+        <span>${{ pedido.anticipo | number:'1.2-2' }}</span>
+      </div>
+      <div class="t-trow" style="font-weight:700">
+        <span>SALDO PENDIENTE</span>
+        <span>${{ saldoPedido | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <ng-container *ngIf="pedido.notas">
+      <div class="t-sep"></div>
+      <div class="t-notas">{{ pedido.notas }}</div>
+    </ng-container>
+
+    <div class="t-sep"></div>
+    <div class="t-footer">
+      Conserve este comprobante para recoger su pedido.<br>
+      ¡Gracias por su preferencia!<br>
+      www.supercopias.com
+    </div>
+
+  </div><!-- /ticket-papel pedido -->
+
+  </ng-container>
+
   <!-- ══════════════════════════ TICKET VENTA ══════════════════════════ -->
-  <ng-container *ngIf="!esCotizacion && venta">
+  <ng-container *ngIf="!esCotizacion && !esPedido && venta">
 
   <!-- ── Acciones (no se imprimen) ──────────────────────────── -->
   <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">

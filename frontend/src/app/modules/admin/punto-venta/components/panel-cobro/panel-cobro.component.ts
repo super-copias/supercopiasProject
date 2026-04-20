@@ -20,6 +20,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   @Output() descuentoCambiado    = new EventEmitter<{ pct: number; configId: number | null; autorizadoPor: string | null }>();
   @Output() ventaCompletada       = new EventEmitter<void>();
   @Output() cotizacionGuardada    = new EventEmitter<CotizacionDetalle>();
+  @Output() pedidoGuardado        = new EventEmitter<any>()
 
   private destroy$ = new Subject<void>();
 
@@ -48,6 +49,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   // Modales de herramientas
   mostrarModalDescuento   = false;
   mostrarModalFacturacion = false;
+  mostrarModalPedido      = false;
 
   // Autorización de descuento elevado
   mostrarAutorizacion = false;
@@ -255,6 +257,20 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.notas = '';
     this.descuentoManualPct = 0;
     this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
+  }
+
+  // ── Pedido ───────────────────────────────────────────────────
+
+  abrirModalPedido(): void {
+    // Destruir el componente primero (si estuviera abierto) y recrearlo en el siguiente tick
+    // para garantizar que Angular complete el ciclo de destrucción antes de crearlo de nuevo.
+    this.mostrarModalPedido = false;
+    setTimeout(() => { this.mostrarModalPedido = true; });
+  }
+
+  onPedidoGenerado(pedido: any): void {
+    this.mostrarModalPedido = false;
+    this.pedidoGuardado.emit(pedido);
   }
 
   // ── Cotización ────────────────────────────────────────────────

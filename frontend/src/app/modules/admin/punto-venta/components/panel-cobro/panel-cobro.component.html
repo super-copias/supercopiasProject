@@ -98,6 +98,13 @@
 
   <!-- Botones -->
   <div class="mt-auto">
+    <button class="btn btn-pedido w-100"
+      [disabled]="carrito.length === 0"
+      (click)="abrirModalPedido()"
+      style="font-size:.82rem;padding:.45rem .75rem;background:#e67e00;color:#fff;border:none;border-radius:8px;font-weight:700;margin-bottom:.4rem">
+      <i class="bi bi-clipboard-plus me-1"></i>GENERAR PEDIDO
+    </button>
+
     <button class="btn btn-cotizar w-100"
       [disabled]="!puedeGuardarCotizacion"
       (click)="solicitarConfirmacion('cotizacion')"
@@ -209,3 +216,16 @@
     </div>
   </div>
 </div>
+
+<!-- ── Modal generar pedido ──────────────────────────────────── -->
+<app-pos-pedido-form
+  *ngIf="mostrarModalPedido"
+  [carrito]="carrito"
+  [totales]="totales"
+  [descuentoGlobalPct]="descuentoGlobalPct"
+  [descuentoConfigId]="descuentoConfigId"
+  [descuentoAutorizadoPor]="descuentoAutorizadoPor"
+  [clientePreseleccionado]="clienteSeleccionado"
+  (cerrado)="mostrarModalPedido=false"
+  (generado)="onPedidoGenerado($event)">
+</app-pos-pedido-form>
