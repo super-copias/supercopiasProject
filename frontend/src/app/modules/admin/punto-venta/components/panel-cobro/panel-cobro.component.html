@@ -136,8 +136,6 @@
     <div class="descuento-rapido d-flex gap-1 mb-2">
       <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===5"  (click)="aplicarDescuentoRapido(5)">5%</button>
       <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===10" (click)="aplicarDescuentoRapido(10)">10%</button>
-      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===15" (click)="aplicarDescuentoRapido(15)">15%</button>
-      <button class="btn btn-sm btn-outline-secondary" [class.active]="descuentoManualPct===20" (click)="aplicarDescuentoRapido(20)">20%</button>
     </div>
     <div class="input-group input-group-sm mb-2">
       <input type="number" class="form-control" min="0" max="100" step="0.5"
