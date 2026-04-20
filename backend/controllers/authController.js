@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const { createResponse, createErrorResponse, CODIGOS_ERROR } = require('../utils/apiStandard');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // Clave secreta para firmar tokens JWT
 const SECRET = process.env.JWT_SECRET || 'supercopias_secret';
@@ -46,6 +47,12 @@ async function login(req, res) {
     );
     
     if (result.rows.length === 0) {
+      registrarBitacora({
+        modulo: 'auth', accion: 'LOGIN_FALLIDO',
+        ip: getIp(req),
+        detalle: { identifier, motivo: 'usuario_no_encontrado' },
+        resultado: 'error',
+      });
       return res.status(401).json(
         createErrorResponse(
           CODIGOS_ERROR.UNAUTHORIZED,
@@ -58,6 +65,13 @@ async function login(req, res) {
 
     // Verificar si la cuenta está desactivada antes de validar la contraseña
     if (!user.activo) {
+      registrarBitacora({
+        modulo: 'auth', accion: 'CUENTA_DESACTIVADA',
+        entidad: 'usuarios', entidadId: String(user.id),
+        usuarioId: user.id, usuarioNombre: user.nombre || user.username,
+        ip: getIp(req),
+        resultado: 'bloqueado',
+      });
       return res.status(403).json(
         createErrorResponse(
           'CUENTA_DESACTIVADA',
@@ -69,6 +83,14 @@ async function login(req, res) {
     // Verificar contraseña
     const match = bcrypt.compareSync(password, user.password);
     if (!match) {
+      registrarBitacora({
+        modulo: 'auth', accion: 'LOGIN_FALLIDO',
+        entidad: 'usuarios', entidadId: String(user.id),
+        usuarioId: user.id, usuarioNombre: user.nombre || user.username,
+        ip: getIp(req),
+        detalle: { identifier, motivo: 'contrasena_incorrecta' },
+        resultado: 'error',
+      });
       return res.status(401).json(
         createErrorResponse(
           CODIGOS_ERROR.UNAUTHORIZED,
@@ -159,7 +181,15 @@ async function login(req, res) {
         'Login exitoso'
       )
     );
-    
+
+    registrarBitacora({
+      modulo: 'auth', accion: 'LOGIN_EXITOSO',
+      entidad: 'usuarios', entidadId: String(user.id),
+      usuarioId: user.id, usuarioNombre: user.nombre || user.username,
+      ip: getIp(req),
+      detalle: { username: user.username, role: user.role },
+    });
+
   } catch (error) {
 
     res.status(500).json(

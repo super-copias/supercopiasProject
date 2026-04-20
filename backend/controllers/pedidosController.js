@@ -16,6 +16,7 @@ const {
   CODIGOS_ERROR,
 } = require('../utils/apiStandard');
 const { crearFacturaEnTransaccion } = require('./facturasController');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers internos
@@ -248,6 +249,15 @@ async function createPedido(req, res) {
     await client.query('COMMIT');
 
     const pedidoCompleto = await getPedidoDetalle(pedidoId);
+
+    registrarBitacora({
+      modulo: 'pedidos', accion: 'PEDIDO_CREADO',
+      entidad: 'pos_pedidos', entidadId: folio,
+      usuarioId: creadoPorId, usuarioNombre: creadoPorNombre,
+      ip: getIp(req),
+      detalle: { folio, total, cliente_nombre: clienteNombre, num_items: lineas.length },
+    });
+
     return res.status(201).json(createResponse(true, pedidoCompleto, `Pedido ${folio} creado exitosamente`));
   } catch (err) {
     await client.query('ROLLBACK');
@@ -405,6 +415,14 @@ async function tomarPedido(req, res) {
     await client.query('COMMIT');
 
     const pedidoCompleto = await getPedidoDetalle(pedidoId);
+
+    registrarBitacora({
+      modulo: 'pedidos', accion: 'PEDIDO_TOMADO',
+      entidad: 'pos_pedidos', entidadId: String(pedidoId),
+      usuarioId, usuarioNombre,
+      ip: getIp(req),
+    });
+
     return res.json(createResponse(true, pedidoCompleto, 'Pedido tomado exitosamente'));
   } catch (err) {
     await client.query('ROLLBACK');
@@ -464,6 +482,14 @@ async function terminarPedido(req, res) {
     await client.query('COMMIT');
 
     const pedidoCompleto = await getPedidoDetalle(pedidoId);
+
+    registrarBitacora({
+      modulo: 'pedidos', accion: 'PEDIDO_TERMINADO',
+      entidad: 'pos_pedidos', entidadId: String(pedidoId),
+      usuarioId, usuarioNombre,
+      ip: getIp(req),
+    });
+
     return res.json(createResponse(true, pedidoCompleto, 'Pedido marcado como terminado'));
   } catch (err) {
     await client.query('ROLLBACK');
@@ -678,6 +704,15 @@ async function entregarPedido(req, res) {
     await client.query('COMMIT');
 
     const pedidoCompleto = await getPedidoDetalle(pedidoId);
+
+    registrarBitacora({
+      modulo: 'pedidos', accion: 'PEDIDO_ENTREGADO',
+      entidad: 'pos_pedidos', entidadId: pedido.folio,
+      usuarioId, usuarioNombre,
+      ip: getIp(req),
+      detalle: { folio_pedido: pedido.folio, folio_venta: folio, venta_id: ventaId, total: parseFloat(pedido.total) },
+    });
+
     return res.json(createResponse(true, { pedido: pedidoCompleto, venta_folio: folio, venta_id: ventaId },
       `Pedido entregado. Venta ${folio} generada.`));
   } catch (err) {
@@ -732,6 +767,15 @@ async function cancelarPedido(req, res) {
     await client.query('COMMIT');
 
     const pedidoCompleto = await getPedidoDetalle(pedidoId);
+
+    registrarBitacora({
+      modulo: 'pedidos', accion: 'PEDIDO_CANCELADO',
+      entidad: 'pos_pedidos', entidadId: String(pedidoId),
+      usuarioId, usuarioNombre,
+      ip: getIp(req),
+      detalle: { estatus_anterior: estatusAnterior, motivo: motivo || null },
+    });
+
     return res.json(createResponse(true, pedidoCompleto, 'Pedido cancelado'));
   } catch (err) {
     await client.query('ROLLBACK');

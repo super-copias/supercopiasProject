@@ -21,6 +21,7 @@ const {
   CODIGOS_ERROR
 } = require('../utils/apiStandard');
 const { crearFacturaEnTransaccion } = require('./facturasController');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -259,6 +260,14 @@ async function createVenta(req, res) {
                 descripcion,
               ]
             ).catch(err => console.error('Error guardando alerta seguridad:', err.message));
+
+            registrarBitacora({
+              modulo: 'pos', accion: 'PRECIO_MANIPULADO',
+              entidad: 'inventarios', entidadId: String(item.inventario_id),
+              usuarioId, usuarioNombre, ip,
+              detalle: { nombre_producto: stockQ.rows[0].nombre, precio_enviado: precioUnit, precio_real: precioReal, cantidad },
+              resultado: 'bloqueado',
+            });
           }
           // Si no hubo tabulador, forzar el precio de BD (seguridad)
           if (!tabuladorAplicado) {
@@ -432,6 +441,15 @@ async function createVenta(req, res) {
 
     // Retornar venta completa
     const ventaCompleta = await getVentaDetalle(ventaId);
+
+    registrarBitacora({
+      modulo: 'pos', accion: 'VENTA_COMPLETADA',
+      entidad: 'pos_ventas', entidadId: folio,
+      usuarioId: vendedorId, usuarioNombre: vendedorNombre,
+      ip: getIp(req),
+      detalle: { folio, total, metodo_pago_codigo, cliente_id: cliente_id || null, num_items: lineasProcesadas.length },
+    });
+
     return res.status(201).json(createResponse(true, ventaCompleta, `Venta ${folio} registrada correctamente`));
 
   } catch (err) {
@@ -660,6 +678,15 @@ async function cancelarVenta(req, res) {
     }
 
     await client.query('COMMIT');
+
+    registrarBitacora({
+      modulo: 'pos', accion: 'VENTA_CANCELADA',
+      entidad: 'pos_ventas', entidadId: venta.folio,
+      usuarioId: req.user?.id || null, usuarioNombre: req.user?.nombre || req.user?.username || null,
+      ip: getIp(req),
+      detalle: { folio: venta.folio, total: parseFloat(venta.total), motivo: motivo || null },
+    });
+
     return res.json(createResponse(true, { id: ventaId, folio: venta.folio }, 'Venta cancelada y stock revertido'));
 
   } catch (err) {

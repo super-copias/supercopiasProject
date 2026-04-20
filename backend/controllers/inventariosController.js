@@ -14,6 +14,7 @@ const {
   createErrorResponse,
   CODIGOS_ERROR
 } = require('../utils/apiStandard');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -456,6 +457,17 @@ async function addMovimiento(req, res) {
 
     await query('UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$2',
       [saldo_nuevo, id]);
+
+    const accionBitacora = tipo_movimiento === 'entrada' ? 'ENTRADA_STOCK'
+      : tipo_movimiento === 'salida' ? 'SALIDA_STOCK' : 'AJUSTE_STOCK';
+
+    registrarBitacora({
+      modulo: 'inventarios', accion: accionBitacora,
+      entidad: 'inventarios', entidadId: String(id),
+      usuarioId: req.user?.id || null, usuarioNombre: req.user?.nombre || req.user?.username || null,
+      ip: getIp(req),
+      detalle: { tipo_movimiento, concepto, cantidad: cant, saldo_anterior, saldo_nuevo, articulo: artResult.rows[0].nombre },
+    });
 
     return res.status(201).json(createResponse(true, movR.rows[0], 'Movimiento registrado'));
   } catch (err) {

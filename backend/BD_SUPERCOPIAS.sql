@@ -174,39 +174,25 @@ $$;
 CREATE FUNCTION public.trigger_auditoria() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores, modulo)
+    VALUES (TG_TABLE_NAME, TG_OP, OLD.id::varchar, row_to_json(OLD), TG_TABLE_NAME);
+    RETURN OLD;
 
-    IF TG_OP = 'DELETE' THEN
+  ELSIF TG_OP = 'UPDATE' THEN
+    INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores, datos_nuevos, modulo)
+    VALUES (TG_TABLE_NAME, TG_OP, NEW.id::varchar, row_to_json(OLD), row_to_json(NEW), TG_TABLE_NAME);
+    RETURN NEW;
 
-        INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores)
+  ELSIF TG_OP = 'INSERT' THEN
+    INSERT INTO auditoria (tabla, operacion, registro_id, datos_nuevos, modulo)
+    VALUES (TG_TABLE_NAME, TG_OP, NEW.id::varchar, row_to_json(NEW), TG_TABLE_NAME);
+    RETURN NEW;
+  END IF;
 
-        VALUES (TG_TABLE_NAME, TG_OP, OLD.id, row_to_json(OLD));
-
-        RETURN OLD;
-
-    ELSIF TG_OP = 'UPDATE' THEN
-
-        INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores, datos_nuevos)
-
-        VALUES (TG_TABLE_NAME, TG_OP, NEW.id, row_to_json(OLD), row_to_json(NEW));
-
-        RETURN NEW;
-
-    ELSIF TG_OP = 'INSERT' THEN
-
-        INSERT INTO auditoria (tabla, operacion, registro_id, datos_nuevos)
-
-        VALUES (TG_TABLE_NAME, TG_OP, NEW.id, row_to_json(NEW));
-
-        RETURN NEW;
-
-    END IF;
-
-    RETURN NULL;
-
+  RETURN NULL;
 END;
-
 $$;
 
 
@@ -257,15 +243,18 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.auditoria (
-    id integer NOT NULL,
-    tabla character varying(100) NOT NULL,
-    operacion character varying(20) NOT NULL,
-    registro_id integer NOT NULL,
+    id               integer NOT NULL,
+    tabla            character varying(100) NOT NULL,
+    operacion        character varying(20) NOT NULL,
+    registro_id      character varying(50) NOT NULL,
     datos_anteriores jsonb,
-    datos_nuevos jsonb,
-    usuario_id integer,
-    ip_address inet,
-    fecha_operacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    datos_nuevos     jsonb,
+    usuario_id       integer,
+    ip_address       inet,
+    fecha_operacion  timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    usuario_nombre   character varying(255),
+    modulo           character varying(50),
+    accion           character varying(100),
     CONSTRAINT chk_auditoria_operacion CHECK (((operacion)::text = ANY (ARRAY[('INSERT'::character varying)::text, ('UPDATE'::character varying)::text, ('DELETE'::character varying)::text])))
 );
 
@@ -275,6 +264,9 @@ CREATE TABLE public.auditoria (
 --
 
 COMMENT ON TABLE public.auditoria IS 'Registro completo de operaciones para auditoría';
+COMMENT ON COLUMN public.auditoria.usuario_nombre IS 'Nombre legible del usuario que generó el cambio (si aplica)';
+COMMENT ON COLUMN public.auditoria.modulo         IS 'Módulo del sistema: clientes, empleados, inventarios, pos, equipos...';
+COMMENT ON COLUMN public.auditoria.accion         IS 'Descripción semántica de la acción, ej. CANCELAR_VENTA';
 
 
 --
@@ -3575,6 +3567,41 @@ CREATE TRIGGER trg_usuarios_updated_at BEFORE UPDATE ON public.usuarios FOR EACH
 
 
 --
+-- Name: inventarios trg_inventarios_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_inventarios_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.inventarios FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: pos_ventas trg_pos_ventas_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_pos_ventas_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.pos_ventas FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: equipos trg_equipos_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_equipos_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.equipos FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: facturas trg_facturas_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_facturas_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.facturas FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: pos_clientes_puntos trg_pos_clientes_puntos_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_pos_clientes_puntos_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.pos_clientes_puntos FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
 -- Name: eventos_personal eventos_personal_aprobado_por_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3955,6 +3982,44 @@ ALTER TABLE ONLY public.inventarios_movimientos
 COMMENT ON COLUMN public.inventarios_movimientos.venta_id IS 'FK a pos_ventas cuando el movimiento es por una venta del POS';
 
 CREATE INDEX idx_inv_mov_venta ON public.inventarios_movimientos (venta_id) WHERE venta_id IS NOT NULL;
+
+
+--
+-- Name: bitacora_negocio; Type: TABLE; Schema: public; Owner: -
+-- Eventos de negocio registrados desde el backend con contexto semántico
+-- Migración: 2026-04-20
+--
+
+CREATE TABLE public.bitacora_negocio (
+    id              serial        NOT NULL,
+    fecha           timestamptz   NOT NULL DEFAULT NOW(),
+    modulo          varchar(50)   NOT NULL,
+    accion          varchar(100)  NOT NULL,
+    entidad         varchar(100),
+    entidad_id      varchar(50),
+    usuario_id      integer,
+    usuario_nombre  varchar(255),
+    ip_address      varchar(45),
+    detalle         jsonb,
+    resultado       varchar(20)   NOT NULL DEFAULT 'exito',
+    CONSTRAINT bitacora_negocio_pkey PRIMARY KEY (id),
+    CONSTRAINT chk_bitacora_resultado CHECK (resultado IN ('exito','error','bloqueado'))
+);
+
+COMMENT ON TABLE  public.bitacora_negocio IS 'Eventos de negocio registrados desde el backend con contexto semántico';
+COMMENT ON COLUMN public.bitacora_negocio.modulo        IS 'Módulo origen: pos, pedidos, inventarios, auth, equipos...';
+COMMENT ON COLUMN public.bitacora_negocio.accion        IS 'Código de acción: VENTA_COMPLETADA, LOGIN_EXITOSO, AJUSTE_STOCK...';
+COMMENT ON COLUMN public.bitacora_negocio.entidad       IS 'Nombre de la tabla/entidad afectada';
+COMMENT ON COLUMN public.bitacora_negocio.entidad_id    IS 'ID o folio del registro afectado';
+COMMENT ON COLUMN public.bitacora_negocio.detalle       IS 'JSON con contexto específico del evento';
+COMMENT ON COLUMN public.bitacora_negocio.resultado     IS 'exito | error | bloqueado';
+
+CREATE INDEX idx_bitacora_fecha         ON public.bitacora_negocio (fecha DESC);
+CREATE INDEX idx_bitacora_modulo        ON public.bitacora_negocio (modulo);
+CREATE INDEX idx_bitacora_accion        ON public.bitacora_negocio (accion);
+CREATE INDEX idx_bitacora_usuario       ON public.bitacora_negocio (usuario_id);
+CREATE INDEX idx_bitacora_entidad       ON public.bitacora_negocio (entidad, entidad_id);
+CREATE INDEX idx_bitacora_modulo_fecha  ON public.bitacora_negocio (modulo, fecha DESC);
 
 
 --
