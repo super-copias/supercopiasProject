@@ -65,7 +65,7 @@
         <div class="prod-img">
           <img *ngIf="item.foto_url" [src]="item.foto_url" [alt]="item.nombre">
           <div class="prod-icon" *ngIf="!item.foto_url">
-            <i class="bi" [class.bi-printer]="!item.es_servicio" [class.bi-tools]="item.es_servicio"></i>
+            <i class="bi" [class.bi-box-seam]="!item.es_servicio" [class.bi-file-earmark-richtext]="item.es_servicio"></i>
           </div>
           <span class="badge-stock badge bg-{{ badgeNivelStock(item.nivel_stock) }}">
             {{ labelNivelStock(item.nivel_stock) }}
@@ -85,7 +85,7 @@
             <i class="bi bi-box-seam me-1"></i>{{ item.existencia_actual }} {{ item.unidad_medida }}
           </div>
           <div class="prod-stock text-info" *ngIf="item.es_servicio">
-            <i class="bi bi-gear me-1"></i>Servicio
+            <i class="bi bi-patch-check me-1"></i>Servicio
           </div>
         </div>
 

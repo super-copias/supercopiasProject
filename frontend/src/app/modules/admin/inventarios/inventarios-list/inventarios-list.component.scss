@@ -1,5 +1,41 @@
 /* Inventarios list - estilos del acordeón y badges */
 
+// ── Barra de herramientas ────────────────────────────────────
+.toolbar-search {
+  flex: 1 1 220px;
+  max-width: 400px;
+
+  .form-control {
+    font-size: .875rem;
+    border-right: 1px solid #dee2e6;
+    &:focus { box-shadow: none; border-color: #86b7fe; }
+  }
+  .input-group-text { border-right: none; }
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: #dee2e6;
+  flex-shrink: 0;
+}
+
+.filter-label {
+  font-size: .7rem;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.filter-select {
+  flex: 0 1 180px;
+  min-width: 130px;
+  font-size: .82rem;
+}
+
+.toolbar-btn {
+  white-space: nowrap;
+}
+
 .card {
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }

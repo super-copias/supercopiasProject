@@ -73,51 +73,63 @@
     <button type="button" class="btn-close" (click)="ocultarAlertas()"></button>
   </div>
 
-  <!-- Barra de herramientas -->
+  <!-- Barra 1: Búsqueda y filtros -->
+  <div class="card mb-2">
+    <div class="card-body py-2 px-3">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+
+        <!-- Búsqueda -->
+        <div class="input-group toolbar-search">
+          <span class="input-group-text bg-white border-end-0">
+            <i class="fas fa-search text-muted small"></i>
+          </span>
+          <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar artículo, SKU..."
+                 [(ngModel)]="filtroBusqueda" (ngModelChange)="onFiltroChange()">
+          <button class="btn btn-outline-secondary" *ngIf="filtroBusqueda" (click)="limpiarBusqueda()" title="Limpiar búsqueda">
+            <i class="fas fa-times small"></i>
+          </button>
+        </div>
+
+        <!-- Separador visual -->
+        <div class="toolbar-divider d-none d-sm-block"></div>
+
+        <!-- Filtros -->
+        <span class="text-muted small fw-semibold text-uppercase filter-label">Filtros:</span>
+        <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroDepartamento" (change)="ejecutarBusquedaOFiltro()">
+          <option value="">Todos los departamentos</option>
+          <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
+        </select>
+        <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroTipo" (change)="ejecutarBusquedaOFiltro()">
+          <option value="">Todos los tipos</option>
+          <option value="venta">Producto venta</option>
+          <option value="insumo">Insumo</option>
+          <option value="generico">Genérico</option>
+          <option value="servicio">Servicio</option>
+        </select>
+        <button class="btn btn-outline-danger btn-sm" (click)="limpiarFiltros()" title="Limpiar filtros">
+          <i class="fas fa-eraser me-1"></i>Limpiar
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra 2: Acciones -->
   <div class="card mb-3">
-    <div class="card-body py-2">
-      <div class="row g-2 align-items-center">
-        <div class="col-12 col-md-4">
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control" placeholder="Buscar artículo..."
-                   [(ngModel)]="filtroBusqueda" (ngModelChange)="onFiltroChange()">
-            <button class="btn btn-outline-secondary" *ngIf="filtroBusqueda" (click)="limpiarBusqueda()">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-        <div class="col-6 col-md-2">
-          <select class="form-select" [(ngModel)]="filtroDepartamento" (change)="ejecutarBusquedaOFiltro()">
-            <option value="">Todos los departamentos</option>
-            <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-2">
-          <select class="form-select" [(ngModel)]="filtroTipo" (change)="ejecutarBusquedaOFiltro()">
-            <option value="">Todos los tipos</option>
-            <option value="venta">Producto venta</option>
-            <option value="insumo">Insumo</option>
-            <option value="generico">Genérico</option>
-            <option value="servicio">Servicio</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-4 d-flex gap-2 justify-content-md-end flex-wrap align-items-center">
-          <button class="btn btn-outline-danger btn-sm"
-                  (click)="limpiarFiltros()" title="Limpiar filtros">
-            <i class="fas fa-eraser"></i><span class="d-none d-md-inline ms-1">Limpiar</span>
-          </button>
-          <button class="btn btn-outline-secondary btn-sm" (click)="verTodos()" title="Ver todos">
-            <i class="fas fa-th-list"></i><span class="d-none d-md-inline ms-1">Ver todos</span>
-          </button>
-          <button class="btn btn-outline-info btn-sm" (click)="verHistorial()" title="Historial">
-            <i class="fas fa-history"></i><span class="d-none d-md-inline ms-1">Historial</span>
-          </button>
-          <button class="btn btn-outline-primary btn-sm" (click)="verDepartamentos()" title="Departamentos">
-            <i class="fas fa-tags"></i><span class="d-none d-md-inline ms-1">Departamentos</span>
-          </button>
-          <button class="btn btn-primary btn-sm" (click)="nuevo()" title="Nuevo artículo">
-            <i class="fas fa-plus"></i><span class="d-none d-sm-inline ms-1">Nuevo artículo</span>
+    <div class="card-body py-2 px-3">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm toolbar-btn" (click)="verTodos()" title="Ver todos">
+          <i class="fas fa-th-list me-1"></i>Ver todos
+        </button>
+        <button class="btn btn-outline-info btn-sm toolbar-btn" (click)="verHistorial()" title="Historial">
+          <i class="fas fa-history me-1"></i>Historial
+        </button>
+        <button class="btn btn-outline-primary btn-sm toolbar-btn" (click)="verDepartamentos()" title="Departamentos">
+          <i class="fas fa-tags me-1"></i>Departamentos
+        </button>
+        <div class="ms-auto">
+          <button class="btn btn-primary btn-sm" (click)="nuevo()">
+            <i class="fas fa-plus me-1"></i>Nuevo artículo
           </button>
         </div>
       </div>
