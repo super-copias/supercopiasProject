@@ -104,6 +104,7 @@ async function login(req, res) {
       { 
         id: user.id, 
         username: user.username, 
+        nombre: user.nombre || user.username,
         role: user.role 
       }, 
       SECRET, 

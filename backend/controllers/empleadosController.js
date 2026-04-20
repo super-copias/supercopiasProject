@@ -3,7 +3,7 @@
  * Gestiona todas las operaciones CRUD para empleados con sistema de roles 
  */
 
-const { query } = require('../config/database');
+const { query, queryAudit } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { 
   createResponse, 
@@ -12,6 +12,7 @@ const {
   CODIGOS_ERROR 
 } = require('../utils/apiStandard');
 const { getAllRoles } = require('../utils/rolesSystem');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 /**
  * Helper: Obtener todos los módulos activos de la base de datos
@@ -391,9 +392,9 @@ async function createEmpleado(req, res) {
       tipoAcceso
     ];
     
-    const result = await query(insertQuery, values);
+    const result = await queryAudit(insertQuery, values, req.user?.id, req.user?.nombre || req.user?.username);
     const nuevoEmpleado = result.rows[0];
-    
+
     // Insertar módulos en la tabla empleados_modulos
     // SOLO insertar los módulos que tienen acceso = true
     const modulosConAcceso = Object.keys(modulos).filter(mod => modulos[mod].acceso === true);
@@ -449,15 +450,16 @@ async function createEmpleado(req, res) {
         `Empleado - ${tipoAcceso === 'completo' ? 'Administrador del sistema' : 'Acceso personalizado'}`
       ];
       
-      const userResult = await query(insertUserQuery, userValues);
+      const userResult = await queryAudit(insertUserQuery, userValues, req.user?.id, req.user?.nombre || req.user?.username);
       const usuarioId = userResult.rows[0].id;
       
-
+      
       
       // Actualizar empleado con el ID del usuario
-      await query(
+      await queryAudit(
         'UPDATE empleados SET usuario_id = $1 WHERE id = $2',
-        [usuarioId, nuevoEmpleado.id]
+        [usuarioId, nuevoEmpleado.id],
+        req.user?.id, req.user?.nombre || req.user?.username
       );
       
 
@@ -480,6 +482,12 @@ async function createEmpleado(req, res) {
     };
     
     
+    registrarBitacora({
+      modulo: 'empleados', accion: 'EMPLEADO_CREADO',
+      entidad: 'empleados', entidadId: nuevoEmpleado.id,
+      usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+      ip: getIp(req), detalle: { nombre: nuevoEmpleado.nombre }
+    });
     return res.status(201).json(
       createResponse(
         true,
@@ -730,7 +738,7 @@ async function updateEmpleado(req, res) {
       RETURNING *
     `;
     
-    const updateResult = await query(updateQuery, valores);
+    const updateResult = await queryAudit(updateQuery, valores, req.user?.id, req.user?.nombre || req.user?.username);
     const empleadoActualizado = updateResult.rows[0];
     
     // Actualizar módulos si se proporcionaron
@@ -763,9 +771,10 @@ async function updateEmpleado(req, res) {
     if (!debeCrearUsuario && empleadoActualizado.usuario_id && datosConvertidos.tipoAcceso !== undefined) {
       const nuevoRole = tipoAccesoNuevo === 'completo' ? 'admin' : 'empleado';
       const nuevosRoles = JSON.stringify([nuevoRole]);
-      await query(
+      await queryAudit(
         'UPDATE usuarios SET role = $1, roles = $2, fecha_modificacion = NOW() WHERE id = $3',
-        [nuevoRole, nuevosRoles, empleadoActualizado.usuario_id]
+        [nuevoRole, nuevosRoles, empleadoActualizado.usuario_id],
+        req.user?.id, req.user?.nombre || req.user?.username
       );
     }
     
@@ -806,13 +815,14 @@ async function updateEmpleado(req, res) {
         `Empleado - ${tipoAccesoNuevo === 'completo' ? 'Administrador del sistema' : 'Acceso personalizado'}`
       ];
       
-      const userResult = await query(insertUserQuery, userValues);
+      const userResult = await queryAudit(insertUserQuery, userValues, req.user?.id, req.user?.nombre || req.user?.username);
       const usuarioId = userResult.rows[0].id;
       
       // Actualizar empleado con el ID del usuario
-      await query(
+      await queryAudit(
         'UPDATE empleados SET usuario_id = $1 WHERE id = $2',
-        [usuarioId, empleadoActualizado.id]
+        [usuarioId, empleadoActualizado.id],
+        req.user?.id, req.user?.nombre || req.user?.username
       );
       
       // Actualizar el objeto empleadoActualizado con el usuario_id
@@ -833,6 +843,12 @@ async function updateEmpleado(req, res) {
       ...(usuarioCreado && { usuario: usuarioCreado })
     };
     
+    registrarBitacora({
+      modulo: 'empleados', accion: 'EMPLEADO_ACTUALIZADO',
+      entidad: 'empleados', entidadId: empleadoId,
+      usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+      ip: getIp(req), detalle: { nombre: empleadoActualizado.nombre }
+    });
     // Retornar empleado actualizado
     return res.json(
       createResponse(
@@ -906,12 +922,18 @@ async function deleteEmpleado(req, res) {
 
     // Eliminar usuario asociado si existe
     if (empleado.usuario_id) {
-      await query('DELETE FROM usuarios WHERE id = $1', [empleado.usuario_id]);
+      await queryAudit('DELETE FROM usuarios WHERE id = $1', [empleado.usuario_id], req.user?.id, req.user?.nombre || req.user?.username);
     }
 
     // Eliminar empleado completamente de la base de datos
-    await query('DELETE FROM empleados WHERE id = $1', [empleadoId]);
+    await queryAudit('DELETE FROM empleados WHERE id = $1', [empleadoId], req.user?.id, req.user?.nombre || req.user?.username);
 
+    registrarBitacora({
+      modulo: 'empleados', accion: 'EMPLEADO_ELIMINADO',
+      entidad: 'empleados', entidadId: empleadoId,
+      usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+      ip: getIp(req)
+    });
     return res.json(
       createResponse(
         true,
@@ -1055,16 +1077,18 @@ async function toggleEstadoEmpleado(req, res) {
     const nuevoEstado = !empleado.activo;
 
     // Actualizar estado del empleado
-    await query(
+    await queryAudit(
       'UPDATE empleados SET activo = $1, fecha_modificacion = NOW() WHERE id = $2',
-      [nuevoEstado, empleadoId]
+      [nuevoEstado, empleadoId],
+      req.user?.id, req.user?.nombre || req.user?.username
     );
 
     // Actualizar estado del usuario vinculado
     if (empleado.usuario_id) {
-      await query(
+      await queryAudit(
         'UPDATE usuarios SET activo = $1, fecha_modificacion = NOW() WHERE id = $2',
-        [nuevoEstado, empleado.usuario_id]
+        [nuevoEstado, empleado.usuario_id],
+        req.user?.id, req.user?.nombre || req.user?.username
       );
     }
 
@@ -1138,11 +1162,12 @@ async function resetPassword(req, res) {
     const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
 
     // Actualizar contraseña y activar bandera de reset obligatorio
-    await query(
+    await queryAudit(
       `UPDATE usuarios
        SET password = $1, must_reset_password = true, fecha_modificacion = NOW()
        WHERE id = $2`,
-      [hashedPassword, usuario_id]
+      [hashedPassword, usuario_id],
+      req.user?.id, req.user?.nombre || req.user?.username
     );
 
     // Invalidar todas las sesiones activas del usuario afectado

@@ -13,7 +13,7 @@
  *   getPuntosByCliente  - Puntos y nivel del cliente
  */
 
-const { query, getClient, pool: getPool } = require('../config/database');
+const { query, queryAudit, getClient, pool: getPool } = require('../config/database');
 const {
   createResponse,
   createPaginatedResponse,
@@ -156,6 +156,11 @@ async function createVenta(req, res) {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const {
       cliente_id,
@@ -596,6 +601,11 @@ async function cancelarVenta(req, res) {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const ventaId = parseInt(req.params.id);
     const { motivo } = req.body;
@@ -829,7 +839,7 @@ async function getPuntosByCliente(req, res) {
 async function marcarTicketGenerado(req, res) {
   try {
     const ventaId = parseInt(req.params.id);
-    await query('UPDATE pos_ventas SET ticket_generado=true WHERE id=$1', [ventaId]);
+    await queryAudit('UPDATE pos_ventas SET ticket_generado=true WHERE id=$1', [ventaId], req.user?.id, req.user?.nombre || req.user?.username);
     return res.json(createResponse(true, { id: ventaId, ticket_generado: true }, 'Ticket marcado'));
   } catch (err) {
     console.error('marcarTicketGenerado POS:', err);
@@ -1034,6 +1044,11 @@ async function convertirCotizacion(req, res) {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const cotizId = parseInt(req.params.id);
     const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas, requiere_factura, cliente_factura_id } = req.body;

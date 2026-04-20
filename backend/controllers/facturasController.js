@@ -2,7 +2,7 @@
  * facturasController.js
  * Controlador para el módulo de Facturación CFDI 4.0
  */
-const { query, getClient } = require('../config/database');
+const { query, queryAudit, getClient } = require('../config/database');
 const {
   createResponse,
   createErrorResponse,
@@ -215,6 +215,11 @@ exports.createFactura = async (req, res) => {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     // Verificar que el cliente tiene datos fiscales completos
     const clienteRes = await client.query(
@@ -412,12 +417,12 @@ exports.getFactura = async (req, res) => {
 exports.marcarGenerada = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await query(
+    const result = await queryAudit(
       `UPDATE facturas
           SET estatus = 'generada', fecha_modificacion = NOW()
         WHERE id = $1 AND estatus = 'pendiente'
        RETURNING *`,
-      [id]
+      [id], req.user?.id, req.user?.nombre || req.user?.username
     );
     if (result.rows.length === 0) {
       return res.status(409).json(createErrorResponse('Solo se pueden marcar como generadas las facturas en estado pendiente'));
@@ -438,12 +443,12 @@ exports.cancelarFactura = async (req, res) => {
     return res.status(400).json(createErrorResponse('Se requiere un motivo de cancelación (mínimo 5 caracteres)'));
   }
   try {
-    const result = await query(
+    const result = await queryAudit(
       `UPDATE facturas
           SET estatus = 'cancelada', motivo_cancelacion = $1, fecha_modificacion = NOW()
         WHERE id = $2 AND estatus != 'cancelada'
        RETURNING *`,
-      [motivo.trim(), id]
+      [motivo.trim(), id], req.user?.id, req.user?.nombre || req.user?.username
     );
     if (result.rows.length === 0) return res.status(404).json(createErrorResponse('Factura no encontrada o ya cancelada'));
     return res.json(createResponse(true, result.rows[0]));

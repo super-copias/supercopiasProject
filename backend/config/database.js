@@ -106,6 +106,46 @@ async function query(text, params = []) {
 }
 
 /**
+ * Ejecutar una consulta SQL con contexto de usuario para los triggers de auditoría.
+ * Abre un cliente dedicado, fija SET LOCAL app.current_user_id/nombre dentro de una
+ * transacción explícita para que trigger_auditoria() pueda leerlos, y hace COMMIT.
+ *
+ * Usar en TODAS las mutaciones (INSERT/UPDATE/DELETE) sobre tablas con trigger de auditoría:
+ *   clientes, empleados, proveedores, usuarios, inventarios,
+ *   pos_ventas, equipos, facturas, pos_clientes_puntos
+ *
+ * @param {string} text      - Query SQL con placeholders $1, $2, ...
+ * @param {Array}  params    - Parámetros del query
+ * @param {*}      userId    - ID del usuario autenticado (req.user?.id)
+ * @param {string} userName  - Nombre del usuario autenticado (req.user?.nombre)
+ * @returns {Object} Resultado de la consulta
+ */
+async function queryAudit(text, params = [], userId = null, userName = null) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Sanitizar: ID numérico o cadena vacía; nombre sin comillas simples, máx 255 chars
+    const safeId   = (userId != null && !isNaN(parseInt(userId)))
+                     ? parseInt(userId).toString()
+                     : '';
+    const safeName = String(userName || '').substring(0, 255).replace(/'/g, "''");
+
+    await client.query(`SET LOCAL app.current_user_id     = '${safeId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${safeName}'`);
+
+    const result = await client.query(text, params);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Ejecutar múltiples consultas dentro de una transacción
  * @param {Function} callback - Función async que recibe el client
  * @returns {*} Resultado del callback
@@ -284,6 +324,7 @@ const dbUtils = {
 module.exports = {
   initializeDatabase,
   query,
+  queryAudit,
   transaction,
   getClient,
   closePool,

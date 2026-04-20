@@ -17,7 +17,7 @@ module.exports = async function (req, res, next) {
 
   // En desarrollo, permitir acceso sin Authorization
   if (!authHeader && process.env.NODE_ENV !== 'production') {
-    req.user = { id: 'dev', username: 'dev', role: 'admin' };
+    req.user = { id: 'dev', username: 'dev', nombre: 'dev', role: 'admin' };
     return next();
   }
 

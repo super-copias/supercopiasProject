@@ -35,6 +35,7 @@ const inventariosRoutes = require('./routes/inventarios');
 const posRoutes = require('./routes/pos');
 const pedidosRoutes = require('./routes/pedidos');
 const facturasRoutes = require('./routes/facturas');
+const reportesRoutes = require('./routes/reportes');
 
 // Configuración del servidor Express
 const app = express();
@@ -98,6 +99,7 @@ app.use('/api/inventarios', inventariosRoutes);
 app.use('/api/pos', posRoutes);
 app.use('/api/pos/pedidos', pedidosRoutes);
 app.use('/api/facturas', facturasRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 /**
  * Endpoint raíz - Información del API
