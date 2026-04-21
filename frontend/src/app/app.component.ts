@@ -1,6 +1,7 @@
 import { Component, OnInit, ErrorHandler, Injectable } from '@angular/core';
 import { Router, NavigationError } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { InactivityService } from './services/inactivity.service';
 
 /**
  * Captura ChunkLoadError globalmente y recarga la página una sola vez.
@@ -33,7 +34,11 @@ export class ChunkErrorHandler implements ErrorHandler {
 })
 export class AppComponent implements OnInit {
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private inactivityService: InactivityService
+  ) {}
 
   ngOnInit() {
     // Captura NavigationError causados por ChunkLoadError en lazy routes
@@ -46,6 +51,15 @@ export class AppComponent implements OnInit {
           console.warn('[Router] ChunkLoadError en navegación — recargando...');
           window.location.assign(event.url);
         }
+      }
+    });
+
+    // Activar/desactivar monitoreo de inactividad según estado de sesión
+    this.authService.user$.subscribe(user => {
+      if (user) {
+        this.inactivityService.start();
+      } else {
+        this.inactivityService.stop();
       }
     });
   }

@@ -1,0 +1,435 @@
+<div class="pedidos-list">
+
+  <!-- Toolbar -->
+  <div class="pedidos-toolbar">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard-list me-2"></i>Pedidos</h5>
+
+      <select class="form-select form-select-sm w-auto" [(ngModel)]="filtroEstatus" (change)="cambiarFiltro()">
+        <option value="">Activos</option>
+        <option value="todos">Todos los pedidos</option>
+        <optgroup label="──────────────">
+          <option value="pendiente">Solo Pendientes</option>
+          <option value="en_proceso">Solo En proceso</option>
+          <option value="terminado">Solo Terminados</option>
+          <option value="finalizado">Solo Finalizados</option>
+          <option value="cancelado">Solo Cancelados</option>
+        </optgroup>
+      </select>
+
+      <input class="form-control form-control-sm w-auto"
+        style="min-width:180px"
+        placeholder="Buscar folio o cliente..."
+        [(ngModel)]="filtroBusqueda"
+        (input)="cambiarFiltro()" />
+
+      <button class="btn btn-sm btn-outline-primary ms-auto" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="irANuevaVenta.emit()">
+        <i class="bi bi-arrow-left me-1"></i>Regresar
+      </button>
+    </div>
+  </div>
+
+  <!-- Spinner -->
+  <div *ngIf="cargando" class="text-center py-5">
+    <div class="spinner-border text-primary"></div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !cargando" class="alert alert-danger mx-3 mt-3">{{ error }}</div>
+
+  <!-- Vacío -->
+  <div *ngIf="!cargando && pedidos.length === 0 && !error" class="vacío-state">
+    <i class="bi bi-clipboard-x fs-1 text-muted"></i>
+    <p class="mt-2 text-muted">No hay pedidos que mostrar</p>
+  </div>
+
+  <!-- Lista -->
+  <div class="pedidos-grid" *ngIf="!cargando && pedidos.length > 0">
+    <div class="pedido-card" *ngFor="let p of pedidos"
+      [class.atrasado]="esAtrasado(p)">
+
+      <!-- Header tarjeta -->
+      <div class="pedido-card-header">
+        <span class="folio">{{ p.folio }}</span>
+        <span class="badge" [ngClass]="ESTATUS_CLASES[p.estatus]">{{ ESTATUS_LABELS[p.estatus] }}</span>
+        <span class="atrasado-chip" *ngIf="esAtrasado(p)">
+          <i class="bi bi-exclamation-triangle-fill"></i> Atrasado
+        </span>
+      </div>
+
+      <!-- Cliente -->
+      <div class="pedido-card-cliente">
+        <i class="bi bi-person me-1"></i>
+        <span>{{ p.cliente_nombre || p.cliente_razonsocial || 'Sin cliente' }}</span>
+        <span *ngIf="p.via_whatsapp" class="ms-2 text-success" title="Vía WhatsApp">
+          <i class="bi bi-whatsapp"></i>
+        </span>
+      </div>
+
+      <!-- Entrega -->
+      <div class="pedido-card-info" *ngIf="p.fecha_acordada">
+        <i class="bi bi-calendar-event me-1 text-muted"></i>
+        <small class="text-muted">{{ p.fecha_acordada | date:'dd/MM/yyyy HH:mm' }}</small>
+      </div>
+
+      <!-- Total / Anticipo -->
+      <div class="pedido-card-totales">
+        <span class="total">{{ p.total | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        <span class="anticipo" *ngIf="p.anticipo > 0">
+          Anticipo: {{ p.anticipo | currency:'MXN':'symbol-narrow':'1.2-2' }}
+        </span>
+      </div>
+
+      <!-- Error de acción -->
+      <div *ngIf="errorAccion[p.id]" class="alert alert-danger py-1 px-2 mb-1 small">
+        {{ errorAccion[p.id] }}
+      </div>
+
+      <!-- Acciones -->
+      <div class="pedido-card-acciones">
+        <button class="btn btn-sm btn-outline-secondary" (click)="verDetalle(p)">
+          <i class="bi bi-eye"></i>
+        </button>
+
+        <!-- Tomar: solo pendiente -->
+        <button *ngIf="p.estatus === 'pendiente'"
+          class="btn btn-sm btn-primary"
+          [disabled]="procesando[p.id]"
+          (click)="tomar(p)">
+          <span *ngIf="procesando[p.id]" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!procesando[p.id]" class="bi bi-hand-index me-1"></i>Tomar
+        </button>
+
+        <!-- Terminar: solo en_proceso -->
+        <button *ngIf="p.estatus === 'en_proceso'"
+          class="btn btn-sm btn-warning"
+          [disabled]="procesando[p.id]"
+          (click)="terminar(p)">
+          <span *ngIf="procesando[p.id]" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!procesando[p.id]" class="bi bi-check-circle me-1"></i>Terminar
+        </button>
+
+        <!-- Entregar: solo terminado -->
+        <button *ngIf="p.estatus === 'terminado'"
+          class="btn btn-sm btn-success"
+          (click)="abrirEntregar(p)">
+          <i class="bi bi-bag-check me-1"></i>Entregar
+        </button>
+
+        <!-- Cancelar: activos -->
+        <button *ngIf="['pendiente','en_proceso','terminado'].includes(p.estatus)"
+          class="btn btn-sm btn-outline-danger"
+          (click)="abrirCancelar(p)">
+          <i class="bi bi-x-circle"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paginador -->
+  <div class="pedidos-pagination" *ngIf="totalPaginas > 1">
+    <span class="pag-info">{{ (paginaActual - 1) * LIMIT + 1 }} – {{ rangoFin }} de {{ totalRegistros }}</span>
+    <div class="pag-btns">
+      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(1)" title="Primera">
+        <i class="bi bi-chevron-double-left"></i>
+      </button>
+      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(paginaActual - 1)" title="Anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button *ngFor="let pg of paginasVisibles"
+        class="pag-btn" [class.activa]="pg === paginaActual"
+        (click)="irAPagina(pg)">{{ pg }}</button>
+      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(paginaActual + 1)" title="Siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(totalPaginas)" title="Última">
+        <i class="bi bi-chevron-double-right"></i>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Modal Detalle ─────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarDetalle" (click)="mostrarDetalle=false">
+  <div class="modal-card modal-detalle" (click)="$event.stopPropagation()">
+    <div class="modal-header-bar">
+      <span>Detalle del pedido</span>
+      <button class="btn-close-modal" (click)="mostrarDetalle=false">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body-scroll">
+      <div *ngIf="!pedidoDetalle" class="text-center py-4">
+        <div class="spinner-border text-primary"></div>
+      </div>
+      <ng-container *ngIf="pedidoDetalle">
+        <div class="d-flex justify-content-between mb-2">
+          <strong>{{ pedidoDetalle.folio }}</strong>
+          <span class="badge" [ngClass]="ESTATUS_CLASES[pedidoDetalle.estatus]">
+            {{ ESTATUS_LABELS[pedidoDetalle.estatus] }}
+          </span>
+        </div>
+        <p class="mb-1"><small class="text-muted">Cliente:</small> {{ pedidoDetalle.cliente_nombre || 'Sin cliente' }}</p>
+        <p class="mb-1" *ngIf="pedidoDetalle.fecha_acordada">
+          <small class="text-muted">Entrega acordada:</small> {{ pedidoDetalle.fecha_acordada | date:'dd/MM/yyyy HH:mm' }}
+        </p>
+        <p class="mb-1" *ngIf="pedidoDetalle.notas">
+          <small class="text-muted">Notas:</small> {{ pedidoDetalle.notas }}
+        </p>
+
+        <hr>
+        <table class="table table-sm table-borderless mb-1">
+          <thead><tr class="text-muted small"><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let d of pedidoDetalle.detalle">
+              <td>{{ d.nombre_producto }}</td>
+              <td class="text-end">{{ d.cantidad }}</td>
+              <td class="text-end">{{ d.precio_unitario | currency:'MXN':'symbol-narrow':'1.2-2' }}</td>
+              <td class="text-end">{{ d.subtotal_linea | currency:'MXN':'symbol-narrow':'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="d-flex justify-content-between fw-bold">
+          <span>Total</span>
+          <span>{{ pedidoDetalle.total | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between text-muted small" *ngIf="pedidoDetalle.anticipo > 0">
+          <span>Anticipo</span>
+          <span>{{ pedidoDetalle.anticipo | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold" *ngIf="pedidoDetalle.anticipo > 0">
+          <span>Resta</span>
+          <span>{{ pedidoDetalle.total - pedidoDetalle.anticipo | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        </div>
+
+        <!-- Historial -->
+        <hr *ngIf="pedidoDetalle.historial?.length">
+        <div *ngIf="pedidoDetalle.historial?.length">
+          <small class="text-muted fw-bold">Historial</small>
+          <div *ngFor="let h of pedidoDetalle.historial" class="historial-item">
+            <small>{{ h.estatus_nuevo | titlecase }} — {{ h.usuario_nombre }}</small>
+            <small class="text-muted float-end">{{ h.fecha | date:'dd/MM HH:mm' }}</small>
+            <div *ngIf="h.notas" class="text-muted small">{{ h.notas }}</div>
+          </div>
+        </div>
+
+        <!-- Reimprimir comprobante -->
+        <hr>
+        <button class="btn btn-sm btn-outline-primary w-100" (click)="reimprimir(pedidoDetalle)">
+          <i class="bi bi-printer me-1"></i>Reimprimir comprobante de pedido
+        </button>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Entregar ────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarModalEntregar" (click)="mostrarModalEntregar=false">
+  <div class="modal-card modal-sm-form" (click)="$event.stopPropagation()">
+    <div class="modal-header-bar">
+      <span>Entregar pedido</span>
+      <button class="btn-close-modal" (click)="mostrarModalEntregar=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="p-3" *ngIf="pedidoEntregar">
+      <p class="mb-2">
+        <strong>{{ pedidoEntregar.folio }}</strong> &mdash; Saldo pendiente:
+        <strong class="text-danger">
+          <ng-container *ngIf="requiereFacturaEntregar && totalConFacturaEntregar !== null; else saldoNormal">
+            ${{ (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0)) | number:'1.2-2' }}
+            <small class="text-muted fw-normal ms-1">(c/factura)</small>
+          </ng-container>
+          <ng-template #saldoNormal>
+            ${{ pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo) | number:'1.2-2' }}
+          </ng-template>
+        </strong>
+      </p>
+
+      <label class="form-label small fw-semibold">Método de pago del saldo</label>
+      <div class="metodo-btns mb-2">
+        <button class="metodo-btn" [class.active]="metodoPagoSaldo==='efectivo'" (click)="metodoPagoSaldo='efectivo'">
+          <i class="bi bi-cash-coin me-1"></i>Efectivo
+        </button>
+        <button class="metodo-btn" [class.active]="metodoPagoSaldo==='tarjeta'" (click)="metodoPagoSaldo='tarjeta'">
+          <i class="bi bi-credit-card me-1"></i>Tarjeta
+        </button>
+        <button class="metodo-btn" [class.active]="metodoPagoSaldo==='transferencia'" (click)="metodoPagoSaldo='transferencia'">
+          <i class="bi bi-arrow-left-right me-1"></i>Transferencia
+        </button>
+      </div>
+
+      <!-- Referencia para tarjeta/transferencia -->
+      <div class="mb-2" *ngIf="metodoPagoSaldo !== 'efectivo'">
+        <label class="form-label small">Referencia / Folio de pago</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="notasEntrega"
+          placeholder="Nº autorización, folio de transferencia, etc.">
+      </div>
+
+      <!-- Monto recibido — todos los métodos -->
+      <div class="mb-2">
+        <label class="form-label small">
+          Monto recibido
+          <span class="text-danger">*</span>
+          <span class="text-muted ms-1">(saldo:
+            <ng-container *ngIf="requiereFacturaEntregar && totalConFacturaEntregar !== null; else saldoRef">
+              ${{ (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0)) | number:'1.2-2' }}
+            </ng-container>
+            <ng-template #saldoRef>${{ pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo) | number:'1.2-2' }}</ng-template>
+          )</span>
+        </label>
+        <ng-container *ngIf="requiereFacturaEntregar && totalConFacturaEntregar !== null; else inputSaldoNormal">
+          <input type="number" class="form-control form-control-sm"
+            [(ngModel)]="montoRecibidoSaldo"
+            [min]="totalConFacturaEntregar - (pedidoEntregar.anticipo || 0)"
+            placeholder="0.00">
+          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo < (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))"
+            class="text-danger small mt-1">
+            <i class="bi bi-exclamation-triangle me-1"></i>El monto no cubre el saldo pendiente con factura
+          </div>
+          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo >= (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))"
+            class="text-success small mt-1">
+            <i class="bi bi-check-circle me-1"></i>
+            <ng-container *ngIf="metodoPagoSaldo === 'efectivo'">
+              Cambio: ${{ (montoRecibidoSaldo - (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))) | number:'1.2-2' }}
+            </ng-container>
+            <ng-container *ngIf="metodoPagoSaldo !== 'efectivo'">Monto confirmado</ng-container>
+          </div>
+        </ng-container>
+        <ng-template #inputSaldoNormal>
+          <input type="number" class="form-control form-control-sm"
+            [(ngModel)]="montoRecibidoSaldo"
+            [min]="pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo)"
+            placeholder="0.00">
+          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo < (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo))"
+            class="text-danger small mt-1">
+            <i class="bi bi-exclamation-triangle me-1"></i>El monto no cubre el saldo pendiente
+          </div>
+          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo >= (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo))"
+            class="text-success small mt-1">
+            <i class="bi bi-check-circle me-1"></i>
+            <ng-container *ngIf="metodoPagoSaldo === 'efectivo'">
+              Cambio: ${{ (montoRecibidoSaldo - (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo))) | number:'1.2-2' }}
+            </ng-container>
+            <ng-container *ngIf="metodoPagoSaldo !== 'efectivo'">Monto confirmado</ng-container>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- Notas de entrega (efectivo) -->
+      <div class="mb-2" *ngIf="metodoPagoSaldo === 'efectivo'">
+        <label class="form-label small">Notas de entrega (opcional)</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="notasEntrega" placeholder="Observaciones...">
+      </div>
+
+      <!-- ── Facturación ─────────────────────────────────── -->
+      <div class="mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="chkFactEntregar"
+            [(ngModel)]="requiereFacturaEntregar"
+            (ngModelChange)="onToggleFacturaEntregar()">
+          <label class="form-check-label small" for="chkFactEntregar">
+            <i class="bi bi-receipt me-1 text-primary"></i>Requiere factura
+          </label>
+        </div>
+
+        <div *ngIf="requiereFacturaEntregar" class="mt-2">
+          <!-- Preview IVA/ISR sobre el total completo del pedido -->
+          <app-factura-impuestos-preview [subtotal]="pedidoEntregar.total" [small]="true"></app-factura-impuestos-preview>
+
+          <!-- Cliente ya vinculado -->
+          <div *ngIf="clienteFacturaEntregar; else buscarClienteEntregar" class="d-flex align-items-center gap-2 p-2 border rounded small bg-light">
+            <i class="bi bi-person-check text-success"></i>
+            <span class="flex-fill fw-semibold">{{ clienteFacturaEntregar.nombreComercial }}</span>
+            <button class="btn btn-xs btn-outline-secondary" (click)="quitarClienteEntregar()" title="Cambiar cliente">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+
+          <!-- Buscador cliente -->
+          <ng-template #buscarClienteEntregar>
+            <label class="form-label small fw-semibold text-danger mb-1">
+              <i class="bi bi-person-exclamation me-1"></i>Selecciona un cliente registrado para facturar
+            </label>
+            <div class="position-relative">
+              <input type="text" class="form-control form-control-sm"
+                [formControl]="busquedaClienteEntregar"
+                placeholder="Buscar cliente...">
+              <div *ngIf="buscandoClienteEntregar" class="position-absolute end-0 top-50 translate-middle-y me-2">
+                <span class="spinner-border spinner-border-sm text-muted"></span>
+              </div>
+              <div class="dropdown-clientes" *ngIf="resultadosClienteEntregar.length > 0">
+                <div class="dropdown-cliente-item" *ngFor="let c of resultadosClienteEntregar"
+                  (click)="seleccionarClienteEntregar(c)">
+                  <span class="fw-semibold">{{ c.nombreComercial }}</span>
+                  <span class="text-muted small ms-1" *ngIf="c.rfc">— {{ c.rfc }}</span>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+      <!-- ── /Facturación ────────────────────────────────── -->
+
+      <div *ngIf="errorEntrega" class="alert alert-danger py-1 px-2 small mb-2">{{ errorEntrega }}</div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary flex-fill" (click)="mostrarModalEntregar=false">Cancelar</button>
+        <button class="btn btn-success flex-fill" [disabled]="procesandoEntrega || !puedeConfirmarEntrega()" (click)="confirmarEntrega()">
+          <span *ngIf="procesandoEntrega" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!procesandoEntrega" class="bi bi-bag-check me-1"></i>Confirmar entrega
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Ticket reimpresión pedido ───────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarTicketPedido" (click)="mostrarTicketPedido=false; pedidoTicketReimprimir=null">
+  <div class="modal-card" style="width:400px;max-width:95vw" (click)="$event.stopPropagation()">
+    <app-pos-ticket
+      [esPedido]="true"
+      [pedido]="pedidoTicketReimprimir"
+      (cerrarPedido)="mostrarTicketPedido=false; pedidoTicketReimprimir=null">
+    </app-pos-ticket>
+  </div>
+</div>
+
+<!-- ── Ticket venta post-entrega ─────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarTicketVenta && ventaEntregada" (click)="mostrarTicketVenta=false; ventaEntregada=null">
+  <div class="modal-card" style="width:400px;max-width:95vw" (click)="$event.stopPropagation()">
+    <app-pos-ticket
+      #ticketVentaRef
+      [venta]="ventaEntregada"
+      (imprimir)="ticketVentaRef.imprimirTicketInterno()"
+      (nuevaVenta)="mostrarTicketVenta=false; ventaEntregada=null; cargar()">
+    </app-pos-ticket>
+  </div>
+</div>
+
+<!-- ── Modal Cancelar ────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarModalCancelar" (click)="mostrarModalCancelar=false">
+  <div class="modal-card modal-sm-form" (click)="$event.stopPropagation()">
+    <div class="modal-header-bar">
+      <span>Cancelar pedido</span>
+      <button class="btn-close-modal" (click)="mostrarModalCancelar=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="p-3" *ngIf="pedidoCancelar">
+      <p class="mb-2">¿Cancelar el pedido <strong>{{ pedidoCancelar.folio }}</strong>?</p>
+      <div class="mb-3">
+        <label class="form-label small">Motivo (opcional)</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="motivoCancelacion" placeholder="Motivo de cancelación...">
+      </div>
+      <div *ngIf="errorCancelacion" class="alert alert-danger py-1 px-2 small mb-2">{{ errorCancelacion }}</div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary flex-fill" (click)="mostrarModalCancelar=false">No, volver</button>
+        <button class="btn btn-danger flex-fill" [disabled]="procesandoCancelacion" (click)="confirmarCancelacion()">
+          <span *ngIf="procesandoCancelacion" class="spinner-border spinner-border-sm me-1"></span>
+          Sí, cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

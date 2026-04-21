@@ -3,7 +3,7 @@
  * Gestiona todas las operaciones CRUD para equipos electrónicos
  */
 
-const { query } = require('../config/database');
+const { query, queryAudit } = require('../config/database');
 const { 
   createResponse, 
   createPaginatedResponse, 
@@ -174,7 +174,7 @@ async function createEquipo(req, res) {
       RETURNING *
     `;
     
-    const result = await query(insertQuery, [
+    const result = await queryAudit(insertQuery, [
       tipo_equipo,
       marca || null,
       modelo || null,
@@ -186,7 +186,7 @@ async function createEquipo(req, res) {
       responsable_nombre || null,
       observaciones || null,
       foto_url || null
-    ]);
+    ], req.user?.id, req.user?.nombre || req.user?.username);
     
     const equipo = result.rows[0];
     
@@ -257,7 +257,7 @@ async function updateEquipo(req, res) {
       RETURNING *
     `;
     
-    const result = await query(updateQuery, [
+    const result = await queryAudit(updateQuery, [
       tipo_equipo,
       marca,
       modelo,
@@ -270,7 +270,7 @@ async function updateEquipo(req, res) {
       observaciones,
       foto_url,
       id
-    ]);
+    ], req.user?.id, req.user?.nombre || req.user?.username);
     
     // Actualizar características
     if (caracteristicas) {
@@ -310,9 +310,9 @@ async function deleteEquipo(req, res) {
   try {
     const { id } = req.params;
     
-    const result = await query(
+    const result = await queryAudit(
       'UPDATE equipos SET activo = false, fecha_modificacion = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
-      [id]
+      [id], req.user?.id, req.user?.nombre || req.user?.username
     );
     
     if (result.rows.length === 0) {
@@ -608,12 +608,12 @@ async function configurarMantenimientoPreventivo(req, res) {
                 mantenimiento_fecha_inicio, mantenimiento_dias_alerta
     `;
     
-    const result = await query(updateQuery, [
+    const result = await queryAudit(updateQuery, [
       mantenimiento_intervalo_dias,
       mantenimiento_fecha_inicio,
       mantenimiento_dias_alerta,
       id
-    ]);
+    ], req.user?.id, req.user?.nombre || req.user?.username);
     
     return res.json(
       createResponse(true, result.rows[0], 'Mantenimiento preventivo configurado exitosamente')

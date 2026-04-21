@@ -162,25 +162,36 @@ export class StandardApiInterceptor implements HttpInterceptor {
 
   /**
    * Manejar error 401 - No autorizado
+   * Diferencia entre sesión expirada por inactividad, desplazada o token inválido.
    */
   private handleUnauthorizedError(error: HttpErrorResponse): Observable<never> {
-    // Limpiar sesión y redirigir al login
+    const errorCode: string = error.error?.error?.code || 'UNAUTHORIZED';
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    // No redirigir si ya estamos en login
+
     if (!this.router.url.includes('/login')) {
-      this.router.navigate(['/login'], { 
+      const paramMap: { [code: string]: string } = {
+        SESSION_EXPIRED:     'inactivity',
+        SESSION_INVALIDATED: 'displaced',
+        TOKEN_EXPIRED:       'true',
+      };
+      const sessionExpired = paramMap[errorCode] || 'true';
+
+      this.router.navigate(['/login'], {
         replaceUrl: true,
-        queryParams: { sessionExpired: 'true' }
+        queryParams: { sessionExpired }
       });
     }
 
-    return throwError(() => this.createStandardError(
-      'UNAUTHORIZED',
-      'Sesión expirada. Por favor, inicie sesión nuevamente.',
-      error
-    ));
+    const messages: { [code: string]: string } = {
+      SESSION_EXPIRED:     'Tu sesión fue cerrada por inactividad. Inicia sesión nuevamente.',
+      SESSION_INVALIDATED: 'Tu sesión fue cerrada porque se inició sesión desde otro dispositivo.',
+      TOKEN_EXPIRED:       'Tu sesión ha expirado. Por favor inicia sesión nuevamente.',
+    };
+    const message = messages[errorCode] || 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+
+    return throwError(() => this.createStandardError('UNAUTHORIZED', message, error));
   }
 
   /**

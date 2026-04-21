@@ -12,6 +12,9 @@ import { PanelCobroComponent }         from './components/panel-cobro/panel-cobr
 import { TicketComponent }             from './components/ticket/ticket.component';
 import { HistorialVentasComponent }    from './components/historial-ventas/historial-ventas.component';
 import { CotizacionesListComponent }   from './components/cotizaciones-list/cotizaciones-list.component';
+import { PedidoFormComponent }         from './components/pedido-form/pedido-form.component';
+import { PedidosListComponent }        from './components/pedidos-list/pedidos-list.component';
+import { SharedModule }                from '../../../shared/shared.module';
 
 @NgModule({
   declarations: [
@@ -23,12 +26,15 @@ import { CotizacionesListComponent }   from './components/cotizaciones-list/coti
     TicketComponent,
     HistorialVentasComponent,
     CotizacionesListComponent,
+    PedidoFormComponent,
+    PedidosListComponent,
   ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
+    SharedModule,
     RouterModule.forChild([{ path: '', component: PuntoVentaComponent }]),
   ]
 })

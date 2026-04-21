@@ -642,8 +642,7 @@ export class EmpleadoDetailModalComponent {
       inventarios: 'Inventarios',
       equipos: 'Equipos',
       punto_venta: 'Punto de Venta',
-      reportes: 'Reportes',
-      configuracion: 'Configuración'
+      reportes: 'Reportes'
     };
     
     return labels[modulo] || modulo;
@@ -657,8 +656,7 @@ export class EmpleadoDetailModalComponent {
       proveedores: 'fa-truck',
       inventarios: 'fa-boxes',
       equipos: 'fa-desktop',
-      reportes: 'fa-chart-bar',
-      configuracion: 'fa-cogs'
+      reportes: 'fa-chart-bar'
     };
     
     return icons[modulo] || 'fa-circle';

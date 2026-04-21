@@ -1,0 +1,230 @@
+<div class="pedido-modal-overlay" (click)="cerrar()">
+  <div class="pedido-modal-card" [class.pedido-modal-ticket]="mostrarTicketPedido" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="pedido-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi" [class.bi-clipboard-plus-fill]="!mostrarTicketPedido" [class.bi-receipt]="mostrarTicketPedido"></i>
+        <span>{{ mostrarTicketPedido ? 'Comprobante de Pedido' : 'Generar Pedido' }}</span>
+        <span class="badge-folio" *ngIf="pedidoCreado?.folio">{{ pedidoCreado.folio }}</span>
+      </div>
+      <button class="btn-cerrar" (click)="mostrarTicketPedido ? onCerrarTicket() : cerrar()" title="Cerrar">&times;</button>
+    </div>
+
+    <!-- Vista ticket: post-guardado -->
+    <ng-container *ngIf="mostrarTicketPedido && pedidoCreado">
+      <app-pos-ticket
+        [esPedido]="true"
+        [pedido]="pedidoCreado"
+        (cerrarPedido)="onCerrarTicket()">
+      </app-pos-ticket>
+    </ng-container>
+
+    <!-- Body dividido en 2 columnas -->
+    <div class="pedido-modal-body" *ngIf="!mostrarTicketPedido">
+
+      <!-- ── COLUMNA IZQUIERDA ── -->
+      <div class="pedido-col">
+
+        <!-- Bloque A: Cliente -->
+        <div class="bloque">
+          <div class="bloque-titulo"><i class="bi bi-person me-1"></i>Cliente</div>
+
+          <!-- Modo cliente registrado -->
+          <div *ngIf="clienteSeleccionado; else tmplClienteLibre" class="cliente-activo">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-semibold">{{ clienteSeleccionado.nombreComercial || clienteSeleccionado.nombre }}</div>
+                <div class="text-muted small" *ngIf="clienteSeleccionado.telefono">
+                  <i class="bi bi-telephone me-1"></i>{{ clienteSeleccionado.telefono }}
+                </div>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary" (click)="quitarCliente()">
+                <i class="bi bi-x"></i> Cambiar
+              </button>
+            </div>
+          </div>
+
+          <ng-template #tmplClienteLibre>
+            <div class="mb-2">
+              <label class="form-label-xs">Buscar cliente registrado</label>
+              <div class="input-group input-group-sm search-input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Nombre, RFC, email..."
+                  [formControl]="busquedaCliente" autocomplete="off">
+                <div class="spinner-border spinner-border-sm text-primary m-auto ms-2" *ngIf="buscandoCliente" style="width:14px;height:14px"></div>
+              </div>
+              <div class="dropdown-clientes" *ngIf="resultadosCliente.length > 0">
+                <div class="dropdown-cliente-item" *ngFor="let c of resultadosCliente" (click)="seleccionarCliente(c)">
+                  <div class="fw-semibold small">{{ c.nombreComercial || c.razonSocial || 'Sin nombre' }}</div>
+                  <div class="text-muted" style="font-size:.7rem">{{ c.email }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label-xs">o ingresa nombre (cliente libre)</label>
+              <input type="text" class="form-control form-control-sm" placeholder="Nombre del cliente"
+                [(ngModel)]="form.cliente_nombre">
+            </div>
+            <div>
+              <label class="form-label-xs">Teléfono</label>
+              <input type="tel" class="form-control form-control-sm" placeholder="10 dígitos"
+                [(ngModel)]="form.cliente_telefono">
+            </div>
+          </ng-template>
+
+          <!-- Opciones extra -->
+          <div class="opciones-check mt-2">
+            <label class="check-chip">
+              <input type="checkbox" [(ngModel)]="form.via_whatsapp">
+              <i class="bi bi-whatsapp text-success"></i> Vía WhatsApp
+            </label>
+          </div>
+          <!-- Indicador de facturación (heredado del POS) -->
+          <div class="d-flex align-items-center gap-1 mt-2" *ngIf="form.requiere_factura">
+            <i class="bi bi-receipt text-primary"></i>
+            <span class="small text-primary fw-semibold">Facturación activa (heredada del POS)</span>
+          </div>
+        </div>
+
+        <!-- Bloque B: Fecha acordada y Notas -->
+        <div class="bloque">
+          <div class="bloque-titulo"><i class="bi bi-calendar-event me-1"></i>Entrega</div>
+          <div class="row g-2">
+            <div class="col-7">
+              <label class="form-label-xs">Fecha acordada</label>
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="form.fecha_acordada">
+            </div>
+            <div class="col-5">
+              <label class="form-label-xs">Hora</label>
+              <input type="time" class="form-control form-control-sm" [(ngModel)]="form.hora_acordada">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label-xs">Notas internas</label>
+            <textarea class="form-control form-control-sm" rows="2" placeholder="Indicaciones, referencias..."
+              [(ngModel)]="form.notas"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── COLUMNA DERECHA ── -->
+      <div class="pedido-col">
+
+        <!-- Bloque C: Resumen de ítems (readonly) -->
+        <div class="bloque bloque-items">
+          <div class="bloque-titulo"><i class="bi bi-cart3 me-1"></i>Productos / Servicios</div>
+          <div class="items-list">
+            <div class="item-fila" *ngFor="let it of carrito">
+              <span class="item-nombre">{{ it.nombre_producto }}</span>
+              <span class="item-cant">× {{ it.cantidad }}</span>
+              <span class="item-sub">${{ it.subtotal_linea | number:'1.2-2' }}</span>
+            </div>
+            <div class="text-muted small text-center py-2" *ngIf="carrito.length === 0">
+              Sin ítems — el carrito está vacío
+            </div>
+          </div>
+        </div>
+
+        <!-- Bloque D: Totales + Anticipo -->
+        <div class="bloque">
+          <div class="bloque-titulo"><i class="bi bi-calculator me-1"></i>Totales</div>
+
+          <div class="totales-fila">
+            <span>Subtotal</span>
+            <span>${{ totales.subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="totales-fila desc" *ngIf="totales.descuentoMonto > 0">
+            <span>Descuento {{ descuentoGlobalPct }}%</span>
+            <span>-${{ totales.descuentoMonto | number:'1.2-2' }}</span>
+          </div>
+          <div class="totales-fila total" *ngIf="!form.requiere_factura">
+            <span>TOTAL</span>
+            <span>${{ totales.total | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Desglose factura -->
+          <div class="mt-2" *ngIf="form.requiere_factura">
+            <app-factura-impuestos-preview [subtotal]="totales.total" [small]="true"></app-factura-impuestos-preview>
+          </div>
+
+          <!-- Anticipo -->
+          <div class="mt-3">
+            <label class="form-label-xs">Método de pago del anticipo</label>
+            <div class="metodos-pago mb-2">
+              <button type="button" class="metodo-btn" [class.activo]="form.metodo_pago_anticipo==='efectivo'"
+                (click)="form.metodo_pago_anticipo='efectivo'">
+                <i class="bi bi-cash me-1"></i>Efectivo
+              </button>
+              <button type="button" class="metodo-btn" [class.activo]="form.metodo_pago_anticipo==='tarjeta'"
+                (click)="form.metodo_pago_anticipo='tarjeta'">
+                <i class="bi bi-credit-card me-1"></i>Tarjeta
+              </button>
+              <button type="button" class="metodo-btn" [class.activo]="form.metodo_pago_anticipo==='transferencia'"
+                (click)="form.metodo_pago_anticipo='transferencia'">
+                <i class="bi bi-bank me-1"></i>Trans.
+              </button>
+            </div>
+
+            <!-- Notas / referencia de pago -->
+            <div class="mb-2" *ngIf="form.metodo_pago_anticipo !== 'efectivo'">
+              <label class="form-label-xs">Referencia / Folio de {{ form.metodo_pago_anticipo === 'tarjeta' ? 'tarjeta' : 'transferencia' }}</label>
+              <input type="text" class="form-control form-control-sm"
+                placeholder="Nº autorización, folio, etc."
+                [(ngModel)]="form.notas_anticipo">
+            </div>
+
+            <label class="form-label-xs">
+              Anticipo
+              <span class="text-muted">(mín. 20% = ${{ minimoAnticipo | number:'1.2-2' }})</span>
+              <span class="text-danger ms-1">*</span>
+            </label>
+            <div class="input-group input-group-sm" [class.is-invalid-group]="form.anticipo > 0 && !anticipoValido">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control"
+                [min]="minimoAnticipo"
+                [max]="totales.total"
+                step="0.5"
+                [(ngModel)]="form.anticipo"
+                placeholder="{{ minimoAnticipo | number:'1.2-2' }}">
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                style="font-size:.72rem;padding:.2rem .5rem"
+                (click)="form.anticipo = totales.total"
+                title="Pago total">Total</button>
+            </div>
+            <div class="hint-anticipo mt-1"
+              [class.hint-ok]="anticipoValido"
+              [class.hint-err]="form.anticipo > 0 && !anticipoValido">
+              <span *ngIf="!form.anticipo || form.anticipo === 0">
+                <i class="bi bi-info-circle me-1"></i>Ingresa un anticipo mínimo del 20%
+              </span>
+              <span *ngIf="form.anticipo > 0 && !anticipoValido">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Monto inválido — mín. ${{ minimoAnticipo | number:'1.2-2' }}, máx. ${{ totales.total | number:'1.2-2' }}
+              </span>
+              <span *ngIf="anticipoValido">
+                <i class="bi bi-check-circle me-1"></i>
+                Resta: ${{ (totales.total - form.anticipo) | number:'1.2-2' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="pedido-modal-footer" *ngIf="!mostrarTicketPedido">
+      <div class="alert alert-danger py-1 px-2 small mb-0 me-2" *ngIf="error">{{ error }}</div>
+      <button class="btn btn-secondary btn-sm" (click)="cerrar()" [disabled]="procesando">Cancelar</button>
+      <button class="btn btn-pedido btn-sm" (click)="confirmar()"
+        [disabled]="procesando || carrito.length === 0 || (form.requiere_factura && !clienteSeleccionado?.id)">
+        <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>
+        <i class="bi bi-clipboard-check me-1" *ngIf="!procesando"></i>
+        {{ procesando ? 'Guardando...' : 'Guardar Pedido' }}
+      </button>
+    </div>
+
+  </div>
+</div>

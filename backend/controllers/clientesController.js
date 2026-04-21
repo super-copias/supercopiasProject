@@ -3,7 +3,7 @@
  * Gestiona todas las operaciones CRUD para clientes con estándar API 
  */
 
-const { query } = require('../config/database');
+const { query, queryAudit } = require('../config/database');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const { 
@@ -12,6 +12,7 @@ const {
   createErrorResponse, 
   CODIGOS_ERROR 
 } = require('../utils/apiStandard');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 /**
  * Función auxiliar para extraer solo el código de un valor que puede venir 
@@ -452,10 +453,8 @@ async function createCliente(req, res) {
       direccionCodigoPostal && direccionCodigoPostal.trim().length > 0 ? direccionCodigoPostal : null // direccion_codigo_postal
     ];
     
-    const result = await query(insertQuery, values);
+    const result = await queryAudit(insertQuery, values, req.user?.id, req.user?.nombre || req.user?.username);
     const clienteId = result.rows[0].id;
-    
-    // Consultar el cliente recién creado con las descripciones de los catálogos
     const clienteCompleto = await query(`
       SELECT 
         c.*,
@@ -493,6 +492,12 @@ async function createCliente(req, res) {
       fechaModificacion: clienteDB.fecha_modificacion
     };
     
+    registrarBitacora({
+      modulo: 'clientes', accion: 'CLIENTE_CREADO',
+      entidad: 'clientes', entidadId: clienteId,
+      usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+      ip: getIp(req), detalle: { nombreComercial }
+    });
     return res.status(201).json(
       createResponse(
         true,
@@ -765,7 +770,7 @@ async function updateCliente(req, res) {
       RETURNING *
     `;
     
-    const result = await query(updateQuery, valores);
+    const result = await queryAudit(updateQuery, valores, req.user?.id, req.user?.nombre || req.user?.username);
     
     // Consultar el cliente actualizado con las descripciones de los catálogos
     const clienteCompleto = await query(`
@@ -805,6 +810,12 @@ async function updateCliente(req, res) {
       fechaModificacion: clienteDB.fecha_modificacion
     };
     
+    registrarBitacora({
+      modulo: 'clientes', accion: 'CLIENTE_ACTUALIZADO',
+      entidad: 'clientes', entidadId: clienteId,
+      usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+      ip: getIp(req), detalle: { nombreComercial: clienteActualizado.nombreComercial }
+    });
     return res.json(
       createResponse(
         true,
@@ -881,11 +892,18 @@ async function deleteCliente(req, res) {
     }
     
     // Soft delete: marcar como inactivo en lugar de eliminar
-    await query(
+    await queryAudit(
       'UPDATE clientes SET activo = false, fecha_modificacion = NOW() WHERE id = $1',
-      [clienteId]
+      [clienteId],
+      req.user?.id, req.user?.nombre || req.user?.username
     );
     
+    registrarBitacora({
+      modulo: 'clientes', accion: 'CLIENTE_ELIMINADO',
+      entidad: 'clientes', entidadId: clienteId,
+      usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+      ip: getIp(req)
+    });
     return res.json(
       createResponse(
         true,
@@ -1089,7 +1107,7 @@ async function uploadExcelClientes(req, res) {
           fila['codigo postal'] || fila.cp || null // direccion_codigo_postal
         ];
         
-        const result = await query(insertQuery, values);
+        const result = await queryAudit(insertQuery, values, req.user?.id, req.user?.nombre || req.user?.username);
         const nuevoCliente = result.rows[0];
         
         resultados.creados.push(nuevoCliente);

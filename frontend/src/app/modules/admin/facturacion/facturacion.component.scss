@@ -1,0 +1,213 @@
+.facturacion-wrapper {
+  padding: 1.25rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.facturacion-header h5 {
+  font-size: 1.1rem;
+}
+
+/* ── Filtros ── */
+.filtros-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+/* ── Badges de resumen ── */
+.badges-resumen {
+  .badge-stat {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    &:hover { opacity: 0.8; }
+  }
+  .badge-pendiente { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+  .badge-generada  { background: #cff4fc; color: #055160; border: 1px solid #0dcaf0; }
+  .badge-timbrada  { background: #d1e7dd; color: #0f5132; border: 1px solid #198754; }
+  .badge-cancelada { background: #f8d7da; color: #842029; border: 1px solid #dc3545; }
+}
+
+/* ── Tabla ── */
+.tabla-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.folio-code {
+  color: #0d6efd;
+  font-size: 0.8rem;
+}
+
+.rfc-code {
+  font-size: 0.78rem;
+  color: #495057;
+}
+
+.cursor-pointer { cursor: pointer; }
+
+/* ── Badges origen ── */
+.badge-origen {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.origen-venta      { background: #e0f2fe; color: #075985; }
+.origen-pedido     { background: #fef3c7; color: #92400e; }
+.origen-cotizacion { background: #ede9fe; color: #5b21b6; }
+
+/* ── Badges estatus ── */
+.badge-estatus {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.est-pendiente { background: #fff3cd; color: #856404; }
+.est-generada  { background: #cff4fc; color: #055160; }
+.est-timbrada  { background: #d1e7dd; color: #0f5132; }
+.est-cancelada { background: #f8d7da; color: #842029; }
+
+.btn-xs {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+/* ── Paginador ── */
+.paginador { font-size: 0.82rem; }
+
+/* ── Panel detalle ── */
+.detalle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1050;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detalle-panel {
+  width: 480px;
+  max-width: 95vw;
+  background: #fff;
+  height: 100%;
+  overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0,0,0,.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.detalle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+.detalle-body {
+  padding: 1.25rem;
+  flex: 1;
+}
+
+/* ── Info grid ── */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #f1f3f5;
+  }
+}
+.info-lbl { color: #868e96; }
+
+/* ── Sección título ── */
+.seccion-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #495057;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.3rem;
+}
+
+/* ── Cliente fiscal card ── */
+.cliente-fiscal-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.85rem;
+  font-size: 0.85rem;
+}
+
+/* ── Montos card ── */
+.montos-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.85rem;
+  .monto-fila {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #e9ecef;
+    &:last-child { border-bottom: none; }
+  }
+  .monto-total {
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    border-top: 2px solid #dee2e6;
+  }
+}
+
+/* ── SAT card ── */
+.sat-card {
+  background: #d1e7dd;
+  border-radius: 8px;
+  padding: 0.85rem;
+  font-size: 0.85rem;
+}
+
+/* ── Modal cancelar ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}

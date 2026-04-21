@@ -20,7 +20,9 @@ const {
   updateEmpleado, 
   deleteEmpleado,
   getPuestos,
-  getModulos
+  getModulos,
+  toggleEstadoEmpleado,
+  resetPassword
 } = require('../controllers/empleadosController');
 
 /**
@@ -67,6 +69,18 @@ router.put('/:id', auth, updateEmpleado);
  * Eliminar un empleado (desactivar)
  */
 router.delete('/:id', auth, deleteEmpleado);
+
+/**
+ * PATCH /api/empleados/:id/toggle-estado
+ * Activar o desactivar un empleado
+ */
+router.patch('/:id/toggle-estado', auth, toggleEstadoEmpleado);
+
+/**
+ * PATCH /api/empleados/:id/reset-password
+ * Asignar contraseña temporal (solo administradores)
+ */
+router.patch('/:id/reset-password', auth, roles(['admin']), resetPassword);
 
 /**
  * Rutas anidadas de eventos de personal

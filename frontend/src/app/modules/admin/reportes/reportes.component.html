@@ -1,0 +1,348 @@
+<div class="reportes-layout">
+
+  <!-- ── Sidebar de categorías y reportes ────────────────────────────────── -->
+  <aside class="reportes-sidebar">
+    <div class="sidebar-header">
+      <i class="fas fa-chart-bar"></i>
+      <span>Reportes</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div *ngFor="let cat of categorias" class="nav-group">
+        <div class="nav-category">{{ cat }}</div>
+        <button
+          *ngFor="let r of getReportesPorCategoria(cat)"
+          class="nav-item"
+          [class.active]="selectedId === r.id"
+          (click)="selectReport(r.id)"
+          type="button"
+        >
+          <i [class]="r.icono + ' nav-icon'"></i>
+          <span>{{ r.titulo }}</span>
+        </button>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ── Panel principal ─────────────────────────────────────────────────── -->
+  <main class="reportes-main">
+
+    <!-- Cabecera del reporte seleccionado -->
+    <header class="report-header" *ngIf="selectedReport">
+      <div class="report-header-info">
+        <h2><i [class]="selectedReport.icono + ' report-icon'"></i> {{ selectedReport.titulo }}</h2>
+        <p class="report-desc">{{ selectedReport.descripcion }}</p>
+      </div>
+      <!-- Botones de descarga -->
+      <div class="report-actions">
+        <button class="btn btn-outline-preview" (click)="onPreview()" [disabled]="loadingPreview" type="button">
+          <i class="fas fa-table"></i>
+          <span>{{ loadingPreview ? 'Cargando...' : 'Vista Previa' }}</span>
+        </button>
+        <button class="btn btn-excel" (click)="onDownload('xlsx')" [disabled]="loadingXlsx" type="button">
+          <i class="fas fa-file-excel"></i>
+          <span>{{ loadingXlsx ? 'Generando...' : 'Excel' }}</span>
+        </button>
+        <button class="btn btn-pdf" (click)="onDownload('pdf')" [disabled]="loadingPdf" type="button">
+          <i class="fas fa-file-pdf"></i>
+          <span>{{ loadingPdf ? 'Generando...' : 'PDF' }}</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Error -->
+    <div class="alert-error" *ngIf="errorMsg">
+      <i class="fas fa-exclamation-circle"></i> {{ errorMsg }}
+    </div>
+
+    <!-- ── Formulario de filtros ─────────────────────────────────────────── -->
+    <section class="filters-panel">
+
+      <!-- VENTAS -->
+      <ng-container *ngIf="selectedId === 'ventas'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Método de Pago</label>
+            <select [(ngModel)]="filtros.metodo_pago" class="filter-input">
+              <option *ngFor="let m of metodosPago" [value]="m.value">{{ m.label }}</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- CORTE DE CAJA -->
+      <ng-container *ngIf="selectedId === 'corte-caja'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Fecha</label>
+            <input type="date" [(ngModel)]="filtros.fecha" class="filter-input" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- PRODUCTOS MÁS VENDIDOS -->
+      <ng-container *ngIf="selectedId === 'productos'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Top N</label>
+            <input type="number" [(ngModel)]="filtros.top" min="5" max="500" class="filter-input" style="width:90px" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- COMPRAS POR CLIENTE -->
+      <ng-container *ngIf="selectedId === 'clientes'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- INVENTARIO ACTUAL -->
+      <ng-container *ngIf="selectedId === 'inventario'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Nivel de Stock</label>
+            <select [(ngModel)]="filtros.nivel_stock" class="filter-input">
+              <option *ngFor="let n of nivelesStock" [value]="n.value">{{ n.label }}</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- MOVIMIENTOS DE INVENTARIO -->
+      <ng-container *ngIf="selectedId === 'movimientos'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Tipo de Movimiento</label>
+            <select [(ngModel)]="filtros.tipo_movimiento" class="filter-input">
+              <option *ngFor="let t of tiposMovimiento" [value]="t.value">{{ t.label }}</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- BITÁCORA -->
+      <ng-container *ngIf="selectedId === 'bitacora'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Módulo</label>
+            <select [(ngModel)]="filtros.modulo" class="filter-input">
+              <option *ngFor="let m of modulosBitacora" [value]="m.value">{{ m.label }}</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Resultado</label>
+            <select [(ngModel)]="filtros.resultado" class="filter-input">
+              <option *ngFor="let r of resultadosBitacora" [value]="r.value">{{ r.label }}</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- VENTAS POR VENDEDOR -->
+      <ng-container *ngIf="selectedId === 'vendedores'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- BITÁCORA DE AUDITORÍA -->
+      <ng-container *ngIf="selectedId === 'auditoria'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          </div>
+          <div class="filter-group">
+            <label>Tabla</label>
+            <select [(ngModel)]="filtros.tabla" class="filter-input">
+              <option value="">Todas</option>
+              <option value="clientes">clientes</option>
+              <option value="empleados">empleados</option>
+              <option value="proveedores">proveedores</option>
+              <option value="usuarios">usuarios</option>
+              <option value="facturas">facturas</option>
+              <option value="inventarios">inventarios</option>
+              <option value="equipos">equipos</option>
+              <option value="pos_ventas">pos_ventas</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Operación</label>
+            <select [(ngModel)]="filtros.operacion" class="filter-input">
+              <option value="">Todas</option>
+              <option value="INSERT">INSERT</option>
+              <option value="UPDATE">UPDATE</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+    </section>
+
+    <!-- ── Resumen cards (Corte de caja) ─────────────────────────────────── -->
+    <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'corte-caja'">
+      <div class="stat-card">
+        <div class="stat-label">Ventas completadas</div>
+        <div class="stat-value blue">{{ previewResumen.ventas_completadas || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ventas canceladas</div>
+        <div class="stat-value red">{{ previewResumen.ventas_canceladas || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Ingresos</div>
+        <div class="stat-value green">${{ (previewResumen.total_ingresos || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Descuentos</div>
+        <div class="stat-value orange">${{ (previewResumen.total_descuentos || 0) | number:'1.2-2' }}</div>
+      </div>
+    </section>
+
+    <!-- Resumen genérico (Ventas, Productos) -->
+    <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'ventas'">
+      <div class="stat-card">
+        <div class="stat-label">Total Registros</div>
+        <div class="stat-value blue">{{ previewResumen.total_registros || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Ingresos</div>
+        <div class="stat-value green">${{ (previewResumen.total_ingresos || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Descuentos</div>
+        <div class="stat-value orange">${{ (previewResumen.total_descuentos || 0) | number:'1.2-2' }}</div>
+      </div>
+    </section>
+
+    <!-- Resumen Ventas por Vendedor -->
+    <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'vendedores'">
+      <div class="stat-card">
+        <div class="stat-label">Vendedores activos</div>
+        <div class="stat-value blue">{{ previewResumen.total_vendedores || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Ventas</div>
+        <div class="stat-value blue">{{ previewResumen.total_ventas_global || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Ingresos</div>
+        <div class="stat-value green">${{ (previewResumen.total_ingresos_global || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card highlight" *ngIf="previewResumen.top_vendedor">
+        <div class="stat-label"><i class="fas fa-trophy" style="color:#F59E0B"></i> Vendedor #1</div>
+        <div class="stat-value gold">{{ previewResumen.top_vendedor.nombre }}</div>
+        <div class="stat-sub">${{ (previewResumen.top_vendedor.total || 0) | number:'1.2-2' }}</div>
+      </div>
+    </section>
+
+    <!-- Resumen Bitácora de Auditoría -->
+    <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'auditoria'">
+      <div class="stat-card">
+        <div class="stat-label">Total Registros</div>
+        <div class="stat-value blue">{{ previewResumen.total_registros || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Inserciones</div>
+        <div class="stat-value green">{{ previewResumen.inserts || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Actualizaciones</div>
+        <div class="stat-value blue">{{ previewResumen.updates || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Eliminaciones</div>
+        <div class="stat-value red">{{ previewResumen.deletes || 0 }}</div>
+      </div>
+    </section>
+
+    <!-- ── Tabla de preview ──────────────────────────────────────────────── -->
+    <section class="preview-section" *ngIf="previewRows.length > 0">
+      <div class="preview-header">
+        <span class="preview-count"><i class="fas fa-table"></i> {{ previewRows.length }} registros</span>
+        <span class="preview-hint">Vista previa (máx. 5000 filas). Usa PDF o Excel para el reporte completo.</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="preview-table">
+          <thead>
+            <tr>
+              <th *ngFor="let col of previewColumns">{{ formatColHeader(col) }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of previewRows">
+              <td *ngFor="let col of previewColumns">{{ formatCell(row[col], col) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Estado vacío -->
+    <section class="empty-state" *ngIf="!loadingPreview && previewRows.length === 0 && !errorMsg">
+      <i class="fas fa-chart-line empty-icon"></i>
+      <h3>Configura los filtros y ejecuta el reporte</h3>
+      <p>Haz clic en <strong>Vista Previa</strong> para ver los datos en pantalla,<br>
+         o descarga directamente en <strong>Excel</strong> o <strong>PDF</strong>.</p>
+    </section>
+
+    <!-- Spinner -->
+    <section class="loading-state" *ngIf="loadingPreview">
+      <div class="spinner"></div>
+      <span>Consultando datos...</span>
+    </section>
+
+  </main>
+</div>

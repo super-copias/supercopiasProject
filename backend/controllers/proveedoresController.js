@@ -3,13 +3,14 @@
  * Gestiona CRUD completo de proveedores
  */
 
-const { query } = require('../config/database');
+const { query, queryAudit } = require('../config/database');
 const { 
   createResponse, 
   createPaginatedResponse, 
   createErrorResponse, 
   CODIGOS_ERROR 
 } = require('../utils/apiStandard');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 class ProveedoresController {
   /**
@@ -228,9 +229,15 @@ class ProveedoresController {
         notas?.trim() || null
       ];
       
-      const result = await query(insertQuery, values);
+      const result = await queryAudit(insertQuery, values, req.user?.id, req.user?.nombre || req.user?.username);
       const nuevoProveedor = result.rows[0];
       
+      registrarBitacora({
+        modulo: 'proveedores', accion: 'PROVEEDOR_CREADO',
+        entidad: 'proveedores', entidadId: nuevoProveedor.id,
+        usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+        ip: getIp(req), detalle: { nombreComercial }
+      });
       res.status(201).json(
         createResponse(
           true,
@@ -400,9 +407,15 @@ class ProveedoresController {
         RETURNING *
       `;
       
-      const result = await query(updateQuery, valoresUpdate);
+      const result = await queryAudit(updateQuery, valoresUpdate, req.user?.id, req.user?.nombre || req.user?.username);
       const proveedorActualizado = result.rows[0];
       
+      registrarBitacora({
+        modulo: 'proveedores', accion: 'PROVEEDOR_ACTUALIZADO',
+        entidad: 'proveedores', entidadId: proveedorId,
+        usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+        ip: getIp(req), detalle: { nombreComercial: proveedorActualizado.nombre_comercial }
+      });
       res.json(
         createResponse(
           true,
@@ -457,11 +470,18 @@ class ProveedoresController {
       }
       
       // Desactivar en lugar de eliminar
-      await query(
+      await queryAudit(
         'UPDATE proveedores SET activo = false, fecha_modificacion = NOW() WHERE id = $1',
-        [proveedorId]
+        [proveedorId],
+        req.user?.id, req.user?.nombre || req.user?.username
       );
       
+      registrarBitacora({
+        modulo: 'proveedores', accion: 'PROVEEDOR_ELIMINADO',
+        entidad: 'proveedores', entidadId: proveedorId,
+        usuarioId: req.user?.id, usuarioNombre: req.user?.nombre || req.user?.username,
+        ip: getIp(req)
+      });
       res.json(
         createResponse(
           true,

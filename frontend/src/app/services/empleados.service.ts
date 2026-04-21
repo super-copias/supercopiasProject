@@ -122,6 +122,16 @@ export class EmpleadosService {
   }
 
   /**
+   * Activar / desactivar empleado (toggle de estado)
+   */
+  toggleEstado(id: number): Observable<ApiResponse<{ id: number; activo: boolean }>> {
+    return this.http.patch<ApiResponse<{ id: number; activo: boolean }>>(`${this.baseUrl}/${id}/toggle-estado`, {})
+      .pipe(
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
    * Obtener catálogo de puestos con caché
    */
   getPuestos(forceRefresh = false): Observable<ApiResponse<string[]>> {
@@ -279,6 +289,14 @@ export class EmpleadosService {
       usuarioId: empleado.usuario?.id || empleado.usuario_id,
       usuario: empleado.usuario
     };
+  }
+
+  /**
+   * Asignar contrase\u00f1a temporal a un empleado (solo administradores)
+   */
+  resetPassword(empleadoId: number, nuevaPassword: string): Observable<ApiResponse<null>> {
+    return this.http.patch<ApiResponse<null>>(`${this.baseUrl}/${empleadoId}/reset-password`, { nuevaPassword })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**

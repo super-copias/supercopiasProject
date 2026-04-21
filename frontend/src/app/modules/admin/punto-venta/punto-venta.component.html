@@ -11,7 +11,7 @@
         <button class="btn" [class.btn-primary]="vistaActiva==='pos'"
           [class.btn-outline-primary]="vistaActiva!=='pos'"
           (click)="cambiarVista('pos')">
-          <i class="bi bi-cash-register me-1"></i>Nueva Venta
+          <i class="bi bi-bag-plus me-1"></i>Nueva Venta
         </button>
         <button class="btn" [class.btn-primary]="vistaActiva==='historial'"
           [class.btn-outline-primary]="vistaActiva!=='historial'"
@@ -22,6 +22,12 @@
           [class.btn-outline-primary]="vistaActiva!=='cotizaciones'"
           (click)="cambiarVista('cotizaciones')">
           <i class="bi bi-file-earmark-text me-1"></i>Cotizaciones
+        </button>
+        <button class="btn" [class.btn-primary]="vistaActiva==='pedidos'"
+          [class.btn-outline-primary]="vistaActiva!=='pedidos'"
+          (click)="cambiarVista('pedidos')">
+          <i class="bi bi-card-list me-1"></i>Pedidos
+          <span class="badge bg-danger ms-1" *ngIf="pedidosActivos > 0">{{ pedidosActivos }}</span>
         </button>
       </div>
     </div>
@@ -80,7 +86,8 @@
         [descuentoAutorizadoPor]="descuentoAutorizadoPor"
         (descuentoCambiado)="onDescuentoCambiado($event)"
         (ventaCompletada)="onVentaCompletada()"
-        (cotizacionGuardada)="onCotizacionGuardada($event)">
+        (cotizacionGuardada)="onCotizacionGuardada($event)"
+        (pedidoGuardado)="onPedidoGuardado($event)">
       </app-pos-panel-cobro>
     </div>
   </div>
@@ -100,5 +107,14 @@
       (cotizacionConvertida)="cargarStats()"
       (irANuevaVenta)="cambiarVista('pos')">
     </app-pos-cotizaciones-list>
+  </div>
+  <!-- ════════════════════════════════════════════ -->
+  <!-- VISTA PEDIDOS                              -->
+  <!-- ════════════════════════════════════════════ -->
+  <div class="pos-historial-wrapper" *ngIf="vistaActiva==='pedidos'">
+    <app-pos-pedidos-list
+      (irANuevaVenta)="cambiarVista('pos')"
+      (statsActualizadas)="onStatsActualizadas($event)">
+    </app-pos-pedidos-list>
   </div>
 </div>

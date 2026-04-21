@@ -20,6 +20,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   @Output() descuentoCambiado    = new EventEmitter<{ pct: number; configId: number | null; autorizadoPor: string | null }>();
   @Output() ventaCompletada       = new EventEmitter<void>();
   @Output() cotizacionGuardada    = new EventEmitter<CotizacionDetalle>();
+  @Output() pedidoGuardado        = new EventEmitter<any>()
 
   private destroy$ = new Subject<void>();
 
@@ -41,6 +42,19 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   // Descuento manual
   descuentoManualPct = 0;
 
+  // Confirmación de acciones
+  mostrarConfirmacion = false;
+  accionPendiente: 'venta' | 'cotizacion' | null = null;
+
+  // Modales de herramientas
+  mostrarModalDescuento   = false;
+  mostrarModalFacturacion = false;  // preview desglose fiscal
+  mostrarModalPedido      = false;
+
+  // ── Facturación (toggle en panel) ──────────────────────────────────────
+  requiereFactura    = false;
+  totalConFactura    = 0;  // calculado por el componente hijo vía event o input
+
   // Autorización de descuento elevado
   mostrarAutorizacion = false;
   pinAutorizacion = '';
@@ -52,6 +66,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   // Notas
   notas = '';
+  folioOperacion = '';
 
   readonly LIMITE_CAJERO = 15;
 
@@ -133,8 +148,9 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get puedeVender(): boolean {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
     return this.carrito.length > 0 && !this.procesando &&
-      (this.metodoPago !== 'efectivo' || !this.montoRecibido || this.montoRecibido >= this.totales.total);
+      (this.metodoPago !== 'efectivo' || (!!this.montoRecibido && this.montoRecibido >= this.totales.total));
   }
 
   procesarVenta(): void {
@@ -155,6 +171,8 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       descuento_config_id: this.descuentoConfigId,
       descuento_autorizado_por: this.descuentoAutorizadoPor,
       notas: this.notas || undefined,
+      folio_operacion: this.folioOperacion || undefined,
+      requiere_factura: this.requiereFactura,
     };
 
     this.posService.createVenta(payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -241,14 +259,30 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.cotizacionExitosa = null;
     this.mostrarTicketCotizacion = false;
     this.montoRecibido = null;
+    this.folioOperacion = '';
     this.notas = '';
     this.descuentoManualPct = 0;
     this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
   }
 
+  // ── Pedido ───────────────────────────────────────────────────
+
+  abrirModalPedido(): void {
+    // Destruir el componente primero (si estuviera abierto) y recrearlo en el siguiente tick
+    // para garantizar que Angular complete el ciclo de destrucción antes de crearlo de nuevo.
+    this.mostrarModalPedido = false;
+    setTimeout(() => { this.mostrarModalPedido = true; });
+  }
+
+  onPedidoGenerado(pedido: any): void {
+    this.mostrarModalPedido = false;
+    this.pedidoGuardado.emit(pedido);
+  }
+
   // ── Cotización ────────────────────────────────────────────────
 
   get puedeGuardarCotizacion(): boolean {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
     return this.carrito.length > 0 && !this.procesandoCotizacion;
   }
 
@@ -263,6 +297,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       descuento_pct: this.descuentoGlobalPct,
       notas: this.notas || undefined,
       fecha_vencimiento: this.fechaVencimientoCotizacion || undefined,
+      requiere_factura: this.requiereFactura,
     };
 
     this.posService.createCotizacion(payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -277,6 +312,33 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
         this.procesandoCotizacion = false;
       }
     });
+  }
+
+  // ── Confirmación ──────────────────────────────────────────────
+
+  solicitarConfirmacion(accion: 'venta' | 'cotizacion'): void {
+    if (accion === 'venta' && !this.puedeVender) return;
+    if (accion === 'cotizacion' && !this.puedeGuardarCotizacion) return;
+    this.accionPendiente = accion;
+    this.mostrarConfirmacion = true;
+  }
+
+  confirmarAccion(): void {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) {
+      this.error = 'Para facturar debes seleccionar un cliente registrado en el sistema.';
+      this.mostrarConfirmacion = false;
+      return;
+    }
+    this.mostrarConfirmacion = false;
+    const accion = this.accionPendiente;
+    this.accionPendiente = null;
+    if (accion === 'venta') this.procesarVenta();
+    else if (accion === 'cotizacion') this.guardarCotizacion();
+  }
+
+  cancelarConfirmacion(): void {
+    this.mostrarConfirmacion = false;
+    this.accionPendiente     = null;
   }
 
   // ── Helpers ───────────────────────────────────────────────────

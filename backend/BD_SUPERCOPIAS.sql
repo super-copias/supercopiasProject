@@ -174,39 +174,54 @@ $$;
 CREATE FUNCTION public.trigger_auditoria() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-
+DECLARE
+  v_user_id      integer;
+  v_user_nombre  varchar(255);
 BEGIN
+  -- Leer el contexto de usuario inyectado por el backend vía SET LOCAL.
+  -- current_setting('...', true) devuelve NULL en vez de ERROR si la variable no está definida.
+  v_user_id     := nullif(current_setting('app.current_user_id',     true), '')::integer;
+  v_user_nombre := nullif(current_setting('app.current_user_nombre', true), '');
 
-    IF TG_OP = 'DELETE' THEN
+  IF TG_OP = 'DELETE' THEN
+    INSERT INTO auditoria (
+      tabla, operacion, registro_id,
+      datos_anteriores, modulo,
+      usuario_id, usuario_nombre
+    ) VALUES (
+      TG_TABLE_NAME, TG_OP, OLD.id::varchar,
+      row_to_json(OLD), TG_TABLE_NAME,
+      v_user_id, v_user_nombre
+    );
+    RETURN OLD;
 
-        INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores)
+  ELSIF TG_OP = 'UPDATE' THEN
+    INSERT INTO auditoria (
+      tabla, operacion, registro_id,
+      datos_anteriores, datos_nuevos, modulo,
+      usuario_id, usuario_nombre
+    ) VALUES (
+      TG_TABLE_NAME, TG_OP, NEW.id::varchar,
+      row_to_json(OLD), row_to_json(NEW), TG_TABLE_NAME,
+      v_user_id, v_user_nombre
+    );
+    RETURN NEW;
 
-        VALUES (TG_TABLE_NAME, TG_OP, OLD.id, row_to_json(OLD));
+  ELSIF TG_OP = 'INSERT' THEN
+    INSERT INTO auditoria (
+      tabla, operacion, registro_id,
+      datos_nuevos, modulo,
+      usuario_id, usuario_nombre
+    ) VALUES (
+      TG_TABLE_NAME, TG_OP, NEW.id::varchar,
+      row_to_json(NEW), TG_TABLE_NAME,
+      v_user_id, v_user_nombre
+    );
+    RETURN NEW;
+  END IF;
 
-        RETURN OLD;
-
-    ELSIF TG_OP = 'UPDATE' THEN
-
-        INSERT INTO auditoria (tabla, operacion, registro_id, datos_anteriores, datos_nuevos)
-
-        VALUES (TG_TABLE_NAME, TG_OP, NEW.id, row_to_json(OLD), row_to_json(NEW));
-
-        RETURN NEW;
-
-    ELSIF TG_OP = 'INSERT' THEN
-
-        INSERT INTO auditoria (tabla, operacion, registro_id, datos_nuevos)
-
-        VALUES (TG_TABLE_NAME, TG_OP, NEW.id, row_to_json(NEW));
-
-        RETURN NEW;
-
-    END IF;
-
-    RETURN NULL;
-
+  RETURN NULL;
 END;
-
 $$;
 
 
@@ -257,15 +272,18 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.auditoria (
-    id integer NOT NULL,
-    tabla character varying(100) NOT NULL,
-    operacion character varying(20) NOT NULL,
-    registro_id integer NOT NULL,
+    id               integer NOT NULL,
+    tabla            character varying(100) NOT NULL,
+    operacion        character varying(20) NOT NULL,
+    registro_id      character varying(50) NOT NULL,
     datos_anteriores jsonb,
-    datos_nuevos jsonb,
-    usuario_id integer,
-    ip_address inet,
-    fecha_operacion timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    datos_nuevos     jsonb,
+    usuario_id       integer,
+    ip_address       inet,
+    fecha_operacion  timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    usuario_nombre   character varying(255),
+    modulo           character varying(50),
+    accion           character varying(100),
     CONSTRAINT chk_auditoria_operacion CHECK (((operacion)::text = ANY (ARRAY[('INSERT'::character varying)::text, ('UPDATE'::character varying)::text, ('DELETE'::character varying)::text])))
 );
 
@@ -275,6 +293,9 @@ CREATE TABLE public.auditoria (
 --
 
 COMMENT ON TABLE public.auditoria IS 'Registro completo de operaciones para auditoría';
+COMMENT ON COLUMN public.auditoria.usuario_nombre IS 'Nombre legible del usuario que generó el cambio (si aplica)';
+COMMENT ON COLUMN public.auditoria.modulo         IS 'Módulo del sistema: clientes, empleados, inventarios, pos, equipos...';
+COMMENT ON COLUMN public.auditoria.accion         IS 'Descripción semántica de la acción, ej. CANCELAR_VENTA';
 
 
 --
@@ -486,6 +507,27 @@ CREATE SEQUENCE public.cat_tipos_proveedor_id_seq
 --
 
 ALTER SEQUENCE public.cat_tipos_proveedor_id_seq OWNED BY public.cat_tipos_proveedor.id;
+
+
+--
+-- Name: cat_impuestos_facturacion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.cat_impuestos_facturacion (
+    id                 SERIAL PRIMARY KEY,
+    nombre             VARCHAR(100)  NOT NULL,
+    tipo               VARCHAR(30)   NOT NULL,  -- 'iva' | 'isr_retencion'
+    porcentaje         NUMERIC(6,4)  NOT NULL,  -- 0.1600 / 0.0125
+    activo             BOOLEAN       DEFAULT TRUE,
+    fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT chk_impuesto_tipo CHECK (tipo IN ('iva','isr_retencion')),
+    CONSTRAINT chk_impuesto_pct  CHECK (porcentaje >= 0 AND porcentaje <= 1)
+);
+
+INSERT INTO public.cat_impuestos_facturacion (nombre, tipo, porcentaje) VALUES
+  ('IVA 16%',       'iva',          0.1600),
+  ('ISR Retención', 'isr_retencion',0.0125)
+ON CONFLICT DO NOTHING;
 
 
 --
@@ -1554,6 +1596,7 @@ CREATE TABLE public.usuarios (
     phone character varying(20),
     bio text,
     profile_image character varying(500),
+    must_reset_password boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_usuarios_email CHECK (((email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
     CONSTRAINT chk_usuarios_role CHECK (((role)::text = ANY (ARRAY[('admin'::character varying)::text, ('gerente'::character varying)::text, ('empleado'::character varying)::text, ('invitado'::character varying)::text])))
 );
@@ -1564,6 +1607,12 @@ CREATE TABLE public.usuarios (
 --
 
 COMMENT ON TABLE public.usuarios IS 'Usuarios del sistema con autenticación y autorización';
+
+--
+-- Name: COLUMN usuarios.must_reset_password; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.usuarios.must_reset_password IS 'Bandera que obliga al usuario a cambiar su contraseña en el próximo inicio de sesión. Se activa cuando un administrador asigna una contraseña temporal desde el módulo de empleados.';
 
 
 --
@@ -2239,7 +2288,7 @@ COPY public.modulos (id, clave, nombre, icono, activo, orden, fecha_creacion) FR
 6	punto_venta	Punto de Venta	fas fa-cash-register	t	6	2025-12-08 00:00:00-06
 7	equipos	Equipos	fas fa-desktop	t	7	2025-12-08 00:00:00-06
 8	reportes	Reportes	fas fa-chart-bar	t	8	2025-12-08 00:00:00-06
-9	configuracion	Configuración	fas fa-cogs	t	9	2025-12-08 00:00:00-06
+9	facturacion	Facturación	fas fa-file-invoice	t	9	2026-04-20 00:00:00-06
 \.
 
 
@@ -2508,7 +2557,7 @@ SELECT pg_catalog.setval('public.metodos_pago_id_seq', 4, true);
 -- Name: modulos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.modulos_id_seq', 9, true);
+SELECT pg_catalog.setval('public.modulos_id_seq', 10, true);
 
 
 --
@@ -3547,6 +3596,41 @@ CREATE TRIGGER trg_usuarios_updated_at BEFORE UPDATE ON public.usuarios FOR EACH
 
 
 --
+-- Name: inventarios trg_inventarios_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_inventarios_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.inventarios FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: pos_ventas trg_pos_ventas_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_pos_ventas_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.pos_ventas FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: equipos trg_equipos_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_equipos_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.equipos FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: facturas trg_facturas_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_facturas_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.facturas FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
+-- Name: pos_clientes_puntos trg_pos_clientes_puntos_auditoria; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_pos_clientes_puntos_auditoria AFTER INSERT OR DELETE OR UPDATE ON public.pos_clientes_puntos FOR EACH ROW EXECUTE FUNCTION public.trigger_auditoria();
+
+
+--
 -- Name: eventos_personal eventos_personal_aprobado_por_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3767,6 +3851,10 @@ CREATE TABLE public.pos_ventas (
     motivo_cancelacion          text,
     notas                       text,
     ticket_generado             boolean DEFAULT false,
+    requiere_factura            boolean DEFAULT false,
+    factura_id                  integer,
+    iva_monto                   numeric(12,2) DEFAULT 0,
+    isr_monto                   numeric(12,2) DEFAULT 0,
     fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_pos_ventas_estatus CHECK (((estatus)::text = ANY (ARRAY[
         ('completada'::character varying)::text,
@@ -3926,6 +4014,44 @@ CREATE INDEX idx_inv_mov_venta ON public.inventarios_movimientos (venta_id) WHER
 
 
 --
+-- Name: bitacora_negocio; Type: TABLE; Schema: public; Owner: -
+-- Eventos de negocio registrados desde el backend con contexto semántico
+-- Migración: 2026-04-20
+--
+
+CREATE TABLE public.bitacora_negocio (
+    id              serial        NOT NULL,
+    fecha           timestamptz   NOT NULL DEFAULT NOW(),
+    modulo          varchar(50)   NOT NULL,
+    accion          varchar(100)  NOT NULL,
+    entidad         varchar(100),
+    entidad_id      varchar(50),
+    usuario_id      integer,
+    usuario_nombre  varchar(255),
+    ip_address      varchar(45),
+    detalle         jsonb,
+    resultado       varchar(20)   NOT NULL DEFAULT 'exito',
+    CONSTRAINT bitacora_negocio_pkey PRIMARY KEY (id),
+    CONSTRAINT chk_bitacora_resultado CHECK (resultado IN ('exito','error','bloqueado'))
+);
+
+COMMENT ON TABLE  public.bitacora_negocio IS 'Eventos de negocio registrados desde el backend con contexto semántico';
+COMMENT ON COLUMN public.bitacora_negocio.modulo        IS 'Módulo origen: pos, pedidos, inventarios, auth, equipos...';
+COMMENT ON COLUMN public.bitacora_negocio.accion        IS 'Código de acción: VENTA_COMPLETADA, LOGIN_EXITOSO, AJUSTE_STOCK...';
+COMMENT ON COLUMN public.bitacora_negocio.entidad       IS 'Nombre de la tabla/entidad afectada';
+COMMENT ON COLUMN public.bitacora_negocio.entidad_id    IS 'ID o folio del registro afectado';
+COMMENT ON COLUMN public.bitacora_negocio.detalle       IS 'JSON con contexto específico del evento';
+COMMENT ON COLUMN public.bitacora_negocio.resultado     IS 'exito | error | bloqueado';
+
+CREATE INDEX idx_bitacora_fecha         ON public.bitacora_negocio (fecha DESC);
+CREATE INDEX idx_bitacora_modulo        ON public.bitacora_negocio (modulo);
+CREATE INDEX idx_bitacora_accion        ON public.bitacora_negocio (accion);
+CREATE INDEX idx_bitacora_usuario       ON public.bitacora_negocio (usuario_id);
+CREATE INDEX idx_bitacora_entidad       ON public.bitacora_negocio (entidad, entidad_id);
+CREATE INDEX idx_bitacora_modulo_fecha  ON public.bitacora_negocio (modulo, fecha DESC);
+
+
+--
 -- FK Constraints POS
 --
 
@@ -4008,6 +4134,8 @@ CREATE TABLE IF NOT EXISTS public.pos_cotizaciones (
     notas                 TEXT,
     fecha_vencimiento     DATE,
     venta_id              INTEGER,
+    requiere_factura      BOOLEAN NOT NULL DEFAULT FALSE,
+    factura_id            INTEGER,
     fecha_creacion        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     fecha_modificacion    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT chk_cotizacion_estatus CHECK (estatus IN ('pendiente','aceptada','rechazada','vencida'))
@@ -4047,6 +4175,292 @@ ALTER TABLE ONLY public.pos_cotizaciones_detalle
 CREATE TRIGGER trg_pos_cotizaciones_updated_at
     BEFORE UPDATE ON public.pos_cotizaciones
     FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
+-- ============================================================
+-- Horarios de Acceso
+-- Controla automáticamente el acceso de empleados al sistema
+-- según franjas horarias configuradas.
+-- Migración: 2026-04-13
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.horarios_acceso (
+    id             SERIAL PRIMARY KEY,
+    nombre         CHARACTER VARYING(100) NOT NULL,
+    hora_inicio    TIME NOT NULL,
+    hora_fin       TIME NOT NULL,
+    activo         BOOLEAN DEFAULT true,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_horarios_rango CHECK (hora_fin > hora_inicio)
+);
+
+COMMENT ON TABLE public.horarios_acceso IS
+    'Franjas horarias que controlan el acceso automático de empleados al sistema';
+
+-- Horario laboral por defecto: 6:40 am – 9:30 pm
+INSERT INTO public.horarios_acceso (nombre, hora_inicio, hora_fin, activo)
+VALUES ('Horario laboral', '06:40', '21:30', true)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- MÓDULO: Control de Sesiones
+-- Sesión única por usuario + cierre por inactividad (15 min)
+-- Migración: 2026-04-14
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.user_sessions (
+    id            SERIAL PRIMARY KEY,
+    usuario_id    INTEGER NOT NULL,
+    token_hash    CHARACTER VARYING(64) NOT NULL,
+    ip_address    CHARACTER VARYING(45),
+    user_agent    TEXT,
+    created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    last_activity TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    active        BOOLEAN DEFAULT true NOT NULL,
+    CONSTRAINT uq_user_sessions_token_hash UNIQUE (token_hash)
+);
+
+COMMENT ON TABLE  public.user_sessions IS 'Sesiones activas por usuario. Garantiza sesión única y controla inactividad (15 min).';
+COMMENT ON COLUMN public.user_sessions.token_hash   IS 'SHA-256 del JWT. No se almacena el token crudo.';
+COMMENT ON COLUMN public.user_sessions.expires_at   IS 'Expiración máxima del JWT (8 horas desde creación).';
+COMMENT ON COLUMN public.user_sessions.active        IS 'false cuando la sesión fue desplazada, cerrada manualmente o expiró por inactividad.';
+
+CREATE INDEX IF NOT EXISTS idx_user_sessions_usuario_active ON public.user_sessions (usuario_id, active);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_token_hash     ON public.user_sessions (token_hash);
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT fk_user_sessions_usuario
+    FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+-- ============================================================
+-- MÓDULO: Pedidos POS
+-- Flujo de trabajo: pendiente → en_proceso → terminado → finalizado
+-- Al finalizar se convierte en venta (pos_ventas).
+-- Migración: 2026-04-19
+-- ============================================================
+
+-- Cabecera del pedido
+CREATE TABLE IF NOT EXISTS public.pos_pedidos (
+    id                          SERIAL PRIMARY KEY,
+    folio                       CHARACTER VARYING(25) UNIQUE NOT NULL,
+
+    -- Estado del pedido
+    estatus                     CHARACTER VARYING(20) NOT NULL DEFAULT 'pendiente',
+    CONSTRAINT chk_pedido_estatus CHECK (estatus IN (
+        'pendiente', 'en_proceso', 'terminado', 'finalizado', 'cancelado')),
+
+    -- Cliente (puede ser libre o registrado)
+    cliente_id                  INTEGER,
+    cliente_nombre              CHARACTER VARYING(200) NOT NULL DEFAULT 'Público General',
+    cliente_telefono            CHARACTER VARYING(30),
+
+    -- ¿Pedido originado por WhatsApp?
+    via_whatsapp                BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Facturación
+    requiere_factura            BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Totales
+    subtotal                    NUMERIC(12,2) NOT NULL DEFAULT 0,
+    descuento_pct               NUMERIC(5,2)  NOT NULL DEFAULT 0,
+    descuento_monto             NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total                       NUMERIC(12,2) NOT NULL DEFAULT 0,
+    anticipo                    NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+    -- Descuento
+    descuento_config_id         INTEGER,
+    descuento_autorizado_por    CHARACTER VARYING(200),
+
+    -- Pago del anticipo
+    metodo_pago_anticipo        CHARACTER VARYING(30),
+
+    -- Pago del saldo al entregar
+    metodo_pago_saldo           CHARACTER VARYING(30),
+    monto_recibido_saldo        NUMERIC(12,2),
+
+    -- Fecha acordada de entrega
+    fecha_acordada              TIMESTAMP WITH TIME ZONE,
+
+    -- Notas
+    notas                       TEXT,
+
+    -- Trazabilidad: quien levantó el pedido
+    creado_por_id               INTEGER NOT NULL,
+    creado_por_nombre           CHARACTER VARYING(200) NOT NULL,
+    fecha_creacion              TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Quien tomó el pedido (en_proceso)
+    tomado_por_id               INTEGER,
+    tomado_por_nombre           CHARACTER VARYING(200),
+    fecha_tomado                TIMESTAMP WITH TIME ZONE,
+
+    -- Quien terminó (terminado)
+    terminado_por_id            INTEGER,
+    terminado_por_nombre        CHARACTER VARYING(200),
+    fecha_terminado             TIMESTAMP WITH TIME ZONE,
+
+    -- Quien entregó (finalizado)
+    entregado_por_id            INTEGER,
+    entregado_por_nombre        CHARACTER VARYING(200),
+    fecha_entregado             TIMESTAMP WITH TIME ZONE,
+
+    -- Cancelación
+    motivo_cancelacion          TEXT,
+
+    -- Venta generada al finalizar
+    venta_id                    INTEGER,
+
+    -- Factura asociada
+    factura_id                  INTEGER,
+
+    fecha_modificacion          TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+COMMENT ON TABLE  public.pos_pedidos IS 'Pedidos levantados en el POS. Flujo: pendiente→en_proceso→terminado→finalizado. Al finalizar genera una venta.';
+COMMENT ON COLUMN public.pos_pedidos.folio          IS 'Folio único en formato PP-YYYY-NNNNN';
+COMMENT ON COLUMN public.pos_pedidos.anticipo       IS 'Monto cobrado por adelantado al levantar el pedido';
+COMMENT ON COLUMN public.pos_pedidos.via_whatsapp   IS 'true si el pedido fue recibido por WhatsApp';
+
+-- Detalle de ítems del pedido (estructura idéntica a pos_ventas_detalle)
+CREATE TABLE IF NOT EXISTS public.pos_pedidos_detalle (
+    id                    SERIAL PRIMARY KEY,
+    pedido_id             INTEGER NOT NULL,
+    inventario_id         INTEGER,
+    nombre_producto       CHARACTER VARYING(300) NOT NULL,
+    sku                   CHARACTER VARYING(100),
+    es_servicio           BOOLEAN NOT NULL DEFAULT FALSE,
+    es_item_libre         BOOLEAN NOT NULL DEFAULT FALSE,
+    cantidad              NUMERIC(10,2) NOT NULL,
+    precio_unitario       NUMERIC(12,2) NOT NULL,
+    descuento_linea_pct   NUMERIC(5,2)  NOT NULL DEFAULT 0,
+    descuento_linea_monto NUMERIC(12,2) NOT NULL DEFAULT 0,
+    subtotal_linea        NUMERIC(12,2) NOT NULL
+);
+
+COMMENT ON TABLE public.pos_pedidos_detalle IS 'Líneas de producto/servicio de cada pedido';
+
+-- Historial de cambios de estado (auditoría completa)
+CREATE TABLE IF NOT EXISTS public.pos_pedidos_historial (
+    id               SERIAL PRIMARY KEY,
+    pedido_id        INTEGER NOT NULL,
+    estatus_anterior CHARACTER VARYING(20),
+    estatus_nuevo    CHARACTER VARYING(20) NOT NULL,
+    usuario_id       INTEGER,
+    usuario_nombre   CHARACTER VARYING(200) NOT NULL,
+    notas            TEXT,
+    fecha            TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+COMMENT ON TABLE public.pos_pedidos_historial IS 'Auditoría de cada cambio de estado en un pedido';
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_estatus       ON public.pos_pedidos (estatus);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_cliente       ON public.pos_pedidos (cliente_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_creado_por    ON public.pos_pedidos (creado_por_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_tomado_por    ON public.pos_pedidos (tomado_por_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_fecha         ON public.pos_pedidos (fecha_creacion DESC);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_detalle_ped   ON public.pos_pedidos_detalle (pedido_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_hist_ped      ON public.pos_pedidos_historial (pedido_id);
+
+-- Foreign keys
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_cliente  FOREIGN KEY (cliente_id)  REFERENCES public.clientes(id)    ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_venta    FOREIGN KEY (venta_id)    REFERENCES public.pos_ventas(id)  ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos_detalle
+    ADD CONSTRAINT fk_pedidos_det_ped  FOREIGN KEY (pedido_id)   REFERENCES public.pos_pedidos(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.pos_pedidos_detalle
+    ADD CONSTRAINT fk_pedidos_det_inv  FOREIGN KEY (inventario_id) REFERENCES public.inventarios(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos_historial
+    ADD CONSTRAINT fk_pedidos_hist_ped FOREIGN KEY (pedido_id)   REFERENCES public.pos_pedidos(id) ON DELETE CASCADE;
+
+-- Trigger updated_at
+CREATE TRIGGER trg_pos_pedidos_updated_at
+    BEFORE UPDATE ON public.pos_pedidos
+    FOR EACH ROW EXECUTE FUNCTION public.trigger_updated_at();
+
+
+-- ============================================================
+-- Módulo de Facturación CFDI 4.0
+-- ============================================================
+
+-- Secuencia para folio de facturas
+CREATE SEQUENCE IF NOT EXISTS public.facturas_folio_seq START WITH 1;
+
+--
+-- Name: facturas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.facturas (
+    id                   SERIAL PRIMARY KEY,
+    folio                VARCHAR(25) UNIQUE NOT NULL,  -- FA-2026-00001
+
+    -- Estatus del flujo
+    estatus              VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+    CONSTRAINT chk_factura_estatus CHECK (
+        estatus IN ('pendiente','generada','cancelada')
+    ),
+
+    -- Origen (solo uno de los tres será no-nulo)
+    venta_id             INTEGER REFERENCES public.pos_ventas(id)       ON DELETE SET NULL,
+    pedido_id            INTEGER REFERENCES public.pos_pedidos(id)      ON DELETE SET NULL,
+    cotizacion_id        INTEGER REFERENCES public.pos_cotizaciones(id) ON DELETE SET NULL,
+    tipo_origen          VARCHAR(20) NOT NULL,
+    CONSTRAINT chk_factura_origen CHECK (tipo_origen IN ('venta','pedido','cotizacion')),
+
+    -- Datos fiscales del cliente (snapshot al momento de emitir)
+    cliente_id           INTEGER NOT NULL REFERENCES public.clientes(id),
+    cliente_nombre       VARCHAR(500),
+    cliente_rfc          VARCHAR(13),
+    cliente_razon_social VARCHAR(500),
+    cliente_regimen      VARCHAR(10),
+    cliente_uso_cfdi     VARCHAR(10),
+    cliente_cp           VARCHAR(10),
+
+    -- Montos calculados (snapshot de tasas)
+    subtotal             NUMERIC(12,2) NOT NULL,
+    iva_pct              NUMERIC(6,4)  NOT NULL,
+    iva_monto            NUMERIC(12,2) NOT NULL,
+    isr_pct              NUMERIC(6,4)  NOT NULL,
+    isr_monto            NUMERIC(12,2) NOT NULL,
+    total_factura        NUMERIC(12,2) NOT NULL,  -- subtotal + iva - isr
+
+    -- Datos SAT (reservados para integración PAC futura)
+    uuid_cfdi            VARCHAR(36),
+    xml_cfdi             TEXT,
+    pdf_url              VARCHAR(500),
+    fecha_timbrado       TIMESTAMP WITH TIME ZONE,
+
+    -- Auditoría
+    creado_por_id        INTEGER,
+    creado_por_nombre    VARCHAR(255),
+    notas                TEXT,
+    motivo_cancelacion   TEXT,
+    fecha_creacion       TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    fecha_modificacion   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+COMMENT ON TABLE public.facturas IS 'Registro de facturas CFDI 4.0. Puede originarse de una venta, pedido o cotización.';
+
+CREATE INDEX IF NOT EXISTS idx_facturas_venta      ON public.facturas(venta_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_pedido     ON public.facturas(pedido_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_cotizacion ON public.facturas(cotizacion_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_cliente    ON public.facturas(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_estatus    ON public.facturas(estatus);
+CREATE INDEX IF NOT EXISTS idx_facturas_fecha      ON public.facturas(fecha_creacion DESC);
+
+-- FK: pos_ventas.factura_id → facturas
+ALTER TABLE ONLY public.pos_ventas
+    ADD CONSTRAINT fk_pos_ventas_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
+
+-- FK: pos_cotizaciones.factura_id → facturas
+ALTER TABLE ONLY public.pos_cotizaciones
+    ADD CONSTRAINT fk_cotizaciones_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
+
+-- FK: pos_pedidos.factura_id → facturas
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
+
 
 --
 -- PostgreSQL database dump complete

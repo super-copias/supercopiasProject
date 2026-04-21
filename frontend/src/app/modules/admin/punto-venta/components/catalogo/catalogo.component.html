@@ -21,7 +21,7 @@
 
   <!-- Filtros por departamento -->
   <div class="departamentos-bar" *ngIf="departamentos.length > 0">
-    <button class="dep-chip" [class.active]="departamentoActivo===null"
+    <button class="dep-chip dep-chip--all" [class.active]="departamentoActivo===null"
       (click)="seleccionarDepartamento(null)">Todos</button>
     <button class="dep-chip" *ngFor="let d of departamentos"
       [class.active]="departamentoActivo===d.id"
@@ -61,16 +61,12 @@
         (click)="agregar(item)"
         [title]="item.nivel_stock==='sin_stock' ? 'Sin stock disponible' : 'Clic para agregar al carrito'">
 
-        <!-- Imagen / Icono -->
-        <div class="prod-img">
+        <!-- Ícono / miniatura -->
+        <div class="prod-icono">
           <img *ngIf="item.foto_url" [src]="item.foto_url" [alt]="item.nombre">
-          <div class="prod-icon" *ngIf="!item.foto_url">
-            <i class="bi" [class.bi-printer]="!item.es_servicio" [class.bi-tools]="item.es_servicio"></i>
-          </div>
-          <span class="badge-stock badge bg-{{ badgeNivelStock(item.nivel_stock) }}">
-            {{ labelNivelStock(item.nivel_stock) }}
-          </span>
-          <!-- Indicador más vendido -->
+          <i *ngIf="!item.foto_url" class="bi"
+             [class.bi-box-seam]="!item.es_servicio"
+             [class.bi-file-earmark-richtext]="item.es_servicio"></i>
           <span class="badge-top-sold" *ngIf="item.veces_vendido && item.veces_vendido > 0" title="Más vendido">
             <i class="bi bi-fire"></i>
           </span>
@@ -78,21 +74,20 @@
 
         <!-- Info -->
         <div class="prod-info">
-          <div class="prod-nombre">{{ item.nombre }}</div>
+          <div class="prod-cabecera">
+            <span class="prod-nombre" [title]="item.nombre">{{ item.nombre }}</span>
+            <span class="badge-stock badge bg-{{ badgeNivelStock(item.nivel_stock) }}">{{ labelNivelStock(item.nivel_stock) }}</span>
+          </div>
           <div class="prod-sku text-muted" *ngIf="item.sku">SKU: {{ item.sku }}</div>
           <div class="prod-precio">{{ item.precio_venta | currency:'MXN':'symbol-narrow':'1.2-2' }}</div>
           <div class="prod-stock text-muted" *ngIf="!item.es_servicio">
             <i class="bi bi-box-seam me-1"></i>{{ item.existencia_actual }} {{ item.unidad_medida }}
           </div>
           <div class="prod-stock text-info" *ngIf="item.es_servicio">
-            <i class="bi bi-gear me-1"></i>Servicio
+            <i class="bi bi-patch-check me-1"></i>Servicio
           </div>
         </div>
 
-        <!-- Botón de agregar -->
-        <div class="prod-accion">
-          <i class="bi bi-plus-circle-fill"></i>
-        </div>
       </div>
     </div>
 

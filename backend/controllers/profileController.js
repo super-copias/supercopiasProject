@@ -3,7 +3,7 @@
  * Gestiona operaciones de perfil, edición y cambio de contraseña
  */
 
-const { query } = require('../config/database');
+const { query, queryAudit } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -174,7 +174,7 @@ async function updateProfile(req, res) {
       RETURNING *
     `;
 
-    const result = await query(updateQuery, valoresUpdate);
+    const result = await queryAudit(updateQuery, valoresUpdate, req.user.id, req.user.nombre || req.user.username);
     const updatedUser = result.rows[0];
     
     // Remover contraseña de la respuesta
@@ -288,12 +288,13 @@ async function changePassword(req, res) {
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Actualizar contraseña en PostgreSQL
-    await query(
+    await queryAudit(
       `UPDATE usuarios 
        SET password = $1, 
            fecha_modificacion = NOW()
        WHERE id = $2`,
-      [hashedNewPassword, req.user.id]
+      [hashedNewPassword, req.user.id],
+      req.user.id, req.user.nombre || req.user.username
     );
 
     res.json(
@@ -400,12 +401,13 @@ async function uploadProfileImage(req, res) {
     }
 
     // Actualizar usuario en PostgreSQL
-    await query(
+    await queryAudit(
       `UPDATE usuarios 
        SET profile_image = $1, 
            fecha_modificacion = NOW()
        WHERE id = $2`,
-      [imageUrl, req.user.id]
+      [imageUrl, req.user.id],
+      req.user.id, req.user.nombre || req.user.username
     );
 
     res.json(
@@ -485,12 +487,13 @@ async function removeProfileImage(req, res) {
     }
 
     // Actualizar usuario en PostgreSQL
-    await query(
+    await queryAudit(
       `UPDATE usuarios 
        SET profile_image = NULL, 
            fecha_modificacion = NOW()
        WHERE id = $1`,
-      [req.user.id]
+      [req.user.id],
+      req.user.id, req.user.nombre || req.user.username
     );
 
     res.json(

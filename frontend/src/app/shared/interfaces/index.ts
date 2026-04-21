@@ -48,6 +48,7 @@ export interface Usuario extends BaseEntity {
   // Campos para permisos (calculados)
   tipoPermiso?: string; // Tipo de permiso del empleado asociado
   modulosPermitidos?: string[]; // Módulos a los que tiene acceso
+  mustResetPassword?: boolean; // Forzar cambio de contraseña en el próximo acceso
 }
 
 // Interfaz específica para datos de perfil completo

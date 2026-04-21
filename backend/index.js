@@ -19,6 +19,9 @@ const bodyParser = require('body-parser');
 // Importar configuración de base de datos
 const { initializeDatabase } = require('./config/database');
 
+// Scheduler de horarios de acceso
+const { iniciarScheduler, detenerScheduler } = require('./utils/horariosScheduler');
+
 // Importar rutas
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
@@ -30,6 +33,9 @@ const equiposRoutes = require('./routes/equipos');
 const catalogosEquiposRoutes = require('./routes/catalogos-equipos');
 const inventariosRoutes = require('./routes/inventarios');
 const posRoutes = require('./routes/pos');
+const pedidosRoutes = require('./routes/pedidos');
+const facturasRoutes = require('./routes/facturas');
+const reportesRoutes = require('./routes/reportes');
 
 // Configuración del servidor Express
 const app = express();
@@ -65,13 +71,60 @@ app.use(cors(corsOptions)); // Permitir requests desde frontend
 // Responder explícitamente preflight para cualquier ruta
 app.options('*', cors(corsOptions));
 
-// Middleware de logging (simplificado para desarrollo)
-app.use((req, res, next) => {
-  if (isDevelopment) {
-    const timestamp = new Date().toISOString();
-    console.log(`📝 [${timestamp}] ${req.method} ${req.url}`);
-    console.log(`📍 Origin: ${req.get('Origin') || 'Sin Origin'}`);
+// ── Middleware de logging HTTP ────────────────────────────────────────────────
+// Registra cada petición con el mismo formato que tenía el interceptor del front:
+//   URL / REQUEST / RESPONSE / STATUS
+const SENSITIVE_FIELDS = ['password', 'contrasena', 'contrasenia', 'token', 'secret'];
+
+function sanitizeBody(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const clone = Array.isArray(obj) ? [...obj] : { ...obj };
+  for (const key of Object.keys(clone)) {
+    if (SENSITIVE_FIELDS.some(f => key.toLowerCase().includes(f))) {
+      clone[key] = '***';
+    } else if (typeof clone[key] === 'object' && clone[key] !== null) {
+      clone[key] = sanitizeBody(clone[key]);
+    }
   }
+  return clone;
+}
+
+function tryParseJSON(str) {
+  if (str === null || str === undefined) return null;
+  if (typeof str === 'object') return str;
+  try { return JSON.parse(str); } catch { return str; }
+}
+
+function formatJSON(obj) {
+  if (obj === null || obj === undefined) return 'null';
+  try {
+    return typeof obj === 'object' ? JSON.stringify(obj) : String(obj);
+  } catch { return String(obj); }
+}
+
+app.use((req, res, next) => {
+  const startTime = Date.now();
+
+  // Interceptar res.send para capturar el body de respuesta
+  const originalSend = res.send.bind(res);
+  let responseBody;
+  res.send = function (body) {
+    responseBody = body;
+    return originalSend(body);
+  };
+
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const reqBody  = sanitizeBody(req.body && Object.keys(req.body).length ? req.body : null);
+    const resBody  = tryParseJSON(responseBody);
+
+    console.log('================================================================================');
+    console.log(`URL: ${req.method} ${req.originalUrl}`);
+    console.log(`REQUEST: ${formatJSON(reqBody)}`);
+    console.log(`RESPONSE: ${formatJSON(resBody)}`);
+    console.log(`STATUS: ${res.statusCode} (${duration}ms)`);
+  });
+
   next();
 });
 
@@ -91,6 +144,9 @@ app.use('/api/equipos', equiposRoutes);
 app.use('/api/catalogos-equipos', catalogosEquiposRoutes);
 app.use('/api/inventarios', inventariosRoutes);
 app.use('/api/pos', posRoutes);
+app.use('/api/pos/pedidos', pedidosRoutes);
+app.use('/api/facturas', facturasRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 /**
  * Endpoint raíz - Información del API
@@ -165,6 +221,9 @@ async function startServer() {
     await initializeDatabase();
     console.log('✅ Conexión a PostgreSQL establecida');
 
+    // Iniciar scheduler de horarios de acceso
+    await iniciarScheduler();
+
     // Iniciar el servidor Express
     app.listen(PORT, '0.0.0.0', () => {
       console.log('='.repeat(60));
@@ -207,11 +266,13 @@ async function startServer() {
 // Manejar cierre graceful del servidor
 process.on('SIGINT', () => {
   console.log('\n🛑 Cerrando servidor...');
+  detenerScheduler();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\n🛑 Cerrando servidor...');
+  detenerScheduler();
   process.exit(0);
 });
 

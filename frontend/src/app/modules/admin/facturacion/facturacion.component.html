@@ -1,0 +1,299 @@
+<div class="facturacion-wrapper">
+
+  <!-- ── Encabezado ─────────────────────────────────────────────── -->
+  <div class="facturacion-header d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-receipt-cutoff fs-4 text-primary"></i>
+      <div>
+        <h5 class="mb-0 fw-bold">Facturación</h5>
+        <small class="text-muted">Registros CFDI 4.0</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Filtros ────────────────────────────────────────────────── -->
+  <div class="filtros-card mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Desde</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroDesde">
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Hasta</label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroHasta">
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Estatus</label>
+        <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus">
+          <option value="">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="generada">Generada</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Origen</label>
+        <select class="form-select form-select-sm" [(ngModel)]="filtroOrigen">
+          <option value="">Todos</option>
+          <option value="venta">Venta</option>
+          <option value="pedido">Pedido</option>
+          <option value="cotizacion">Cotización</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="form-label form-label-sm mb-0">Folio</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="filtroFolio"
+          placeholder="FA-2026-..." (keydown.enter)="buscar()">
+      </div>
+      <div class="col-auto d-flex gap-1 align-items-end">
+        <button class="btn btn-sm btn-primary" (click)="buscar()">
+          <i class="bi bi-search me-1"></i>Buscar
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltros()" title="Limpiar">
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="cargar()" title="Actualizar">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Badges de resumen ─────────────────────────────────────── -->
+  <div class="badges-resumen mb-3 d-flex gap-2 flex-wrap">
+    <span class="badge-stat badge-pendiente" (click)="filtrarPorEstatus('pendiente')">
+      <i class="bi bi-clock me-1"></i>Pendientes: {{ countEstatus.pendiente }}
+    </span>
+    <span class="badge-stat badge-generada" (click)="filtrarPorEstatus('generada')">
+      <i class="bi bi-file-check me-1"></i>Generadas: {{ countEstatus.generada }}
+    </span>
+    <span class="badge-stat badge-cancelada" (click)="filtrarPorEstatus('cancelada')">
+      <i class="bi bi-x-circle me-1"></i>Canceladas: {{ countEstatus.cancelada }}
+    </span>
+  </div>
+
+  <!-- ── Tabla ──────────────────────────────────────────────────── -->
+  <div class="tabla-card">
+    <div class="text-center py-5" *ngIf="cargando">
+      <div class="spinner-border text-primary"></div>
+    </div>
+    <div class="alert alert-danger mx-3 mt-2" *ngIf="error">{{ error }}</div>
+
+    <div class="table-responsive" *ngIf="!cargando && !error">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Origen</th>
+            <th>Cliente</th>
+            <th>RFC</th>
+            <th class="text-end">Subtotal</th>
+            <th class="text-end">IVA</th>
+            <th class="text-end">ISR</th>
+            <th class="text-end fw-bold">Total</th>
+            <th>Estatus</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of facturas" class="cursor-pointer" (click)="verDetalle(f)">
+            <td><code class="folio-code">{{ f.folio }}</code></td>
+            <td class="text-nowrap">{{ f.fecha_creacion | date:'dd/MM/yy HH:mm' }}</td>
+            <td>
+              <span class="badge-origen" [ngClass]="'origen-' + f.tipo_origen">
+                {{ labelOrigen(f.tipo_origen) }}
+              </span>
+            </td>
+            <td>{{ f.cliente_nombre }}</td>
+            <td><code class="rfc-code">{{ f.cliente_rfc }}</code></td>
+            <td class="text-end">${{ f.subtotal | number:'1.2-2' }}</td>
+            <td class="text-end text-success">+${{ f.iva_monto | number:'1.2-2' }}</td>
+            <td class="text-end text-danger">-${{ f.isr_monto | number:'1.2-2' }}</td>
+            <td class="text-end fw-bold">${{ f.total_factura | number:'1.2-2' }}</td>
+            <td>
+              <span class="badge-estatus" [ngClass]="'est-' + f.estatus">
+                {{ labelEstatus(f.estatus) }}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-xs btn-outline-primary"
+                (click)="verDetalle(f); $event.stopPropagation()" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="facturas.length === 0">
+            <td colspan="11" class="text-center text-muted py-5">
+              <i class="bi bi-receipt-cutoff fs-1 d-block mb-2 opacity-25"></i>
+              No se encontraron facturas
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Paginador ─────────────────────────────────────────────── -->
+  <div class="paginador d-flex justify-content-between align-items-center px-1 py-2 mt-2" *ngIf="total > 0">
+    <small class="text-muted">{{ total }} factura{{ total !== 1 ? 's' : '' }}</small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="pagina === 1">
+          <a class="page-link" (click)="cambiarPagina(pagina - 1)">&lsaquo;</a>
+        </li>
+        <li *ngFor="let p of paginas" class="page-item" [class.active]="p === pagina">
+          <a class="page-link" (click)="cambiarPagina(p)">{{ p }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="pagina === totalPags">
+          <a class="page-link" (click)="cambiarPagina(pagina + 1)">&rsaquo;</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- PANEL DETALLE                                                -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="detalle-overlay" *ngIf="facturaDetalle || cargandoDetalle" (click)="cerrarDetalle()">
+  <div class="detalle-panel" (click)="$event.stopPropagation()">
+
+    <div class="detalle-header">
+      <div>
+        <div class="fw-bold fs-5" *ngIf="facturaDetalle">{{ facturaDetalle.folio }}</div>
+        <small class="text-muted" *ngIf="facturaDetalle">
+          {{ facturaDetalle.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}
+        </small>
+      </div>
+      <button class="btn btn-sm btn-outline-dark" (click)="cerrarDetalle()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="text-center py-4" *ngIf="cargandoDetalle">
+      <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div class="detalle-body" *ngIf="facturaDetalle && !cargandoDetalle">
+
+      <!-- Estatus con acciones -->
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="badge-estatus fs-6 px-3 py-2" [ngClass]="'est-' + facturaDetalle.estatus">
+          {{ labelEstatus(facturaDetalle.estatus) }}
+        </span>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-success"
+            *ngIf="facturaDetalle.estatus === 'pendiente'"
+            (click)="marcarGenerada(facturaDetalle.id)">
+            <i class="bi bi-check2-circle me-1"></i>Marcar generada
+          </button>
+          <button class="btn btn-sm btn-outline-danger"
+            *ngIf="facturaDetalle.estatus !== 'cancelada'"
+            (click)="abrirCancelar()">
+            <i class="bi bi-x-circle me-1"></i>Cancelar
+          </button>
+        </div>
+      </div>
+
+      <!-- Origen -->
+      <div class="info-grid mb-3">
+        <div>
+          <span class="info-lbl">Origen</span>
+          <span>
+            <span class="badge-origen" [ngClass]="'origen-' + facturaDetalle.tipo_origen">
+              {{ labelOrigen(facturaDetalle.tipo_origen) }}
+            </span>
+            <code class="ms-2 small" *ngIf="facturaDetalle.venta_folio">{{ facturaDetalle.venta_folio }}</code>
+            <code class="ms-2 small" *ngIf="facturaDetalle.pedido_folio">{{ facturaDetalle.pedido_folio }}</code>
+            <code class="ms-2 small" *ngIf="facturaDetalle.cotizacion_folio">{{ facturaDetalle.cotizacion_folio }}</code>
+          </span>
+        </div>
+        <div>
+          <span class="info-lbl">Creada por</span>
+          <span>{{ facturaDetalle.creado_por_nombre }}</span>
+        </div>
+      </div>
+
+      <!-- Datos fiscales del cliente -->
+      <div class="seccion-titulo mb-2"><i class="bi bi-person-vcard me-1"></i>Datos fiscales</div>
+      <div class="cliente-fiscal-card mb-3">
+        <div class="row g-2">
+          <div class="col-6">
+            <small class="text-muted d-block">Razón social</small>
+            <span class="fw-semibold">{{ facturaDetalle.cliente_razon_social || facturaDetalle.cliente_nombre }}</span>
+          </div>
+          <div class="col-6">
+            <small class="text-muted d-block">RFC</small>
+            <code>{{ facturaDetalle.cliente_rfc }}</code>
+          </div>
+          <div class="col-6" *ngIf="facturaDetalle.cliente_regimen">
+            <small class="text-muted d-block">Régimen fiscal</small>
+            <span>{{ regimenLabel(facturaDetalle.cliente_regimen) }}</span>
+          </div>
+          <div class="col-6" *ngIf="facturaDetalle.cliente_uso_cfdi">
+            <small class="text-muted d-block">Uso CFDI</small>
+            <span>{{ usoCfdiLabel(facturaDetalle.cliente_uso_cfdi) }}</span>
+          </div>
+          <div class="col-6" *ngIf="facturaDetalle.cliente_cp">
+            <small class="text-muted d-block">C.P.</small>
+            <span>{{ facturaDetalle.cliente_cp }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Montos -->
+      <div class="seccion-titulo mb-2"><i class="bi bi-calculator me-1"></i>Montos</div>
+      <div class="montos-card mb-3">
+        <div class="monto-fila">
+          <span>Subtotal</span>
+          <span>${{ facturaDetalle.subtotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="monto-fila text-success">
+          <span>+ IVA ({{ (facturaDetalle.iva_pct * 100) | number:'1.0-2' }}%)</span>
+          <span>+${{ facturaDetalle.iva_monto | number:'1.2-2' }}</span>
+        </div>
+        <div class="monto-fila text-danger">
+          <span>- ISR Ret. ({{ (facturaDetalle.isr_pct * 100) | number:'1.0-2' }}%)</span>
+          <span>-${{ facturaDetalle.isr_monto | number:'1.2-2' }}</span>
+        </div>
+        <div class="monto-fila monto-total">
+          <span>TOTAL FACTURA</span>
+          <span>${{ facturaDetalle.total_factura | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- (Espacio reservado para integración PAC/SAT futura) -->
+
+      <!-- Notas -->
+      <p class="text-muted small" *ngIf="facturaDetalle.notas">
+        <b>Notas:</b> {{ facturaDetalle.notas }}
+      </p>
+
+      <!-- Motivo cancelación -->
+      <div class="alert alert-danger small" *ngIf="facturaDetalle.motivo_cancelacion">
+        <b>Motivo de cancelación:</b> {{ facturaDetalle.motivo_cancelacion }}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal cancelar ──────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarModalCancelar" (click)="mostrarModalCancelar=false">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <h6 class="mb-3"><i class="bi bi-x-circle me-2 text-danger"></i>Cancelar factura</h6>
+    <p class="text-muted small mb-2">Esta acción marcará la factura como cancelada en el sistema. Proporciona el motivo.</p>
+    <textarea class="form-control mb-2" rows="3" [(ngModel)]="motivoCancelacion"
+      placeholder="Motivo de cancelación..."></textarea>
+    <div class="alert alert-danger small mb-2" *ngIf="errorCancelar">{{ errorCancelar }}</div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="mostrarModalCancelar=false">Cancelar</button>
+      <button class="btn btn-sm btn-danger flex-fill" [disabled]="procesandoCancelar" (click)="confirmarCancelar()">
+        <span *ngIf="procesandoCancelar" class="spinner-border spinner-border-sm me-1"></span>
+        Confirmar cancelación
+      </button>
+    </div>
+  </div>
+</div>

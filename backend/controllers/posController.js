@@ -13,13 +13,15 @@
  *   getPuntosByCliente  - Puntos y nivel del cliente
  */
 
-const { query, getClient, pool: getPool } = require('../config/database');
+const { query, queryAudit, getClient, pool: getPool } = require('../config/database');
 const {
   createResponse,
   createPaginatedResponse,
   createErrorResponse,
   CODIGOS_ERROR
 } = require('../utils/apiStandard');
+const { crearFacturaEnTransaccion } = require('./facturasController');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -154,6 +156,11 @@ async function createVenta(req, res) {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const {
       cliente_id,
@@ -165,6 +172,7 @@ async function createVenta(req, res) {
       descuento_config_id,
       descuento_autorizado_por,
       notas,
+      requiere_factura = false,
     } = req.body;
 
     // Validaciones básicas
@@ -257,6 +265,14 @@ async function createVenta(req, res) {
                 descripcion,
               ]
             ).catch(err => console.error('Error guardando alerta seguridad:', err.message));
+
+            registrarBitacora({
+              modulo: 'pos', accion: 'PRECIO_MANIPULADO',
+              entidad: 'inventarios', entidadId: String(item.inventario_id),
+              usuarioId, usuarioNombre, ip,
+              detalle: { nombre_producto: stockQ.rows[0].nombre, precio_enviado: precioUnit, precio_real: precioReal, cantidad },
+              resultado: 'bloqueado',
+            });
           }
           // Si no hubo tabulador, forzar el precio de BD (seguridad)
           if (!tabuladorAplicado) {
@@ -315,8 +331,8 @@ async function createVenta(req, res) {
         subtotal, descuento_pct, descuento_monto, total,
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
-        descuento_config_id, descuento_autorizado_por, notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        descuento_config_id, descuento_autorizado_por, notas, requiere_factura
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *
     `, [
       folio, cliente_id || null, clienteNombre,
@@ -325,6 +341,7 @@ async function createVenta(req, res) {
       montoRecibido, cambio,
       metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
       descuento_config_id || null, descuento_autorizado_por || null, notas || null,
+      !!requiere_factura,
     ]);
     const venta = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -412,10 +429,32 @@ async function createVenta(req, res) {
       `, [cliente_id, ventaId, puntosGanados, saldoPuntos, `Venta ${folio} · $${total}`]);
     }
 
+    // Crear registro de factura si se requiere y hay cliente registrado
+    if (requiere_factura && cliente_id) {
+      await crearFacturaEnTransaccion(client, {
+        tipo_origen: 'venta',
+        venta_id: ventaId,
+        cliente_id,
+        subtotal: total,
+        usuario_id: vendedorId,
+        usuario_nombre: vendedorNombre,
+        notas: notas || null,
+      });
+    }
+
     await client.query('COMMIT');
 
     // Retornar venta completa
     const ventaCompleta = await getVentaDetalle(ventaId);
+
+    registrarBitacora({
+      modulo: 'pos', accion: 'VENTA_COMPLETADA',
+      entidad: 'pos_ventas', entidadId: folio,
+      usuarioId: vendedorId, usuarioNombre: vendedorNombre,
+      ip: getIp(req),
+      detalle: { folio, total, metodo_pago_codigo, cliente_id: cliente_id || null, num_items: lineasProcesadas.length },
+    });
+
     return res.status(201).json(createResponse(true, ventaCompleta, `Venta ${folio} registrada correctamente`));
 
   } catch (err) {
@@ -510,7 +549,8 @@ async function listVentas(req, res) {
     const sql = `
       SELECT
         v.id, v.folio, v.fecha_venta, v.cliente_id, v.cliente_nombre,
-        v.vendedor_nombre, v.subtotal, v.descuento_pct, v.descuento_monto,
+        v.vendedor_usuario_id, v.vendedor_nombre,
+        v.subtotal, v.descuento_pct, v.descuento_monto,
         v.total, v.metodo_pago_codigo, v.metodo_pago_descripcion,
         v.estatus, v.ticket_generado,
         (SELECT COUNT(*) FROM pos_ventas_detalle d WHERE d.venta_id = v.id) AS num_items
@@ -561,6 +601,11 @@ async function cancelarVenta(req, res) {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const ventaId = parseInt(req.params.id);
     const { motivo } = req.body;
@@ -643,6 +688,15 @@ async function cancelarVenta(req, res) {
     }
 
     await client.query('COMMIT');
+
+    registrarBitacora({
+      modulo: 'pos', accion: 'VENTA_CANCELADA',
+      entidad: 'pos_ventas', entidadId: venta.folio,
+      usuarioId: req.user?.id || null, usuarioNombre: req.user?.nombre || req.user?.username || null,
+      ip: getIp(req),
+      detalle: { folio: venta.folio, total: parseFloat(venta.total), motivo: motivo || null },
+    });
+
     return res.json(createResponse(true, { id: ventaId, folio: venta.folio }, 'Venta cancelada y stock revertido'));
 
   } catch (err) {
@@ -671,13 +725,20 @@ async function getStatsHoy(req, res) {
 
     const statsQ = await query(`
       SELECT
-        COUNT(*)                                         AS total_ventas,
-        COALESCE(SUM(total) FILTER (WHERE estatus='completada'), 0) AS total_ingresos,
-        COALESCE(AVG(total) FILTER (WHERE estatus='completada'), 0) AS ticket_promedio,
-        COUNT(*) FILTER (WHERE estatus='cancelada')      AS ventas_canceladas,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo='efectivo') AS pagos_efectivo,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo='tarjeta')  AS pagos_tarjeta,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo='transferencia') AS pagos_transferencia
+        COUNT(*)                                                          AS total_ventas,
+        COUNT(*) FILTER (WHERE estatus='completada')                      AS ventas_completadas,
+        COUNT(*) FILTER (WHERE estatus='cancelada')                       AS ventas_canceladas,
+        COALESCE(SUM(total)           FILTER (WHERE estatus='completada'), 0) AS total_ingresos,
+        COALESCE(AVG(total)           FILTER (WHERE estatus='completada'), 0) AS ticket_promedio,
+        COALESCE(SUM(descuento_monto) FILTER (WHERE estatus='completada'), 0) AS total_descuentos,
+        -- Conteo por método de pago (solo ventas completadas)
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='efectivo')      AS pagos_efectivo,
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta')       AS pagos_tarjeta,
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia') AS pagos_transferencia,
+        -- Monto por método de pago (solo ventas completadas)
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='efectivo'),      0) AS monto_efectivo,
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta'),       0) AS monto_tarjeta,
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia'), 0) AS monto_transferencia
       FROM pos_ventas
       WHERE fecha_venta >= CURRENT_DATE
         AND fecha_venta <  CURRENT_DATE + interval '1 day'
@@ -687,13 +748,18 @@ async function getStatsHoy(req, res) {
     const stats = statsQ.rows[0];
 
     return res.json(createResponse(true, {
-      total_ventas:       parseInt(stats.total_ventas),
-      total_ingresos:     parseFloat(stats.total_ingresos),
-      ticket_promedio:    parseFloat(parseFloat(stats.ticket_promedio).toFixed(2)),
-      ventas_canceladas:  parseInt(stats.ventas_canceladas),
-      pagos_efectivo:     parseInt(stats.pagos_efectivo),
-      pagos_tarjeta:      parseInt(stats.pagos_tarjeta),
-      pagos_transferencia: parseInt(stats.pagos_transferencia),
+      total_ventas:         parseInt(stats.total_ventas),
+      ventas_completadas:   parseInt(stats.ventas_completadas),
+      ventas_canceladas:    parseInt(stats.ventas_canceladas),
+      total_ingresos:       parseFloat(parseFloat(stats.total_ingresos).toFixed(2)),
+      ticket_promedio:      parseFloat(parseFloat(stats.ticket_promedio).toFixed(2)),
+      total_descuentos:     parseFloat(parseFloat(stats.total_descuentos).toFixed(2)),
+      pagos_efectivo:       parseInt(stats.pagos_efectivo),
+      pagos_tarjeta:        parseInt(stats.pagos_tarjeta),
+      pagos_transferencia:  parseInt(stats.pagos_transferencia),
+      monto_efectivo:       parseFloat(parseFloat(stats.monto_efectivo).toFixed(2)),
+      monto_tarjeta:        parseFloat(parseFloat(stats.monto_tarjeta).toFixed(2)),
+      monto_transferencia:  parseFloat(parseFloat(stats.monto_transferencia).toFixed(2)),
     }, 'Estadísticas del día'));
   } catch (err) {
     console.error('getStatsHoy POS:', err);
@@ -773,7 +839,7 @@ async function getPuntosByCliente(req, res) {
 async function marcarTicketGenerado(req, res) {
   try {
     const ventaId = parseInt(req.params.id);
-    await query('UPDATE pos_ventas SET ticket_generado=true WHERE id=$1', [ventaId]);
+    await queryAudit('UPDATE pos_ventas SET ticket_generado=true WHERE id=$1', [ventaId], req.user?.id, req.user?.nombre || req.user?.username);
     return res.json(createResponse(true, { id: ventaId, ticket_generado: true }, 'Ticket marcado'));
   } catch (err) {
     console.error('marcarTicketGenerado POS:', err);
@@ -827,7 +893,7 @@ async function createCotizacion(req, res) {
   try {
     await client.query('BEGIN');
 
-    const { cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento } = req.body;
+    const { cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento, requiere_factura = false } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -867,11 +933,11 @@ async function createCotizacion(req, res) {
     const cotizQ = await client.query(`
       INSERT INTO pos_cotizaciones
         (folio, estatus, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
-         subtotal, descuento_pct, descuento_monto, total, notas, fecha_vencimiento)
-      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         subtotal, descuento_pct, descuento_monto, total, notas, fecha_vencimiento, requiere_factura)
+      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
     `, [folio, cliente_id || null, clienteNombre, vendedorId, vendedorNombre,
-        subtotal, descPct, descMonto, total, notas || null, fecha_vencimiento || null]);
+        subtotal, descPct, descMonto, total, notas || null, fecha_vencimiento || null, !!requiere_factura]);
 
     const cotizId = cotizQ.rows[0].id;
 
@@ -978,9 +1044,14 @@ async function convertirCotizacion(req, res) {
   const client = await getClient();
   try {
     await client.query('BEGIN');
+    // Contexto de usuario para trigger_auditoria()
+    const _aId   = req.user?.id   ? parseInt(req.user.id).toString()                      : '';
+    const _aName = String(req.user?.nombre || req.user?.username || '').substring(0, 255).replace(/'/g, "''");
+    await client.query(`SET LOCAL app.current_user_id     = '${_aId}'`);
+    await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const cotizId = parseInt(req.params.id);
-    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas } = req.body;
+    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas, requiere_factura, cliente_factura_id } = req.body;
 
     if (!metodo_pago_codigo)
       return res.status(400).json(createErrorResponse('Método de pago requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -1039,17 +1110,19 @@ async function convertirCotizacion(req, res) {
 
     const folio = await generarFolio(client);
 
+    const rfactura = requiere_factura !== undefined ? !!requiere_factura : !!(cotiz.requiere_factura);
+
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
         folio, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total, monto_recibido, cambio,
-        metodo_pago_codigo, metodo_pago_descripcion, notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *
     `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total, montoRecibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
-        notas || cotiz.notas || null]);
+        notas || cotiz.notas || null, rfactura]);
 
     const venta   = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -1090,6 +1163,20 @@ async function convertirCotizacion(req, res) {
       [ventaId, cotizId]
     );
 
+    // Crear registro de factura si se requiere y hay cliente registrado
+    const clienteParaFacturaCotiz = parseInt(cliente_factura_id) || cotiz.cliente_id || null;
+    if (rfactura && clienteParaFacturaCotiz) {
+      await crearFacturaEnTransaccion(client, {
+        tipo_origen: 'venta',
+        venta_id: ventaId,
+        cliente_id: clienteParaFacturaCotiz,
+        subtotal: total,
+        usuario_id: vendedorId,
+        usuario_nombre: vendedorNombre,
+        notas: notas || cotiz.notas || null,
+      });
+    }
+
     await client.query('COMMIT');
 
     const ventaCompleta = await getVentaDetalle(ventaId);
@@ -1100,6 +1187,267 @@ async function convertirCotizacion(req, res) {
     return res.status(500).json(createErrorResponse(err.message || 'Error al convertir cotización', CODIGOS_ERROR.ERROR_SERVIDOR));
   } finally {
     client.release();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/pos/reportes/vendedores
+// Resumen de ventas agrupado por vendedor
+// Query params: fecha_inicio, fecha_fin, vendedor_id
+// ─────────────────────────────────────────────────────────────
+async function getReporteVendedores(req, res) {
+  try {
+    const { fecha_inicio, fecha_fin, vendedor_id } = req.query;
+
+    const params = [];
+    const where = [];
+    where.push(`estatus = 'completada'`);
+
+    if (fecha_inicio) { params.push(fecha_inicio); where.push(`fecha_venta >= $${params.length}::date`); }
+    if (fecha_fin)    { params.push(fecha_fin);     where.push(`fecha_venta < ($${params.length}::date + interval '1 day')`); }
+    if (vendedor_id)  { params.push(vendedor_id);   where.push(`vendedor_usuario_id = $${params.length}`); }
+
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const result = await query(`
+      SELECT
+        vendedor_usuario_id,
+        vendedor_nombre,
+        COUNT(*)                      AS total_ventas,
+        SUM(total)                    AS total_ingresos,
+        AVG(total)                    AS ticket_promedio,
+        SUM(descuento_monto)          AS total_descuentos,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'efectivo')     AS pagos_efectivo,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'tarjeta')      AS pagos_tarjeta,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'transferencia') AS pagos_transferencia,
+        MIN(fecha_venta)              AS primera_venta,
+        MAX(fecha_venta)              AS ultima_venta
+      FROM pos_ventas
+      ${whereClause}
+      GROUP BY vendedor_usuario_id, vendedor_nombre
+      ORDER BY total_ingresos DESC
+    `, params);
+
+    const rows = result.rows.map(r => ({
+      vendedor_usuario_id:  r.vendedor_usuario_id,
+      vendedor_nombre:      r.vendedor_nombre,
+      total_ventas:         parseInt(r.total_ventas),
+      total_ingresos:       parseFloat(parseFloat(r.total_ingresos).toFixed(2)),
+      ticket_promedio:      parseFloat(parseFloat(r.ticket_promedio).toFixed(2)),
+      total_descuentos:     parseFloat(parseFloat(r.total_descuentos).toFixed(2)),
+      pagos_efectivo:       parseInt(r.pagos_efectivo),
+      pagos_tarjeta:        parseInt(r.pagos_tarjeta),
+      pagos_transferencia:  parseInt(r.pagos_transferencia),
+      primera_venta:        r.primera_venta,
+      ultima_venta:         r.ultima_venta,
+    }));
+
+    return res.json(createResponse(true, rows, 'Reporte de ventas por vendedor'));
+  } catch (err) {
+    console.error('getReporteVendedores POS:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener reporte de vendedores', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/pos/reportes/clientes
+// Resumen de compras agrupado por cliente registrado
+// Query params: fecha_inicio, fecha_fin, cliente_id
+// ─────────────────────────────────────────────────────────────
+async function getReporteClientes(req, res) {
+  try {
+    const { fecha_inicio, fecha_fin, cliente_id } = req.query;
+
+    const params = [];
+    const where = [];
+    where.push(`v.estatus = 'completada'`);
+    where.push(`v.cliente_id IS NOT NULL`);
+
+    if (fecha_inicio) { params.push(fecha_inicio); where.push(`v.fecha_venta >= $${params.length}::date`); }
+    if (fecha_fin)    { params.push(fecha_fin);     where.push(`v.fecha_venta < ($${params.length}::date + interval '1 day')`); }
+    if (cliente_id)   { params.push(cliente_id);    where.push(`v.cliente_id = $${params.length}`); }
+
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const result = await query(`
+      SELECT
+        v.cliente_id,
+        v.cliente_nombre,
+        c.email              AS cliente_email,
+        c.telefono           AS cliente_telefono,
+        COUNT(v.id)          AS total_compras,
+        SUM(v.total)         AS total_gastado,
+        AVG(v.total)         AS ticket_promedio,
+        MIN(v.fecha_venta)   AS primera_compra,
+        MAX(v.fecha_venta)   AS ultima_compra,
+        cp.puntos_acumulados,
+        cp.puntos_canjeados,
+        (cp.puntos_acumulados - cp.puntos_canjeados) AS puntos_disponibles,
+        cp.nivel_cliente
+      FROM pos_ventas v
+      LEFT JOIN clientes c ON c.id = v.cliente_id
+      LEFT JOIN pos_clientes_puntos cp ON cp.cliente_id = v.cliente_id
+      ${whereClause}
+      GROUP BY v.cliente_id, v.cliente_nombre, c.email, c.telefono,
+               cp.puntos_acumulados, cp.puntos_canjeados, cp.nivel_cliente
+      ORDER BY total_gastado DESC
+    `, params);
+
+    const rows = result.rows.map(r => ({
+      cliente_id:          r.cliente_id,
+      cliente_nombre:      r.cliente_nombre,
+      cliente_email:       r.cliente_email,
+      cliente_telefono:    r.cliente_telefono,
+      total_compras:       parseInt(r.total_compras),
+      total_gastado:       parseFloat(parseFloat(r.total_gastado).toFixed(2)),
+      ticket_promedio:     parseFloat(parseFloat(r.ticket_promedio).toFixed(2)),
+      primera_compra:      r.primera_compra,
+      ultima_compra:       r.ultima_compra,
+      puntos_acumulados:   parseInt(r.puntos_acumulados || 0),
+      puntos_canjeados:    parseInt(r.puntos_canjeados  || 0),
+      puntos_disponibles:  parseInt(r.puntos_disponibles || 0),
+      nivel_cliente:       r.nivel_cliente || 'estandar',
+    }));
+
+    return res.json(createResponse(true, rows, 'Reporte de compras por cliente'));
+  } catch (err) {
+    console.error('getReporteClientes POS:', err);
+    return res.status(500).json(createErrorResponse('Error al obtener reporte de clientes', CODIGOS_ERROR.ERROR_SERVIDOR));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/pos/corte
+// Corte de caja: desglose completo de ingresos por período
+// Query params: fecha (YYYY-MM-DD, default: hoy), vendedor_id
+// ─────────────────────────────────────────────────────────────
+async function getCorteCaja(req, res) {
+  try {
+    const { fecha, vendedor_id } = req.query;
+
+    // Si no se pasa fecha se usa hoy (zona horaria del servidor)
+    const fechaCorte = fecha || new Date().toISOString().slice(0, 10);
+
+    const params = [fechaCorte];
+    const whereVendedor = vendedor_id ? `AND vendedor_usuario_id = $${params.push(vendedor_id)}` : '';
+
+    // ── 1. Totales generales ──────────────────────────────────
+    const totalesQ = await query(`
+      SELECT
+        COUNT(*)                                                              AS total_ventas,
+        COUNT(*) FILTER (WHERE estatus = 'completada')                        AS ventas_completadas,
+        COUNT(*) FILTER (WHERE estatus = 'cancelada')                         AS ventas_canceladas,
+        COALESCE(SUM(total)           FILTER (WHERE estatus = 'completada'), 0) AS total_ingresos,
+        COALESCE(SUM(subtotal)        FILTER (WHERE estatus = 'completada'), 0) AS total_subtotal,
+        COALESCE(SUM(descuento_monto) FILTER (WHERE estatus = 'completada'), 0) AS total_descuentos,
+        COALESCE(SUM(iva_monto)       FILTER (WHERE estatus = 'completada'), 0) AS total_iva,
+        COALESCE(AVG(total)           FILTER (WHERE estatus = 'completada'), 0) AS ticket_promedio,
+        COALESCE(SUM(total)           FILTER (WHERE estatus = 'cancelada'),  0) AS monto_cancelado
+      FROM pos_ventas
+      WHERE fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+    `, params);
+
+    // ── 2. Desglose por método de pago ────────────────────────
+    // Agrupa todos los métodos registrados (no solo los 3 fijos)
+    const metodosQ = await query(`
+      SELECT
+        metodo_pago_codigo,
+        metodo_pago_descripcion,
+        COUNT(*)   AS cantidad_ventas,
+        SUM(total) AS total_monto,
+        AVG(total) AS ticket_promedio
+      FROM pos_ventas
+      WHERE estatus = 'completada'
+        AND fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+      GROUP BY metodo_pago_codigo, metodo_pago_descripcion
+      ORDER BY total_monto DESC
+    `, params);
+
+    // ── 3. Desglose por vendedor ──────────────────────────────
+    const vendedoresQ = await query(`
+      SELECT
+        vendedor_usuario_id,
+        vendedor_nombre,
+        COUNT(*) FILTER (WHERE estatus = 'completada')  AS ventas,
+        COUNT(*) FILTER (WHERE estatus = 'cancelada')   AS canceladas,
+        COALESCE(SUM(total) FILTER (WHERE estatus = 'completada'), 0) AS total
+      FROM pos_ventas
+      WHERE fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+      GROUP BY vendedor_usuario_id, vendedor_nombre
+      ORDER BY total DESC
+    `, params);
+
+    // ── 4. Listado de ventas del período ──────────────────────
+    const ventasQ = await query(`
+      SELECT
+        id, folio, fecha_venta,
+        cliente_nombre, vendedor_nombre,
+        subtotal, descuento_pct, descuento_monto, total,
+        monto_recibido, cambio,
+        metodo_pago_codigo, metodo_pago_descripcion,
+        estatus, motivo_cancelacion, ticket_generado
+      FROM pos_ventas
+      WHERE fecha_venta >= $1::date
+        AND fecha_venta <  $1::date + interval '1 day'
+        ${whereVendedor}
+      ORDER BY fecha_venta ASC
+    `, params);
+
+    const totales = totalesQ.rows[0];
+
+    return res.json(createResponse(true, {
+      fecha_corte:   fechaCorte,
+      vendedor_id:   vendedor_id || null,
+      generado_en:   new Date().toISOString(),
+
+      resumen: {
+        total_ventas:       parseInt(totales.total_ventas),
+        ventas_completadas: parseInt(totales.ventas_completadas),
+        ventas_canceladas:  parseInt(totales.ventas_canceladas),
+        total_subtotal:     parseFloat(parseFloat(totales.total_subtotal).toFixed(2)),
+        total_descuentos:   parseFloat(parseFloat(totales.total_descuentos).toFixed(2)),
+        total_iva:          parseFloat(parseFloat(totales.total_iva).toFixed(2)),
+        total_ingresos:     parseFloat(parseFloat(totales.total_ingresos).toFixed(2)),
+        ticket_promedio:    parseFloat(parseFloat(totales.ticket_promedio).toFixed(2)),
+        monto_cancelado:    parseFloat(parseFloat(totales.monto_cancelado).toFixed(2)),
+      },
+
+      metodos_pago: metodosQ.rows.map(m => ({
+        codigo:           m.metodo_pago_codigo,
+        descripcion:      m.metodo_pago_descripcion,
+        cantidad_ventas:  parseInt(m.cantidad_ventas),
+        total_monto:      parseFloat(parseFloat(m.total_monto).toFixed(2)),
+        ticket_promedio:  parseFloat(parseFloat(m.ticket_promedio).toFixed(2)),
+      })),
+
+      vendedores: vendedoresQ.rows.map(v => ({
+        vendedor_usuario_id: v.vendedor_usuario_id,
+        vendedor_nombre:     v.vendedor_nombre,
+        ventas:              parseInt(v.ventas),
+        canceladas:          parseInt(v.canceladas),
+        total:               parseFloat(parseFloat(v.total).toFixed(2)),
+      })),
+
+      ventas: ventasQ.rows.map(v => ({
+        ...v,
+        subtotal:        parseFloat(v.subtotal),
+        descuento_pct:   parseFloat(v.descuento_pct),
+        descuento_monto: parseFloat(v.descuento_monto),
+        total:           parseFloat(v.total),
+        monto_recibido:  v.monto_recibido ? parseFloat(v.monto_recibido) : null,
+        cambio:          parseFloat(v.cambio),
+      })),
+    }, `Corte de caja: ${fechaCorte}`));
+
+  } catch (err) {
+    console.error('getCorteCaja POS:', err);
+    return res.status(500).json(createErrorResponse('Error al generar corte de caja', CODIGOS_ERROR.ERROR_SERVIDOR));
   }
 }
 
@@ -1118,4 +1466,7 @@ module.exports = {
   getCotizacionById,
   updateEstatusCotizacion,
   convertirCotizacion,
+  getReporteVendedores,
+  getReporteClientes,
+  getCorteCaja,
 };

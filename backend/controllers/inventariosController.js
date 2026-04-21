@@ -7,13 +7,14 @@
  *   - Integración con Punto de Venta (disponible_en_pos)
  */
 
-const { query } = require('../config/database');
+const { query, queryAudit } = require('../config/database');
 const {
   createResponse,
   createPaginatedResponse,
   createErrorResponse,
   CODIGOS_ERROR
 } = require('../utils/apiStandard');
+const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -296,7 +297,7 @@ async function createInventario(req, res) {
       ? (disponible_en_pos === true || disponible_en_pos === 'true')
       : (tipo === 'venta' || esServicio);
 
-    const r = await query(`
+    const r = await queryAudit(`
       INSERT INTO inventarios (
         departamento_id, categoria, tipo, es_servicio, nombre, descripcion, codigo_sku, marca, modelo, proveedor_id,
         unidad_medida, existencia_actual, stock_minimo, stock_maximo, ubicacion_fisica,
@@ -311,7 +312,7 @@ async function createInventario(req, res) {
       esServicio ? null : (stock_maximo||null),
       ubicacion_fisica||null, costo_compra||null, precio_venta||null, costo_compra||0, posFlag,
       tabulador_activo === true || tabulador_activo === 'true'
-    ]);
+    ], req.user?.id, req.user?.nombre || req.user?.username);
 
     const art = r.rows[0];
     if (!esServicio && parseFloat(existencia_actual||0) > 0) {
@@ -347,7 +348,7 @@ async function updateInventario(req, res) {
     if ((tipoFinal === 'venta' || esServicio) && precio_venta !== undefined && !precio_venta)
       return res.status(400).json(createErrorResponse('El precio de venta no puede estar vacío para venta/servicio', CODIGOS_ERROR.DATOS_INVALIDOS));
 
-    const r = await query(`
+    const r = await queryAudit(`
       UPDATE inventarios SET
         departamento_id=COALESCE($1,departamento_id),
         categoria=COALESCE((SELECT nombre FROM inv_departamentos WHERE id=$1), categoria),
@@ -367,7 +368,7 @@ async function updateInventario(req, res) {
       esServicio ? null : stock_maximo,
       ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, id,
       tabulador_activo !== undefined ? (tabulador_activo === true || tabulador_activo === 'true') : undefined
-    ]);
+    ], req.user?.id, req.user?.nombre || req.user?.username);
 
     return res.json(createResponse(true, r.rows[0], 'Artículo actualizado'));
   } catch (err) {
@@ -387,7 +388,7 @@ async function deleteInventario(req, res) {
     if (parseInt(movs.rows[0].total) > 0)
       return res.status(400).json(createErrorResponse(`No se puede eliminar: tiene ${movs.rows[0].total} movimiento(s). Usa "Archivar".`, CODIGOS_ERROR.DATOS_INVALIDOS));
 
-    await query('DELETE FROM inventarios WHERE id=$1', [id]);
+    await queryAudit('DELETE FROM inventarios WHERE id=$1', [id], req.user?.id, req.user?.nombre || req.user?.username);
     return res.json(createResponse(true, { nombre: check.rows[0].nombre }, 'Artículo eliminado permanentemente'));
   } catch (err) {
     console.error('deleteInventario:', err);
@@ -399,9 +400,9 @@ async function archivarInventario(req, res) {
   try {
     const { id } = req.params;
     const archivar = req.body.archivar !== false;
-    const r = await query(
+    const r = await queryAudit(
       'UPDATE inventarios SET activo=$1, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$2 RETURNING nombre, activo',
-      [!archivar, id]
+      [!archivar, id], req.user?.id, req.user?.nombre || req.user?.username
     );
     if (r.rows.length === 0)
       return res.status(404).json(createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
@@ -454,8 +455,19 @@ async function addMovimiento(req, res) {
     `, [id, tipo_movimiento, concepto, cant, saldo_anterior, saldo_nuevo,
         req.user?.username||'Sistema', area_servicio||null, notas||null]);
 
-    await query('UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$2',
-      [saldo_nuevo, id]);
+    await queryAudit('UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$2',
+      [saldo_nuevo, id], req.user?.id, req.user?.nombre || req.user?.username);
+
+    const accionBitacora = tipo_movimiento === 'entrada' ? 'ENTRADA_STOCK'
+      : tipo_movimiento === 'salida' ? 'SALIDA_STOCK' : 'AJUSTE_STOCK';
+
+    registrarBitacora({
+      modulo: 'inventarios', accion: accionBitacora,
+      entidad: 'inventarios', entidadId: String(id),
+      usuarioId: req.user?.id || null, usuarioNombre: req.user?.nombre || req.user?.username || null,
+      ip: getIp(req),
+      detalle: { tipo_movimiento, concepto, cantidad: cant, saldo_anterior, saldo_nuevo, articulo: artResult.rows[0].nombre },
+    });
 
     return res.status(201).json(createResponse(true, movR.rows[0], 'Movimiento registrado'));
   } catch (err) {

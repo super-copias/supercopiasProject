@@ -33,4 +33,10 @@ router.post('/sucursales', catalogosController.createSucursal);
 router.get('/puestos', catalogosController.getPuestos);
 router.post('/puestos', catalogosController.createPuesto);
 
+// Horarios de acceso
+router.get('/horarios', catalogosController.getHorarios);
+router.post('/horarios', catalogosController.createHorario);
+router.put('/horarios/:id', catalogosController.updateHorario);
+router.delete('/horarios/:id', catalogosController.deleteHorario);
+
 module.exports = router;
