@@ -9,7 +9,6 @@ import { AdminModule } from './modules/admin/admin.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { EmpleadosModule } from './modules/empleados/empleados.module';
 import { AuthInterceptor } from './services/auth-interceptor';
-import { HttpLoggerInterceptor } from './services/http-logger.interceptor';
 import { AuthGuard } from './services/auth.guard';
 import { SharedModule } from './shared/shared.module';
 
@@ -25,7 +24,6 @@ const routes: Routes = [
   imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes), SharedModule],
   providers: [
     { provide: ErrorHandler, useClass: ChunkErrorHandler },
-    { provide: HTTP_INTERCEPTORS, useClass: HttpLoggerInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]
