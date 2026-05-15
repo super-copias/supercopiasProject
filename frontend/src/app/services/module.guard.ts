@@ -61,7 +61,7 @@ export class ModuleGuard implements CanActivate, CanLoad, CanActivateChild {
 
     // Si tiene otros módulos pero no este específico, redirigir al primer módulo permitido
     const firstAllowedModule = allowedModules[0];
-    return this.router.parseUrl(`/admin/${firstAllowedModule}`);
+    return this.router.parseUrl(`/admin/${this.moduleKeyToRoutePath(firstAllowedModule)}`);
   }
 
   /**
@@ -95,7 +95,7 @@ export class ModuleGuard implements CanActivate, CanLoad, CanActivateChild {
 
     // Si tiene otros módulos pero no este específico, redirigir al primer módulo permitido
     const firstAllowedModule = allowedModules[0];
-    this.router.navigate([`/admin/${firstAllowedModule}`], { replaceUrl: true });
+    this.router.navigate([`/admin/${this.moduleKeyToRoutePath(firstAllowedModule)}`], { replaceUrl: true });
     return false;
   }
 
@@ -173,5 +173,13 @@ export class ModuleGuard implements CanActivate, CanLoad, CanActivateChild {
    */
   isModuleAllowed(module: string): boolean {
     return this.getAllowedModules().includes(module);
+  }
+
+  /**
+   * Convierte una clave de módulo (con guión_bajo) al path de ruta Angular (con guión-medio).
+   * Ejemplo: 'punto_venta' → 'punto-venta'
+   */
+  private moduleKeyToRoutePath(moduleKey: string): string {
+    return moduleKey.replace(/_/g, '-');
   }
 }
