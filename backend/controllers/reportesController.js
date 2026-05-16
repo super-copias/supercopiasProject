@@ -62,13 +62,10 @@ function trunc(str, max = 30) {
 // Helpers de fechas
 // ─────────────────────────────────────────────────────────────
 function buildDateRange(desde, hasta) {
-  const now = new Date();
-  const d = desde
-    ? new Date(desde + 'T00:00:00-06:00')
-    : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-  const h = hasta
-    ? new Date(hasta + 'T23:59:59-06:00')
-    : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  // Obtener la fecha actual en zona horaria de México (CST = UTC-6, sin horario de verano desde oct 2022)
+  const todayMX = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+  const d = new Date((desde || todayMX) + 'T00:00:00-06:00');
+  const h = new Date((hasta || todayMX) + 'T23:59:59-06:00');
   return [d, h];
 }
 

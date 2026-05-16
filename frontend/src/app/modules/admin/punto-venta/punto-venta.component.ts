@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
-import { PosService, LineaCarrito, CatalogoItem, StatsHoy, CotizacionDetalle } from '../../../services/pos.service';
+import { PosService, LineaCarrito, CatalogoItem, CotizacionDetalle } from '../../../services/pos.service';
 
 @Component({
   selector: 'app-punto-venta',
@@ -23,9 +23,6 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
   descuentoConfigId: number | null = null;
   descuentoAutorizadoPor: string | null = null;
 
-  statsHoy: StatsHoy | null = null;
-  cargandoStats = false;
-
   totales = { subtotal: 0, descuentoMonto: 0, total: 0 };
 
   constructor(private posService: PosService) {}
@@ -40,7 +37,6 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
       this.descuentoAutorizadoPor = this.posService._descuentoAutorizadoPorGuardado;
       this.recalcularTotales();
     }
-    this.cargarStats();
   }
 
   ngOnDestroy(): void {
@@ -52,14 +48,6 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
     this.posService._descuentoAutorizadoPorGuardado = this.descuentoAutorizadoPor;
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  cargarStats(): void {
-    this.cargandoStats = true;
-    this.posService.getStatsHoy().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r) => { this.statsHoy = r.data; this.cargandoStats = false; },
-      error: () => { this.cargandoStats = false; }
-    });
   }
 
   onAgregarAlCarrito(item: CatalogoItem): void {

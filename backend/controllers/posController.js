@@ -740,8 +740,8 @@ async function getStatsHoy(req, res) {
         COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta'),       0) AS monto_tarjeta,
         COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia'), 0) AS monto_transferencia
       FROM pos_ventas
-      WHERE fecha_venta >= CURRENT_DATE AT TIME ZONE 'America/Mexico_City'
-        AND fecha_venta <  (CURRENT_DATE + interval '1 day') AT TIME ZONE 'America/Mexico_City'
+      WHERE fecha_venta >= date_trunc('day', now() AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City'
+        AND fecha_venta <  date_trunc('day', now() AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City' + interval '1 day'
         ${whereVendedor}
     `, params);
 
