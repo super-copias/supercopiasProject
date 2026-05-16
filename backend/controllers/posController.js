@@ -570,10 +570,7 @@ async function listVentas(req, res) {
       num_items:       parseInt(v.num_items),
     }));
 
-    return res.json(createPaginatedResponse(ventas, {
-      page: parseInt(page), limit: parseInt(limit), total,
-      pages: Math.ceil(total / parseInt(limit)),
-    }, 'Ventas obtenidas'));
+    return res.json(createPaginatedResponse(ventas, parseInt(page), parseInt(limit), total));
   } catch (err) {
     console.error('listVentas POS:', err);
     return res.status(500).json(createErrorResponse('Error al obtener ventas', CODIGOS_ERROR.ERROR_SERVIDOR));
