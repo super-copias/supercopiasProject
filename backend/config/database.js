@@ -18,7 +18,8 @@ const dbConfig = process.env.DATABASE_URL
       max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
       idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
       connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
-      application_name: 'SuperCopias_Backend'
+      application_name: 'SuperCopias_Backend',
+      options: '-c timezone=America/Mexico_City'
     }
   : {
       // Configuración para desarrollo local (usando variables individuales)
@@ -31,7 +32,8 @@ const dbConfig = process.env.DATABASE_URL
       idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
       connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
       ssl: false,
-      application_name: 'SuperCopias_Backend'
+      application_name: 'SuperCopias_Backend',
+      options: '-c timezone=America/Mexico_City'
     };
 
 

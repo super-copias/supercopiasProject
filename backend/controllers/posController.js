@@ -534,8 +534,8 @@ async function listVentas(req, res) {
     const params = [];
     let where = 'WHERE 1=1';
 
-    if (fecha_inicio) { params.push(fecha_inicio);        where += ` AND v.fecha_venta >= $${params.length}::date`; }
-    if (fecha_fin)    { params.push(fecha_fin);            where += ` AND v.fecha_venta < ($${params.length}::date + interval '1 day')`; }
+    if (fecha_inicio) { params.push(fecha_inicio);        where += ` AND v.fecha_venta >= ($${params.length}::date) AT TIME ZONE 'America/Mexico_City'`; }
+    if (fecha_fin)    { params.push(fecha_fin);            where += ` AND v.fecha_venta < ($${params.length}::date + interval '1 day') AT TIME ZONE 'America/Mexico_City'`; }
     if (cliente_id)   { params.push(cliente_id);           where += ` AND v.cliente_id = $${params.length}`; }
     if (vendedor_id)  { params.push(vendedor_id);          where += ` AND v.vendedor_usuario_id = $${params.length}`; }
     if (estatus)      { params.push(estatus);              where += ` AND v.estatus = $${params.length}`; }
@@ -740,8 +740,8 @@ async function getStatsHoy(req, res) {
         COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta'),       0) AS monto_tarjeta,
         COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia'), 0) AS monto_transferencia
       FROM pos_ventas
-      WHERE fecha_venta >= CURRENT_DATE
-        AND fecha_venta <  CURRENT_DATE + interval '1 day'
+      WHERE fecha_venta >= CURRENT_DATE AT TIME ZONE 'America/Mexico_City'
+        AND fecha_venta <  (CURRENT_DATE + interval '1 day') AT TIME ZONE 'America/Mexico_City'
         ${whereVendedor}
     `, params);
 
