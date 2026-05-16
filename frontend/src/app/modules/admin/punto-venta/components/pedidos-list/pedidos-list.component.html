@@ -336,8 +336,21 @@
         </div>
 
         <div *ngIf="requiereFacturaEntregar" class="mt-2">
+          <!-- Toggle PF / PM-PFAE -->
+          <div class="tipo-persona-toggle mb-1">
+            <button type="button" class="tipo-persona-btn" [class.activo]="tipoPersonaEntregar === 'pm'"
+              (click)="tipoPersonaEntregar = 'pm'; recalcularTotalConFactura()"
+              title="Persona Moral / Persona Física con Actividad Empresarial">
+              <span title="Persona Moral">PM</span> / <span title="Persona Física con Actividad Empresarial">PFAE</span>
+            </button>
+            <button type="button" class="tipo-persona-btn" [class.activo]="tipoPersonaEntregar === 'pf'"
+              (click)="tipoPersonaEntregar = 'pf'; recalcularTotalConFactura()"
+              title="Persona Física">
+              <span title="Persona Física">PF</span>
+            </button>
+          </div>
           <!-- Preview IVA/ISR sobre el total completo del pedido -->
-          <app-factura-impuestos-preview [subtotal]="pedidoEntregar.total" [small]="true"></app-factura-impuestos-preview>
+          <app-factura-impuestos-preview [subtotal]="pedidoEntregar.total" [small]="true" [tipoPersona]="tipoPersonaEntregar"></app-factura-impuestos-preview>
 
           <!-- Cliente ya vinculado -->
           <div *ngIf="clienteFacturaEntregar; else buscarClienteEntregar" class="d-flex align-items-center gap-2 p-2 border rounded small bg-light">

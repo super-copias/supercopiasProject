@@ -45,6 +45,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     cliente_telefono:     '',
     via_whatsapp:         false,
     requiere_factura:     false,
+    tipo_persona_factura: 'pm' as 'pf' | 'pm',
     anticipo:             0,
     notas_anticipo:       '',
     metodo_pago_anticipo: 'efectivo',
@@ -153,6 +154,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       cliente_telefono:       this.clienteSeleccionado?.telefono || this.form.cliente_telefono || undefined,
       via_whatsapp:           this.form.via_whatsapp,
       requiere_factura:       this.form.requiere_factura,
+      tipo_persona_factura:   this.form.tipo_persona_factura,
       items: this.carrito.map(({
         _foto_url, _nivel_stock, _existencia_actual, _id_ui, _precio_base, _tabulador, _tabulador_activo,
         ...rest

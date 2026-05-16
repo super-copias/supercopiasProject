@@ -4417,13 +4417,17 @@ CREATE TABLE IF NOT EXISTS public.facturas (
     cliente_uso_cfdi     VARCHAR(10),
     cliente_cp           VARCHAR(10),
 
+    -- Tipo de persona fiscal
+    tipo_persona         VARCHAR(4)    NOT NULL DEFAULT 'pm',
+    CONSTRAINT chk_factura_tipo_persona CHECK (tipo_persona IN ('pf', 'pm')),
+
     -- Montos calculados (snapshot de tasas)
     subtotal             NUMERIC(12,2) NOT NULL,
     iva_pct              NUMERIC(6,4)  NOT NULL,
     iva_monto            NUMERIC(12,2) NOT NULL,
     isr_pct              NUMERIC(6,4)  NOT NULL,
     isr_monto            NUMERIC(12,2) NOT NULL,
-    total_factura        NUMERIC(12,2) NOT NULL,  -- subtotal + iva - isr
+    total_factura        NUMERIC(12,2) NOT NULL,  -- subtotal + iva - isr (ISR solo aplica para pm/pfae)
 
     -- Datos SAT (reservados para integración PAC futura)
     uuid_cfdi            VARCHAR(36),

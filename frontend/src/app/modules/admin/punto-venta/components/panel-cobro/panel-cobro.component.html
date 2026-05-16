@@ -39,13 +39,14 @@
         <span>+ IVA 16%</span>
         <span class="text-success fw-semibold">+${{ totales.total * 0.16 | number:'1.2-2' }}</span>
       </div>
-      <div class="totales-row" style="font-size:.75rem;opacity:.85">
+      <div class="totales-row" style="font-size:.75rem;opacity:.85" *ngIf="tipoPersonaFactura !== 'pf'">
         <span>- ISR Ret. 1.25%</span>
         <span class="text-danger fw-semibold">-${{ totales.total * 0.0125 | number:'1.2-2' }}</span>
       </div>
       <div class="totales-row total">
         <span>TOTAL c/FACTURA</span>
-        <span class="total-val">${{ (totales.total + totales.total * 0.16 - totales.total * 0.0125) | number:'1.2-2' }}</span>
+        <span class="total-val" *ngIf="tipoPersonaFactura !== 'pf'">${{ (totales.total + totales.total * 0.16 - totales.total * 0.0125) | number:'1.2-2' }}</span>
+        <span class="total-val" *ngIf="tipoPersonaFactura === 'pf'">${{ (totales.total + totales.total * 0.16) | number:'1.2-2' }}</span>
       </div>
     </ng-container>
   </div>
@@ -68,6 +69,20 @@
     <button class="btn-accion btn-accion--preview" *ngIf="requiereFactura"
       (click)="mostrarModalFacturacion=true" title="Ver desglose fiscal">
       <i class="bi bi-eye"></i>
+    </button>
+  </div>
+
+  <!-- Toggle PF / PM-PFAE (visible solo cuando facturación está activa) -->
+  <div class="tipo-persona-toggle mb-2" *ngIf="requiereFactura">
+    <button class="tipo-persona-btn" [class.activo]="tipoPersonaFactura === 'pm'"
+      (click)="tipoPersonaFactura = 'pm'"
+      title="Persona Moral / Persona Física con Actividad Empresarial">
+      <span title="Persona Moral">PM</span> / <span title="Persona Física con Actividad Empresarial">PFAE</span>
+    </button>
+    <button class="tipo-persona-btn" [class.activo]="tipoPersonaFactura === 'pf'"
+      (click)="tipoPersonaFactura = 'pf'"
+      title="Persona Física">
+      <span title="Persona Física">PF</span>
     </button>
   </div>
 
@@ -162,7 +177,7 @@
   <div class="modal-auth-box" (click)="$event.stopPropagation()">
     <div class="modal-auth-title"><i class="bi bi-receipt me-2"></i>Desglose fiscal</div>
     <div class="mb-3">
-      <app-factura-impuestos-preview [subtotal]="totales.total"></app-factura-impuestos-preview>
+      <app-factura-impuestos-preview [subtotal]="totales.total" [tipoPersona]="tipoPersonaFactura"></app-factura-impuestos-preview>
     </div>
     <p class="small text-muted mb-3" *ngIf="clienteSeleccionado?.id">
       <i class="bi bi-person-check-fill text-success me-1"></i>

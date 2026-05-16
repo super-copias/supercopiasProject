@@ -96,9 +96,11 @@ export class FacturasService {
     return this.http.get<any>(`${this.baseUrl}/impuestos`);
   }
 
-  calcularImpuestos(subtotal: number): Observable<any> {
+  calcularImpuestos(subtotal: number, tipoPersona: 'pf' | 'pm' = 'pm'): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/calcular`, {
-      params: new HttpParams().set('subtotal', subtotal.toString()),
+      params: new HttpParams()
+        .set('subtotal', subtotal.toString())
+        .set('tipo_persona', tipoPersona),
     });
   }
 

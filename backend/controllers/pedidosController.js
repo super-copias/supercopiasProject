@@ -129,6 +129,7 @@ async function createPedido(req, res) {
       cliente_telefono,
       via_whatsapp = false,
       requiere_factura = false,
+      tipo_persona_factura = 'pm',
       items,
       descuento_pct = 0,
       descuento_config_id,
@@ -240,6 +241,7 @@ async function createPedido(req, res) {
         pedido_id: pedidoId,
         cliente_id,
         subtotal: total,
+        tipo_persona: tipo_persona_factura || 'pm',
         usuario_id: creadoPorId,
         usuario_nombre: creadoPorNombre,
         notas: notas || null,
@@ -511,7 +513,7 @@ async function entregarPedido(req, res) {
     await client.query('BEGIN');
 
     const pedidoId = parseInt(req.params.id);
-    const { metodo_pago_saldo, monto_recibido_saldo, notas, requiere_factura, cliente_factura_id } = req.body;
+    const { metodo_pago_saldo, monto_recibido_saldo, notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm' } = req.body;
 
     const usuarioNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const usuarioId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
@@ -695,6 +697,7 @@ async function entregarPedido(req, res) {
         venta_id: ventaId,
         cliente_id: clienteParaFactura,
         subtotal: total,
+        tipo_persona: tipo_persona_factura || 'pm',
         usuario_id: usuarioId,
         usuario_nombre: usuarioNombre,
         notas: `Pedido: ${pedido.folio}`,
