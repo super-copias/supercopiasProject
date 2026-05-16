@@ -54,6 +54,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   procesandoConvertir = false;
   errorConvertir = '';
   requiereFacturaConvertir = false;
+  tipoPersonaConvertir: 'pf' | 'pm' = 'pm';
   clienteFacturaConvertir: any = null;
   busquedaClienteConvertir = new FormControl('');
   resultadosClienteConvertir: any[] = [];
@@ -246,6 +247,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     this.notasConvertir               = '';
     this.errorConvertir               = '';
     this.requiereFacturaConvertir     = !!(cot.requiere_factura);
+    this.tipoPersonaConvertir         = 'pm';
     this.clienteFacturaConvertir      = cot.cliente_id ? { id: cot.cliente_id, nombreComercial: cot.cliente_nombre } : null;
     this.busquedaClienteConvertir.setValue('', { emitEvent: false });
     this.resultadosClienteConvertir   = [];
@@ -254,7 +256,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   }
 
   recalcularTotalConFacturaConvertir(): void {
-    this.facturasService.calcularImpuestos(this.cotizacionConvertirTotal)
+    this.facturasService.calcularImpuestos(this.cotizacionConvertirTotal, this.tipoPersonaConvertir)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: (r) => { this.totalConFacturaConvertir = r.data?.total ?? null; } });
   }
@@ -272,6 +274,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     this.cotizacionConvertirId        = null;
     this.cotizacionConvertirClienteId = null;
     this.totalConFacturaConvertir     = null;
+    this.tipoPersonaConvertir         = 'pm';
     this.errorConvertir               = '';
     this.clienteFacturaConvertir      = null;
     this.busquedaClienteConvertir.setValue('', { emitEvent: false });
@@ -344,7 +347,8 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
       this.metodoPagoConvertir === 'efectivo' ? this.montoRecibidoConvertir : null,
       this.notasConvertir || undefined,
       this.requiereFacturaConvertir,
-      this.clienteFacturaConvertir?.id || null
+      this.clienteFacturaConvertir?.id || null,
+      this.tipoPersonaConvertir
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.procesandoConvertir = false;

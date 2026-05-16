@@ -13,6 +13,8 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
   @Input() subtotal = 0;
   /** Si true, renderiza en tamaño pequeño */
   @Input() small = false;
+  /** pf = Persona Física (solo IVA); pm = Persona Moral / PFAE (IVA + ISR) */
+  @Input() tipoPersona: 'pf' | 'pm' = 'pm';
 
   iva_pct  = 0.16;
   iva_monto = 0;
@@ -31,7 +33,7 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['subtotal']) {
+    if (changes['subtotal'] || changes['tipoPersona']) {
       this.calcTrigger$.next(this.subtotal);
     }
   }
@@ -46,7 +48,7 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
       this.iva_monto = this.isr_monto = this.total = 0;
       return;
     }
-    this.facturasService.calcularImpuestos(sub)
+    this.facturasService.calcularImpuestos(sub, this.tipoPersona)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (r) => {
@@ -60,7 +62,7 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
         error: () => {
           // Fallback local si la API falla
           this.iva_monto = parseFloat((sub * this.iva_pct).toFixed(2));
-          this.isr_monto = parseFloat((sub * this.isr_pct).toFixed(2));
+          this.isr_monto = this.tipoPersona === 'pf' ? 0 : parseFloat((sub * this.isr_pct).toFixed(2));
           this.total     = parseFloat((sub + this.iva_monto - this.isr_monto).toFixed(2));
         },
       });

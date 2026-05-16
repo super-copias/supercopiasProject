@@ -57,6 +57,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
 
   // Facturación en entrega
   requiereFacturaEntregar = false;
+  tipoPersonaEntregar: 'pf' | 'pm' = 'pm';
   clienteFacturaEntregar: any = null;
   busquedaClienteEntregar = new FormControl('');
   resultadosClienteEntregar: any[] = [];
@@ -200,6 +201,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     this.notasEntrega = '';
     this.errorEntrega = '';
     this.requiereFacturaEntregar = !!(p.requiere_factura);
+    this.tipoPersonaEntregar = 'pm';
     this.clienteFacturaEntregar = p.cliente_id ? { id: p.cliente_id, nombreComercial: p.cliente_nombre } : null;
     this.busquedaClienteEntregar.setValue('', { emitEvent: false });
     this.resultadosClienteEntregar = [];
@@ -210,7 +212,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
 
   recalcularTotalConFactura(): void {
     if (!this.pedidoEntregar) return;
-    this.facturasService.calcularImpuestos(parseFloat(this.pedidoEntregar.total))
+    this.facturasService.calcularImpuestos(parseFloat(this.pedidoEntregar.total), this.tipoPersonaEntregar)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: (r) => { this.totalConFacturaEntregar = r.data?.total ?? null; } });
   }
@@ -274,6 +276,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
       this.notasEntrega || undefined,
       this.requiereFacturaEntregar,
       this.clienteFacturaEntregar?.id || null,
+      this.tipoPersonaEntregar,
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.procesandoEntrega = false;

@@ -58,7 +58,8 @@ async function leerTasas() {
  */
 async function crearFacturaEnTransaccion(client, {
   tipo_origen, venta_id = null, pedido_id = null, cotizacion_id = null,
-  cliente_id, subtotal, usuario_id = null, usuario_nombre = null, notas = null,
+  cliente_id, subtotal, tipo_persona = 'pm',
+  usuario_id = null, usuario_nombre = null, notas = null,
 }) {
   const cliRes = await client.query(
     `SELECT id, razon_social, rfc, regimen_fiscal, uso_cfdi,
@@ -72,7 +73,8 @@ async function crearFacturaEnTransaccion(client, {
   const tasas    = await leerTasas();
   const sub      = parseFloat(subtotal);
   const iva_monto = parseFloat((sub * tasas.iva_pct).toFixed(2));
-  const isr_monto = parseFloat((sub * tasas.isr_pct).toFixed(2));
+  // ISR retención solo aplica para PM y PFAE; PF queda exento
+  const isr_monto = tipo_persona === 'pf' ? 0 : parseFloat((sub * tasas.isr_pct).toFixed(2));
   const total     = parseFloat((sub + iva_monto - isr_monto).toFixed(2));
   const folio     = await generarFolio(client);
 
@@ -82,6 +84,7 @@ async function crearFacturaEnTransaccion(client, {
         venta_id, pedido_id, cotizacion_id,
         cliente_id, cliente_nombre, cliente_rfc,
         cliente_razon_social, cliente_regimen, cliente_uso_cfdi, cliente_cp,
+        tipo_persona,
         subtotal, iva_pct, iva_monto, isr_pct, isr_monto, total_factura,
         creado_por_id, creado_por_nombre, notas
      ) VALUES (
@@ -89,8 +92,9 @@ async function crearFacturaEnTransaccion(client, {
         $3,$4,$5,
         $6,$7,$8,
         $9,$10,$11,$12,
-        $13,$14,$15,$16,$17,$18,
-        $19,$20,$21
+        $13,
+        $14,$15,$16,$17,$18,$19,
+        $20,$21,$22
      ) RETURNING *`,
     [
       folio, tipo_origen,
@@ -102,6 +106,7 @@ async function crearFacturaEnTransaccion(client, {
       c.regimen_fiscal || '',
       c.uso_cfdi || '',
       c.direccion_codigo_postal || '',
+      tipo_persona,
       sub, tasas.iva_pct, iva_monto, tasas.isr_pct, isr_monto, total,
       usuario_id, usuario_nombre, notas,
     ]
@@ -125,16 +130,22 @@ exports.crearFacturaEnTransaccion = crearFacturaEnTransaccion;
 
 exports.calcularImpuestos = async (req, res) => {
   try {
-    const subtotal = parseFloat(req.body.subtotal || req.query.subtotal);
+    const subtotal     = parseFloat(req.body.subtotal || req.query.subtotal);
+    const tipo_persona = (req.body.tipo_persona || req.query.tipo_persona || 'pm').toLowerCase();
     if (isNaN(subtotal) || subtotal < 0) {
       return res.status(400).json(createErrorResponse('El subtotal debe ser un número positivo'));
     }
+    if (!['pf', 'pm'].includes(tipo_persona)) {
+      return res.status(400).json(createErrorResponse('tipo_persona debe ser pf o pm'));
+    }
     const tasas = await leerTasas();
     const iva_monto   = parseFloat((subtotal * tasas.iva_pct).toFixed(2));
-    const isr_monto   = parseFloat((subtotal * tasas.isr_pct).toFixed(2));
+    // ISR retención solo aplica para PM y PFAE; PF queda exento
+    const isr_monto   = tipo_persona === 'pf' ? 0 : parseFloat((subtotal * tasas.isr_pct).toFixed(2));
     const total       = parseFloat((subtotal + iva_monto - isr_monto).toFixed(2));
     return res.json(createResponse(true, {
       subtotal,
+      tipo_persona,
       iva_pct: tasas.iva_pct,
       iva_monto,
       isr_pct: tasas.isr_pct,

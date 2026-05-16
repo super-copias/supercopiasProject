@@ -173,6 +173,7 @@ async function createVenta(req, res) {
       descuento_autorizado_por,
       notas,
       requiere_factura = false,
+      tipo_persona_factura = 'pm',
     } = req.body;
 
     // Validaciones básicas
@@ -436,6 +437,7 @@ async function createVenta(req, res) {
         venta_id: ventaId,
         cliente_id,
         subtotal: total,
+        tipo_persona: tipo_persona_factura || 'pm',
         usuario_id: vendedorId,
         usuario_nombre: vendedorNombre,
         notas: notas || null,
@@ -1048,7 +1050,7 @@ async function convertirCotizacion(req, res) {
     await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const cotizId = parseInt(req.params.id);
-    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas, requiere_factura, cliente_factura_id } = req.body;
+    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm' } = req.body;
 
     if (!metodo_pago_codigo)
       return res.status(400).json(createErrorResponse('Método de pago requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -1168,6 +1170,7 @@ async function convertirCotizacion(req, res) {
         venta_id: ventaId,
         cliente_id: clienteParaFacturaCotiz,
         subtotal: total,
+        tipo_persona: tipo_persona_factura || 'pm',
         usuario_id: vendedorId,
         usuario_nombre: vendedorNombre,
         notas: notas || cotiz.notas || null,

@@ -288,7 +288,20 @@
         </label>
       </div>
       <div *ngIf="requiereFacturaConvertir" class="mt-2">
-        <app-factura-impuestos-preview [subtotal]="cotizacionConvertirTotal" [small]="true"></app-factura-impuestos-preview>
+        <!-- Toggle PF / PM-PFAE -->
+        <div class="tipo-persona-toggle mb-1">
+          <button type="button" class="tipo-persona-btn" [class.activo]="tipoPersonaConvertir === 'pm'"
+            (click)="tipoPersonaConvertir = 'pm'; recalcularTotalConFacturaConvertir()"
+            title="Persona Moral / Persona Física con Actividad Empresarial">
+            <span title="Persona Moral">PM</span> / <span title="Persona Física con Actividad Empresarial">PFAE</span>
+          </button>
+          <button type="button" class="tipo-persona-btn" [class.activo]="tipoPersonaConvertir === 'pf'"
+            (click)="tipoPersonaConvertir = 'pf'; recalcularTotalConFacturaConvertir()"
+            title="Persona Física">
+            <span title="Persona Física">PF</span>
+          </button>
+        </div>
+        <app-factura-impuestos-preview [subtotal]="cotizacionConvertirTotal" [small]="true" [tipoPersona]="tipoPersonaConvertir"></app-factura-impuestos-preview>
 
         <!-- Cliente ya vinculado -->
         <div *ngIf="clienteFacturaConvertir; else buscarClienteConvertir" class="d-flex align-items-center gap-2 p-2 border rounded small bg-light">

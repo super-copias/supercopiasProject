@@ -62,6 +62,7 @@ export interface VentaPayload {
   descuento_autorizado_por?: string | null;
   notas?: string;
   requiere_factura?: boolean;
+  tipo_persona_factura?: 'pf' | 'pm';
 }
 
 export interface VentaDetalle {
@@ -159,6 +160,7 @@ export interface CotizacionPayload {
   notas?: string;
   fecha_vencimiento?: string | null;
   requiere_factura?: boolean;
+  tipo_persona_factura?: 'pf' | 'pm';
 }
 
 export interface CotizacionLinea {
@@ -227,6 +229,7 @@ export interface PedidoPayload {
   cliente_telefono?: string;
   via_whatsapp?: boolean;
   requiere_factura?: boolean;
+  tipo_persona_factura?: 'pf' | 'pm';
   items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui' | '_precio_base' | '_tabulador' | '_tabulador_activo'>[];
   descuento_pct?: number;
   descuento_config_id?: number | null;
@@ -401,7 +404,7 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/cotizaciones/${id}/estatus`, { estatus });
   }
 
-  convertirCotizacion(id: number, metodoPago: string, metodoPagoDesc?: string, montoRecibido?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null): Observable<any> {
+  convertirCotizacion(id: number, metodoPago: string, metodoPagoDesc?: string, montoRecibido?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/cotizaciones/${id}/convertir`, {
       metodo_pago_codigo: metodoPago,
       metodo_pago_descripcion: metodoPagoDesc || metodoPago,
@@ -409,6 +412,7 @@ export class PosService {
       notas,
       requiere_factura: requiereFactura ?? false,
       cliente_factura_id: clienteFacturaId || null,
+      tipo_persona_factura: tipoPersonaFactura || 'pm',
     });
   }
 
@@ -485,13 +489,14 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/terminar`, { notas });
   }
 
-  entregarPedido(id: number, metodoPagoSaldo: string, montoRecibidoSaldo?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null): Observable<any> {
+  entregarPedido(id: number, metodoPagoSaldo: string, montoRecibidoSaldo?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/entregar`, {
       metodo_pago_saldo: metodoPagoSaldo,
       monto_recibido_saldo: montoRecibidoSaldo || null,
       notas,
       requiere_factura: requiereFactura || false,
       cliente_factura_id: clienteFacturaId || null,
+      tipo_persona_factura: tipoPersonaFactura || 'pm',
     });
   }
 

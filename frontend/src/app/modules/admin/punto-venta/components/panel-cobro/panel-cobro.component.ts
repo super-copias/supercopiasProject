@@ -53,6 +53,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   // ── Facturación (toggle en panel) ──────────────────────────────────────
   requiereFactura    = false;
+  tipoPersonaFactura: 'pf' | 'pm' = 'pm';
   totalConFactura    = 0;  // calculado por el componente hijo vía event o input
 
   // Autorización de descuento elevado
@@ -173,6 +174,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       notas: this.notas || undefined,
       folio_operacion: this.folioOperacion || undefined,
       requiere_factura: this.requiereFactura,
+      tipo_persona_factura: this.tipoPersonaFactura,
     };
 
     this.posService.createVenta(payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -298,6 +300,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       notas: this.notas || undefined,
       fecha_vencimiento: this.fechaVencimientoCotizacion || undefined,
       requiere_factura: this.requiereFactura,
+      tipo_persona_factura: this.tipoPersonaFactura,
     };
 
     this.posService.createCotizacion(payload).pipe(takeUntil(this.destroy$)).subscribe({

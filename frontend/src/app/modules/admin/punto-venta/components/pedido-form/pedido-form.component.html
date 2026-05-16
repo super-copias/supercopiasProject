@@ -146,7 +146,20 @@
 
           <!-- Desglose factura -->
           <div class="mt-2" *ngIf="form.requiere_factura">
-            <app-factura-impuestos-preview [subtotal]="totales.total" [small]="true"></app-factura-impuestos-preview>
+            <!-- Toggle PF / PM-PFAE -->
+            <div class="tipo-persona-toggle mb-1">
+              <button type="button" class="tipo-persona-btn" [class.activo]="form.tipo_persona_factura === 'pm'"
+                (click)="form.tipo_persona_factura = 'pm'"
+                title="Persona Moral / Persona Física con Actividad Empresarial">
+                <span title="Persona Moral">PM</span> / <span title="Persona Física con Actividad Empresarial">PFAE</span>
+              </button>
+              <button type="button" class="tipo-persona-btn" [class.activo]="form.tipo_persona_factura === 'pf'"
+                (click)="form.tipo_persona_factura = 'pf'"
+                title="Persona Física">
+                <span title="Persona Física">PF</span>
+              </button>
+            </div>
+            <app-factura-impuestos-preview [subtotal]="totales.total" [small]="true" [tipoPersona]="form.tipo_persona_factura"></app-factura-impuestos-preview>
           </div>
 
           <!-- Anticipo -->
