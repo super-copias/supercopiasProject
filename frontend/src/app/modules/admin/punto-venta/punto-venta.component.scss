@@ -39,6 +39,7 @@ $body-pad:  1.5rem;   // padding de .content-body en admin.component.scss
   min-height:      48px;
   flex-shrink:     0;
   z-index:         100;
+  position:        relative;
 
   .topbar-left {
     font-size:   .95rem;
@@ -48,7 +49,19 @@ $body-pad:  1.5rem;   // padding de .content-body en admin.component.scss
     i { color: $yellow; }
   }
 
-  .topbar-center { flex-shrink: 0; }
+  .topbar-center {
+    position:  absolute;
+    left:      50%;
+    transform: translateX(-50%);
+    flex-shrink: 0;
+
+    .btn-group .btn {
+      flex:       1;
+      min-width:  110px;
+      text-align: center;
+      white-space: nowrap;
+    }
+  }
 
   .stat-chip {
     display:        flex;
@@ -168,12 +181,18 @@ $body-pad:  1.5rem;   // padding de .content-body en admin.component.scss
   :host { margin: -1rem; }   // content-body puede tener menos padding en mobile
 
   .pos-topbar {
-    padding:    .35rem .6rem;
-    min-height: 42px;
-    gap:        .3rem;
+    padding:         .35rem .6rem;
+    min-height:      42px;
+    gap:             .3rem;
+    justify-content: center;
 
-    .topbar-left span  { display: none; }   // solo icono en pantallas muy pequeñas
-    .stat-chip { min-width: 60px; padding: .15rem .4rem; }
+    .topbar-left   { display: none; }   // ocultar en mobile para dar espacio al grupo
+    .topbar-center {
+      position:  static;
+      transform: none;
+
+      .btn-group .btn { min-width: 72px; }
+    }
   }
 }
 
