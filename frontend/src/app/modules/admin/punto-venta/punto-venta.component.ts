@@ -148,14 +148,12 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
   }
 
   onVentaCompletada(): void {
-    this.cargarStats();
     this.onLimpiarCarrito();
   }
 
   onCotizacionGuardada(cotiz: CotizacionDetalle): void {
     // El ticket de cotización se muestra dentro del panel-cobro;
-    // actualizamos estadísticas y limpiamos el carrito.
-    this.cargarStats();
+    // limpiamos el carrito.
     this.onLimpiarCarrito();
   }
 
@@ -192,7 +190,6 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
 
   onPedidoGuardado(pedido: any): void {
     this.onLimpiarCarrito();
-    this.cargarStats();
     this.vistaActiva = 'pedidos';
   }
 
@@ -202,6 +199,5 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
 
   cambiarVista(vista: 'pos' | 'historial' | 'cotizaciones' | 'pedidos'): void {
     this.vistaActiva = vista;
-    if (vista === 'historial' || vista === 'cotizaciones') this.cargarStats();
   }
 }
