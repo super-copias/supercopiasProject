@@ -119,7 +119,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
 
   get anticipoValido(): boolean {
     const a = this.form.anticipo;
-    return a >= this.minimoAnticipo && a <= this.totales.total;
+    return a >= 0 && a <= this.totales.total;
   }
 
   confirmar(): void {
@@ -134,7 +134,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     }
 
     if (!this.anticipoValido) {
-      this.error = `El anticipo debe ser al menos el 20% del total ($${this.minimoAnticipo.toFixed(2)}) y no mayor al total ($${this.totales.total.toFixed(2)})`;
+      this.error = `El anticipo no puede ser mayor al total ($${this.totales.total.toFixed(2)})`;
       return;
     }
 
