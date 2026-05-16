@@ -798,10 +798,10 @@ async function getStatsPedidos(req, res) {
         COUNT(*) FILTER (WHERE estatus = 'en_proceso') AS en_proceso,
         COUNT(*) FILTER (WHERE estatus = 'terminado')  AS terminado,
         COUNT(*) FILTER (WHERE estatus = 'finalizado'
-          AND DATE(fecha_entregado) = CURRENT_DATE)    AS finalizados_hoy
+          AND (fecha_entregado AT TIME ZONE 'America/Mexico_City')::date = (NOW() AT TIME ZONE 'America/Mexico_City')::date) AS finalizados_hoy
       FROM pos_pedidos
       WHERE estatus NOT IN ('cancelado','finalizado')
-         OR (estatus = 'finalizado' AND DATE(fecha_entregado) = CURRENT_DATE)
+         OR (estatus = 'finalizado' AND (fecha_entregado AT TIME ZONE 'America/Mexico_City')::date = (NOW() AT TIME ZONE 'America/Mexico_City')::date)
     `);
     const counts = r.rows[0];
     const activos = parseInt(counts.pendiente) + parseInt(counts.en_proceso) + parseInt(counts.terminado);

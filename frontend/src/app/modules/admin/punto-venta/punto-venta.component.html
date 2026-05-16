@@ -31,17 +31,6 @@
         </button>
       </div>
     </div>
-    <!-- Stats del día -->
-    <div class="topbar-right d-none d-lg-flex gap-3">
-      <div class="stat-chip" *ngIf="statsHoy">
-        <span class="stat-label">Ventas hoy</span>
-        <span class="stat-value">{{ statsHoy.total_ventas }}</span>
-      </div>
-      <div class="stat-chip highlight" *ngIf="statsHoy">
-        <span class="stat-label">Total</span>
-        <span class="stat-value">{{ statsHoy.total_ingresos | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
-      </div>
-    </div>
   </div>
 
   <!-- ══════════════════════════════════════════ -->
