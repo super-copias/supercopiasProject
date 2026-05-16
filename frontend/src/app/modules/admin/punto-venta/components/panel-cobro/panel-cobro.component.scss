@@ -192,6 +192,7 @@
 // Toggle de tipo de persona fiscal (PF / PM-PFAE)
 .tipo-persona-toggle {
   display: inline-flex;
+  align-self: flex-start;
   border: 1.5px solid #dee2e6;
   border-radius: 8px;
   overflow: hidden;
