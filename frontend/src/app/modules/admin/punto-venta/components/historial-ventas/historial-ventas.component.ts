@@ -49,8 +49,7 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const hoy = new Date();
-    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    this.filtroFechaInicio.setValue(this.toISO(primerDia));
+    this.filtroFechaInicio.setValue(this.toISO(hoy));
     this.filtroFechaFin.setValue(this.toISO(hoy));
 
     this.cargarVentas();
@@ -62,7 +61,10 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
   }
 
   private toISO(d: Date): string {
-    return d.toISOString().split('T')[0];
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   buscar(): void {
@@ -72,8 +74,7 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
 
   limpiarFiltros(): void {
     const hoy = new Date();
-    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    this.filtroFechaInicio.setValue(this.toISO(primerDia));
+    this.filtroFechaInicio.setValue(this.toISO(hoy));
     this.filtroFechaFin.setValue(this.toISO(hoy));
     this.filtroEstatus.setValue('');
     this.filtroFolio.setValue('');
