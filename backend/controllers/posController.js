@@ -972,8 +972,8 @@ async function listCotizaciones(req, res) {
     if (folio)        { where.push(`c.folio ILIKE $${p}`);        params.push(`%${folio}%`);     p++; }
     if (cliente_id)   { where.push(`c.cliente_id = $${p}`);       params.push(parseInt(cliente_id)); p++; }
     if (estatus)      { where.push(`c.estatus = $${p}`);          params.push(estatus);           p++; }
-    if (fecha_inicio) { where.push(`c.fecha_creacion >= $${p}`);  params.push(fecha_inicio);      p++; }
-    if (fecha_fin)    { where.push(`c.fecha_creacion < ($${p}::date + interval '1 day')`); params.push(fecha_fin); p++; }
+    if (fecha_inicio) { where.push(`c.fecha_creacion >= ($${p}::date) AT TIME ZONE 'America/Mexico_City'`);                          params.push(fecha_inicio); p++; }
+    if (fecha_fin)    { where.push(`c.fecha_creacion <  ($${p}::date + interval '1 day') AT TIME ZONE 'America/Mexico_City'`); params.push(fecha_fin);    p++; }
 
     const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const offset   = (parseInt(page) - 1) * parseInt(limit);
