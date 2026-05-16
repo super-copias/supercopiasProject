@@ -99,7 +99,7 @@
         <tbody>
           <tr *ngFor="let f of facturas" class="cursor-pointer" (click)="verDetalle(f)">
             <td><code class="folio-code">{{ f.folio }}</code></td>
-            <td class="text-nowrap">{{ f.fecha_creacion | date:'dd/MM/yy HH:mm' }}</td>
+            <td class="text-nowrap">{{ f.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
             <td>
               <span class="badge-origen" [ngClass]="'origen-' + f.tipo_origen">
                 {{ labelOrigen(f.tipo_origen) }}
@@ -164,7 +164,7 @@
       <div>
         <div class="fw-bold fs-5" *ngIf="facturaDetalle">{{ facturaDetalle.folio }}</div>
         <small class="text-muted" *ngIf="facturaDetalle">
-          {{ facturaDetalle.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}
+          {{ facturaDetalle.fecha_creacion | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}
         </small>
       </div>
       <button class="btn btn-sm btn-outline-dark" (click)="cerrarDetalle()">
