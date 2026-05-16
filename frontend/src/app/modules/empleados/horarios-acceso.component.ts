@@ -57,8 +57,8 @@ import { NotificationService } from '../../services/notification.service';
               <tbody>
                 <tr *ngFor="let h of horarios">
                   <td class="fw-medium">{{ h.nombre }}</td>
-                  <td><span class="badge bg-light text-dark border">{{ h.hora_inicio | slice:0:5 }}</span></td>
-                  <td><span class="badge bg-light text-dark border">{{ h.hora_fin | slice:0:5 }}</span></td>
+                  <td><span class="badge bg-light text-dark border">{{ to12h(h.hora_inicio) }}</span></td>
+                  <td><span class="badge bg-light text-dark border">{{ to12h(h.hora_fin) }}</span></td>
                   <td>
                     <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
                       <input class="form-check-input" type="checkbox" role="switch"
@@ -259,5 +259,13 @@ export class HorariosAccesoComponent implements OnInit, OnDestroy {
         },
         error: () => this.notificationService.error('No se pudo eliminar el horario.', 'Error')
       });
+  }
+
+  to12h(time: string): string {
+    if (!time) return '';
+    const [h, m] = time.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
   }
 }

@@ -21,25 +21,39 @@ const activeTimeouts = new Set();
 // ─────────────────────────────────────────────
 
 /**
- * Milisegundos hasta la próxima ocurrencia de "HH:MM[:SS]" en hora local.
- * Si ya pasó hoy, devuelve el tiempo hasta mañana a esa hora.
+ * Devuelve la hora actual en México (America/Mexico_City).
+ * El servidor Railway corre en UTC, por lo que no podemos usar getHours().
  */
-function msHasta(timeStr) {
-  const [h, m] = timeStr.toString().split(':').map(Number);
-  const ahora = new Date();
-  const objetivo = new Date(ahora);
-  objetivo.setHours(h, m, 0, 0);
-  let diff = objetivo.getTime() - ahora.getTime();
-  if (diff <= 0) diff += 24 * 60 * 60 * 1000; // siguiente día
-  return diff;
+function getMxNow() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(new Date());
+  const get = (type) => parseInt(parts.find(p => p.type === type).value);
+  return { h: get('hour') % 24, m: get('minute'), s: get('second') };
 }
 
 /**
- * Minutos desde medianoche para la hora actual
+ * Milisegundos hasta la próxima ocurrencia de "HH:MM[:SS]" en hora de México.
+ * Si ya pasó hoy en México, devuelve el tiempo hasta mañana a esa hora.
+ */
+function msHasta(timeStr) {
+  const [targetH, targetM] = timeStr.toString().split(':').map(Number);
+  const { h: nowH, m: nowM, s: nowS } = getMxNow();
+  const nowTotal    = nowH * 3600 + nowM * 60 + nowS;
+  const targetTotal = targetH * 3600 + targetM * 60;
+  let diff = targetTotal - nowTotal;
+  if (diff <= 0) diff += 24 * 3600;
+  return diff * 1000;
+}
+
+/**
+ * Minutos desde medianoche en hora de México
  */
 function ahoraEnMinutos() {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+  const { h, m } = getMxNow();
+  return h * 60 + m;
 }
 
 /**
