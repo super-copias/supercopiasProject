@@ -189,5 +189,35 @@
   color: var(--color-deep-blue, #003d80);
 }
 
+// Toggle de tipo de persona fiscal (PF / PM-PFAE)
+.tipo-persona-toggle {
+  display: inline-flex;
+  border: 1.5px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tipo-persona-btn {
+  padding: .3rem .85rem;
+  font-size: .78rem;
+  font-weight: 600;
+  background: #f8f9fa;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all .15s;
+
+  & + & { border-left: 1.5px solid #dee2e6; }
+
+  &:hover:not(.activo) {
+    background: #e9ecef;
+    color: #495057;
+  }
+
+  &.activo {
+    background: var(--color-deep-blue, #003d80);
+    color: #fff;
+  }
+}
+
 // Print: ocultar este panel
 @media print { :host { display: none !important; } }
