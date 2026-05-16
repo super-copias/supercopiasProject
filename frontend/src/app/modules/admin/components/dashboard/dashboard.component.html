@@ -10,7 +10,7 @@
     <div class="dash-header__right">
       <span *ngIf="ultimaActualizacion" class="last-update">
         <i class="fas fa-clock me-1"></i>
-        Actualizado: {{ ultimaActualizacion | date:'HH:mm:ss' }}
+        Actualizado: {{ ultimaActualizacion | date:'h:mm:ss a':'America/Mexico_City' }}
       </span>
       <button class="btn-refresh" (click)="recargar()" [disabled]="loading">
         <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
@@ -363,7 +363,7 @@
                       {{ v.estatus | titlecase }}
                     </span>
                   </td>
-                  <td class="text-muted small">{{ v.fecha_venta | date:'HH:mm' }}</td>
+                  <td class="text-muted small">{{ v.fecha_venta | date:'h:mm a':'America/Mexico_City' }}</td>
                 </tr>
               </tbody>
             </table>

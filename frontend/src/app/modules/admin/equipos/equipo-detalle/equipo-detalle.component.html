@@ -166,7 +166,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of historialContador">
-                <td>{{item.fecha_lectura | date:'dd/MM/yyyy HH:mm'}}</td>
+                <td>{{item.fecha_lectura | date:'dd/MM/yyyy h:mm a':'America/Mexico_City'}}</td>
                 <td><strong>{{item.contador_actual}}</strong></td>
                 <td>{{item.tecnico_nombre || '-'}}</td>
                 <td>{{item.observaciones || '-'}}</td>

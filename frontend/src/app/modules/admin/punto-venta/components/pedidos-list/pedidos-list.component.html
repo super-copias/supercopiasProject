@@ -72,7 +72,7 @@
       <!-- Entrega -->
       <div class="pedido-card-info" *ngIf="p.fecha_acordada">
         <i class="bi bi-calendar-event me-1 text-muted"></i>
-        <small class="text-muted">{{ p.fecha_acordada | date:'dd/MM/yyyy HH:mm' }}</small>
+        <small class="text-muted">{{ p.fecha_acordada | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}</small>
       </div>
 
       <!-- Total / Anticipo -->
@@ -175,7 +175,7 @@
         </div>
         <p class="mb-1"><small class="text-muted">Cliente:</small> {{ pedidoDetalle.cliente_nombre || 'Sin cliente' }}</p>
         <p class="mb-1" *ngIf="pedidoDetalle.fecha_acordada">
-          <small class="text-muted">Entrega acordada:</small> {{ pedidoDetalle.fecha_acordada | date:'dd/MM/yyyy HH:mm' }}
+          <small class="text-muted">Entrega acordada:</small> {{ pedidoDetalle.fecha_acordada | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}
         </p>
         <p class="mb-1" *ngIf="pedidoDetalle.notas">
           <small class="text-muted">Notas:</small> {{ pedidoDetalle.notas }}
@@ -212,7 +212,7 @@
           <small class="text-muted fw-bold">Historial</small>
           <div *ngFor="let h of pedidoDetalle.historial" class="historial-item">
             <small>{{ h.estatus_nuevo | titlecase }} — {{ h.usuario_nombre }}</small>
-            <small class="text-muted float-end">{{ h.fecha | date:'dd/MM HH:mm' }}</small>
+            <small class="text-muted float-end">{{ h.fecha | date:'dd/MM h:mm a':'America/Mexico_City' }}</small>
             <div *ngIf="h.notas" class="text-muted small">{{ h.notas }}</div>
           </div>
         </div>

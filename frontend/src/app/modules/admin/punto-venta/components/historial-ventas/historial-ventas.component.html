@@ -66,7 +66,7 @@
         </tr>
         <tr *ngFor="let v of ventas" class="cursor-pointer" (click)="verDetalle(v)">
           <td><code class="folio">{{ v.folio }}</code></td>
-          <td>{{ v.fecha_venta | date:'dd/MM/yy HH:mm' }}</td>
+          <td>{{ v.fecha_venta | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
           <td>{{ v.cliente_nombre || '— Público general —' }}</td>
           <td class="text-center">{{ v.num_items ?? '—' }}</td>
           <td class="text-end fw-semibold">${{ v.total | number:'1.2-2' }}</td>
@@ -117,7 +117,7 @@
     <div class="detalle-header">
       <div>
         <div class="fw-bold fs-5" *ngIf="ventaDetalle">{{ ventaDetalle.folio }}</div>
-        <small class="text-muted" *ngIf="ventaDetalle">{{ ventaDetalle.fecha_venta | date:'dd/MM/yyyy HH:mm' }}</small>
+        <small class="text-muted" *ngIf="ventaDetalle">{{ ventaDetalle.fecha_venta | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}</small>
       </div>
       <div class="d-flex gap-2 align-items-center">
         <button class="btn btn-sm btn-outline-secondary" *ngIf="ventaDetalle" (click)="mostrarReimpresion()">

@@ -257,7 +257,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
         if (!isNaN(d.getTime())) {
           return d.toLocaleString('es-MX', {
             day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            hour: '2-digit', minute: '2-digit',
+            hour12: true, timeZone: 'America/Mexico_City'
           });
         }
       } catch { /* fallthrough */ }

@@ -67,7 +67,7 @@
       <tbody>
         <tr *ngFor="let c of cotizaciones" class="cursor-pointer" (click)="verDetalle(c.id)">
           <td><code class="folio">{{ c.folio }}</code></td>
-          <td>{{ c.fecha_creacion | date:'dd/MM/yy HH:mm' }}</td>
+          <td>{{ c.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
           <td>{{ c.cliente_nombre }}</td>
           <td class="text-end fw-semibold">${{ c.total | number:'1.2-2' }}</td>
           <td>
@@ -133,7 +133,7 @@
       <div>
         <div class="fw-bold fs-5" *ngIf="cotizacionDetalle">{{ cotizacionDetalle.folio }}</div>
         <small class="text-muted" *ngIf="cotizacionDetalle">
-          {{ cotizacionDetalle.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}
+          {{ cotizacionDetalle.fecha_creacion | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}
         </small>
       </div>
       <div class="d-flex gap-2 align-items-center">
