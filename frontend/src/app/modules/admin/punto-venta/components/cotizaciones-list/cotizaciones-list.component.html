@@ -58,6 +58,7 @@
           <th>Folio</th>
           <th>Fecha</th>
           <th>Cliente</th>
+          <th>Vendedor</th>
           <th class="text-end">Total</th>
           <th>Vigencia</th>
           <th>Estatus</th>
@@ -69,6 +70,7 @@
           <td><code class="folio">{{ c.folio }}</code></td>
           <td>{{ c.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
           <td>{{ c.cliente_nombre }}</td>
+          <td>{{ c.vendedor_nombre || '—' }}</td>
           <td class="text-end fw-semibold">${{ c.total | number:'1.2-2' }}</td>
           <td>
             <span *ngIf="c.fecha_vencimiento">{{ c.fecha_vencimiento | date:'dd/MM/yy' }}</span>
@@ -97,7 +99,7 @@
           </td>
         </tr>
         <tr *ngIf="cotizaciones.length === 0">
-          <td colspan="7" class="text-center text-muted py-4">No se encontraron cotizaciones</td>
+          <td colspan="8" class="text-center text-muted py-4">No se encontraron cotizaciones</td>
         </tr>
       </tbody>
     </table>
