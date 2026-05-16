@@ -119,7 +119,7 @@
     <!-- Folio + Fecha -->
     <div class="t-meta">
       <div><b>Folio:</b> {{ venta.folio }}</div>
-      <div><b>Fecha:</b> {{ venta.fecha_venta | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}
+      <div><b>Fecha:</b> {{ venta.fecha_venta | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}</div>
       <div *ngIf="venta.vendedor_nombre"><b>Atendió:</b> {{ venta.vendedor_nombre }}</div>
     </div>
 
