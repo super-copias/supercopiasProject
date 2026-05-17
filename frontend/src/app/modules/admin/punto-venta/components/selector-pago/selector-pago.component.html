@@ -1,0 +1,116 @@
+<div class="selector-pago">
+
+  <!-- ── Cuadrícula única de 4 métodos (toggle, máx 2) ── -->
+  <div class="metodos-grid">
+    <button
+      *ngFor="let m of metodos"
+      type="button"
+      class="metodo-btn"
+      [class.activo]="isSeleccionado(m.codigo)"
+      [disabled]="!isSeleccionado(m.codigo) && seleccionados.length >= 2"
+      (click)="toggleMetodo(m.codigo)">
+      <i class="fa-solid {{ m.icono }}"></i>
+      <span class="label">{{ m.label }}</span>
+      <!-- Insignia de orden cuando hay 2 seleccionados -->
+      <span class="orden-badge" *ngIf="dosMetodos && isSeleccionado(m.codigo)">
+        {{ seleccionados.indexOf(m.codigo) + 1 }}
+      </span>
+    </button>
+  </div>
+
+  <!-- ── Campos dinámicos ── -->
+  <ng-container *ngIf="seleccionados.length > 0">
+
+    <!-- ══ UN SOLO MÉTODO ══ -->
+    <ng-container *ngIf="!dosMetodos">
+
+      <!-- Efectivo: Recibido (opcional, para cambio) + Nota -->
+      <div class="metodo-sec" *ngIf="seleccionados[0] === 'efectivo'">
+        <div class="campo-row">
+          <label>Recibido <span class="text-muted fw-normal">(opcional — para calcular cambio)</span></label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control text-end" min="0" step="0.01"
+              placeholder="Vacío = cobro exacto"
+              [(ngModel)]="_montoRecibidoEfectivo" (ngModelChange)="onMontoRecibidoChange()" />
+          </div>
+          <small class="text-success fw-semibold" *ngIf="cambioEfectivo > 0">
+            <i class="fa-solid fa-circle-check me-1"></i>Cambio: ${{ cambioEfectivo | number:'1.2-2' }}
+          </small>
+          <small class="text-danger"
+            *ngIf="_montoRecibidoEfectivo !== null && _montoRecibidoEfectivo > 0 && _montoRecibidoEfectivo < totalRef">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>Monto insuficiente
+          </small>
+        </div>
+      </div>
+
+      <!-- No-efectivo: solo Referencia/Folio -->
+      <div class="metodo-sec" *ngIf="seleccionados[0] !== 'efectivo'">
+        <div class="campo-row">
+          <label>Referencia / Folio <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="text" class="form-control form-control-sm"
+            placeholder="Nº autorización, folio..."
+            [ngModel]="getNota(seleccionados[0])"
+            (ngModelChange)="setNota(seleccionados[0], $event)" />
+        </div>
+      </div>
+
+    </ng-container>
+
+    <!-- ══ DOS MÉTODOS ══ -->
+    <ng-container *ngIf="dosMetodos">
+
+      <!-- Método 1: Recibido (input define el monto) + Nota/Folio -->
+      <div class="metodo-sec">
+        <div class="metodo-titulo">
+          <span class="num-badge">1</span>{{ labelMetodo(seleccionados[0]) }}
+        </div>
+        <div class="campo-row">
+          <label>Recibido</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control text-end" min="0.01"
+              [max]="totalRef - 0.01" step="0.01" placeholder="0.00"
+              [(ngModel)]="monto1Input" (ngModelChange)="onMonto1Change()" />
+          </div>
+          <small class="text-danger"
+            *ngIf="monto1Input !== null && (monto1Input <= 0 || monto1Input >= totalRef)">
+            Debe ser entre $0.01 y ${{ (totalRef - 0.01) | number:'1.2-2' }}
+          </small>
+        </div>
+        <div class="campo-row" *ngIf="seleccionados[0] !== 'efectivo'">
+          <label>Folio <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="text" class="form-control form-control-sm"
+            placeholder="Nº autorización, folio..."
+            [ngModel]="getNota(seleccionados[0])"
+            (ngModelChange)="setNota(seleccionados[0], $event)" />
+        </div>
+      </div>
+
+      <!-- Método 2: Recibido auto (total − método 1) + Nota/Folio -->
+      <div class="metodo-sec">
+        <div class="metodo-titulo">
+          <span class="num-badge">2</span>{{ labelMetodo(seleccionados[1]) }}
+        </div>
+        <div class="campo-row">
+          <label>Recibido</label>
+          <div class="monto-display monto-auto">
+            ${{ monto2 | number:'1.2-2' }}
+            <span class="auto-tag">auto</span>
+          </div>
+        </div>
+        <div class="campo-row" *ngIf="seleccionados[1] !== 'efectivo'">
+          <label>Folio <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="text" class="form-control form-control-sm"
+            placeholder="Nº autorización, folio..."
+            [ngModel]="getNota(seleccionados[1])"
+            (ngModelChange)="setNota(seleccionados[1], $event)" />
+        </div>
+      </div>
+
+    </ng-container>
+
+  </ng-container>
+
+</div>
+

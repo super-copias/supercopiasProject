@@ -174,18 +174,40 @@
         <span>TOTAL</span>
         <span>${{ venta.total | number:'1.2-2' }}</span>
       </div>
-      <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
-        <span>Recibido</span>
-        <span>${{ venta.monto_recibido | number:'1.2-2' }}</span>
-      </div>
-      <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
-        <span>Cambio</span>
-        <span>${{ cambio | number:'1.2-2' }}</span>
-      </div>
-      <div class="t-trow">
-        <span>Pago</span>
-        <span>{{ venta.metodo_pago_descripcion }}</span>
-      </div>
+
+      <!-- Pagos múltiples (nuevo) -->
+      <ng-container *ngIf="venta.pagos && venta.pagos.length > 0; else pagosLegacy">
+        <div class="t-trow" *ngFor="let p of venta.pagos">
+          <span>{{ p.metodo_pago_descripcion || p.metodo_pago_codigo }}</span>
+          <span>${{ p.monto | number:'1.2-2' }}</span>
+        </div>
+        <ng-container *ngFor="let p of venta.pagos">
+          <div class="t-trow" *ngIf="p.metodo_pago_codigo === 'efectivo' && p.monto_recibido">
+            <span>&nbsp;&nbsp;Recibido</span>
+            <span>${{ p.monto_recibido | number:'1.2-2' }}</span>
+          </div>
+          <div class="t-trow" *ngIf="p.metodo_pago_codigo === 'efectivo' && p.cambio > 0">
+            <span>&nbsp;&nbsp;Cambio</span>
+            <span>${{ p.cambio | number:'1.2-2' }}</span>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- Pago legacy (un solo método) -->
+      <ng-template #pagosLegacy>
+        <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
+          <span>Recibido</span>
+          <span>${{ venta.monto_recibido | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
+          <span>Cambio</span>
+          <span>${{ cambio | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow">
+          <span>Pago</span>
+          <span>{{ venta.metodo_pago_descripcion }}</span>
+        </div>
+      </ng-template>
     </div>
 
     <!-- Notas -->

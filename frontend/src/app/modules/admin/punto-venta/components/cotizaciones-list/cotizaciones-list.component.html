@@ -337,60 +337,21 @@
     </div>
 
     <!-- Método de pago -->
-    <div class="mb-2">
+    <div class="mb-3">
       <div class="text-muted small mb-1">Método de pago</div>
-      <div class="d-flex gap-1">
-        <button class="btn btn-sm flex-fill"
-          [class.btn-primary]="metodoPagoConvertir==='efectivo'"
-          [class.btn-outline-secondary]="metodoPagoConvertir!=='efectivo'"
-          (click)="metodoPagoConvertir='efectivo'">
-          <i class="bi bi-cash me-1"></i>Efectivo
-        </button>
-        <button class="btn btn-sm flex-fill"
-          [class.btn-primary]="metodoPagoConvertir==='tarjeta'"
-          [class.btn-outline-secondary]="metodoPagoConvertir!=='tarjeta'"
-          (click)="metodoPagoConvertir='tarjeta'">
-          <i class="bi bi-credit-card me-1"></i>Tarjeta
-        </button>
-        <button class="btn btn-sm flex-fill"
-          [class.btn-primary]="metodoPagoConvertir==='transferencia'"
-          [class.btn-outline-secondary]="metodoPagoConvertir!=='transferencia'"
-          (click)="metodoPagoConvertir='transferencia'">
-          <i class="bi bi-bank me-1"></i>Trans.
-        </button>
-      </div>
+      <app-pos-selector-pago
+        [totalRef]="totalEfectivoConvertir"
+        (pagosChange)="onPagosConvertirChange($event)"
+        (validChange)="onPagosConvertirValidChange($event)">
+      </app-pos-selector-pago>
     </div>
 
-    <!-- Referencia para tarjeta/transferencia -->
-    <div class="mb-2" *ngIf="metodoPagoConvertir !== 'efectivo'">
-      <label class="form-label small">Referencia / Folio de pago</label>
+    <!-- Notas -->
+    <div class="mb-3">
+      <label class="form-label small">Notas (opcional)</label>
       <input type="text" class="form-control form-control-sm" [(ngModel)]="notasConvertir"
-        placeholder="Nº autorización, folio de transferencia, etc.">
+        placeholder="Observaciones...">
     </div>
-
-    <!-- Efectivo: recibido + cambio -->
-    <ng-container *ngIf="metodoPagoConvertir==='efectivo'">
-      <div class="input-group input-group-sm mb-2">
-        <span class="input-group-text">Recibido $</span>
-        <input type="number" class="form-control" min="0" step="0.5"
-          [(ngModel)]="montoRecibidoConvertir" placeholder="0.00">
-      </div>
-      <div *ngIf="montoRecibidoConvertir !== null && montoRecibidoConvertir < totalEfectivoConvertir"
-        class="text-danger small mb-2">
-        <i class="bi bi-exclamation-triangle me-1"></i>El monto no cubre el total a cobrar
-      </div>
-      <div class="d-flex justify-content-between small mb-3"
-        *ngIf="montoRecibidoConvertir !== null && montoRecibidoConvertir >= totalEfectivoConvertir">
-        <span>Cambio</span>
-        <span class="text-success">${{ cambioConvertir | number:'1.2-2' }}</span>
-      </div>
-      <!-- Notas efectivo -->
-      <div class="mb-3">
-        <label class="form-label small">Notas (opcional)</label>
-        <input type="text" class="form-control form-control-sm" [(ngModel)]="notasConvertir"
-          placeholder="Observaciones...">
-      </div>
-    </ng-container>
 
     <div class="alert alert-danger small" *ngIf="errorConvertir">{{ errorConvertir }}</div>
 

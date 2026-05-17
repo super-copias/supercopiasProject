@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { LineaCarrito, Descuento, VentaDetalle, CotizacionDetalle, PosService } from '../../../../../services/pos.service';
+import { LineaCarrito, Descuento, VentaDetalle, CotizacionDetalle, PosService, PagoInput } from '../../../../../services/pos.service';
+import { SelectorPagoComponent } from '../selector-pago/selector-pago.component';
 
 @Component({
   selector: 'app-pos-panel-cobro',
@@ -9,6 +10,8 @@ import { LineaCarrito, Descuento, VentaDetalle, CotizacionDetalle, PosService } 
   styleUrls: ['./panel-cobro.component.scss']
 })
 export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
+
+  @ViewChild('selectorPago') selectorPagoRef?: SelectorPagoComponent;
 
   @Input() carrito: LineaCarrito[] = [];
   @Input() totales = { subtotal: 0, descuentoMonto: 0, total: 0 };
@@ -25,6 +28,9 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   private destroy$ = new Subject<void>();
 
   descuentos: Descuento[] = [];
+  pagos: PagoInput[] = [];
+  pagosValidos = false;
+  /** @deprecated — mantenido para compatibilidad con template antiguo hasta reemplazar HTML */
   metodoPago: 'efectivo' | 'tarjeta' | 'transferencia' = 'efectivo';
   montoRecibido: number | null = null;
 
@@ -163,12 +169,13 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     return this.carrito.length > 0 && !this.procesando;
   }
 
-  /** Habilita el botón "Sí, cobrar" dentro del modal de confirmación */
   get puedeVender(): boolean {
     if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
-    return this.carrito.length > 0 && !this.procesando &&
-      (this.metodoPago !== 'efectivo' || (!!this.montoRecibido && this.montoRecibido >= this.totalACobrar));
+    return this.carrito.length > 0 && !this.procesando && this.pagosValidos;
   }
+
+  onPagosChange(p: PagoInput[]): void { this.pagos = p; }
+  onPagosValidChange(v: boolean): void { this.pagosValidos = v; }
 
   procesarVenta(): void {
     if (!this.puedeVender) return;
@@ -181,9 +188,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
         ...rest,
         tabulador_aplicado: !!_tabulador_activo && _precio_base !== undefined && rest.precio_unitario < _precio_base,
       })),
-      metodo_pago_codigo: this.metodoPago,
-      metodo_pago_descripcion: this.labelMetodo(this.metodoPago),
-      monto_recibido: this.metodoPago === 'efectivo' ? this.montoRecibido : null,
+      pagos: this.pagos,
       descuento_pct: this.descuentoGlobalPct,
       descuento_config_id: this.descuentoConfigId,
       descuento_autorizado_por: this.descuentoAutorizadoPor,
@@ -198,6 +203,9 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
         this.ventaExitosa = r.data;
         this.mostrarTicket = true;
         this.procesando = false;
+        this.selectorPagoRef?.reset();
+        this.pagos = [];
+        this.pagosValidos = false;
         this.ventaCompletada.emit();
       },
       error: (e) => {
@@ -276,6 +284,8 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.mostrarTicket = false;
     this.cotizacionExitosa = null;
     this.mostrarTicketCotizacion = false;
+    this.pagos = [];
+    this.pagosValidos = false;
     this.montoRecibido = null;
     this.folioOperacion = '';
     this.notas = '';

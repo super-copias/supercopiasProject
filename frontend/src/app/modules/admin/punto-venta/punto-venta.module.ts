@@ -14,6 +14,7 @@ import { HistorialVentasComponent }    from './components/historial-ventas/histo
 import { CotizacionesListComponent }   from './components/cotizaciones-list/cotizaciones-list.component';
 import { PedidoFormComponent }         from './components/pedido-form/pedido-form.component';
 import { PedidosListComponent }        from './components/pedidos-list/pedidos-list.component';
+import { SelectorPagoComponent }       from './components/selector-pago/selector-pago.component';
 import { SharedModule }                from '../../../shared/shared.module';
 
 @NgModule({
@@ -28,6 +29,7 @@ import { SharedModule }                from '../../../shared/shared.module';
     CotizacionesListComponent,
     PedidoFormComponent,
     PedidosListComponent,
+    SelectorPagoComponent,
   ],
   imports: [
     CommonModule,

@@ -4,7 +4,7 @@ import { takeUntil, finalize, debounceTime, distinctUntilChanged } from 'rxjs/op
 import { FormControl } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../../../environments/environment';
-import { PosService } from '../../../../../services/pos.service';
+import { PosService, PagoInput } from '../../../../../services/pos.service';
 import { FacturasService } from '../../../../../services/facturas.service';
 
 @Component({
@@ -49,8 +49,10 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   // Modal entregar
   mostrarModalEntregar = false;
   pedidoEntregar: any = null;
-  metodoPagoSaldo: 'efectivo' | 'tarjeta' | 'transferencia' = 'efectivo';
-  montoRecibidoSaldo: number | null = null;
+  metodoPagoSaldo: 'efectivo' | 'tarjeta' | 'transferencia' = 'efectivo'; // legacy
+  montoRecibidoSaldo: number | null = null; // legacy
+  pagosSaldo: PagoInput[] = [];
+  pagosSaldoValidos = false;
   notasEntrega = '';
   procesandoEntrega = false;
   errorEntrega = '';
@@ -198,6 +200,8 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     this.pedidoEntregar = p;
     this.metodoPagoSaldo = 'efectivo';
     this.montoRecibidoSaldo = null;
+    this.pagosSaldo = [];
+    this.pagosSaldoValidos = false;
     this.notasEntrega = '';
     this.errorEntrega = '';
     this.requiereFacturaEntregar = !!(p.requiere_factura);
@@ -257,13 +261,11 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     if (!this.pedidoEntregar) return false;
     if (this.procesandoEntrega) return false;
     if (this.requiereFacturaEntregar && !this.clienteFacturaEntregar?.id) return false;
-    const base = this.requiereFacturaEntregar && this.totalConFacturaEntregar !== null
-      ? this.totalConFacturaEntregar
-      : parseFloat(this.pedidoEntregar.total);
-    const anticipo = parseFloat(this.pedidoEntregar.anticipo || 0);
-    const saldo = parseFloat((base - anticipo).toFixed(2));
-    return this.montoRecibidoSaldo !== null && this.montoRecibidoSaldo >= saldo;
+    return this.pagosSaldoValidos;
   }
+
+  onPagosSaldoChange(p: PagoInput[]): void { this.pagosSaldo = p; }
+  onPagosSaldoValidChange(v: boolean): void { this.pagosSaldoValidos = v; }
 
   confirmarEntrega(): void {
     if (!this.pedidoEntregar) return;
@@ -271,8 +273,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     this.errorEntrega = '';
     this.posService.entregarPedido(
       this.pedidoEntregar.id,
-      this.metodoPagoSaldo,
-      this.montoRecibidoSaldo ?? undefined,
+      this.pagosSaldo,
       this.notasEntrega || undefined,
       this.requiereFacturaEntregar,
       this.clienteFacturaEntregar?.id || null,

@@ -8,6 +8,25 @@ export { TabuladorFila };
 
 // ── Interfaces ─────────────────────────────────────────────────────────────
 
+export type MetodoPagoCodigo = 'efectivo' | 'tarjeta_debito' | 'tarjeta_credito' | 'transferencia';
+
+export interface PagoInput {
+  codigo: MetodoPagoCodigo;
+  monto: number | null;
+  monto_recibido?: number | null; // solo para efectivo
+  nota?: string;                  // referencia / folio / observaciones
+}
+
+export interface VentaPago {
+  id?: number;
+  orden: number;
+  metodo_pago_codigo: MetodoPagoCodigo;
+  metodo_pago_descripcion?: string;
+  monto: number;
+  monto_recibido?: number | null;
+  cambio: number;
+}
+
 export interface CatalogoItem {
   id: number;
   nombre: string;
@@ -54,9 +73,10 @@ export interface LineaCarrito {
 export interface VentaPayload {
   cliente_id?: number | null;
   items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui' | '_precio_base' | '_tabulador' | '_tabulador_activo'>[];
-  metodo_pago_codigo: string;
-  metodo_pago_descripcion?: string;
-  monto_recibido?: number | null;
+  pagos: PagoInput[];
+  /** @deprecated usar pagos[] */ metodo_pago_codigo?: string;
+  /** @deprecated usar pagos[] */ metodo_pago_descripcion?: string;
+  /** @deprecated usar pagos[] */ monto_recibido?: number | null;
   descuento_pct?: number;
   descuento_config_id?: number | null;
   descuento_autorizado_por?: string | null;
@@ -83,6 +103,7 @@ export interface VentaDetalle {
   cambio: number;
   metodo_pago_codigo: string;
   metodo_pago_descripcion?: string;
+  pagos?: VentaPago[];
   estatus: 'completada' | 'cancelada' | 'devuelta';
   notas?: string;
   ticket_generado: boolean;
@@ -235,7 +256,8 @@ export interface PedidoPayload {
   descuento_config_id?: number | null;
   descuento_autorizado_por?: string | null;
   anticipo?: number;
-  metodo_pago_anticipo?: string;
+  pagos_anticipo?: PagoInput[];
+  /** @deprecated usar pagos_anticipo[] */ metodo_pago_anticipo?: string;
   fecha_acordada?: string | null;
   notas?: string;
 }
@@ -268,6 +290,8 @@ export interface PedidoDetalle {
   saldo_pendiente: number;
   metodo_pago_anticipo?: string;
   metodo_pago_saldo?: string;
+  pagos_anticipo?: VentaPago[];
+  pagos_saldo?: VentaPago[];
   fecha_acordada?: string;
   notas?: string;
   creado_por_id?: number;
@@ -404,11 +428,9 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/cotizaciones/${id}/estatus`, { estatus });
   }
 
-  convertirCotizacion(id: number, metodoPago: string, metodoPagoDesc?: string, montoRecibido?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
+  convertirCotizacion(id: number, pagos: PagoInput[], notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/cotizaciones/${id}/convertir`, {
-      metodo_pago_codigo: metodoPago,
-      metodo_pago_descripcion: metodoPagoDesc || metodoPago,
-      monto_recibido: montoRecibido || null,
+      pagos,
       notas,
       requiere_factura: requiereFactura ?? false,
       cliente_factura_id: clienteFacturaId || null,
@@ -489,10 +511,9 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/terminar`, { notas });
   }
 
-  entregarPedido(id: number, metodoPagoSaldo: string, montoRecibidoSaldo?: number | null, notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
+  entregarPedido(id: number, pagos: PagoInput[], notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/entregar`, {
-      metodo_pago_saldo: metodoPagoSaldo,
-      monto_recibido_saldo: montoRecibidoSaldo || null,
+      pagos_saldo: pagos,
       notas,
       requiere_factura: requiereFactura || false,
       cliente_factura_id: clienteFacturaId || null,
