@@ -16,7 +16,7 @@
 ></app-pos-ticket>
 
 <!-- ── Panel cobro normal ────────────────────────────────────── -->
-<div class="panel-cobro d-flex flex-column h-100" *ngIf="!mostrarTicket && !mostrarTicketCotizacion">
+<div class="panel-cobro d-flex flex-column" *ngIf="!mostrarTicket && !mostrarTicketCotizacion">
 
   <!-- Totales -->
   <div class="totales-box mb-1">
@@ -59,16 +59,11 @@
       <span class="accion-label">Descuento</span>
       <span class="accion-badge" *ngIf="descuentoGlobalPct > 0">{{ descuentoGlobalPct }}%</span>
     </button>
-    <!-- Botón facturación: toggle + icono previsualización -->
     <button class="btn-accion" [class.btn-accion--activo]="requiereFactura"
       (click)="requiereFactura=!requiereFactura" title="Activar/desactivar facturación">
       <i class="bi bi-receipt"></i>
       <span class="accion-label">Facturación</span>
       <span class="accion-badge" *ngIf="requiereFactura">ON</span>
-    </button>
-    <button class="btn-accion btn-accion--preview" *ngIf="requiereFactura"
-      (click)="mostrarModalFacturacion=true" title="Ver desglose fiscal">
-      <i class="bi bi-eye"></i>
     </button>
   </div>
 
@@ -89,50 +84,6 @@
   <div class="alert alert-danger py-1 px-2 small mb-2" *ngIf="requiereFactura && !clienteSeleccionado?.id">
     <i class="bi bi-person-exclamation me-1"></i>
     Selecciona un <strong>cliente registrado</strong> en el panel izquierdo para poder facturar.
-  </div>
-
-  <!-- Método de pago -->
-  <div class="seccion mb-2">
-    <div class="seccion-titulo">Método de pago</div>
-    <div class="metodos d-flex gap-1">
-      <button class="btn btn-sm flex-fill metodo-btn"
-        [class.activo]="metodoPago==='efectivo'"
-        (click)="metodoPago='efectivo'">
-        <i class="bi bi-cash"></i> Efectivo
-      </button>
-      <button class="btn btn-sm flex-fill metodo-btn"
-        [class.activo]="metodoPago==='tarjeta'"
-        (click)="metodoPago='tarjeta'">
-        <i class="bi bi-credit-card"></i> Tarjeta
-      </button>
-      <button class="btn btn-sm flex-fill metodo-btn"
-        [class.activo]="metodoPago==='transferencia'"
-        (click)="metodoPago='transferencia'">
-        <i class="bi bi-bank"></i> Trans.
-      </button>
-    </div>
-
-    <!-- Efectivo: recibido + cambio -->
-    <ng-container *ngIf="metodoPago==='efectivo'">
-      <div class="input-group input-group-sm mt-2">
-        <span class="input-group-text">Recibido $</span>
-        <input type="number" class="form-control" min="0" step="0.5"
-          [(ngModel)]="montoRecibido" placeholder="0.00">
-      </div>
-      <div class="cambio-row mt-1" *ngIf="montoRecibido !== null && montoRecibido > 0">
-        <span>Cambio</span>
-        <span [class.text-danger]="montoRecibido < totalACobrar">
-          ${{ cambio | number:'1.2-2' }}
-        </span>
-      </div>
-    </ng-container>
-  </div>
-
-  <!-- Notas -->
-  <div class="seccion mb-2">
-    <div class="seccion-titulo">Nota</div>
-    <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas"
-      [placeholder]="metodoPago==='efectivo' ? 'Observaciones...' : 'Número de folio'"></textarea>
   </div>
 
   <!-- Error -->
@@ -158,7 +109,7 @@
     </button>
 
     <button class="btn btn-cobrar w-100 mt-2"
-      [disabled]="!puedeVender"
+      [disabled]="!puedeAbrirCobro"
       (click)="solicitarConfirmacion('venta')"
       style="font-size:.88rem;padding:.5rem .75rem">
       <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>
@@ -166,9 +117,6 @@
       {{ procesando ? 'Procesando...' : 'COBRAR $' + (totalACobrar | number:'1.2-2') }}
     </button>
 
-    <div class="text-muted text-center small mt-1" *ngIf="carrito.length === 0">
-      Agrega productos al carrito para cobrar
-    </div>
   </div>
 </div>
 
@@ -223,36 +171,81 @@
       <i class="bi me-2" [class.bi-cash-stack]="accionPendiente==='venta'" [class.bi-file-earmark-plus]="accionPendiente==='cotizacion'"></i>
       {{ accionPendiente === 'venta' ? 'Confirmar cobro' : 'Confirmar cotización' }}
     </div>
-    <p class="small text-muted mb-3">
-      <ng-container *ngIf="accionPendiente === 'venta'">
-        ¿Deseas procesar la venta por <strong>${{ totalACobrar | number:'1.2-2' }}</strong> ({{ labelMetodo(metodoPago) }})?<br>
-        <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
-          <i class="bi bi-receipt text-primary"></i>
-          <span class="text-primary fw-semibold">Con facturación activa</span>
-        </span>
-        <span class="d-flex align-items-center gap-1 mt-2" *ngIf="!requiereFactura">
-          <i class="bi bi-receipt-cutoff text-muted"></i>
-          <span class="text-muted">Sin factura</span>
-        </span>
-      </ng-container>
-      <ng-container *ngIf="accionPendiente === 'cotizacion'">
-        ¿Deseas guardar la cotización con <strong>{{ carrito.length }}</strong> {{ carrito.length === 1 ? 'artículo' : 'artículos' }}?
-        <div class="mt-2">
-          <label class="form-label mb-1 small fw-semibold">Vigencia <span class="text-muted fw-normal">(opcional)</span></label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
-            [min]="('' | date:'yyyy-MM-dd') ?? ''">
+    <!-- Resumen de la venta -->
+    <div class="mb-2" *ngIf="accionPendiente === 'venta'">
+      <div class="totales-box" style="font-size:.82rem">
+        <div class="totales-row">
+          <span>Total a cobrar</span>
+          <span class="fw-bold">${{ totalACobrar | number:'1.2-2' }}</span>
         </div>
-        <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
-          <i class="bi bi-receipt text-primary"></i>
-          <span class="text-primary fw-semibold">Se guardará con facturación activa</span>
-        </span>
+        <div class="totales-row" style="font-size:.75rem;opacity:.85;border-top:1px solid rgba(255,255,255,.2);margin-top:.2rem;padding-top:.2rem">
+          <span *ngIf="requiereFactura"><i class="bi bi-receipt me-1"></i>Con facturación ({{ tipoPersonaFactura === 'pf' ? 'PF' : 'PM/PFAE' }})</span>
+          <span *ngIf="!requiereFactura"><i class="bi bi-receipt-cutoff me-1"></i>Sin factura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Método de pago (solo para venta) -->
+    <div class="seccion mb-2" *ngIf="accionPendiente === 'venta'">
+      <div class="seccion-titulo">Método de pago</div>
+      <div class="metodos d-flex gap-1">
+        <button class="btn btn-sm flex-fill metodo-btn"
+          [class.activo]="metodoPago==='efectivo'"
+          (click)="metodoPago='efectivo'">
+          <i class="bi bi-cash"></i> Efectivo
+        </button>
+        <button class="btn btn-sm flex-fill metodo-btn"
+          [class.activo]="metodoPago==='tarjeta'"
+          (click)="metodoPago='tarjeta'">
+          <i class="bi bi-credit-card"></i> Tarjeta
+        </button>
+        <button class="btn btn-sm flex-fill metodo-btn"
+          [class.activo]="metodoPago==='transferencia'"
+          (click)="metodoPago='transferencia'">
+          <i class="bi bi-bank"></i> Trans.
+        </button>
+      </div>
+      <!-- Efectivo: recibido + cambio -->
+      <ng-container *ngIf="metodoPago==='efectivo'">
+        <div class="input-group input-group-sm mt-2">
+          <span class="input-group-text">Recibido $</span>
+          <input type="number" class="form-control" min="0" step="0.5"
+            [(ngModel)]="montoRecibido" placeholder="0.00" autofocus>
+        </div>
+        <div class="cambio-row mt-1" *ngIf="montoRecibido !== null && montoRecibido > 0">
+          <span>Cambio</span>
+          <span [class.text-danger]="montoRecibido < totalACobrar">
+            ${{ cambio | number:'1.2-2' }}
+          </span>
+        </div>
       </ng-container>
-    </p>
+    </div>
+
+    <!-- Nota -->
+    <div class="seccion mb-3" *ngIf="accionPendiente === 'venta'">
+      <div class="seccion-titulo">Nota <span class="text-muted fw-normal" style="font-size:.7rem">(opcional)</span></div>
+      <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas"
+        [placeholder]="metodoPago==='efectivo' ? 'Observaciones...' : 'Número de folio'"></textarea>
+    </div>
+
+    <div class="small text-muted mb-3" *ngIf="accionPendiente === 'cotizacion'">
+      ¿Deseas guardar la cotización con <strong>{{ carrito.length }}</strong> {{ carrito.length === 1 ? 'artículo' : 'artículos' }}?
+      <div class="mt-2">
+        <label class="form-label mb-1 small fw-semibold">Vigencia <span class="text-muted fw-normal">(opcional)</span></label>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
+          [min]="('' | date:'yyyy-MM-dd') ?? ''">
+      </div>
+      <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
+        <i class="bi bi-receipt text-primary"></i>
+        <span class="text-primary fw-semibold">Se guardará con facturación activa</span>
+      </span>
+    </div>
     <div class="d-flex gap-2">
       <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="cancelarConfirmacion()">Cancelar</button>
       <button class="btn btn-sm flex-fill fw-bold"
         [class.btn-success]="accionPendiente==='venta'"
         [class.btn-primary]="accionPendiente==='cotizacion'"
+        [disabled]="accionPendiente === 'venta' && !puedeVender"
         (click)="confirmarAccion()">
         {{ accionPendiente === 'venta' ? 'Sí, cobrar' : 'Sí, guardar' }}
       </button>

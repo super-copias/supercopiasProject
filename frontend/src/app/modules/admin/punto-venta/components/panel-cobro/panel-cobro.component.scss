@@ -4,13 +4,19 @@
   flex-direction: column;
   flex:           1;
   min-height:     0;
-  overflow-y:     auto;
+  overflow:       hidden;
   border-radius:  8px;
   border:         1px solid #dee2e6;
   background:     #fff;
 }
 
-.panel-cobro { padding: .75rem; }
+// Ocupa todo el host y scrollea internamente para que mt-auto funcione
+.panel-cobro {
+  padding:    .75rem;
+  flex:       1;
+  min-height: 0;
+  overflow-y: auto;
+}
 
 // Totales
 .totales-box {
@@ -57,7 +63,9 @@
 .btn-accion {
   display:         inline-flex;
   align-items:     center;
+  justify-content: center;
   gap:             0.3rem;
+  flex:            1;
   padding:         0.35rem 0.75rem;
   border-radius:   8px;
   border:          1.5px solid #dee2e6;
@@ -87,28 +95,18 @@
 .accion-label { font-size: 0.76rem; }
 
 .accion-badge {
-  display:      inline-flex;
-  align-items:  center;
+  display:         inline-flex;
+  align-items:     center;
   justify-content: center;
-  background:   var(--color-deep-blue, #003d80);
-  color:        #fff;
-  font-size:    0.65rem;
-  font-weight:  700;
-  padding:      0 0.35rem;
-  border-radius: 999px;
-  min-width:    1.2rem;
-  height:       1.2rem;
-  line-height:  1;
-}
-
-// Botón de preview fiscal (icono ojo)
-.btn-accion--preview {
-  padding:      0.35rem 0.55rem;
-  border-color: var(--color-deep-blue);
-  color:        var(--color-deep-blue);
-  background:   #eef2ff;
-  i { font-size: 0.9rem; }
-  &:hover { background: #dde6ff; }
+  background:      var(--color-deep-blue, #003d80);
+  color:           #fff;
+  font-size:       0.65rem;
+  font-weight:     700;
+  padding:         0 0.35rem;
+  border-radius:   999px;
+  min-width:       1.2rem;
+  height:          1.2rem;
+  line-height:     1;
 }
 
 // Métodos de pago
