@@ -4,13 +4,19 @@
   flex-direction: column;
   flex:           1;
   min-height:     0;
-  overflow-y:     auto;
+  overflow:       hidden;
   border-radius:  8px;
   border:         1px solid #dee2e6;
   background:     #fff;
 }
 
-.panel-cobro { padding: .75rem; }
+// Ocupa todo el host y scrollea internamente para que mt-auto funcione
+.panel-cobro {
+  padding:    .75rem;
+  flex:       1;
+  min-height: 0;
+  overflow-y: auto;
+}
 
 // Totales
 .totales-box {
