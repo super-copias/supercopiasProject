@@ -121,7 +121,7 @@
       </div>
       <div class="cambio-row mt-1" *ngIf="montoRecibido !== null && montoRecibido > 0">
         <span>Cambio</span>
-        <span [class.text-danger]="montoRecibido < totales.total">
+        <span [class.text-danger]="montoRecibido < totalACobrar">
           ${{ cambio | number:'1.2-2' }}
         </span>
       </div>
@@ -163,7 +163,7 @@
       style="font-size:.88rem;padding:.5rem .75rem">
       <span *ngIf="procesando" class="spinner-border spinner-border-sm me-1"></span>
       <span *ngIf="!procesando"><i class="bi bi-cash-stack me-1"></i></span>
-      {{ procesando ? 'Procesando...' : 'COBRAR $' + (totales.total | number:'1.2-2') }}
+      {{ procesando ? 'Procesando...' : 'COBRAR $' + (totalACobrar | number:'1.2-2') }}
     </button>
 
     <div class="text-muted text-center small mt-1" *ngIf="carrito.length === 0">
@@ -225,7 +225,7 @@
     </div>
     <p class="small text-muted mb-3">
       <ng-container *ngIf="accionPendiente === 'venta'">
-        ¿Deseas procesar la venta por <strong>${{ totales.total | number:'1.2-2' }}</strong> ({{ labelMetodo(metodoPago) }})?<br>
+        ¿Deseas procesar la venta por <strong>${{ totalACobrar | number:'1.2-2' }}</strong> ({{ labelMetodo(metodoPago) }})?<br>
         <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
           <i class="bi bi-receipt text-primary"></i>
           <span class="text-primary fw-semibold">Con facturación activa</span>

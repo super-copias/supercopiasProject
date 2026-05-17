@@ -143,15 +143,24 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   // ── Cobro ────────────────────────────────────────────────────
 
+  /** Total real a cobrar: con IVA/ISR si requiere factura, subtotal si no */
+  get totalACobrar(): number {
+    if (!this.requiereFactura) return this.totales.total;
+    const sub = this.totales.total;
+    const iva = parseFloat((sub * 0.16).toFixed(2));
+    const isr = this.tipoPersonaFactura === 'pf' ? 0 : parseFloat((sub * 0.0125).toFixed(2));
+    return parseFloat((sub + iva - isr).toFixed(2));
+  }
+
   get cambio(): number {
     if (!this.montoRecibido || this.metodoPago !== 'efectivo') return 0;
-    return Math.max(0, parseFloat((this.montoRecibido - this.totales.total).toFixed(2)));
+    return Math.max(0, parseFloat((this.montoRecibido - this.totalACobrar).toFixed(2)));
   }
 
   get puedeVender(): boolean {
     if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
     return this.carrito.length > 0 && !this.procesando &&
-      (this.metodoPago !== 'efectivo' || (!!this.montoRecibido && this.montoRecibido >= this.totales.total));
+      (this.metodoPago !== 'efectivo' || (!!this.montoRecibido && this.montoRecibido >= this.totalACobrar));
   }
 
   procesarVenta(): void {
