@@ -308,8 +308,17 @@ async function createVenta(req, res) {
     const descPct   = Math.min(parseFloat(descuento_pct || 0), 100);
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
+
+    // Total real a cobrar: con IVA/ISR si requiere factura
+    let totalACobrar = total;
+    if (requiere_factura) {
+      const iva = parseFloat((total * 0.16).toFixed(2));
+      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
+      totalACobrar = parseFloat((total + iva - isr).toFixed(2));
+    }
+
     const montoRecibido = monto_recibido ? parseFloat(monto_recibido) : null;
-    const cambio    = montoRecibido ? parseFloat((montoRecibido - total).toFixed(2)) : 0;
+    const cambio    = montoRecibido ? parseFloat((montoRecibido - totalACobrar).toFixed(2)) : 0;
 
     // Obtener datos cliente si aplica
     let clienteNombre = 'Público General';
