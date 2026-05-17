@@ -165,9 +165,10 @@ async function createVenta(req, res) {
     const {
       cliente_id,
       items,
-      metodo_pago_codigo,
-      metodo_pago_descripcion,
-      monto_recibido,
+      pagos,                               // nuevo: array [{ codigo, monto, monto_recibido? }]
+      metodo_pago_codigo:  _mpCodLegacy,   // backward compat (API anterior)
+      metodo_pago_descripcion: _mpDescLegacy,
+      monto_recibido:      _montoRecLegacy,
       descuento_pct = 0,
       descuento_config_id,
       descuento_autorizado_por,
@@ -176,11 +177,25 @@ async function createVenta(req, res) {
       tipo_persona_factura = 'pm',
     } = req.body;
 
+    const _CODIGOS_VALIDOS = ['efectivo','tarjeta_debito','tarjeta_credito','transferencia'];
+    const _LABEL_METODO    = { efectivo:'Efectivo', tarjeta_debito:'Tarjeta Débito', tarjeta_credito:'Tarjeta Crédito', transferencia:'Transferencia' };
+
+    // Normalizar: preferir array nuevo, fallback a campos individuales
+    const pagosInput = Array.isArray(pagos) && pagos.length > 0
+      ? pagos
+      : (_mpCodLegacy ? [{ codigo: _mpCodLegacy, monto: null, monto_recibido: _montoRecLegacy }] : null);
+
     // Validaciones básicas
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
-    if (!metodo_pago_codigo)
+    if (!pagosInput || pagosInput.length === 0)
       return res.status(400).json(createErrorResponse('Método de pago requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
+    if (pagosInput.length > 2)
+      return res.status(400).json(createErrorResponse('Máximo 2 métodos de pago por transacción', CODIGOS_ERROR.DATOS_INVALIDOS));
+    for (const _p of pagosInput) {
+      if (!_CODIGOS_VALIDOS.includes(_p.codigo))
+        return res.status(400).json(createErrorResponse(`Código de pago inválido: ${_p.codigo}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
 
     const vendedorNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const vendedorId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
@@ -308,8 +323,44 @@ async function createVenta(req, res) {
     const descPct   = Math.min(parseFloat(descuento_pct || 0), 100);
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
-    const montoRecibido = monto_recibido ? parseFloat(monto_recibido) : null;
-    const cambio    = montoRecibido ? parseFloat((montoRecibido - total).toFixed(2)) : 0;
+
+    // Total real a cobrar: con IVA/ISR si requiere factura
+    let totalACobrar = total;
+    if (requiere_factura) {
+      const iva = parseFloat((total * 0.16).toFixed(2));
+      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
+      totalACobrar = parseFloat((total + iva - isr).toFixed(2));
+    }
+
+    // Procesar pagos: monto y cambio por método
+    const pagosFinales = pagosInput.map((p) => {
+      const monto = (p.monto != null && parseFloat(p.monto) > 0)
+        ? parseFloat(parseFloat(p.monto).toFixed(2))
+        : (pagosInput.length === 1 ? totalACobrar : 0);
+      const montoRec = (p.codigo === 'efectivo' && p.monto_recibido != null)
+        ? parseFloat(p.monto_recibido) : null;
+      return {
+        codigo:         p.codigo,
+        descripcion:    _LABEL_METODO[p.codigo] || p.codigo,
+        monto,
+        monto_recibido: montoRec,
+        cambio:         montoRec != null ? parseFloat((montoRec - monto).toFixed(2)) : 0,
+      };
+    });
+    if (pagosFinales.length === 1) pagosFinales[0].monto = totalACobrar;
+    if (pagosFinales.length === 2) {
+      // Auto-calcular 2do monto si el frontend lo envió null
+      if (pagosFinales[1].monto === 0 && pagosFinales[0].monto > 0)
+        pagosFinales[1].monto = parseFloat((totalACobrar - pagosFinales[0].monto).toFixed(2));
+      const sumaP = parseFloat((pagosFinales[0].monto + pagosFinales[1].monto).toFixed(2));
+      if (Math.abs(sumaP - totalACobrar) > 0.02)
+        return res.status(400).json(createErrorResponse(
+          `Los pagos suman $${sumaP} pero el total a cobrar es $${totalACobrar}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
+    // Backward compat: columnas heredadas de pos_ventas
+    const primerPago    = pagosFinales[0];
+    const montoRecibido = primerPago.monto_recibido;
+    const cambio        = primerPago.cambio;
 
     // Obtener datos cliente si aplica
     let clienteNombre = 'Público General';
@@ -340,7 +391,7 @@ async function createVenta(req, res) {
       vendedorId, vendedorNombre,
       subtotal, descPct, descMonto, total,
       montoRecibido, cambio,
-      metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
+      primerPago.codigo, primerPago.descripcion,
       descuento_config_id || null, descuento_autorizado_por || null, notas || null,
       !!requiere_factura,
     ]);
@@ -430,6 +481,16 @@ async function createVenta(req, res) {
       `, [cliente_id, ventaId, puntosGanados, saldoPuntos, `Venta ${folio} · $${total}`]);
     }
 
+    // Registrar métodos de pago en pos_ventas_pagos
+    for (let _pi = 0; _pi < pagosFinales.length; _pi++) {
+      const _pago = pagosFinales[_pi];
+      await client.query(
+        `INSERT INTO pos_ventas_pagos (venta_id, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [ventaId, _pi + 1, _pago.codigo, _pago.descripcion, _pago.monto, _pago.monto_recibido, _pago.cambio]
+      );
+    }
+
     // Crear registro de factura si se requiere y hay cliente registrado
     if (requiere_factura && cliente_id) {
       await crearFacturaEnTransaccion(client, {
@@ -454,7 +515,7 @@ async function createVenta(req, res) {
       entidad: 'pos_ventas', entidadId: folio,
       usuarioId: vendedorId, usuarioNombre: vendedorNombre,
       ip: getIp(req),
-      detalle: { folio, total, metodo_pago_codigo, cliente_id: cliente_id || null, num_items: lineasProcesadas.length },
+      detalle: { folio, total, metodo_pago_codigo: primerPago.codigo, cliente_id: cliente_id || null, num_items: lineasProcesadas.length },
     });
 
     return res.status(201).json(createResponse(true, ventaCompleta, `Venta ${folio} registrada correctamente`));
@@ -492,6 +553,12 @@ async function getVentaDetalle(ventaId) {
     [ventaId]
   );
 
+  // Pagos múltiples
+  const pagosQ = await query(
+    'SELECT * FROM pos_ventas_pagos WHERE venta_id=$1 ORDER BY orden',
+    [ventaId]
+  );
+
   // Puntos del cliente
   let puntoCliente = null;
   if (venta.cliente_id) {
@@ -510,6 +577,15 @@ async function getVentaDetalle(ventaId) {
     total:          parseFloat(venta.total),
     monto_recibido: venta.monto_recibido ? parseFloat(venta.monto_recibido) : null,
     cambio:         parseFloat(venta.cambio),
+    pagos: pagosQ.rows.map(p => ({
+      id:                     p.id,
+      orden:                  p.orden,
+      metodo_pago_codigo:     p.metodo_pago_codigo,
+      metodo_pago_descripcion: p.metodo_pago_descripcion,
+      monto:                  parseFloat(p.monto),
+      monto_recibido:         p.monto_recibido ? parseFloat(p.monto_recibido) : null,
+      cambio:                 parseFloat(p.cambio),
+    })),
     detalle:        detalleQ.rows.map(d => ({
       ...d,
       cantidad:             parseFloat(d.cantidad),
@@ -732,11 +808,11 @@ async function getStatsHoy(req, res) {
         COALESCE(SUM(descuento_monto) FILTER (WHERE estatus='completada'), 0) AS total_descuentos,
         -- Conteo por método de pago (solo ventas completadas)
         COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='efectivo')      AS pagos_efectivo,
-        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta')       AS pagos_tarjeta,
+        COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo IN ('tarjeta','tarjeta_debito','tarjeta_credito')) AS pagos_tarjeta,
         COUNT(*) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia') AS pagos_transferencia,
         -- Monto por método de pago (solo ventas completadas)
         COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='efectivo'),      0) AS monto_efectivo,
-        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='tarjeta'),       0) AS monto_tarjeta,
+        COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo IN ('tarjeta','tarjeta_debito','tarjeta_credito')), 0) AS monto_tarjeta,
         COALESCE(SUM(total) FILTER (WHERE estatus='completada' AND metodo_pago_codigo='transferencia'), 0) AS monto_transferencia
       FROM pos_ventas
       WHERE fecha_venta >= date_trunc('day', now() AT TIME ZONE 'America/Mexico_City') AT TIME ZONE 'America/Mexico_City'
@@ -1050,10 +1126,24 @@ async function convertirCotizacion(req, res) {
     await client.query(`SET LOCAL app.current_user_nombre = '${_aName}'`);
 
     const cotizId = parseInt(req.params.id);
-    const { metodo_pago_codigo, metodo_pago_descripcion, monto_recibido, notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm' } = req.body;
+    const {
+      pagos,
+      metodo_pago_codigo:  _mpCodLegacyC,
+      metodo_pago_descripcion: _mpDescLegacyC,
+      monto_recibido:      _montoRecLegacyC,
+      notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm'
+    } = req.body;
 
-    if (!metodo_pago_codigo)
+    const _CODIGOS_VALIDOS_C = ['efectivo','tarjeta_debito','tarjeta_credito','transferencia'];
+    const _LABEL_METODO_C    = { efectivo:'Efectivo', tarjeta_debito:'Tarjeta Débito', tarjeta_credito:'Tarjeta Crédito', transferencia:'Transferencia' };
+    const pagosInputC = Array.isArray(pagos) && pagos.length > 0
+      ? pagos
+      : (_mpCodLegacyC ? [{ codigo: _mpCodLegacyC, monto: null, monto_recibido: _montoRecLegacyC }] : null);
+
+    if (!pagosInputC || pagosInputC.length === 0)
       return res.status(400).json(createErrorResponse('Método de pago requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
+    if (pagosInputC.length > 2)
+      return res.status(400).json(createErrorResponse('Máximo 2 métodos de pago por transacción', CODIGOS_ERROR.DATOS_INVALIDOS));
 
     const cotizR = await client.query(
       `SELECT * FROM pos_cotizaciones WHERE id=$1 FOR UPDATE`, [cotizId]
@@ -1104,13 +1194,48 @@ async function convertirCotizacion(req, res) {
     const descPct   = parseFloat(cotiz.descuento_pct);
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
-    const montoRecibido = monto_recibido ? parseFloat(monto_recibido) : null;
-    const cambio    = montoRecibido ? parseFloat((montoRecibido - total).toFixed(2)) : 0;
+
+    // Total real a cobrar: con IVA/ISR si requiere factura
+    const rfacturaCotiz = requiere_factura !== undefined ? !!requiere_factura : !!(cotiz.requiere_factura);
+    let totalACobrarC = total;
+    if (rfacturaCotiz) {
+      const iva = parseFloat((total * 0.16).toFixed(2));
+      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
+      totalACobrarC = parseFloat((total + iva - isr).toFixed(2));
+    }
+
+    // Procesar pagos
+    const pagosFinalesC = pagosInputC.map((p) => {
+      const monto = (p.monto != null && parseFloat(p.monto) > 0)
+        ? parseFloat(parseFloat(p.monto).toFixed(2))
+        : (pagosInputC.length === 1 ? totalACobrarC : 0);
+      const montoRec = (p.codigo === 'efectivo' && p.monto_recibido != null)
+        ? parseFloat(p.monto_recibido) : null;
+      return {
+        codigo:         p.codigo,
+        descripcion:    _LABEL_METODO_C[p.codigo] || p.codigo,
+        monto,
+        monto_recibido: montoRec,
+        cambio:         montoRec != null ? parseFloat((montoRec - monto).toFixed(2)) : 0,
+      };
+    });
+    if (pagosFinalesC.length === 1) pagosFinalesC[0].monto = totalACobrarC;
+    if (pagosFinalesC.length === 2) {
+      // Auto-calcular 2do monto si el frontend lo envió null
+      if (pagosFinalesC[1].monto === 0 && pagosFinalesC[0].monto > 0)
+        pagosFinalesC[1].monto = parseFloat((totalACobrarC - pagosFinalesC[0].monto).toFixed(2));
+      const sumaPC = parseFloat((pagosFinalesC[0].monto + pagosFinalesC[1].monto).toFixed(2));
+      if (Math.abs(sumaPC - totalACobrarC) > 0.02)
+        return res.status(400).json(createErrorResponse(
+          `Los pagos suman $${sumaPC} pero el total a cobrar es $${totalACobrarC}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
+    const primerPagoC    = pagosFinalesC[0];
+    const montoRecibido  = primerPagoC.monto_recibido;
+    const cambio         = primerPagoC.cambio;
 
     const folio = await generarFolio(client);
 
-    const rfactura = requiere_factura !== undefined ? !!requiere_factura : !!(cotiz.requiere_factura);
-
+    const rfactura = rfacturaCotiz;
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
         folio, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
@@ -1120,8 +1245,8 @@ async function convertirCotizacion(req, res) {
       RETURNING *
     `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total, montoRecibido, cambio,
-        metodo_pago_codigo, metodo_pago_descripcion || metodo_pago_codigo,
-        notas || cotiz.notas || null, rfactura]);
+        primerPagoC.codigo, primerPagoC.descripcion,
+        notas || cotiz.notas || null, rfacturaCotiz]);
 
     const venta   = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -1161,6 +1286,16 @@ async function convertirCotizacion(req, res) {
       `UPDATE pos_cotizaciones SET estatus='aceptada', venta_id=$1, fecha_modificacion=NOW() WHERE id=$2`,
       [ventaId, cotizId]
     );
+
+    // Registrar métodos de pago en pos_ventas_pagos
+    for (let _pi = 0; _pi < pagosFinalesC.length; _pi++) {
+      const _pago = pagosFinalesC[_pi];
+      await client.query(
+        `INSERT INTO pos_ventas_pagos (venta_id, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [ventaId, _pi + 1, _pago.codigo, _pago.descripcion, _pago.monto, _pago.monto_recibido, _pago.cambio]
+      );
+    }
 
     // Crear registro de factura si se requiere y hay cliente registrado
     const clienteParaFacturaCotiz = parseInt(cliente_factura_id) || cotiz.cliente_id || null;
@@ -1218,7 +1353,7 @@ async function getReporteVendedores(req, res) {
         AVG(total)                    AS ticket_promedio,
         SUM(descuento_monto)          AS total_descuentos,
         COUNT(*) FILTER (WHERE metodo_pago_codigo = 'efectivo')     AS pagos_efectivo,
-        COUNT(*) FILTER (WHERE metodo_pago_codigo = 'tarjeta')      AS pagos_tarjeta,
+        COUNT(*) FILTER (WHERE metodo_pago_codigo IN ('tarjeta','tarjeta_debito','tarjeta_credito')) AS pagos_tarjeta,
         COUNT(*) FILTER (WHERE metodo_pago_codigo = 'transferencia') AS pagos_transferencia,
         MIN(fecha_venta)              AS primera_venta,
         MAX(fecha_venta)              AS ultima_venta

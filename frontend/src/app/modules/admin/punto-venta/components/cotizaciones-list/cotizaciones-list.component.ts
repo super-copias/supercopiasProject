@@ -4,7 +4,7 @@ import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../../../environments/environment';
-import { PosService, CotizacionDetalle, FiltrosCotizaciones } from '../../../../../services/pos.service';
+import { PosService, CotizacionDetalle, FiltrosCotizaciones, PagoInput } from '../../../../../services/pos.service';
 import { FacturasService } from '../../../../../services/facturas.service';
 
 @Component({
@@ -48,8 +48,10 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   cotizacionConvertirClienteId: number | null = null;
   cotizacionConvertirTotal = 0;
   totalConFacturaConvertir: number | null = null;
-  metodoPagoConvertir: 'efectivo' | 'tarjeta' | 'transferencia' = 'efectivo';
-  montoRecibidoConvertir: number | null = null;
+  metodoPagoConvertir: 'efectivo' | 'tarjeta' | 'transferencia' = 'efectivo'; // legacy, no usado
+  montoRecibidoConvertir: number | null = null; // legacy
+  pagosConvertir: PagoInput[] = [];
+  pagosConvertirValidos = false;
   notasConvertir = '';
   procesandoConvertir = false;
   errorConvertir = '';
@@ -242,6 +244,8 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     this.cotizacionConvertirClienteId = cot.cliente_id || null;
     this.cotizacionConvertirTotal     = parseFloat(cot.total);
     this.totalConFacturaConvertir     = null;
+    this.pagosConvertir               = [];
+    this.pagosConvertirValidos        = false;
     this.metodoPagoConvertir          = 'efectivo';
     this.montoRecibidoConvertir       = null;
     this.notasConvertir               = '';
@@ -275,6 +279,8 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     this.cotizacionConvertirClienteId = null;
     this.totalConFacturaConvertir     = null;
     this.tipoPersonaConvertir         = 'pm';
+    this.pagosConvertir               = [];
+    this.pagosConvertirValidos        = false;
     this.errorConvertir               = '';
     this.clienteFacturaConvertir      = null;
     this.busquedaClienteConvertir.setValue('', { emitEvent: false });
@@ -316,18 +322,19 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   }
 
   get cambioConvertir(): number {
-    if (!this.montoRecibidoConvertir || this.metodoPagoConvertir !== 'efectivo') return 0;
-    return Math.max(0, this.montoRecibidoConvertir - this.totalEfectivoConvertir);
+    const p0 = this.pagosConvertir[0];
+    if (!p0 || p0.codigo !== 'efectivo') return 0;
+    return Math.max(0, (p0.monto_recibido ?? 0) - this.totalEfectivoConvertir);
   }
 
   get puedeConfirmarConvertir(): boolean {
     if (this.procesandoConvertir) return false;
     if (this.requiereFacturaConvertir && !this.clienteFacturaConvertir?.id) return false;
-    if (this.metodoPagoConvertir === 'efectivo') {
-      return !!this.montoRecibidoConvertir && this.montoRecibidoConvertir >= this.totalEfectivoConvertir;
-    }
-    return true;
+    return this.pagosConvertirValidos;
   }
+
+  onPagosConvertirChange(p: PagoInput[]): void { this.pagosConvertir = p; }
+  onPagosConvertirValidChange(v: boolean): void { this.pagosConvertirValidos = v; }
 
   confirmarConvertir(): void {
     if (!this.cotizacionConvertirId) return;
@@ -342,9 +349,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
 
     this.posService.convertirCotizacion(
       this.cotizacionConvertirId,
-      this.metodoPagoConvertir,
-      this.label(this.metodoPagoConvertir),
-      this.metodoPagoConvertir === 'efectivo' ? this.montoRecibidoConvertir : null,
+      this.pagosConvertir,
       this.notasConvertir || undefined,
       this.requiereFacturaConvertir,
       this.clienteFacturaConvertir?.id || null,

@@ -4,7 +4,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../../../environments/environment';
-import { PosService, LineaCarrito, PedidoPayload } from '../../../../../services/pos.service';
+import { PosService, LineaCarrito, PedidoPayload, PagoInput } from '../../../../../services/pos.service';
 
 @Component({
   selector: 'app-pos-pedido-form',
@@ -39,6 +39,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   // Estado post-guardado: mostrar ticket
   pedidoCreado: any = null;
   mostrarTicketPedido = false;
+  mostrarItems = true;
 
   form = {
     cliente_nombre:       '',
@@ -48,11 +49,15 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     tipo_persona_factura: 'pm' as 'pf' | 'pm',
     anticipo:             0,
     notas_anticipo:       '',
-    metodo_pago_anticipo: 'efectivo',
     fecha_acordada:       '',
     hora_acordada:        '',
     notas:                '',
   };
+
+  pagosAnticipo: PagoInput[] = [];
+  pagosAnticipoValidos = false;
+
+  get hayAnticipo(): boolean { return (this.form.anticipo ?? 0) > 0; }
 
   constructor(
     private posService: PosService,
@@ -139,6 +144,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.hayAnticipo && !this.pagosAnticipoValidos) {
+      this.error = 'Selecciona el método de pago del anticipo.';
+      return;
+    }
+
     // Combinar fecha + hora si ambas están disponibles
     let fechaAcordada: string | null = null;
     if (this.form.fecha_acordada) {
@@ -163,7 +173,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       descuento_config_id:    this.descuentoConfigId,
       descuento_autorizado_por: this.descuentoAutorizadoPor,
       anticipo:               this.form.anticipo,
-      metodo_pago_anticipo:   this.form.metodo_pago_anticipo,
+      pagos_anticipo:         this.form.anticipo > 0 ? this.pagosAnticipo : undefined,
       fecha_acordada:         fechaAcordada,
       notas:                  [this.form.notas, this.form.notas_anticipo ? `Ref. anticipo: ${this.form.notas_anticipo}` : ''].filter(Boolean).join(' | ') || undefined,
     };
@@ -180,6 +190,13 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  onPagosAnticipoChange(p: PagoInput[]): void {
+    this.pagosAnticipo = p;
+    if (p.length >= 2) { this.mostrarItems = false; }
+    else { this.mostrarItems = true; }
+  }
+  onPagosAnticipoValidChange(v: boolean): void { this.pagosAnticipoValidos = v; }
 
   onCerrarTicket(): void {
     this.generado.emit(this.pedidoCreado);

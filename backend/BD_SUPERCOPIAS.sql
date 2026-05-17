@@ -4381,6 +4381,41 @@ CREATE TRIGGER trg_pos_pedidos_updated_at
 
 
 -- ============================================================
+-- Pagos múltiples por venta y por pedido (máx. 2 métodos)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.pos_ventas_pagos (
+    id                      SERIAL PRIMARY KEY,
+    venta_id                INTEGER NOT NULL REFERENCES public.pos_ventas(id) ON DELETE CASCADE,
+    orden                   SMALLINT NOT NULL DEFAULT 1,
+    metodo_pago_codigo      VARCHAR(30) NOT NULL
+        CHECK (metodo_pago_codigo IN ('efectivo','tarjeta_debito','tarjeta_credito','transferencia')),
+    metodo_pago_descripcion VARCHAR(100),
+    monto                   NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+    monto_recibido          NUMERIC(12,2),
+    cambio                  NUMERIC(12,2)    DEFAULT 0,
+    CONSTRAINT chk_pvp_orden CHECK (orden IN (1,2))
+);
+CREATE INDEX IF NOT EXISTS idx_pos_ventas_pagos_venta ON public.pos_ventas_pagos(venta_id);
+COMMENT ON TABLE public.pos_ventas_pagos IS 'Métodos de pago por venta POS. Máximo 2 pagos por transacción.';
+
+CREATE TABLE IF NOT EXISTS public.pos_pedidos_pagos (
+    id                      SERIAL PRIMARY KEY,
+    pedido_id               INTEGER NOT NULL REFERENCES public.pos_pedidos(id) ON DELETE CASCADE,
+    tipo                    VARCHAR(10) NOT NULL CHECK (tipo IN ('anticipo','saldo')),
+    orden                   SMALLINT NOT NULL DEFAULT 1,
+    metodo_pago_codigo      VARCHAR(30) NOT NULL
+        CHECK (metodo_pago_codigo IN ('efectivo','tarjeta_debito','tarjeta_credito','transferencia')),
+    metodo_pago_descripcion VARCHAR(100),
+    monto                   NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+    monto_recibido          NUMERIC(12,2),
+    cambio                  NUMERIC(12,2)    DEFAULT 0,
+    CONSTRAINT chk_ppp_orden CHECK (orden IN (1,2))
+);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_pagos_pedido ON public.pos_pedidos_pagos(pedido_id);
+COMMENT ON TABLE public.pos_pedidos_pagos IS 'Métodos de pago por pedido (anticipo y saldo). Máximo 2 métodos por fase.';
+
+-- ============================================================
 -- Módulo de Facturación CFDI 4.0
 -- ============================================================
 

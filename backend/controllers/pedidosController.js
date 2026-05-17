@@ -135,7 +135,8 @@ async function createPedido(req, res) {
       descuento_config_id,
       descuento_autorizado_por,
       anticipo = 0,
-      metodo_pago_anticipo,
+      pagos_anticipo,               // nuevo: array [{ codigo, monto, monto_recibido? }]
+      metodo_pago_anticipo,         // backward compat
       fecha_acordada,
       notas,
     } = req.body;
@@ -183,6 +184,14 @@ async function createPedido(req, res) {
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
     const anticipoVal = Math.min(parseFloat(anticipo || 0), total);
 
+    // Normalizar pagos_anticipo
+    const _CODIGOS_PED = ['efectivo','tarjeta_debito','tarjeta_credito','transferencia'];
+    const _LABEL_PED   = { efectivo:'Efectivo', tarjeta_debito:'Tarjeta Débito', tarjeta_credito:'Tarjeta Crédito', transferencia:'Transferencia' };
+    const pagosAnticipo = Array.isArray(pagos_anticipo) && pagos_anticipo.length > 0
+      ? pagos_anticipo
+      : (metodo_pago_anticipo && anticipoVal > 0 ? [{ codigo: metodo_pago_anticipo, monto: anticipoVal }] : []);
+    const primerMetodoAnticipo = pagosAnticipo.length > 0 ? pagosAnticipo[0].codigo : (metodo_pago_anticipo || null);
+
     const folio = await generarFolioPedido(client);
 
     const pedidoQ = await client.query(`
@@ -209,12 +218,32 @@ async function createPedido(req, res) {
       !!via_whatsapp, !!requiere_factura,
       subtotal, descPct, descMonto, total, anticipoVal,
       descuento_config_id || null, descuento_autorizado_por || null,
-      metodo_pago_anticipo || null,
+      primerMetodoAnticipo || null,
       fecha_acordada || null, notas || null,
       creadoPorId, creadoPorNombre,
     ]);
 
     const pedidoId = pedidoQ.rows[0].id;
+
+    // Registrar pagos del anticipo (si aplica)
+    if (pagosAnticipo.length > 0 && anticipoVal > 0) {
+      let montoRestanteAnticipo = anticipoVal;
+      for (let _pi = 0; _pi < pagosAnticipo.length && _pi < 2; _pi++) {
+        const _p = pagosAnticipo[_pi];
+        const _monto = _pi < pagosAnticipo.length - 1
+          ? Math.min(parseFloat(_p.monto) || 0, montoRestanteAnticipo)
+          : montoRestanteAnticipo;
+        if (_monto <= 0) continue;
+        const _montoRec = (_p.codigo === 'efectivo' && _p.monto_recibido) ? parseFloat(_p.monto_recibido) : null;
+        await client.query(
+          `INSERT INTO pos_pedidos_pagos (pedido_id, tipo, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+           VALUES ($1, 'anticipo', $2, $3, $4, $5, $6, $7)`,
+          [pedidoId, _pi + 1, _p.codigo, _LABEL_PED[_p.codigo] || _p.codigo, _monto, _montoRec,
+           _montoRec != null ? parseFloat((_montoRec - _monto).toFixed(2)) : 0]
+        );
+        montoRestanteAnticipo = parseFloat((montoRestanteAnticipo - _monto).toFixed(2));
+      }
+    }
 
     // Insertar líneas de detalle
     for (const l of lineas) {
@@ -513,13 +542,32 @@ async function entregarPedido(req, res) {
     await client.query('BEGIN');
 
     const pedidoId = parseInt(req.params.id);
-    const { metodo_pago_saldo, monto_recibido_saldo, notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm' } = req.body;
+    const {
+      pagos_saldo,                    // nuevo: array [{ codigo, monto, monto_recibido? }]
+      metodo_pago_saldo,              // backward compat
+      monto_recibido_saldo,           // backward compat
+      notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm'
+    } = req.body;
 
     const usuarioNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const usuarioId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
 
-    if (!metodo_pago_saldo)
+    const _CODIGOS_ENT = ['efectivo','tarjeta_debito','tarjeta_credito','transferencia'];
+    const _LABEL_ENT   = { efectivo:'Efectivo', tarjeta_debito:'Tarjeta Débito', tarjeta_credito:'Tarjeta Crédito', transferencia:'Transferencia' };
+
+    // Normalizar pagos_saldo
+    const pagosInputS = Array.isArray(pagos_saldo) && pagos_saldo.length > 0
+      ? pagos_saldo
+      : (metodo_pago_saldo ? [{ codigo: metodo_pago_saldo, monto: null, monto_recibido: monto_recibido_saldo }] : null);
+
+    if (!pagosInputS || pagosInputS.length === 0)
       return res.status(400).json(createErrorResponse('Método de pago del saldo requerido', CODIGOS_ERROR.DATOS_INVALIDOS));
+    if (pagosInputS.length > 2)
+      return res.status(400).json(createErrorResponse('Máximo 2 métodos de pago por transacción', CODIGOS_ERROR.DATOS_INVALIDOS));
+    for (const _p of pagosInputS) {
+      if (!_CODIGOS_ENT.includes(_p.codigo))
+        return res.status(400).json(createErrorResponse(`Código de pago inválido: ${_p.codigo}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
 
     // Validar monto recibido cuando se paga en efectivo
     const pedidoR = await client.query(
@@ -540,14 +588,50 @@ async function entregarPedido(req, res) {
     const anticipoNum = parseFloat(pedido.anticipo);
     const saldoReq   = parseFloat((totalNum - anticipoNum).toFixed(2));
 
-    if (saldoReq > 0) {
-      const montoRec = parseFloat(monto_recibido_saldo);
-      if (isNaN(montoRec) || montoRec < saldoReq)
-        return res.status(400).json(createErrorResponse(
-          `El monto recibido ($${montoRec || 0}) no cubre el saldo pendiente ($${saldoReq})`,
-          CODIGOS_ERROR.DATOS_INVALIDOS
-        ));
+    // Total a cobrar para el saldo: con IVA/ISR si requiere factura
+    const rfacturaEnt = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
+    let saldoACobrar = saldoReq;
+    if (rfacturaEnt && saldoReq > 0) {
+      const iva = parseFloat((saldoReq * 0.16).toFixed(2));
+      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((saldoReq * 0.0125).toFixed(2));
+      saldoACobrar = parseFloat((saldoReq + iva - isr).toFixed(2));
     }
+
+    // Procesar pagosInputS
+    const pagosFinalesS = pagosInputS.map((p) => {
+      const monto = (p.monto != null && parseFloat(p.monto) > 0)
+        ? parseFloat(parseFloat(p.monto).toFixed(2))
+        : (pagosInputS.length === 1 ? saldoACobrar : 0);
+      const montoRec = (p.codigo === 'efectivo' && p.monto_recibido != null)
+        ? parseFloat(p.monto_recibido) : null;
+      return {
+        codigo:         p.codigo,
+        descripcion:    _LABEL_ENT[p.codigo] || p.codigo,
+        monto,
+        monto_recibido: montoRec,
+        cambio:         montoRec != null ? parseFloat((montoRec - monto).toFixed(2)) : 0,
+      };
+    });
+    if (pagosFinalesS.length === 1) pagosFinalesS[0].monto = saldoACobrar;
+    if (pagosFinalesS.length === 2) {
+      // Auto-calcular 2do monto si el frontend lo envió null
+      if (pagosFinalesS[1].monto === 0 && pagosFinalesS[0].monto > 0)
+        pagosFinalesS[1].monto = parseFloat((saldoACobrar - pagosFinalesS[0].monto).toFixed(2));
+      const sumaS = parseFloat((pagosFinalesS[0].monto + pagosFinalesS[1].monto).toFixed(2));
+      if (Math.abs(sumaS - saldoACobrar) > 0.02)
+        return res.status(400).json(createErrorResponse(
+          `Los pagos suman $${sumaS} pero el saldo a cobrar es $${saldoACobrar}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
+    // Validar que efectivo cubre su monto
+    for (const _p of pagosFinalesS) {
+      if (_p.codigo === 'efectivo' && _p.monto_recibido !== null && _p.monto_recibido < _p.monto)
+        return res.status(400).json(createErrorResponse(
+          `El monto recibido en efectivo ($${_p.monto_recibido}) no cubre $${_p.monto}`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
+
+    const primerPagoS   = pagosFinalesS[0];
+    const montoRecibido = primerPagoS.monto_recibido;
+    const cambio        = primerPagoS.cambio;
 
     const detR = await client.query(
       'SELECT * FROM pos_pedidos_detalle WHERE pedido_id = $1', [pedidoId]
@@ -558,12 +642,7 @@ async function entregarPedido(req, res) {
     const folio       = await generarFolioVenta(client);
     const total       = parseFloat(pedido.total);
     const anticipo    = parseFloat(pedido.anticipo);
-    const saldo       = parseFloat((total - anticipo).toFixed(2));
-    const montoRecibido = monto_recibido_saldo ? parseFloat(monto_recibido_saldo) : null;
-    const cambio      = montoRecibido && saldo > 0 ? parseFloat((montoRecibido - saldo).toFixed(2)) : 0;
 
-    // Método de pago: si hay anticipo + saldo, el código principal es el del saldo
-    const metodoPagoCodigo = metodo_pago_saldo;
     const notasVenta = [
       notas,
       `Pedido: ${pedido.folio}`,
@@ -588,12 +667,32 @@ async function entregarPedido(req, res) {
       parseFloat(pedido.subtotal), parseFloat(pedido.descuento_pct),
       parseFloat(pedido.descuento_monto), total,
       montoRecibido, cambio,
-      metodoPagoCodigo, metodoPagoCodigo,
+      primerPagoS.codigo, primerPagoS.descripcion,
       pedido.descuento_config_id || null, pedido.descuento_autorizado_por || null,
       notasVenta,
     ]);
 
     const ventaId = ventaQ.rows[0].id;
+
+    // Registrar pagos del saldo en pos_ventas_pagos
+    for (let _pi = 0; _pi < pagosFinalesS.length; _pi++) {
+      const _pago = pagosFinalesS[_pi];
+      await client.query(
+        `INSERT INTO pos_ventas_pagos (venta_id, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [ventaId, _pi + 1, _pago.codigo, _pago.descripcion, _pago.monto, _pago.monto_recibido, _pago.cambio]
+      );
+    }
+
+    // Registrar pagos del saldo en pos_pedidos_pagos
+    for (let _pi = 0; _pi < pagosFinalesS.length; _pi++) {
+      const _pago = pagosFinalesS[_pi];
+      await client.query(
+        `INSERT INTO pos_pedidos_pagos (pedido_id, tipo, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+         VALUES ($1, 'saldo', $2, $3, $4, $5, $6, $7)`,
+        [pedidoId, _pi + 1, _pago.codigo, _pago.descripcion, _pago.monto, _pago.monto_recibido, _pago.cambio]
+      );
+    }
 
     // Insertar detalle de venta y descontar inventario
     for (const linea of lineas) {
@@ -684,7 +783,7 @@ async function entregarPedido(req, res) {
           venta_id            = $5,
           fecha_modificacion  = NOW()
       WHERE id = $6
-    `, [usuarioId, usuarioNombre, metodo_pago_saldo, montoRecibido || null, ventaId, pedidoId]);
+    `, [usuarioId, usuarioNombre, primerPagoS.codigo, montoRecibido || null, ventaId, pedidoId]);
 
     await registrarHistorial(client, pedidoId, 'terminado', 'finalizado', usuarioId, usuarioNombre,
       `Entregado. Venta generada: ${folio}`);

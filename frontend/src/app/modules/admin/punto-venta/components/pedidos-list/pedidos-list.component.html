@@ -249,77 +249,16 @@
       </p>
 
       <label class="form-label small fw-semibold">Método de pago del saldo</label>
-      <div class="metodo-btns mb-2">
-        <button class="metodo-btn" [class.active]="metodoPagoSaldo==='efectivo'" (click)="metodoPagoSaldo='efectivo'">
-          <i class="bi bi-cash-coin me-1"></i>Efectivo
-        </button>
-        <button class="metodo-btn" [class.active]="metodoPagoSaldo==='tarjeta'" (click)="metodoPagoSaldo='tarjeta'">
-          <i class="bi bi-credit-card me-1"></i>Tarjeta
-        </button>
-        <button class="metodo-btn" [class.active]="metodoPagoSaldo==='transferencia'" (click)="metodoPagoSaldo='transferencia'">
-          <i class="bi bi-arrow-left-right me-1"></i>Transferencia
-        </button>
-      </div>
+      <app-pos-selector-pago
+        [totalRef]="(requiereFacturaEntregar && totalConFacturaEntregar !== null
+          ? (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))
+          : (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo)))"
+        (pagosChange)="onPagosSaldoChange($event)"
+        (validChange)="onPagosSaldoValidChange($event)">
+      </app-pos-selector-pago>
 
-      <!-- Referencia para tarjeta/transferencia -->
-      <div class="mb-2" *ngIf="metodoPagoSaldo !== 'efectivo'">
-        <label class="form-label small">Referencia / Folio de pago</label>
-        <input type="text" class="form-control form-control-sm" [(ngModel)]="notasEntrega"
-          placeholder="Nº autorización, folio de transferencia, etc.">
-      </div>
-
-      <!-- Monto recibido — todos los métodos -->
-      <div class="mb-2">
-        <label class="form-label small">
-          Monto recibido
-          <span class="text-danger">*</span>
-          <span class="text-muted ms-1">(saldo:
-            <ng-container *ngIf="requiereFacturaEntregar && totalConFacturaEntregar !== null; else saldoRef">
-              ${{ (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0)) | number:'1.2-2' }}
-            </ng-container>
-            <ng-template #saldoRef>${{ pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo) | number:'1.2-2' }}</ng-template>
-          )</span>
-        </label>
-        <ng-container *ngIf="requiereFacturaEntregar && totalConFacturaEntregar !== null; else inputSaldoNormal">
-          <input type="number" class="form-control form-control-sm"
-            [(ngModel)]="montoRecibidoSaldo"
-            [min]="totalConFacturaEntregar - (pedidoEntregar.anticipo || 0)"
-            placeholder="0.00">
-          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo < (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))"
-            class="text-danger small mt-1">
-            <i class="bi bi-exclamation-triangle me-1"></i>El monto no cubre el saldo pendiente con factura
-          </div>
-          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo >= (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))"
-            class="text-success small mt-1">
-            <i class="bi bi-check-circle me-1"></i>
-            <ng-container *ngIf="metodoPagoSaldo === 'efectivo'">
-              Cambio: ${{ (montoRecibidoSaldo - (totalConFacturaEntregar - (pedidoEntregar.anticipo || 0))) | number:'1.2-2' }}
-            </ng-container>
-            <ng-container *ngIf="metodoPagoSaldo !== 'efectivo'">Monto confirmado</ng-container>
-          </div>
-        </ng-container>
-        <ng-template #inputSaldoNormal>
-          <input type="number" class="form-control form-control-sm"
-            [(ngModel)]="montoRecibidoSaldo"
-            [min]="pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo)"
-            placeholder="0.00">
-          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo < (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo))"
-            class="text-danger small mt-1">
-            <i class="bi bi-exclamation-triangle me-1"></i>El monto no cubre el saldo pendiente
-          </div>
-          <div *ngIf="montoRecibidoSaldo !== null && montoRecibidoSaldo >= (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo))"
-            class="text-success small mt-1">
-            <i class="bi bi-check-circle me-1"></i>
-            <ng-container *ngIf="metodoPagoSaldo === 'efectivo'">
-              Cambio: ${{ (montoRecibidoSaldo - (pedidoEntregar.saldo_pendiente ?? (pedidoEntregar.total - pedidoEntregar.anticipo))) | number:'1.2-2' }}
-            </ng-container>
-            <ng-container *ngIf="metodoPagoSaldo !== 'efectivo'">Monto confirmado</ng-container>
-          </div>
-        </ng-template>
-      </div>
-
-      <!-- Notas de entrega (efectivo) -->
-      <div class="mb-2" *ngIf="metodoPagoSaldo === 'efectivo'">
+      <!-- Notas de entrega -->
+      <div class="mb-2 mt-2">
         <label class="form-label small">Notas de entrega (opcional)</label>
         <input type="text" class="form-control form-control-sm" [(ngModel)]="notasEntrega" placeholder="Observaciones...">
       </div>

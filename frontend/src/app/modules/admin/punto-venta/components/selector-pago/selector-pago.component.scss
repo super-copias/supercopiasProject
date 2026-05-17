@@ -1,0 +1,231 @@
+.selector-pago {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+// ── Cuadrícula 2×2 ────────────────────────────────────────────
+.metodos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.metodo-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+  min-height: 58px;
+
+  i { font-size: 15px; color: #6c757d; }
+  .label { font-size: 11px; text-align: center; color: #495057; line-height: 1.2; }
+
+  &:hover:not(:disabled) {
+    border-color: #86b7fe;
+    background: #f0f7ff;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &.activo {
+    border-color: #0d6efd;
+    background: #e7f1ff;
+    i { color: #0d6efd; }
+    .label { color: #0d6efd; font-weight: 600; }
+  }
+}
+
+// Insignia de orden (① ②) en botón seleccionado
+.orden-badge {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0d6efd;
+  line-height: 1;
+}
+
+// ── Sección de campos por método ──────────────────────────────
+.metodo-sec {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metodo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0d6efd;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0d6efd;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+// ── Campos individuales ───────────────────────────────────────
+.campo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  label {
+    font-size: 11px;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 0;
+  }
+}
+
+// Display de monto (no editable)
+.monto-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #212529;
+  padding: 3px 0;
+
+  &.monto-auto { color: #0a3622; }
+}
+
+.auto-tag {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: #198754;
+  border-radius: 3px;
+  padding: 1px 4px;
+  line-height: 1.4;
+}
+
+// ── Banner saldo método 2 ─────────────────────────────────────
+.saldo-segundo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #d1e7dd;
+  border: 1px solid #a3cfbb;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0a3622;
+
+  strong { font-size: 13px; }
+}
+
+
+.metodos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.metodo-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 12px;
+  line-height: 1.2;
+
+  i {
+    font-size: 18px;
+    color: #6c757d;
+  }
+
+  .label {
+    font-size: 11px;
+    text-align: center;
+    color: #495057;
+  }
+
+  &:hover {
+    border-color: #86b7fe;
+    background: #f0f7ff;
+  }
+
+  &.activo {
+    border-color: #0d6efd;
+    background: #e7f1ff;
+
+    i { color: #0d6efd; }
+    .label { color: #0d6efd; font-weight: 600; }
+  }
+}
+
+.campo-monto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  label {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 0;
+  }
+}
+
+.btn-dos-metodos {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #0d6efd;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 0;
+  &:hover { text-decoration: underline; }
+}
+
+.monto-segundo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}

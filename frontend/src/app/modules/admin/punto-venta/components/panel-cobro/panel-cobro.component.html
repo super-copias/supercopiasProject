@@ -188,44 +188,19 @@
     <!-- Método de pago (solo para venta) -->
     <div class="seccion mb-2" *ngIf="accionPendiente === 'venta'">
       <div class="seccion-titulo">Método de pago</div>
-      <div class="metodos d-flex gap-1">
-        <button class="btn btn-sm flex-fill metodo-btn"
-          [class.activo]="metodoPago==='efectivo'"
-          (click)="metodoPago='efectivo'">
-          <i class="bi bi-cash"></i> Efectivo
-        </button>
-        <button class="btn btn-sm flex-fill metodo-btn"
-          [class.activo]="metodoPago==='tarjeta'"
-          (click)="metodoPago='tarjeta'">
-          <i class="bi bi-credit-card"></i> Tarjeta
-        </button>
-        <button class="btn btn-sm flex-fill metodo-btn"
-          [class.activo]="metodoPago==='transferencia'"
-          (click)="metodoPago='transferencia'">
-          <i class="bi bi-bank"></i> Trans.
-        </button>
-      </div>
-      <!-- Efectivo: recibido + cambio -->
-      <ng-container *ngIf="metodoPago==='efectivo'">
-        <div class="input-group input-group-sm mt-2">
-          <span class="input-group-text">Recibido $</span>
-          <input type="number" class="form-control" min="0" step="0.5"
-            [(ngModel)]="montoRecibido" placeholder="0.00" autofocus>
-        </div>
-        <div class="cambio-row mt-1" *ngIf="montoRecibido !== null && montoRecibido > 0">
-          <span>Cambio</span>
-          <span [class.text-danger]="montoRecibido < totalACobrar">
-            ${{ cambio | number:'1.2-2' }}
-          </span>
-        </div>
-      </ng-container>
+      <app-pos-selector-pago
+        #selectorPago
+        [totalRef]="totalACobrar"
+        (pagosChange)="onPagosChange($event)"
+        (validChange)="onPagosValidChange($event)">
+      </app-pos-selector-pago>
     </div>
 
     <!-- Nota -->
     <div class="seccion mb-3" *ngIf="accionPendiente === 'venta'">
-      <div class="seccion-titulo">Nota <span class="text-muted fw-normal" style="font-size:.7rem">(opcional)</span></div>
+      <div class="seccion-titulo">Nota de venta <span class="text-muted fw-normal" style="font-size:.7rem">(opcional)</span></div>
       <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas"
-        [placeholder]="metodoPago==='efectivo' ? 'Observaciones...' : 'Número de folio'"></textarea>
+        placeholder="Observaciones generales de la venta..."></textarea>
     </div>
 
     <div class="small text-muted mb-3" *ngIf="accionPendiente === 'cotizacion'">
