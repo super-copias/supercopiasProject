@@ -157,6 +157,13 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     return Math.max(0, parseFloat((this.montoRecibido - this.totalACobrar).toFixed(2)));
   }
 
+  /** Habilita el botón COBRAR para abrir el modal (sin requerir método de pago aún) */
+  get puedeAbrirCobro(): boolean {
+    if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
+    return this.carrito.length > 0 && !this.procesando;
+  }
+
+  /** Habilita el botón "Sí, cobrar" dentro del modal de confirmación */
   get puedeVender(): boolean {
     if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
     return this.carrito.length > 0 && !this.procesando &&
