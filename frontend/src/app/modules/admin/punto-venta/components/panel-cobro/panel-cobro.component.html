@@ -59,16 +59,11 @@
       <span class="accion-label">Descuento</span>
       <span class="accion-badge" *ngIf="descuentoGlobalPct > 0">{{ descuentoGlobalPct }}%</span>
     </button>
-    <!-- Botón facturación: toggle + icono previsualización -->
     <button class="btn-accion" [class.btn-accion--activo]="requiereFactura"
       (click)="requiereFactura=!requiereFactura" title="Activar/desactivar facturación">
       <i class="bi bi-receipt"></i>
       <span class="accion-label">Facturación</span>
       <span class="accion-badge" *ngIf="requiereFactura">ON</span>
-    </button>
-    <button class="btn-accion btn-accion--preview" *ngIf="requiereFactura"
-      (click)="mostrarModalFacturacion=true" title="Ver desglose fiscal">
-      <i class="bi bi-eye"></i>
     </button>
   </div>
 

@@ -336,7 +336,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   // ── Confirmación ──────────────────────────────────────────────
 
   solicitarConfirmacion(accion: 'venta' | 'cotizacion'): void {
-    if (accion === 'venta' && !this.puedeVender) return;
+    if (accion === 'venta' && !this.puedeAbrirCobro) return;
     if (accion === 'cotizacion' && !this.puedeGuardarCotizacion) return;
     this.accionPendiente = accion;
     this.mostrarConfirmacion = true;
