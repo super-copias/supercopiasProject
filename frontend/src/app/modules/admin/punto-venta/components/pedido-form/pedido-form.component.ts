@@ -39,6 +39,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   // Estado post-guardado: mostrar ticket
   pedidoCreado: any = null;
   mostrarTicketPedido = false;
+  mostrarItems = true;
 
   form = {
     cliente_nombre:       '',
@@ -143,6 +144,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.hayAnticipo && !this.pagosAnticipoValidos) {
+      this.error = 'Selecciona el método de pago del anticipo.';
+      return;
+    }
+
     // Combinar fecha + hora si ambas están disponibles
     let fechaAcordada: string | null = null;
     if (this.form.fecha_acordada) {
@@ -185,7 +191,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  onPagosAnticipoChange(p: PagoInput[]): void { this.pagosAnticipo = p; }
+  onPagosAnticipoChange(p: PagoInput[]): void {
+    this.pagosAnticipo = p;
+    if (p.length >= 2) { this.mostrarItems = false; }
+    else { this.mostrarItems = true; }
+  }
   onPagosAnticipoValidChange(v: boolean): void { this.pagosAnticipoValidos = v; }
 
   onCerrarTicket(): void {
