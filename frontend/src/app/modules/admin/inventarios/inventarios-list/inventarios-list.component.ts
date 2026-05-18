@@ -92,10 +92,22 @@ export class InventariosListComponent implements OnInit, OnDestroy {
 
   // ── Vista acordeón (Ver todos) ─────────────────────────────────────────────
 
+  // Traduce filtroTipo al parámetro correcto para la API
+  private getTipoParams(): any {
+    const p: any = {};
+    switch (this.filtroTipo) {
+      case 'servicio': p.es_servicio = 'true';  break;   // servicios: tipo=venta + es_servicio=true
+      case 'venta':    p.tipo = 'venta'; p.es_servicio = 'false'; break; // productos de venta (sin servicios)
+      case 'insumo':   p.tipo = 'insumo';   break;
+      case 'generico': p.tipo = 'generico'; break;
+    }
+    return p;
+  }
+
   verTodos() {
     const params: any = {};
     if (this.filtroDepartamento) params.departamento_id = this.filtroDepartamento;
-    if (this.filtroTipo) params.tipo = this.filtroTipo;
+    Object.assign(params, this.getTipoParams());
 
     this.loading = true;
     this.inventariosService.getInventariosPorDepartamento(params).subscribe({
@@ -122,7 +134,24 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   // ── Búsqueda y filtros ─────────────────────────────────────────────────────
 
   onFiltroChange() {
+    // Búsqueda por texto: limpia los demás filtros
+    this.filtroDepartamento = '';
+    this.filtroTipo = '';
     this.busqueda$.next();
+  }
+
+  onDepartamentoChange() {
+    // Filtro por departamento: limpia texto y tipo
+    this.filtroBusqueda = '';
+    this.filtroTipo = '';
+    this.ejecutarBusquedaOFiltro();
+  }
+
+  onTipoChange() {
+    // Filtro por tipo: limpia texto y departamento
+    this.filtroBusqueda = '';
+    this.filtroDepartamento = '';
+    this.ejecutarBusquedaOFiltro();
   }
 
   ejecutarBusquedaOFiltro() {
@@ -154,9 +183,9 @@ export class InventariosListComponent implements OnInit, OnDestroy {
       // Búsqueda por texto: independiente de los demás filtros
       params.q = this.filtroBusqueda.trim();
     } else {
-      // Sin texto: aplica departamento y tipo
+      // Sin texto: aplica departamento y/o tipo (exclusivos entre sí)
       if (this.filtroDepartamento) params.departamento_id = this.filtroDepartamento;
-      if (this.filtroTipo) params.tipo = this.filtroTipo;
+      Object.assign(params, this.getTipoParams());
     }
 
     this.inventariosService.getInventarios(params).subscribe({
