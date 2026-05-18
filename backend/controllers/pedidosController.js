@@ -644,14 +644,14 @@ async function entregarPedido(req, res) {
 
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
-        folio, cliente_id, cliente_nombre,
+        folio, fecha_venta, cliente_id, cliente_nombre,
         vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total,
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por,
         notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING id
     `, [
       folio,
