@@ -378,7 +378,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   badgeEstatus(e: string): string {
     const map: Record<string, string> = {
       pendiente: 'bg-warning text-dark',
-      aceptada:  'bg-success',
+      aceptada:  'bg-success text-white',
       rechazada: 'bg-danger',
       vencida:   'bg-secondary',
     };

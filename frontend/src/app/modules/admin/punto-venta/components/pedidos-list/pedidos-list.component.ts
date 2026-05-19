@@ -204,14 +204,13 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     this.pagosSaldoValidos = false;
     this.notasEntrega = '';
     this.errorEntrega = '';
-    this.requiereFacturaEntregar = !!(p.requiere_factura);
+    this.requiereFacturaEntregar = false;
     this.tipoPersonaEntregar = 'pm';
     this.clienteFacturaEntregar = p.cliente_id ? { id: p.cliente_id, nombreComercial: p.cliente_nombre } : null;
     this.busquedaClienteEntregar.setValue('', { emitEvent: false });
     this.resultadosClienteEntregar = [];
     this.totalConFacturaEntregar = null;
     this.mostrarModalEntregar = true;
-    if (this.requiereFacturaEntregar) this.recalcularTotalConFactura();
   }
 
   recalcularTotalConFactura(): void {

@@ -378,13 +378,13 @@ async function createVenta(req, res) {
     // Insertar cabecera de venta
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
-        folio, cliente_id, cliente_nombre,
+        folio, fecha_venta, cliente_id, cliente_nombre,
         vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total,
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por, notas, requiere_factura
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *
     `, [
       folio, cliente_id || null, clienteNombre,
@@ -1238,10 +1238,10 @@ async function convertirCotizacion(req, res) {
     const rfactura = rfacturaCotiz;
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
-        folio, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
+        folio, fecha_venta, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total, monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *
     `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total, montoRecibido, cambio,

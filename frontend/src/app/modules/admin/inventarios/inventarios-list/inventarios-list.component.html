@@ -95,11 +95,11 @@
 
         <!-- Filtros -->
         <span class="text-muted small fw-semibold text-uppercase filter-label">Filtros:</span>
-        <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroDepartamento" (change)="ejecutarBusquedaOFiltro()">
+        <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroDepartamento" (change)="onDepartamentoChange()">
           <option value="">Todos los departamentos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
         </select>
-        <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroTipo" (change)="ejecutarBusquedaOFiltro()">
+        <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroTipo" (change)="onTipoChange()">
           <option value="">Todos los tipos</option>
           <option value="venta">Producto venta</option>
           <option value="insumo">Insumo</option>

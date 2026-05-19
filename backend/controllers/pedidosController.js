@@ -466,7 +466,7 @@ async function tomarPedido(req, res) {
 
 // ─────────────────────────────────────────────────────────────
 // PATCH /api/pos/pedidos/:id/terminar
-// en_proceso → terminado (solo quien tomó el pedido)
+// en_proceso → terminado (cualquier usuario autenticado)
 // ─────────────────────────────────────────────────────────────
 async function terminarPedido(req, res) {
   const client = await getClient();
@@ -487,13 +487,6 @@ async function terminarPedido(req, res) {
     if (pedido.estatus !== 'en_proceso')
       return res.status(400).json(createErrorResponse(
         `Solo se puede terminar un pedido en estado "en_proceso". Estado actual: ${pedido.estatus}`,
-        CODIGOS_ERROR.DATOS_INVALIDOS
-      ));
-
-    // Solo quien tomó el pedido puede marcarlo como terminado
-    if (usuarioId && pedido.tomado_por_id && parseInt(pedido.tomado_por_id) !== usuarioId)
-      return res.status(403).json(createErrorResponse(
-        'Solo el empleado que tomó el pedido puede marcarlo como terminado',
         CODIGOS_ERROR.DATOS_INVALIDOS
       ));
 
@@ -651,14 +644,14 @@ async function entregarPedido(req, res) {
 
     const ventaQ = await client.query(`
       INSERT INTO pos_ventas (
-        folio, cliente_id, cliente_nombre,
+        folio, fecha_venta, cliente_id, cliente_nombre,
         vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total,
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por,
         notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING id
     `, [
       folio,
