@@ -667,9 +667,10 @@ async function entregarPedido(req, res) {
 
     const ventaId = ventaQ.rows[0].id;
 
-    // Registrar pagos del saldo en pos_ventas_pagos
+    // Registrar pagos del saldo en pos_ventas_pagos (omitir si monto es 0, ej. pedido totalmente cubierto por anticipo)
     for (let _pi = 0; _pi < pagosFinalesS.length; _pi++) {
       const _pago = pagosFinalesS[_pi];
+      if (_pago.monto <= 0) continue;
       await client.query(
         `INSERT INTO pos_ventas_pagos (venta_id, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -677,9 +678,10 @@ async function entregarPedido(req, res) {
       );
     }
 
-    // Registrar pagos del saldo en pos_pedidos_pagos
+    // Registrar pagos del saldo en pos_pedidos_pagos (omitir si monto es 0)
     for (let _pi = 0; _pi < pagosFinalesS.length; _pi++) {
       const _pago = pagosFinalesS[_pi];
+      if (_pago.monto <= 0) continue;
       await client.query(
         `INSERT INTO pos_pedidos_pagos (pedido_id, tipo, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
          VALUES ($1, 'saldo', $2, $3, $4, $5, $6, $7)`,
