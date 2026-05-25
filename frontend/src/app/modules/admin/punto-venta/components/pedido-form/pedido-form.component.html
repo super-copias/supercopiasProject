@@ -62,9 +62,10 @@
               </div>
             </div>
             <div class="mb-2">
-              <label class="form-label-xs">o ingresa nombre (cliente libre)</label>
+              <label class="form-label-xs">o ingresa nombre (cliente libre) <span class="text-danger">*</span></label>
               <input type="text" class="form-control form-control-sm" placeholder="Nombre del cliente"
-                [(ngModel)]="form.cliente_nombre">
+                [(ngModel)]="form.cliente_nombre"
+                [class.is-invalid]="!form.cliente_nombre.trim() && !!error">
             </div>
             <div>
               <label class="form-label-xs">Teléfono</label>
@@ -92,8 +93,9 @@
           <div class="bloque-titulo"><i class="bi bi-calendar-event me-1"></i>Entrega</div>
           <div class="row g-2">
             <div class="col-7">
-              <label class="form-label-xs">Fecha acordada</label>
-              <input type="date" class="form-control form-control-sm" [(ngModel)]="form.fecha_acordada">
+              <label class="form-label-xs">Fecha acordada <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="form.fecha_acordada"
+                [class.is-invalid]="!form.fecha_acordada && !!error">
             </div>
             <div class="col-5">
               <label class="form-label-xs">Hora</label>

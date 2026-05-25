@@ -113,9 +113,11 @@ export class PedidosListComponent implements OnInit, OnDestroy {
 
     const f: any = { page: this.paginaActual, limit: this.LIMIT };
 
-    // '' = solo activos; 'todos' = sin filtro de estatus; otro = estatus específico
+    // '' = solo activos; 'todos' = sin filtro de estatus; 'atrasados' = vencidos; otro = estatus específico
     if (this.filtroEstatus === '') {
       f.solo_activos = true;
+    } else if (this.filtroEstatus === 'atrasados') {
+      f.solo_atrasados = true;
     } else if (this.filtroEstatus !== 'todos') {
       f.estatus = this.filtroEstatus;
     }
@@ -166,7 +168,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   }
 
   esAtrasado(p: any): boolean {
-    if (!p.fecha_acordada || ['finalizado','cancelado'].includes(p.estatus)) return false;
+    if (!p.fecha_acordada || ['terminado','finalizado','cancelado'].includes(p.estatus)) return false;
     return new Date(p.fecha_acordada) < new Date();
   }
 
