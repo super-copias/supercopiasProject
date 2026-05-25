@@ -290,6 +290,8 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.folioOperacion = '';
     this.notas = '';
     this.descuentoManualPct = 0;
+    this.requiereFactura = false;
+    this.tipoPersonaFactura = 'pm';
     this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
   }
 

@@ -99,12 +99,15 @@ export interface VentaDetalle {
   descuento_pct: number;
   descuento_monto: number;
   total: number;
+  iva_monto?: number;
+  isr_monto?: number;
   monto_recibido?: number;
   cambio: number;
   metodo_pago_codigo: string;
   metodo_pago_descripcion?: string;
   pagos?: VentaPago[];
   estatus: 'completada' | 'cancelada' | 'devuelta';
+  requiere_factura?: boolean;
   notas?: string;
   ticket_generado: boolean;
   fecha_modificacion: string;

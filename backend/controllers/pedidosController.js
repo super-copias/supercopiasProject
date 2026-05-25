@@ -659,7 +659,7 @@ async function entregarPedido(req, res) {
     `, [
       folio,
       pedido.cliente_id || null, pedido.cliente_nombre,
-      usuarioId, usuarioNombre,
+      pedido.terminado_por_id || usuarioId, pedido.terminado_por_nombre || usuarioNombre,
       parseFloat(pedido.subtotal), parseFloat(pedido.descuento_pct),
       parseFloat(pedido.descuento_monto), total,
       montoRecibido, cambio,
