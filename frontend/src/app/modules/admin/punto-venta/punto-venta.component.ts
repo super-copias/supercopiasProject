@@ -130,13 +130,6 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
 
   onClienteSeleccionado(cliente: any): void {
     this.clienteSeleccionado = cliente;
-    if (cliente?.nivel_cliente === 'vip') {
-      this.descuentoGlobalPct = 10;
-    } else if (cliente?.nivel_cliente === 'frecuente') {
-      this.descuentoGlobalPct = 5;
-    } else {
-      this.descuentoGlobalPct = 0;
-    }
     this.recalcularTotales();
   }
 

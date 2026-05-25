@@ -170,10 +170,33 @@
         <span>Descuento ({{ venta.descuento_pct }}%)</span>
         <span>-${{ venta.descuento_monto | number:'1.2-2' }}</span>
       </div>
-      <div class="t-trow t-total-row">
+
+      <!-- Sin factura: TOTAL directo -->
+      <div class="t-trow t-total-row" *ngIf="!venta.requiere_factura">
         <span>TOTAL</span>
         <span>${{ venta.total | number:'1.2-2' }}</span>
       </div>
+
+      <!-- Con factura: desglose fiscal -->
+      <ng-container *ngIf="venta.requiere_factura">
+        <div class="t-sep"></div>
+        <div class="t-trow">
+          <span>Base imponible</span>
+          <span>${{ venta.total | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow">
+          <span>IVA (16%)</span>
+          <span>+${{ venta.iva_monto | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow" *ngIf="(venta.isr_monto || 0) > 0">
+          <span>ISR Ret. (1.25%)</span>
+          <span>-${{ venta.isr_monto | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow t-total-row">
+          <span>TOTAL CON FACTURA</span>
+          <span>${{ totalConFactura | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
 
       <!-- Pagos múltiples (nuevo) -->
       <ng-container *ngIf="venta.pagos && venta.pagos.length > 0; else pagosLegacy">

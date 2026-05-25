@@ -43,6 +43,11 @@
     border-color: #dc3545;
     background: #fff8f8;
   }
+
+  &.terminado {
+    border-color: #a3cfbb;
+    background: #edf7f1;
+  }
 }
 
 .pedido-card-header {

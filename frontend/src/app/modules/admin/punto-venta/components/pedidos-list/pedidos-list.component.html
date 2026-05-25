@@ -7,6 +7,7 @@
 
       <select class="form-select form-select-sm w-auto" [(ngModel)]="filtroEstatus" (change)="cambiarFiltro()">
         <option value="">Activos</option>
+        <option value="atrasados">Atrasados</option>
         <option value="todos">Todos los pedidos</option>
         <optgroup label="──────────────">
           <option value="pendiente">Solo Pendientes</option>
@@ -49,7 +50,8 @@
   <!-- Lista -->
   <div class="pedidos-grid" *ngIf="!cargando && pedidos.length > 0">
     <div class="pedido-card" *ngFor="let p of pedidos"
-      [class.atrasado]="esAtrasado(p)">
+      [class.atrasado]="esAtrasado(p)"
+      [class.terminado]="p.estatus === 'terminado'">
 
       <!-- Header tarjeta -->
       <div class="pedido-card-header">

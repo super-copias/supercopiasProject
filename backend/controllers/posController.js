@@ -325,11 +325,13 @@ async function createVenta(req, res) {
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
 
     // Total real a cobrar: con IVA/ISR si requiere factura
+    let ivaMonto = 0;
+    let isrMonto = 0;
     let totalACobrar = total;
     if (requiere_factura) {
-      const iva = parseFloat((total * 0.16).toFixed(2));
-      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
-      totalACobrar = parseFloat((total + iva - isr).toFixed(2));
+      ivaMonto = parseFloat((total * 0.16).toFixed(2));
+      isrMonto = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
+      totalACobrar = parseFloat((total + ivaMonto - isrMonto).toFixed(2));
     }
 
     // Procesar pagos: monto y cambio por método
@@ -383,8 +385,9 @@ async function createVenta(req, res) {
         subtotal, descuento_pct, descuento_monto, total,
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
-        descuento_config_id, descuento_autorizado_por, notas, requiere_factura
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        descuento_config_id, descuento_autorizado_por, notas, requiere_factura,
+        iva_monto, isr_monto
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
       RETURNING *
     `, [
       folio, cliente_id || null, clienteNombre,
@@ -394,6 +397,7 @@ async function createVenta(req, res) {
       primerPago.codigo, primerPago.descripcion,
       descuento_config_id || null, descuento_autorizado_por || null, notas || null,
       !!requiere_factura,
+      ivaMonto, isrMonto,
     ]);
     const venta = ventaQ.rows[0];
     const ventaId = venta.id;

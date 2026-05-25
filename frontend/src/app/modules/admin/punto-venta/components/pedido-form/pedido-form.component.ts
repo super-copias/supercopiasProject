@@ -134,6 +134,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.clienteSeleccionado && !this.form.cliente_nombre.trim()) {
+      this.error = 'El nombre del cliente es obligatorio.';
+      return;
+    }
+
     if (this.form.requiere_factura && !this.clienteSeleccionado?.id) {
       this.error = 'Para generar factura debes seleccionar un cliente registrado en el sistema con RFC y datos fiscales.';
       return;
@@ -146,6 +151,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
 
     if (this.hayAnticipo && !this.pagosAnticipoValidos) {
       this.error = 'Selecciona el método de pago del anticipo.';
+      return;
+    }
+
+    if (!this.form.fecha_acordada) {
+      this.error = 'La fecha y hora de entrega es obligatoria.';
       return;
     }
 

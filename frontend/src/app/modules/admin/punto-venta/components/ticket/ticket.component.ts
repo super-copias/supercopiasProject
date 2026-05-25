@@ -85,6 +85,14 @@ export class TicketComponent {
     return !!this.venta?.detalle?.some(d => d.tabulador_aplicado);
   }
 
+  get totalConFactura(): number {
+    if (!this.venta?.requiere_factura) return 0;
+    const base = parseFloat(String(this.venta.total || 0));
+    const iva  = parseFloat(String(this.venta.iva_monto || 0));
+    const isr  = parseFloat(String(this.venta.isr_monto || 0));
+    return parseFloat((base + iva - isr).toFixed(2));
+  }
+
   // Anticipo restante en pedido
   get saldoPedido(): number {
     if (!this.pedido) return 0;

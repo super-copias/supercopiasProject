@@ -308,7 +308,7 @@ async function listPedidos(req, res) {
     const {
       estatus, cliente_id, creado_por_id, tomado_por_id,
       folio, busqueda, fecha_inicio, fecha_fin,
-      solo_activos,
+      solo_activos, solo_atrasados,
       page = 1, limit = 18,
     } = req.query;
 
@@ -319,6 +319,9 @@ async function listPedidos(req, res) {
     // Filtro por estatus único
     if (estatus) {
       where.push(`p.estatus = $${p}`); params.push(estatus); p++;
+    } else if (solo_atrasados === 'true') {
+      // Pedidos con fecha de entrega vencida que aún no han terminado/finalizado/cancelado
+      where.push(`p.estatus IN ('pendiente','en_proceso') AND p.fecha_acordada < NOW()`);
     } else if (solo_activos === 'true') {
       // Solo muestra pedidos activos (pendiente, en_proceso, terminado)
       where.push(`p.estatus IN ('pendiente','en_proceso','terminado')`);
@@ -656,7 +659,7 @@ async function entregarPedido(req, res) {
     `, [
       folio,
       pedido.cliente_id || null, pedido.cliente_nombre,
-      usuarioId, usuarioNombre,
+      pedido.terminado_por_id || usuarioId, pedido.terminado_por_nombre || usuarioNombre,
       parseFloat(pedido.subtotal), parseFloat(pedido.descuento_pct),
       parseFloat(pedido.descuento_monto), total,
       montoRecibido, cambio,
