@@ -38,7 +38,7 @@ module.exports = async function (req, res, next) {
 
     // Buscar sesión en BD
     const sessionResult = await query(
-      'SELECT id, active, last_activity FROM user_sessions WHERE token_hash = $1 AND usuario_id = $2',
+      'SELECT id, active FROM user_sessions WHERE token_hash = $1 AND usuario_id = $2',
       [tokenHash, decoded.id]
     );
 
@@ -55,23 +55,6 @@ module.exports = async function (req, res, next) {
         'Tu sesión fue cerrada porque iniciaste sesión en otro dispositivo.'
       ));
     }
-
-    // Verificar inactividad (15 minutos)
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-
-    //pruebas
-    //const fifteenMinutesAgo = new Date(Date.now() - 30 * 1000);
-
-    if (new Date(session.last_activity) < fifteenMinutesAgo) {
-      await query('UPDATE user_sessions SET active = false WHERE id = $1', [session.id]);
-      return res.status(401).json(errorResponse(
-        'SESSION_EXPIRED',
-        'Sesión cerrada por inactividad.'
-      ));
-    }
-
-    // Actualizar last_activity en cada request autenticado
-    await query('UPDATE user_sessions SET last_activity = NOW() WHERE id = $1', [session.id]);
 
     req.user      = decoded;
     req.sessionId = session.id;
