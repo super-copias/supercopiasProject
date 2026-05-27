@@ -214,6 +214,10 @@ export interface CotizacionDetalle {
   descuento_pct: number;
   descuento_monto: number;
   total: number;
+  iva_monto?: number;
+  isr_monto?: number;
+  tipo_persona_factura?: 'pf' | 'pm';
+  requiere_factura?: boolean;
   notas?: string;
   fecha_vencimiento?: string;
   venta_id?: number;
@@ -286,6 +290,7 @@ export interface PedidoDetalle {
   cliente_telefono?: string;
   via_whatsapp: boolean;
   requiere_factura: boolean;
+  tipo_persona_factura?: 'pf' | 'pm';
   subtotal: number;
   descuento_pct: number;
   descuento_monto: number;

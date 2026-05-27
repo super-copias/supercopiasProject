@@ -93,6 +93,35 @@ export class TicketComponent {
     return parseFloat((base + iva - isr).toFixed(2));
   }
 
+  get totalCotizacionConFactura(): number {
+    if (!this.cotizacion?.requiere_factura) return 0;
+    const base = parseFloat(String(this.cotizacion.total || 0));
+    const iva  = parseFloat(String(this.cotizacion.iva_monto || 0));
+    const isr  = parseFloat(String(this.cotizacion.isr_monto || 0));
+    return parseFloat((base + iva - isr).toFixed(2));
+  }
+
+  get ivaPedido(): number {
+    if (!this.pedido?.requiere_factura) return 0;
+    return parseFloat((parseFloat(String(this.pedido.total || 0)) * 0.16).toFixed(2));
+  }
+
+  get isrPedido(): number {
+    if (!this.pedido?.requiere_factura || this.pedido.tipo_persona_factura === 'pf') return 0;
+    return parseFloat((parseFloat(String(this.pedido.total || 0)) * 0.0125).toFixed(2));
+  }
+
+  get totalPedidoConFactura(): number {
+    if (!this.pedido?.requiere_factura) return 0;
+    const base = parseFloat(String(this.pedido.total || 0));
+    return parseFloat((base + this.ivaPedido - this.isrPedido).toFixed(2));
+  }
+
+  get saldoPedidoConFactura(): number {
+    if (!this.pedido?.requiere_factura) return this.saldoPedido;
+    return parseFloat((this.totalPedidoConFactura - parseFloat(String(this.pedido.anticipo || 0))).toFixed(2));
+  }
+
   // Anticipo restante en pedido
   get saldoPedido(): number {
     if (!this.pedido) return 0;

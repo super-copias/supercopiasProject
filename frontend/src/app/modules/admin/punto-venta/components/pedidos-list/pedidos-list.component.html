@@ -80,6 +80,9 @@
       <!-- Total / Anticipo -->
       <div class="pedido-card-totales">
         <span class="total">{{ p.total | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        <span *ngIf="p.requiere_factura" class="badge bg-primary-subtle text-primary ms-1" style="font-size:10px;">
+          <i class="bi bi-receipt"></i> c/Factura
+        </span>
         <span class="anticipo" *ngIf="p.anticipo > 0">
           Anticipo: {{ p.anticipo | currency:'MXN':'symbol-narrow':'1.2-2' }}
         </span>
