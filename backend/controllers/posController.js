@@ -386,8 +386,8 @@ async function createVenta(req, res) {
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por, notas, requiere_factura,
-        iva_monto, isr_monto
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+        iva_monto, isr_monto, origen_venta
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
       RETURNING *
     `, [
       folio, cliente_id || null, clienteNombre,
@@ -397,7 +397,7 @@ async function createVenta(req, res) {
       primerPago.codigo, primerPago.descripcion,
       descuento_config_id || null, descuento_autorizado_por || null, notas || null,
       !!requiere_factura,
-      ivaMonto, isrMonto,
+      ivaMonto, isrMonto, 'directa',
     ]);
     const venta = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -609,7 +609,7 @@ async function listVentas(req, res) {
   try {
     const {
       fecha_inicio, fecha_fin, cliente_id, vendedor_id,
-      estatus, folio, page = 1, limit = 25,
+      estatus, folio, origen_venta, page = 1, limit = 25,
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -620,8 +620,9 @@ async function listVentas(req, res) {
     if (fecha_fin)    { params.push(fecha_fin);            where += ` AND v.fecha_venta < ($${params.length}::date + interval '1 day') AT TIME ZONE 'America/Mexico_City'`; }
     if (cliente_id)   { params.push(cliente_id);           where += ` AND v.cliente_id = $${params.length}`; }
     if (vendedor_id)  { params.push(vendedor_id);          where += ` AND v.vendedor_usuario_id = $${params.length}`; }
-    if (estatus)      { params.push(estatus);              where += ` AND v.estatus = $${params.length}`; }
-    if (folio)        { params.push(`%${folio.trim()}%`);  where += ` AND v.folio ILIKE $${params.length}`; }
+    if (estatus)        { params.push(estatus);                  where += ` AND v.estatus = $${params.length}`; }
+    if (folio)          { params.push(`%${folio.trim()}%`);      where += ` AND v.folio ILIKE $${params.length}`; }
+    if (origen_venta)   { params.push(origen_venta);             where += ` AND v.origen_venta = $${params.length}`; }
 
     const totalQ = await query(`SELECT COUNT(*) FROM pos_ventas v ${where}`, params);
     const total  = parseInt(totalQ.rows[0].count);
@@ -634,7 +635,7 @@ async function listVentas(req, res) {
         v.vendedor_usuario_id, v.vendedor_nombre,
         v.subtotal, v.descuento_pct, v.descuento_monto,
         v.total, v.metodo_pago_codigo, v.metodo_pago_descripcion,
-        v.estatus, v.ticket_generado,
+        v.estatus, v.ticket_generado, v.origen_venta,
         (SELECT COUNT(*) FROM pos_ventas_detalle d WHERE d.venta_id = v.id) AS num_items
       FROM pos_ventas v
       ${where}
@@ -1244,13 +1245,13 @@ async function convertirCotizacion(req, res) {
       INSERT INTO pos_ventas (
         folio, fecha_venta, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total, monto_recibido, cambio,
-        metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura, origen_venta
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *
     `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total, montoRecibido, cambio,
         primerPagoC.codigo, primerPagoC.descripcion,
-        notas || cotiz.notas || null, rfacturaCotiz]);
+        notas || cotiz.notas || null, rfacturaCotiz, 'cotizacion']);
 
     const venta   = ventaQ.rows[0];
     const ventaId = venta.id;

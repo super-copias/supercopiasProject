@@ -27,12 +27,41 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
   filtroFechaFin    = new FormControl('');
   filtroEstatus     = new FormControl('');
   filtroFolio       = new FormControl('');
+  filtroOrigen      = new FormControl('');
 
   estatusOpciones = [
     { value: '', label: 'Todos' },
     { value: 'completada', label: 'Completada' },
     { value: 'cancelada', label: 'Cancelada' },
   ];
+
+  origenOpciones = [
+    { value: '', label: 'Todos' },
+    { value: 'directa', label: 'Venta rápida' },
+    { value: 'pedido', label: 'Desde pedido' },
+    { value: 'cotizacion', label: 'Desde cotización' },
+  ];
+
+  origenLabel(origen: string): string {
+    const map: Record<string, string> = {
+      directa: 'Rápida', pedido: 'Pedido', cotizacion: 'Cotización',
+    };
+    return map[origen] ?? origen;
+  }
+
+  origenIcon(origen: string): string {
+    const map: Record<string, string> = {
+      directa: 'bi-lightning-fill', pedido: 'bi-box-seam', cotizacion: 'bi-file-earmark-text',
+    };
+    return map[origen] ?? 'bi-question';
+  }
+
+  origenClass(origen: string): string {
+    const map: Record<string, string> = {
+      directa: 'bg-primary', pedido: 'bg-warning text-dark', cotizacion: 'bg-info text-dark',
+    };
+    return map[origen] ?? 'bg-secondary';
+  }
 
   // Detalle
   ventaDetalle: VentaDetalle | null = null;
@@ -78,6 +107,7 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
     this.filtroFechaFin.setValue(this.toISO(hoy));
     this.filtroEstatus.setValue('');
     this.filtroFolio.setValue('');
+    this.filtroOrigen.setValue('');
     this.paginaActual = 1;
     this.cargarVentas();
   }
@@ -90,6 +120,7 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
       fecha_fin:    this.filtroFechaFin.value    || undefined,
       estatus:      this.filtroEstatus.value      || undefined,
       folio:        this.filtroFolio.value        || undefined,
+      origen_venta: this.filtroOrigen.value       || undefined,
       pagina:       this.paginaActual,
       por_pagina:   this.porPagina,
     };

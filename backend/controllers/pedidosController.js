@@ -653,8 +653,8 @@ async function entregarPedido(req, res) {
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por,
-        notas
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        notas, origen_venta
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING id
     `, [
       folio,
@@ -665,7 +665,7 @@ async function entregarPedido(req, res) {
       montoRecibido, cambio,
       primerPagoS.codigo, primerPagoS.descripcion,
       pedido.descuento_config_id || null, pedido.descuento_autorizado_por || null,
-      notasVenta,
+      notasVenta, 'pedido',
     ]);
 
     const ventaId = ventaQ.rows[0].id;

@@ -21,6 +21,12 @@
           <option *ngFor="let op of estatusOpciones" [value]="op.value">{{ op.label }}</option>
         </select>
       </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-0">Origen</label>
+        <select class="form-select form-select-sm" [formControl]="filtroOrigen">
+          <option *ngFor="let op of origenOpciones" [value]="op.value">{{ op.label }}</option>
+        </select>
+      </div>
       <div class="col">
         <label class="form-label form-label-sm mb-0">Folio</label>
         <input type="text" class="form-control form-control-sm" [formControl]="filtroFolio"
@@ -52,6 +58,7 @@
         <tr>
           <th>Folio</th>
           <th>Fecha</th>
+          <th>Origen</th>
           <th>Cliente</th>
           <th>Vendedor</th>
           <th>Items</th>
@@ -63,11 +70,17 @@
       </thead>
       <tbody>
         <tr *ngIf="ventas.length === 0">
-          <td colspan="9" class="text-center text-muted py-4">No se encontraron ventas</td>
+          <td colspan="10" class="text-center text-muted py-4">No se encontraron ventas</td>
         </tr>
         <tr *ngFor="let v of ventas" class="cursor-pointer" (click)="verDetalle(v)">
           <td><code class="folio">{{ v.folio }}</code></td>
           <td>{{ v.fecha_venta | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
+          <td>
+            <span class="badge origen-badge" [ngClass]="origenClass(v.origen_venta)">
+              <i class="bi" [ngClass]="origenIcon(v.origen_venta)"></i>
+              {{ origenLabel(v.origen_venta) }}
+            </span>
+          </td>
           <td>{{ v.cliente_nombre || '— Público general —' }}</td>
           <td>{{ v.vendedor_nombre || '—' }}</td>
           <td class="text-center">{{ v.num_items ?? '—' }}</td>
