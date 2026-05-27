@@ -63,7 +63,7 @@
           <th>Vendedor</th>
           <th>Items</th>
           <th class="text-end">Total</th>
-          <th class="text-end">Imp.</th>
+          <th class="text-center" style="min-width:90px">Imp.</th>
           <th>Pago</th>
           <th>Estatus</th>
           <th></th>
@@ -86,7 +86,7 @@
           <td>{{ v.vendedor_nombre || '—' }}</td>
           <td class="text-center">{{ v.num_items ?? '—' }}</td>
           <td class="text-end fw-semibold">${{ v.total | number:'1.2-2' }}</td>
-          <td class="text-end">
+          <td class="text-center">
             <ng-container *ngIf="v.requiere_factura && (v.iva_monto || 0) > 0">
               <span class="text-primary fw-semibold" title="IVA - ISR Ret.">+${{ (v.iva_monto - v.isr_monto) | number:'1.2-2' }}</span>
             </ng-container>
