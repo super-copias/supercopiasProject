@@ -95,11 +95,13 @@
             <div class="col-7">
               <label class="form-label-xs">Fecha acordada <span class="text-danger">*</span></label>
               <input type="date" class="form-control form-control-sm" [(ngModel)]="form.fecha_acordada"
-                [class.is-invalid]="!form.fecha_acordada && !!error">
+                [min]="hoyISO"
+                [class.is-invalid]="(!form.fecha_acordada || fechaAcordadaEnPasado) && !!error">
             </div>
             <div class="col-5">
-              <label class="form-label-xs">Hora</label>
-              <input type="time" class="form-control form-control-sm" [(ngModel)]="form.hora_acordada">
+              <label class="form-label-xs">Hora <span class="text-danger">*</span></label>
+              <input type="time" class="form-control form-control-sm" [(ngModel)]="form.hora_acordada"
+                [class.is-invalid]="!form.hora_acordada && !!error">
             </div>
           </div>
           <div class="mt-2">

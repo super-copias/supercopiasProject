@@ -144,6 +144,12 @@ async function createPedido(req, res) {
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
 
+    if (!fecha_acordada)
+      return res.status(400).json(createErrorResponse('La fecha de entrega es obligatoria', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    if (new Date(fecha_acordada) <= new Date())
+      return res.status(400).json(createErrorResponse('La fecha de entrega no puede ser menor o igual a la fecha y hora actual', CODIGOS_ERROR.DATOS_INVALIDOS));
+
     const creadoPorNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const creadoPorId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
 

@@ -128,6 +128,21 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     return a >= 0 && a <= this.totales.total;
   }
 
+  get hoyISO(): string {
+    const hoy = new Date();
+    const y = hoy.getFullYear();
+    const m = String(hoy.getMonth() + 1).padStart(2, '0');
+    const d = String(hoy.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  get fechaAcordadaEnPasado(): boolean {
+    if (!this.form.fecha_acordada) return false;
+    const hora = this.form.hora_acordada || '00:00';
+    const fechaIngresada = new Date(`${this.form.fecha_acordada}T${hora}:00`);
+    return fechaIngresada <= new Date();
+  }
+
   confirmar(): void {
     if (this.carrito.length === 0) {
       this.error = 'El carrito está vacío';
@@ -155,7 +170,17 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     }
 
     if (!this.form.fecha_acordada) {
-      this.error = 'La fecha y hora de entrega es obligatoria.';
+      this.error = 'La fecha de entrega es obligatoria.';
+      return;
+    }
+
+    if (!this.form.hora_acordada) {
+      this.error = 'La hora de entrega es obligatoria.';
+      return;
+    }
+
+    if (this.fechaAcordadaEnPasado) {
+      this.error = 'La fecha y hora de entrega no puede ser menor a la fecha y hora actual.';
       return;
     }
 
