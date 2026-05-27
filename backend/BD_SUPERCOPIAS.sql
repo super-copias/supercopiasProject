@@ -3855,7 +3855,13 @@ CREATE TABLE public.pos_ventas (
     factura_id                  integer,
     iva_monto                   numeric(12,2) DEFAULT 0,
     isr_monto                   numeric(12,2) DEFAULT 0,
+    origen_venta                character varying(15) NOT NULL DEFAULT 'directa'::character varying,
     fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pos_ventas_origen CHECK (((origen_venta)::text = ANY (ARRAY[
+        ('directa'::character varying)::text,
+        ('pedido'::character varying)::text,
+        ('cotizacion'::character varying)::text
+    ]))),
     CONSTRAINT chk_pos_ventas_estatus CHECK (((estatus)::text = ANY (ARRAY[
         ('completada'::character varying)::text,
         ('cancelada'::character varying)::text,
@@ -3870,6 +3876,9 @@ CREATE TABLE public.pos_ventas (
 COMMENT ON TABLE public.pos_ventas IS 'Registro de ventas del Punto de Venta - cabecera de cada transacción';
 COMMENT ON COLUMN public.pos_ventas.folio IS 'Folio único de venta en formato PV-YYYY-NNNNN';
 COMMENT ON COLUMN public.pos_ventas.cliente_id IS 'NULL = venta a Público General sin cliente registrado';
+COMMENT ON COLUMN public.pos_ventas.origen_venta IS 'Origen de la venta: directa (venta rápida POS), pedido (desde pos_pedidos), cotizacion (desde pos_cotizaciones)';
+
+CREATE INDEX IF NOT EXISTS idx_pos_ventas_origen ON public.pos_ventas (origen_venta);
 
 CREATE SEQUENCE public.pos_ventas_id_seq
     AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;

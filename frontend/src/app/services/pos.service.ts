@@ -239,6 +239,7 @@ export interface FiltrosVentas {
   vendedor_id?: number;
   estatus?: string;
   folio?: string;
+  origen_venta?: string;
   page?: number;
   limit?: number;
   pagina?: number;
@@ -373,8 +374,9 @@ export class PosService {
     if (filtros?.fecha_fin)    httpParams = httpParams.set('fecha_fin', filtros.fecha_fin);
     if (filtros?.cliente_id)   httpParams = httpParams.set('cliente_id', filtros.cliente_id.toString());
     if (filtros?.vendedor_id)  httpParams = httpParams.set('vendedor_id', filtros.vendedor_id.toString());
-    if (filtros?.estatus)      httpParams = httpParams.set('estatus', filtros.estatus);
-    if (filtros?.folio)        httpParams = httpParams.set('folio', filtros.folio);
+    if (filtros?.estatus)       httpParams = httpParams.set('estatus', filtros.estatus);
+    if (filtros?.folio)          httpParams = httpParams.set('folio', filtros.folio);
+    if (filtros?.origen_venta)   httpParams = httpParams.set('origen_venta', filtros.origen_venta);
     const page  = filtros?.page  ?? filtros?.pagina;
     const limit = filtros?.limit ?? filtros?.por_pagina;
     if (page)  httpParams = httpParams.set('page',  page.toString());
