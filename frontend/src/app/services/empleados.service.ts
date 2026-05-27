@@ -304,16 +304,20 @@ export class EmpleadosService {
    */
   private formatDateForInput(dateString: string): string {
     if (!dateString) return '';
-    
+
     try {
+      // Si ya es "YYYY-MM-DD" (columna DATE devuelta como cadena por pg),
+      // se retorna tal cual — sin pasar por Date para evitar el desfase UTC-6.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+
+      // Para timestamps ISO ("...T...Z"), extraer la fecha en zona CDMX.
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '';
-      
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}`;
+
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      }).format(date);
     } catch (error) {
       return '';
     }

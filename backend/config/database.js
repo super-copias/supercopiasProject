@@ -6,7 +6,11 @@
 // Cargar variables de entorno
 require('dotenv').config();
 
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// Configurar pg para devolver columnas DATE como cadena "YYYY-MM-DD"
+// (por defecto pg convierte DATE a Date UTC, lo que introduce desfase en UTC-6).
+types.setTypeParser(1082 /* DATE */, val => val);
 
 // Configuración del pool de conexiones PostgreSQL
 // Render y otras plataformas proporcionan DATABASE_URL, que tiene prioridad sobre variables individuales

@@ -15,7 +15,7 @@ const {
   createErrorResponse,
   CODIGOS_ERROR,
 } = require('../utils/apiStandard');
-const { crearFacturaEnTransaccion } = require('./facturasController');
+const { crearFacturaEnTransaccion, leerTasas } = require('./facturasController');
 const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
@@ -144,6 +144,12 @@ async function createPedido(req, res) {
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
 
+    if (!fecha_acordada)
+      return res.status(400).json(createErrorResponse('La fecha de entrega es obligatoria', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    if (new Date(fecha_acordada) <= new Date())
+      return res.status(400).json(createErrorResponse('La fecha de entrega no puede ser menor o igual a la fecha y hora actual', CODIGOS_ERROR.DATOS_INVALIDOS));
+
     const creadoPorNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const creadoPorId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
 
@@ -198,7 +204,7 @@ async function createPedido(req, res) {
       INSERT INTO pos_pedidos (
         folio, estatus,
         cliente_id, cliente_nombre, cliente_telefono,
-        via_whatsapp, requiere_factura,
+        via_whatsapp, requiere_factura, tipo_persona_factura,
         subtotal, descuento_pct, descuento_monto, total, anticipo,
         descuento_config_id, descuento_autorizado_por,
         metodo_pago_anticipo, fecha_acordada, notas,
@@ -206,16 +212,16 @@ async function createPedido(req, res) {
       ) VALUES (
         $1, 'pendiente',
         $2, $3, $4,
-        $5, $6,
-        $7, $8, $9, $10, $11,
-        $12, $13,
-        $14, $15, $16,
-        $17, $18
+        $5, $6, $7,
+        $8, $9, $10, $11, $12,
+        $13, $14,
+        $15, $16, $17,
+        $18, $19
       ) RETURNING id
     `, [
       folio,
       cliente_id || null, clienteNombre, cliente_telefono || null,
-      !!via_whatsapp, !!requiere_factura,
+      !!via_whatsapp, !!requiere_factura, tipo_persona_factura || 'pm',
       subtotal, descPct, descMonto, total, anticipoVal,
       descuento_config_id || null, descuento_autorizado_por || null,
       primerMetodoAnticipo || null,
@@ -584,13 +590,22 @@ async function entregarPedido(req, res) {
     const anticipoNum = parseFloat(pedido.anticipo);
     const saldoReq   = parseFloat((totalNum - anticipoNum).toFixed(2));
 
-    // Total a cobrar para el saldo: con IVA/ISR si requiere factura
-    const rfacturaEnt = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
+    // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
+    const rfacturaEnt      = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
+    const tipoPersonaEnt   = tipo_persona_factura || pedido.tipo_persona_factura || 'pm';
     let saldoACobrar = saldoReq;
-    if (rfacturaEnt && saldoReq > 0) {
-      const iva = parseFloat((saldoReq * 0.16).toFixed(2));
-      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((saldoReq * 0.0125).toFixed(2));
-      saldoACobrar = parseFloat((saldoReq + iva - isr).toFixed(2));
+    let ivaMonto = 0, isrMonto = 0;
+    if (rfacturaEnt) {
+      const tasas = await leerTasas();
+      // Impuestos sobre el total completo (para registrar en la venta)
+      ivaMonto = parseFloat((totalNum * tasas.iva_pct).toFixed(2));
+      isrMonto = tipoPersonaEnt === 'pf' ? 0 : parseFloat((totalNum * tasas.isr_pct).toFixed(2));
+      // Monto a cobrar al entregar: impuestos solo sobre el saldo pendiente
+      if (saldoReq > 0) {
+        const ivaSaldo = parseFloat((saldoReq * tasas.iva_pct).toFixed(2));
+        const isrSaldo = tipoPersonaEnt === 'pf' ? 0 : parseFloat((saldoReq * tasas.isr_pct).toFixed(2));
+        saldoACobrar = parseFloat((saldoReq + ivaSaldo - isrSaldo).toFixed(2));
+      }
     }
 
     // Procesar pagosInputS
@@ -653,8 +668,8 @@ async function entregarPedido(req, res) {
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por,
-        notas, origen_venta
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        notas, requiere_factura, iva_monto, isr_monto, tipo_persona_factura, origen_venta
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
       RETURNING id
     `, [
       folio,
@@ -665,7 +680,7 @@ async function entregarPedido(req, res) {
       montoRecibido, cambio,
       primerPagoS.codigo, primerPagoS.descripcion,
       pedido.descuento_config_id || null, pedido.descuento_autorizado_por || null,
-      notasVenta, 'pedido',
+      notasVenta, rfacturaEnt, ivaMonto, isrMonto, tipoPersonaEnt, 'pedido',
     ]);
 
     const ventaId = ventaQ.rows[0].id;

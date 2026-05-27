@@ -63,17 +63,47 @@
         <span>Descuento ({{ pedido.descuento_pct }}%)</span>
         <span>-${{ pedido.descuento_monto | number:'1.2-2' }}</span>
       </div>
-      <div class="t-trow t-total-row">
-        <span>TOTAL</span>
-        <span>${{ pedido.total | number:'1.2-2' }}</span>
-      </div>
-      <div class="t-trow t-anticipo-row">
+
+      <!-- Sin factura: total directo -->
+      <ng-container *ngIf="!pedido.requiere_factura">
+        <div class="t-trow t-total-row">
+          <span>TOTAL</span>
+          <span>${{ pedido.total | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
+
+      <!-- Con factura: desglose fiscal -->
+      <ng-container *ngIf="pedido.requiere_factura">
+        <div class="t-sep"></div>
+        <div class="t-trow">
+          <span>Base imponible</span>
+          <span>${{ pedido.total | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow">
+          <span>IVA (16%)</span>
+          <span>+${{ ivaPedido | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow" *ngIf="isrPedido > 0">
+          <span>ISR Ret. (1.25%)</span>
+          <span>-${{ isrPedido | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow t-total-row">
+          <span>TOTAL CON FACTURA</span>
+          <span>${{ totalPedidoConFactura | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow" style="font-size:10px;opacity:.7">
+          <span>Tipo persona</span>
+          <span>{{ pedido.tipo_persona_factura === 'pf' ? 'Física (PF)' : 'Moral (PM)' }}</span>
+        </div>
+      </ng-container>
+
+      <div class="t-trow t-anticipo-row" *ngIf="(pedido.anticipo || 0) > 0">
         <span>Anticipo ({{ pedido.metodo_pago_anticipo | titlecase }})</span>
         <span>${{ pedido.anticipo | number:'1.2-2' }}</span>
       </div>
       <div class="t-trow" style="font-weight:700">
         <span>SALDO PENDIENTE</span>
-        <span>${{ saldoPedido | number:'1.2-2' }}</span>
+        <span>${{ (pedido.requiere_factura ? saldoPedidoConFactura : saldoPedido) | number:'1.2-2' }}</span>
       </div>
     </div>
 
@@ -323,10 +353,37 @@
         <span>Descuento ({{ cotizacion.descuento_pct }}%)</span>
         <span>-${{ cotizacion.descuento_monto | number:'1.2-2' }}</span>
       </div>
-      <div class="t-trow t-total-row">
+
+      <!-- Sin factura: total directo -->
+      <div class="t-trow t-total-row" *ngIf="!cotizacion.requiere_factura">
         <span>TOTAL COTIZADO</span>
         <span>${{ cotizacion.total | number:'1.2-2' }}</span>
       </div>
+
+      <!-- Con factura: desglose fiscal -->
+      <ng-container *ngIf="cotizacion.requiere_factura">
+        <div class="t-sep"></div>
+        <div class="t-trow">
+          <span>Base imponible</span>
+          <span>${{ cotizacion.total | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow">
+          <span>IVA (16%)</span>
+          <span>+${{ cotizacion.iva_monto | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow" *ngIf="(cotizacion.isr_monto || 0) > 0">
+          <span>ISR Ret. (1.25%)</span>
+          <span>-${{ cotizacion.isr_monto | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow t-total-row">
+          <span>TOTAL CON FACTURA</span>
+          <span>${{ totalCotizacionConFactura | number:'1.2-2' }}</span>
+        </div>
+        <div class="t-trow" style="font-size:10px;opacity:.7">
+          <span>Tipo persona</span>
+          <span>{{ cotizacion.tipo_persona_factura === 'pf' ? 'Física (PF)' : 'Moral (PM)' }}</span>
+        </div>
+      </ng-container>
     </div>
 
     <div class="t-notas" *ngIf="cotizacion.notas">

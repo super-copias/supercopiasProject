@@ -125,6 +125,7 @@ async function crearFacturaEnTransaccion(client, {
   return ins.rows[0];
 }
 exports.crearFacturaEnTransaccion = crearFacturaEnTransaccion;
+exports.leerTasas               = leerTasas;
 
 // ── Calcular impuestos (endpoint utilitario) ──────────────────────────────────
 

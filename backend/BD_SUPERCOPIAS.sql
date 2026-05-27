@@ -3855,6 +3855,7 @@ CREATE TABLE public.pos_ventas (
     factura_id                  integer,
     iva_monto                   numeric(12,2) DEFAULT 0,
     isr_monto                   numeric(12,2) DEFAULT 0,
+    tipo_persona_factura        character varying(2) DEFAULT 'pm',
     origen_venta                character varying(15) NOT NULL DEFAULT 'directa'::character varying,
     fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_pos_ventas_origen CHECK (((origen_venta)::text = ANY (ARRAY[
@@ -4140,6 +4141,9 @@ CREATE TABLE IF NOT EXISTS public.pos_cotizaciones (
     descuento_pct         NUMERIC(5,2)  NOT NULL DEFAULT 0,
     descuento_monto       NUMERIC(12,2) NOT NULL DEFAULT 0,
     total                 NUMERIC(12,2) NOT NULL DEFAULT 0,
+    iva_monto             NUMERIC(12,2) NOT NULL DEFAULT 0,
+    isr_monto             NUMERIC(12,2) NOT NULL DEFAULT 0,
+    tipo_persona_factura  VARCHAR(2)    NOT NULL DEFAULT 'pm',
     notas                 TEXT,
     fecha_vencimiento     DATE,
     venta_id              INTEGER,
@@ -4268,6 +4272,7 @@ CREATE TABLE IF NOT EXISTS public.pos_pedidos (
 
     -- Facturación
     requiere_factura            BOOLEAN NOT NULL DEFAULT FALSE,
+    tipo_persona_factura        VARCHAR(2) NOT NULL DEFAULT 'pm',
 
     -- Totales
     subtotal                    NUMERIC(12,2) NOT NULL DEFAULT 0,

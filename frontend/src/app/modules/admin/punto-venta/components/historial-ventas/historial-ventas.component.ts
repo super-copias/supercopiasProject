@@ -90,10 +90,15 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
   }
 
   private toISO(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    // Usa la zona horaria de CDMX explícitamente para evitar desfases
+    // cuando el sistema operativo del cliente corre en UTC.
+    // (a las 18:00 CDMX/UTC-6 ya son 00:00 UTC del día siguiente)
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Mexico_City',
+      year:  'numeric',
+      month: '2-digit',
+      day:   '2-digit',
+    }).format(d); // en-CA devuelve YYYY-MM-DD
   }
 
   buscar(): void {

@@ -63,6 +63,7 @@
           <th>Vendedor</th>
           <th>Items</th>
           <th class="text-end">Total</th>
+          <th class="text-end">Imp.</th>
           <th>Pago</th>
           <th>Estatus</th>
           <th></th>
@@ -85,6 +86,12 @@
           <td>{{ v.vendedor_nombre || '—' }}</td>
           <td class="text-center">{{ v.num_items ?? '—' }}</td>
           <td class="text-end fw-semibold">${{ v.total | number:'1.2-2' }}</td>
+          <td class="text-end">
+            <ng-container *ngIf="v.requiere_factura && (v.iva_monto || 0) > 0">
+              <span class="text-primary fw-semibold" title="IVA - ISR Ret.">+${{ (v.iva_monto - v.isr_monto) | number:'1.2-2' }}</span>
+            </ng-container>
+            <span *ngIf="!v.requiere_factura || !(v.iva_monto > 0)" class="text-muted">—</span>
+          </td>
           <td>{{ v.metodo_pago_descripcion }}</td>
           <td>
             <span class="badge" [class.bg-success]="v.estatus==='completada'"
@@ -200,6 +207,22 @@
             <div class="d-flex justify-content-between fw-bold fs-5">
               <span>TOTAL</span><span>${{ ventaDetalle.total | number:'1.2-2' }}</span>
             </div>
+            <ng-container *ngIf="ventaDetalle.requiere_factura && (ventaDetalle.iva_monto || 0) > 0">
+              <hr class="my-1">
+              <div class="d-flex justify-content-between text-muted small">
+                <span>Base imponible</span><span>${{ ventaDetalle.total | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between text-muted small">
+                <span>IVA (16%)</span><span>+${{ ventaDetalle.iva_monto | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between text-muted small" *ngIf="(ventaDetalle.isr_monto || 0) > 0">
+                <span>ISR Ret. (1.25%)</span><span>-${{ ventaDetalle.isr_monto | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between fw-bold text-primary">
+                <span>TOTAL CON FACTURA</span>
+                <span>${{ (ventaDetalle.total + (ventaDetalle.iva_monto || 0) - (ventaDetalle.isr_monto || 0)) | number:'1.2-2' }}</span>
+              </div>
+            </ng-container>
             <div class="d-flex justify-content-between" *ngIf="ventaDetalle.monto_recibido">
               <span>Recibido</span><span>${{ ventaDetalle.monto_recibido | number:'1.2-2' }}</span>
             </div>

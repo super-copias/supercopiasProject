@@ -20,7 +20,7 @@ const {
   createErrorResponse,
   CODIGOS_ERROR
 } = require('../utils/apiStandard');
-const { crearFacturaEnTransaccion } = require('./facturasController');
+const { crearFacturaEnTransaccion, leerTasas } = require('./facturasController');
 const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 // ─────────────────────────────────────────────────────────────
@@ -324,13 +324,14 @@ async function createVenta(req, res) {
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
 
-    // Total real a cobrar: con IVA/ISR si requiere factura
+    // Total real a cobrar: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
     let ivaMonto = 0;
     let isrMonto = 0;
     let totalACobrar = total;
     if (requiere_factura) {
-      ivaMonto = parseFloat((total * 0.16).toFixed(2));
-      isrMonto = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
+      const tasas = await leerTasas();
+      ivaMonto = parseFloat((total * tasas.iva_pct).toFixed(2));
+      isrMonto = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * tasas.isr_pct).toFixed(2));
       totalACobrar = parseFloat((total + ivaMonto - isrMonto).toFixed(2));
     }
 
@@ -386,8 +387,8 @@ async function createVenta(req, res) {
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por, notas, requiere_factura,
-        iva_monto, isr_monto, origen_venta
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+        iva_monto, isr_monto, origen_venta, tipo_persona_factura
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
       RETURNING *
     `, [
       folio, cliente_id || null, clienteNombre,
@@ -397,7 +398,7 @@ async function createVenta(req, res) {
       primerPago.codigo, primerPago.descripcion,
       descuento_config_id || null, descuento_autorizado_por || null, notas || null,
       !!requiere_factura,
-      ivaMonto, isrMonto, 'directa',
+      ivaMonto, isrMonto, 'directa', tipo_persona_factura || 'pm',
     ]);
     const venta = ventaQ.rows[0];
     const ventaId = venta.id;
@@ -575,12 +576,14 @@ async function getVentaDetalle(ventaId) {
 
   return {
     ...venta,
-    subtotal:       parseFloat(venta.subtotal),
-    descuento_pct:  parseFloat(venta.descuento_pct),
+    subtotal:        parseFloat(venta.subtotal),
+    descuento_pct:   parseFloat(venta.descuento_pct),
     descuento_monto: parseFloat(venta.descuento_monto),
-    total:          parseFloat(venta.total),
-    monto_recibido: venta.monto_recibido ? parseFloat(venta.monto_recibido) : null,
-    cambio:         parseFloat(venta.cambio),
+    total:           parseFloat(venta.total),
+    iva_monto:       parseFloat(venta.iva_monto  || 0),
+    isr_monto:       parseFloat(venta.isr_monto  || 0),
+    monto_recibido:  venta.monto_recibido ? parseFloat(venta.monto_recibido) : null,
+    cambio:          parseFloat(venta.cambio),
     pagos: pagosQ.rows.map(p => ({
       id:                     p.id,
       orden:                  p.orden,
@@ -634,7 +637,8 @@ async function listVentas(req, res) {
         v.id, v.folio, v.fecha_venta, v.cliente_id, v.cliente_nombre,
         v.vendedor_usuario_id, v.vendedor_nombre,
         v.subtotal, v.descuento_pct, v.descuento_monto,
-        v.total, v.metodo_pago_codigo, v.metodo_pago_descripcion,
+        v.total, v.iva_monto, v.isr_monto, v.requiere_factura,
+        v.metodo_pago_codigo, v.metodo_pago_descripcion,
         v.estatus, v.ticket_generado, v.origen_venta,
         (SELECT COUNT(*) FROM pos_ventas_detalle d WHERE d.venta_id = v.id) AS num_items
       FROM pos_ventas v
@@ -650,6 +654,8 @@ async function listVentas(req, res) {
       descuento_pct:   parseFloat(v.descuento_pct),
       descuento_monto: parseFloat(v.descuento_monto),
       total:           parseFloat(v.total),
+      iva_monto:       parseFloat(v.iva_monto || 0),
+      isr_monto:       parseFloat(v.isr_monto || 0),
       num_items:       parseInt(v.num_items),
     }));
 
@@ -973,7 +979,11 @@ async function createCotizacion(req, res) {
   try {
     await client.query('BEGIN');
 
-    const { cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento, requiere_factura = false } = req.body;
+    const {
+      cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento,
+      requiere_factura = false,
+      tipo_persona_factura = 'pm',
+    } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -999,6 +1009,15 @@ async function createCotizacion(req, res) {
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
 
+    // Calcular impuestos si la cotización requiere factura (tasas desde cat_impuestos_facturacion)
+    let ivaMonto = 0;
+    let isrMonto = 0;
+    if (requiere_factura) {
+      const tasas = await leerTasas();
+      ivaMonto = parseFloat((total * tasas.iva_pct).toFixed(2));
+      isrMonto = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * tasas.isr_pct).toFixed(2));
+    }
+
     let clienteNombre = 'Público General';
     if (cliente_id) {
       const cliQ = await client.query(
@@ -1013,11 +1032,15 @@ async function createCotizacion(req, res) {
     const cotizQ = await client.query(`
       INSERT INTO pos_cotizaciones
         (folio, estatus, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
-         subtotal, descuento_pct, descuento_monto, total, notas, fecha_vencimiento, requiere_factura)
-      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         subtotal, descuento_pct, descuento_monto, total,
+         iva_monto, isr_monto, tipo_persona_factura,
+         notas, fecha_vencimiento, requiere_factura)
+      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *
     `, [folio, cliente_id || null, clienteNombre, vendedorId, vendedorNombre,
-        subtotal, descPct, descMonto, total, notas || null, fecha_vencimiento || null, !!requiere_factura]);
+        subtotal, descPct, descMonto, total,
+        ivaMonto, isrMonto, tipo_persona_factura || 'pm',
+        notas || null, fecha_vencimiento || null, !!requiere_factura]);
 
     const cotizId = cotizQ.rows[0].id;
 
@@ -1200,13 +1223,17 @@ async function convertirCotizacion(req, res) {
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
 
-    // Total real a cobrar: con IVA/ISR si requiere factura
+    // Total real a cobrar: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
     const rfacturaCotiz = requiere_factura !== undefined ? !!requiere_factura : !!(cotiz.requiere_factura);
+    const tipoPersonaCotiz = tipo_persona_factura || cotiz.tipo_persona_factura || 'pm';
+    let ivaMontoCotiz = 0;
+    let isrMontoCotiz = 0;
     let totalACobrarC = total;
     if (rfacturaCotiz) {
-      const iva = parseFloat((total * 0.16).toFixed(2));
-      const isr = tipo_persona_factura === 'pf' ? 0 : parseFloat((total * 0.0125).toFixed(2));
-      totalACobrarC = parseFloat((total + iva - isr).toFixed(2));
+      const tasas = await leerTasas();
+      ivaMontoCotiz = parseFloat((total * tasas.iva_pct).toFixed(2));
+      isrMontoCotiz = tipoPersonaCotiz === 'pf' ? 0 : parseFloat((total * tasas.isr_pct).toFixed(2));
+      totalACobrarC = parseFloat((total + ivaMontoCotiz - isrMontoCotiz).toFixed(2));
     }
 
     // Procesar pagos
@@ -1245,13 +1272,15 @@ async function convertirCotizacion(req, res) {
       INSERT INTO pos_ventas (
         folio, fecha_venta, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
         subtotal, descuento_pct, descuento_monto, total, monto_recibido, cambio,
-        metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura, origen_venta
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        metodo_pago_codigo, metodo_pago_descripcion, notas, requiere_factura,
+        iva_monto, isr_monto, tipo_persona_factura, origen_venta
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
       RETURNING *
     `, [folio, cotiz.cliente_id || null, cotiz.cliente_nombre, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total, montoRecibido, cambio,
         primerPagoC.codigo, primerPagoC.descripcion,
-        notas || cotiz.notas || null, rfacturaCotiz, 'cotizacion']);
+        notas || cotiz.notas || null, rfacturaCotiz,
+        ivaMontoCotiz, isrMontoCotiz, tipoPersonaCotiz, 'cotizacion']);
 
     const venta   = ventaQ.rows[0];
     const ventaId = venta.id;
