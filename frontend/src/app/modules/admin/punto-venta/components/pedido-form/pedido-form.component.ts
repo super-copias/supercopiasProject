@@ -12,6 +12,7 @@ import { PosService, LineaCarrito, PedidoPayload, PagoInput } from '../../../../
   styleUrls: ['./pedido-form.component.scss'],
 })
 export class PedidoFormComponent implements OnInit, OnDestroy {
+  private readonly mexicoCityTimeZone = 'America/Mexico_City';
 
   @Input() carrito: LineaCarrito[] = [];
   @Input() totales = { subtotal: 0, descuentoMonto: 0, total: 0 };
@@ -140,8 +141,47 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   get fechaAcordadaEnPasado(): boolean {
     if (!this.form.fecha_acordada) return false;
     const hora = this.form.hora_acordada || '00:00';
-    const fechaIngresada = new Date(`${this.form.fecha_acordada}T${hora}:00`);
+    const fechaIngresada = this.parseFechaHoraMexicoCity(`${this.form.fecha_acordada}T${hora}:00`);
+    if (!fechaIngresada) return true;
     return fechaIngresada <= new Date();
+  }
+
+  private parseFechaHoraMexicoCity(fechaHora: string): Date | null {
+    const [fecha, hora = '00:00:00'] = String(fechaHora).split('T');
+    if (!fecha || !hora) return null;
+
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    const [horas, minutos, segundos = 0] = hora.split(':').map(Number);
+    if ([anio, mes, dia, horas, minutos, segundos].some(Number.isNaN)) return null;
+
+    const utcGuess = Date.UTC(anio, mes - 1, dia, horas, minutos, segundos);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: this.mexicoCityTimeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+
+    const parts = formatter.formatToParts(new Date(utcGuess)).reduce((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const zonedAsUtc = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      Number(parts.second)
+    );
+
+    const offset = zonedAsUtc - utcGuess;
+    return new Date(utcGuess - offset);
   }
 
   confirmar(): void {

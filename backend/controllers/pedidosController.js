@@ -22,6 +22,47 @@ const { registrarBitacora, getIp } = require('../utils/bitacora');
 // Helpers internos
 // ─────────────────────────────────────────────────────────────
 
+const TIME_ZONE_MX = 'America/Mexico_City';
+
+function parseFechaAcordadaMX(fechaAcordada) {
+  if (!fechaAcordada) return null;
+
+  const [fecha, hora = '00:00:00'] = String(fechaAcordada).split('T');
+  if (!fecha || !hora) return null;
+
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const [horas, minutos, segundos = '0'] = hora.split(':').map(Number);
+  if ([anio, mes, dia, horas, minutos, segundos].some(Number.isNaN)) return null;
+
+  const utcGuess = Date.UTC(anio, mes - 1, dia, horas, minutos, segundos);
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE_MX,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  const parts = Object.fromEntries(
+    formatter.formatToParts(new Date(utcGuess)).map((part) => [part.type, part.value])
+  );
+
+  const zonedAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+
+  const offset = zonedAsUtc - utcGuess;
+  return new Date(utcGuess - offset);
+}
+
 function calcularNivelCliente(totalComprado) {
   if (totalComprado >= 5000) return 'vip';
   if (totalComprado >= 1000) return 'frecuente';
@@ -147,7 +188,8 @@ async function createPedido(req, res) {
     if (!fecha_acordada)
       return res.status(400).json(createErrorResponse('La fecha de entrega es obligatoria', CODIGOS_ERROR.DATOS_INVALIDOS));
 
-    if (new Date(fecha_acordada) <= new Date())
+    const fechaEntregaMX = parseFechaAcordadaMX(fecha_acordada);
+    if (!fechaEntregaMX || fechaEntregaMX <= new Date())
       return res.status(400).json(createErrorResponse('La fecha de entrega no puede ser menor o igual a la fecha y hora actual', CODIGOS_ERROR.DATOS_INVALIDOS));
 
     const creadoPorNombre = req.user?.nombre || req.user?.username || 'Sistema';
