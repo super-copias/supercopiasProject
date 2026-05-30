@@ -174,7 +174,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
         @page { size: 80mm auto; margin: 3mm; }
         html, body { margin: 0; padding: 12px; background: #e0e0e0;
                      display: flex; justify-content: center; align-items: flex-start; }
-        * { font-family: 'Courier New', Courier, monospace; font-size: 12px; box-sizing: border-box; }
+        * { font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 600; box-sizing: border-box; }
         .ticket-papel { width: 72mm; background: #fff; padding: 10px;
                         box-shadow: 0 2px 10px rgba(0,0,0,.3); }
         .t-empresa    { font-weight: 700; font-size: 15px; text-align: center; }
@@ -197,8 +197,16 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
         .t-notas      { font-style: italic; font-size: 11px; }
         .t-footer     { text-align: center; font-size: 11px; line-height: 1.6; }
         @media print {
-          html, body { background: none; padding: 0; display: block; }
-          .ticket-papel { box-shadow: none; width: 100%; }
+          html, body { background: none; padding: 0; margin: 0;
+                       display: block; width: 80mm; height: auto; overflow: visible; }
+          .ticket-papel {
+            box-shadow: none;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+            page-break-inside: auto;
+            break-inside: auto;
+          }
         }
       </style>`;
 
