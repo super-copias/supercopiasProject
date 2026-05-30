@@ -43,6 +43,7 @@ function parseFechaAcordadaMX(fechaAcordada) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hourCycle: 'h23',
     hour12: false,
   });
 
@@ -50,11 +51,14 @@ function parseFechaAcordadaMX(fechaAcordada) {
     formatter.formatToParts(new Date(utcGuess)).map((part) => [part.type, part.value])
   );
 
+  // Algunos runtimes pueden devolver hour=24 para medianoche; normalizar evita desfases de fecha.
+  const hourNormalized = Number(parts.hour) === 24 ? 0 : Number(parts.hour);
+
   const zonedAsUtc = Date.UTC(
     Number(parts.year),
     Number(parts.month) - 1,
     Number(parts.day),
-    Number(parts.hour),
+    hourNormalized,
     Number(parts.minute),
     Number(parts.second)
   );
