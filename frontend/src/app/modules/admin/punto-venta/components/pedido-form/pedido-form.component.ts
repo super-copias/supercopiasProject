@@ -171,11 +171,14 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       return acc;
     }, {} as Record<string, string>);
 
+    // Algunos runtimes pueden devolver hour=24 para medianoche; normalizar evita desfases.
+    const hourNormalized = Number(parts.hour) === 24 ? 0 : Number(parts.hour);
+
     const zonedAsUtc = Date.UTC(
       Number(parts.year),
       Number(parts.month) - 1,
       Number(parts.day),
-      Number(parts.hour),
+      hourNormalized,
       Number(parts.minute),
       Number(parts.second)
     );
