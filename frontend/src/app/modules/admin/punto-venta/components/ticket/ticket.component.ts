@@ -34,8 +34,15 @@ const TICKET_PRINT_STYLES = `
   .t-anticipo-row { background:#fff8dc; padding: 2px 4px; border-radius:3px; }
   @media print {
     html, body { background: none; padding: 0; margin: 0;
-                 display: block; width: 80mm; overflow: visible; }
-    .ticket-papel { box-shadow: none; width: 100%; page-break-inside: avoid; overflow: visible; }
+                 display: block; width: 80mm; height: auto; overflow: visible; }
+    .ticket-papel {
+      box-shadow: none;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+      page-break-inside: auto;
+      break-inside: auto;
+    }
   }
 `;
 
