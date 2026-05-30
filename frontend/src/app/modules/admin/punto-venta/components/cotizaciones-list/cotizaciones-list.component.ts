@@ -210,9 +210,10 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
         }
       </style>`;
 
-    const W = 320, H = 500;
-    const left = Math.round((screen.width  - W) / 2);
-    const top  = Math.round((screen.height - H) / 2);
+    const W = Math.max(980, Math.floor(screen.availWidth * 0.92));
+    const H = Math.max(760, Math.floor(screen.availHeight * 0.92));
+    const left = Math.max(0, Math.round((screen.availWidth  - W) / 2));
+    const top  = Math.max(0, Math.round((screen.availHeight - H) / 2));
     const printWin = window.open('', '_blank',
       `width=${W},height=${H},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,status=no,location=no`);
     if (!printWin) return;
