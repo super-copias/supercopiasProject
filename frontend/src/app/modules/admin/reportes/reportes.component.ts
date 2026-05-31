@@ -229,10 +229,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   private saveBlob(resp: HttpResponse<Blob>, fmt: FormatoReporte): void {
     const blob = resp.body!;
-    const cd = resp.headers.get('Content-Disposition') || '';
-    const match = cd.match(/filename="?([^"]+)"?/);
     const ext = fmt === 'pdf' ? '.pdf' : '.xlsx';
-    const filename = match ? match[1] : `reporte-${this.selectedId}${ext}`;
+    const cd = resp.headers.get('Content-Disposition') || '';
+    const filename = this.getFilenameFromContentDisposition(cd) || this.buildFallbackFilename(ext);
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -240,6 +239,46 @@ export class ReportesComponent implements OnInit, OnDestroy {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  private getFilenameFromContentDisposition(cd: string): string | null {
+    if (!cd) return null;
+
+    // RFC 5987: filename*=UTF-8''archivo.ext
+    const matchStar = cd.match(/filename\*=UTF-8''([^;]+)/i);
+    if (matchStar?.[1]) {
+      try {
+        return decodeURIComponent(matchStar[1]);
+      } catch {
+        return matchStar[1];
+      }
+    }
+
+    const match = cd.match(/filename="?([^";]+)"?/i);
+    return match?.[1] || null;
+  }
+
+  private buildFallbackFilename(ext: string): string {
+    const hoy = this.hoy();
+    const desde = String(this.filtros.desde || '').trim();
+    const hasta = String(this.filtros.hasta || '').trim();
+    const fecha = String(this.filtros.fecha || '').trim();
+    const rango = (desde && hasta)
+      ? (desde === hasta ? desde : `${desde}_a_${hasta}`)
+      : (desde || hasta || hoy);
+
+    switch (this.selectedId) {
+      case 'corte-caja':  return `Corte-de-Caja-${fecha || hoy}${ext}`;
+      case 'ventas':      return `Reporte-Ventas-${rango}${ext}`;
+      case 'productos':   return `Productos-mas-vendidos-${rango}${ext}`;
+      case 'clientes':    return `Compras-por-Cliente-${rango}${ext}`;
+      case 'inventario':  return `Inventario-Actual-${hoy}${ext}`;
+      case 'movimientos': return `Movimientos-Inventario-${rango}${ext}`;
+      case 'bitacora':    return `Bitacora-${rango}${ext}`;
+      case 'vendedores':  return `Ventas-por-Vendedor-${rango}${ext}`;
+      case 'auditoria':   return `Auditoria-${rango}${ext}`;
+      default:            return `reporte-${this.selectedId}-${hoy}${ext}`;
+    }
   }
 
   // ── Formato moneda para tabla preview ────────────────────────────────────────
