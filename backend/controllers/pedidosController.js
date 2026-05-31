@@ -632,26 +632,25 @@ async function entregarPedido(req, res) {
       ));
 
     // Validar que el monto recibido cubra el saldo cuando se paga en efectivo
-    const totalNum   = parseFloat(pedido.total);
+    const totalNum    = parseFloat(pedido.total);
     const anticipoNum = parseFloat(pedido.anticipo);
-    const saldoReq   = parseFloat((totalNum - anticipoNum).toFixed(2));
+    const saldoReq    = parseFloat((totalNum - anticipoNum).toFixed(2));
 
     // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
     const rfacturaEnt      = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
     const tipoPersonaEnt   = tipo_persona_factura || pedido.tipo_persona_factura || 'pm';
-    let saldoACobrar = saldoReq;
+    let saldoACobrar = Math.max(0, saldoReq);
     let ivaMonto = 0, isrMonto = 0;
     if (rfacturaEnt) {
       const tasas = await leerTasas();
       // Impuestos sobre el total completo (para registrar en la venta)
       ivaMonto = parseFloat((totalNum * tasas.iva_pct).toFixed(2));
       isrMonto = tipoPersonaEnt === 'pf' ? 0 : parseFloat((totalNum * tasas.isr_pct).toFixed(2));
-      // Monto a cobrar al entregar: impuestos solo sobre el saldo pendiente
-      if (saldoReq > 0) {
-        const ivaSaldo = parseFloat((saldoReq * tasas.iva_pct).toFixed(2));
-        const isrSaldo = tipoPersonaEnt === 'pf' ? 0 : parseFloat((saldoReq * tasas.isr_pct).toFixed(2));
-        saldoACobrar = parseFloat((saldoReq + ivaSaldo - isrSaldo).toFixed(2));
-      }
+
+      // Monto a cobrar al entregar: total facturado completo menos anticipo ya recibido.
+      // Esto evita subcobro cuando el anticipo se tomó antes y los impuestos se calculan al facturar.
+      const totalFactura = parseFloat((totalNum + ivaMonto - isrMonto).toFixed(2));
+      saldoACobrar = parseFloat(Math.max(0, totalFactura - anticipoNum).toFixed(2));
     }
 
     // Procesar pagosInputS
