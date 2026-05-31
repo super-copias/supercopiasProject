@@ -232,6 +232,10 @@
     </section>
 
     <!-- ── Resumen cards (Corte de caja) ─────────────────────────────────── -->
+    <div class="section-chip" *ngIf="previewResumen && selectedId === 'corte-caja'">
+      <i class="fas fa-file-invoice-dollar"></i>
+      <span>Ventas registradas del día</span>
+    </div>
     <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'corte-caja'">
       <div class="stat-card">
         <div class="stat-label">Ventas completadas</div>
@@ -248,6 +252,96 @@
       <div class="stat-card">
         <div class="stat-label">Total Descuentos</div>
         <div class="stat-value orange">${{ (previewResumen.total_descuentos || 0) | number:'1.2-2' }}</div>
+      </div>
+    </section>
+
+    <div class="section-chip" *ngIf="previewResumenArqueo && selectedId === 'corte-caja'">
+      <i class="fas fa-cash-register"></i>
+      <span>Dinero recibido hoy (para cuadrar caja)</span>
+    </div>
+    <section class="resumen-cards" *ngIf="previewResumenArqueo && selectedId === 'corte-caja'">
+      <div class="stat-card highlight">
+        <div class="stat-label">Total cobrado hoy</div>
+        <div class="stat-value green">${{ (previewResumenArqueo.total_cobrado || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">En efectivo</div>
+        <div class="stat-value blue">${{ (previewResumenArqueo.total_efectivo || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Con tarjeta</div>
+        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Por transferencia</div>
+        <div class="stat-value blue">${{ (previewResumenArqueo.total_transferencia || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Anticipos cobrados</div>
+        <div class="stat-value orange">${{ (previewResumenArqueo.total_anticipos_pedidos || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Saldos cobrados</div>
+        <div class="stat-value green">${{ (previewResumenArqueo.total_saldos_pedidos || 0) | number:'1.2-2' }}</div>
+      </div>
+    </section>
+
+    <section class="preview-section" *ngIf="selectedId === 'corte-caja' && previewArqueoMetodos.length > 0">
+      <div class="preview-header">
+        <span class="preview-count"><i class="fas fa-wallet"></i> Cobros por método de pago</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="preview-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Método</th>
+              <th>Movimientos</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of previewArqueoMetodos">
+              <td>{{ row.metodo_pago_codigo }}</td>
+              <td>{{ row.metodo_pago_descripcion }}</td>
+              <td>{{ row.movimientos }}</td>
+              <td>${{ (row.total || 0) | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="preview-section" *ngIf="selectedId === 'corte-caja' && previewArqueoMovimientos.length > 0">
+      <div class="preview-header">
+        <span class="preview-count"><i class="fas fa-receipt"></i> Detalle de cobros del día</span>
+        <span class="preview-hint">Incluye ventas directas/cotizaciones, anticipos y saldos de pedidos.</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="preview-table">
+          <thead>
+            <tr>
+              <th>Fecha/Hora</th>
+              <th>Origen</th>
+              <th>Referencia</th>
+              <th>Vendedor</th>
+              <th>Código</th>
+              <th>Método</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of previewArqueoMovimientos">
+              <td>{{ formatCell(row.fecha_evento, 'fecha_evento') }}</td>
+              <td>{{ formatOrigenArqueo(row.origen) }}</td>
+              <td>{{ row.referencia }}</td>
+              <td>{{ row.vendedor_nombre || '—' }}</td>
+              <td>{{ row.metodo_pago_codigo }}</td>
+              <td>{{ row.metodo_pago_descripcion }}</td>
+              <td>${{ (row.monto || 0) | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 

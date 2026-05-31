@@ -358,6 +358,9 @@ async function getReporteCorteCaja(req, res) {
     let pidx = 3;
     const vendedorCond = vendedor_id ? `AND v.vendedor_usuario_id = $${pidx}` : '';
     if (vendedor_id) params.push(vendedor_id);
+    const vendedorCondArqueoVentas = vendedor_id ? `AND v.vendedor_usuario_id = $${pidx}` : '';
+    const vendedorCondArqueoAnticipo = vendedor_id ? `AND ped.creado_por_id = $${pidx}` : '';
+    const vendedorCondArqueoSaldo = vendedor_id ? `AND ped.entregado_por_id = $${pidx}` : '';
 
     // Resumen general
     const { rows: [resumen] } = await query(`
@@ -399,6 +402,134 @@ async function getReporteCorteCaja(req, res) {
       LIMIT ${MAX_ROWS}
     `, params);
 
+    // Arqueo físico del día (movimientos reales de caja por método)
+    const arqueoMovimientosSQL = `
+      WITH movs AS (
+        -- Ventas rápidas / cotización convertida: pagos reales de pos_ventas_pagos
+        SELECT
+          v.fecha_venta AS fecha_evento,
+          v.folio AS referencia,
+          v.vendedor_nombre,
+          'venta'::text AS origen,
+          p.metodo_pago_codigo,
+          COALESCE(NULLIF(TRIM(p.metodo_pago_descripcion), ''), p.metodo_pago_codigo) AS metodo_pago_descripcion,
+          p.monto::numeric AS monto
+        FROM pos_ventas_pagos p
+        JOIN pos_ventas v ON v.id = p.venta_id
+        WHERE v.estatus = 'completada'
+          AND v.origen_venta IN ('directa', 'cotizacion')
+          AND v.fecha_venta BETWEEN $1 AND $2
+          ${vendedorCondArqueoVentas}
+
+        UNION ALL
+
+        -- Anticipos de pedidos: se reconocen en la fecha de creación del pedido
+        SELECT
+          ped.fecha_creacion AS fecha_evento,
+          ped.folio AS referencia,
+          ped.creado_por_nombre AS vendedor_nombre,
+          'anticipo_pedido'::text AS origen,
+          pp.metodo_pago_codigo,
+          COALESCE(NULLIF(TRIM(pp.metodo_pago_descripcion), ''), pp.metodo_pago_codigo) AS metodo_pago_descripcion,
+          pp.monto::numeric AS monto
+        FROM pos_pedidos_pagos pp
+        JOIN pos_pedidos ped ON ped.id = pp.pedido_id
+        WHERE pp.tipo = 'anticipo'
+          AND ped.fecha_creacion BETWEEN $1 AND $2
+          ${vendedorCondArqueoAnticipo}
+
+        UNION ALL
+
+        -- Saldo de pedidos entregados: se reconoce en fecha de entrega
+        SELECT
+          ped.fecha_entregado AS fecha_evento,
+          ped.folio AS referencia,
+          ped.entregado_por_nombre AS vendedor_nombre,
+          'saldo_pedido'::text AS origen,
+          pp.metodo_pago_codigo,
+          COALESCE(NULLIF(TRIM(pp.metodo_pago_descripcion), ''), pp.metodo_pago_codigo) AS metodo_pago_descripcion,
+          pp.monto::numeric AS monto
+        FROM pos_pedidos_pagos pp
+        JOIN pos_pedidos ped ON ped.id = pp.pedido_id
+        WHERE pp.tipo = 'saldo'
+          AND ped.estatus = 'finalizado'
+          AND ped.fecha_entregado IS NOT NULL
+          AND ped.fecha_entregado BETWEEN $1 AND $2
+          ${vendedorCondArqueoSaldo}
+      )
+    `;
+
+    const { rows: arqueoResumenRows } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        COALESCE(SUM(monto), 0) AS total_cobrado,
+        COALESCE(SUM(monto) FILTER (WHERE origen = 'venta'), 0) AS total_ventas_directas,
+        COALESCE(SUM(monto) FILTER (WHERE origen = 'anticipo_pedido'), 0) AS total_anticipos_pedidos,
+        COALESCE(SUM(monto) FILTER (WHERE origen = 'saldo_pedido'), 0) AS total_saldos_pedidos
+      FROM movs
+    `, params);
+
+    const { rows: arqueoMetodos } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        metodo_pago_codigo,
+        metodo_pago_descripcion,
+        COUNT(*) AS movimientos,
+        COALESCE(SUM(monto), 0) AS total
+      FROM movs
+      GROUP BY metodo_pago_codigo, metodo_pago_descripcion
+      ORDER BY total DESC
+    `, params);
+
+    const { rows: arqueoOrigenes } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        origen,
+        COUNT(*) AS movimientos,
+        COALESCE(SUM(monto), 0) AS total
+      FROM movs
+      GROUP BY origen
+      ORDER BY total DESC
+    `, params);
+
+    const { rows: arqueoMovimientos } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        fecha_evento,
+        referencia,
+        vendedor_nombre,
+        origen,
+        metodo_pago_codigo,
+        metodo_pago_descripcion,
+        monto
+      FROM movs
+      ORDER BY fecha_evento ASC
+      LIMIT ${MAX_ROWS}
+    `, params);
+
+    const arqueoResumenDB = arqueoResumenRows[0] || {};
+    const arqueoResumen = {
+      total_cobrado: parseFloat(arqueoResumenDB.total_cobrado || 0),
+      total_ventas_directas: parseFloat(arqueoResumenDB.total_ventas_directas || 0),
+      total_anticipos_pedidos: parseFloat(arqueoResumenDB.total_anticipos_pedidos || 0),
+      total_saldos_pedidos: parseFloat(arqueoResumenDB.total_saldos_pedidos || 0),
+      total_efectivo: 0,
+      total_tarjeta: 0,
+      total_transferencia: 0,
+    };
+
+    for (const m of arqueoMetodos) {
+      const codigo = String(m.metodo_pago_codigo || '').toLowerCase();
+      const totalMetodo = parseFloat(m.total || 0);
+      if (codigo === 'efectivo') arqueoResumen.total_efectivo += totalMetodo;
+      else if (codigo === 'transferencia') arqueoResumen.total_transferencia += totalMetodo;
+      else if (['tarjeta', 'tarjeta_debito', 'tarjeta_credito'].includes(codigo)) arqueoResumen.total_tarjeta += totalMetodo;
+    }
+
+    arqueoResumen.total_efectivo = parseFloat(arqueoResumen.total_efectivo.toFixed(2));
+    arqueoResumen.total_tarjeta = parseFloat(arqueoResumen.total_tarjeta.toFixed(2));
+    arqueoResumen.total_transferencia = parseFloat(arqueoResumen.total_transferencia.toFixed(2));
+
     const subtitulo = `Fecha: ${fmtDate(d)}  |  Ventas: ${resumen.ventas_completadas}  |  Total: ${fmtCurrency(resumen.total_ingresos)}`;
 
     if (formato === 'xlsx') {
@@ -422,6 +553,31 @@ async function getReporteCorteCaja(req, res) {
             r.vendedor_nombre || '—', r.metodo_pago_descripcion || '—',
             parseFloat(r.total), r.estatus]),
           colWidths: [14, 18, 22, 18, 16, 12, 12]
+        },
+        {
+          name: 'Arqueo por Método',
+          headers: ['Código', 'Método de Pago', 'Movimientos', 'Total'],
+          rows: arqueoMetodos.map(r => [
+            r.metodo_pago_codigo,
+            r.metodo_pago_descripcion,
+            parseInt(r.movimientos),
+            parseFloat(r.total),
+          ]),
+          colWidths: [20, 26, 14, 16]
+        },
+        {
+          name: 'Arqueo Movimientos',
+          headers: ['Fecha/Hora', 'Origen', 'Referencia', 'Vendedor', 'Código', 'Método', 'Monto'],
+          rows: arqueoMovimientos.map(r => [
+            fmtDatetime(r.fecha_evento),
+            r.origen,
+            r.referencia,
+            r.vendedor_nombre || '—',
+            r.metodo_pago_codigo,
+            r.metodo_pago_descripcion,
+            parseFloat(r.monto),
+          ]),
+          colWidths: [20, 16, 15, 20, 14, 20, 14]
         }
       ];
       const resHeaders = ['Concepto', 'Valor'];
@@ -431,6 +587,12 @@ async function getReporteCorteCaja(req, res) {
         ['Total ingresos',     parseFloat(resumen.total_ingresos)],
         ['Total descuentos',   parseFloat(resumen.total_descuentos)],
         ['Total IVA',          parseFloat(resumen.total_iva)],
+        ['Arqueo total cobrado', arqueoResumen.total_cobrado],
+        ['Arqueo efectivo', arqueoResumen.total_efectivo],
+        ['Arqueo tarjeta', arqueoResumen.total_tarjeta],
+        ['Arqueo transferencia', arqueoResumen.total_transferencia],
+        ['Anticipos pedidos', arqueoResumen.total_anticipos_pedidos],
+        ['Saldos pedidos', arqueoResumen.total_saldos_pedidos],
       ];
       return sendExcel(res, `Corte-de-Caja-${fecha || fmtDate(d)}`, 'Resumen General',
         resHeaders, resRows, [28, 18], extraSheets);
@@ -465,6 +627,25 @@ async function getReporteCorteCaja(req, res) {
         vendedores.map(r => [r.vendedor || '—', r.ventas, fmtCurrency(r.total)]),
         [220, 80, 130], { rowHeight: 16 });
 
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Arqueo Físico');
+      doc.moveDown(0.3);
+      drawTable(doc, ['Concepto', 'Monto'], [
+        ['Total cobrado', fmtCurrency(arqueoResumen.total_cobrado)],
+        ['Efectivo', fmtCurrency(arqueoResumen.total_efectivo)],
+        ['Tarjeta', fmtCurrency(arqueoResumen.total_tarjeta)],
+        ['Transferencia', fmtCurrency(arqueoResumen.total_transferencia)],
+        ['Anticipos de pedidos', fmtCurrency(arqueoResumen.total_anticipos_pedidos)],
+        ['Saldos de pedidos', fmtCurrency(arqueoResumen.total_saldos_pedidos)],
+      ], [220, 130], { rowHeight: 16 });
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Arqueo por Método');
+      doc.moveDown(0.3);
+      drawTable(doc, ['Método de Pago', 'Movimientos', 'Total'],
+        arqueoMetodos.map(r => [r.metodo_pago_descripcion || r.metodo_pago_codigo || '—', r.movimientos, fmtCurrency(r.total)]),
+        [180, 80, 130], { rowHeight: 16 });
+
       doc.moveDown(0.8);
       doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Detalle de Ventas');
       doc.moveDown(0.3);
@@ -480,7 +661,33 @@ async function getReporteCorteCaja(req, res) {
 
     return res.json({
       ok: true,
-      data: { resumen, metodos_pago: metodosPago, vendedores, ventas }
+      data: {
+        resumen,
+        metodos_pago: metodosPago,
+        vendedores,
+        ventas,
+        resumen_arqueo: arqueoResumen,
+        arqueo_metodos_pago: arqueoMetodos.map(r => ({
+          metodo_pago_codigo: r.metodo_pago_codigo,
+          metodo_pago_descripcion: r.metodo_pago_descripcion,
+          movimientos: parseInt(r.movimientos),
+          total: parseFloat(r.total),
+        })),
+        arqueo_origenes: arqueoOrigenes.map(r => ({
+          origen: r.origen,
+          movimientos: parseInt(r.movimientos),
+          total: parseFloat(r.total),
+        })),
+        arqueo_movimientos: arqueoMovimientos.map(r => ({
+          fecha_evento: r.fecha_evento,
+          referencia: r.referencia,
+          vendedor_nombre: r.vendedor_nombre,
+          origen: r.origen,
+          metodo_pago_codigo: r.metodo_pago_codigo,
+          metodo_pago_descripcion: r.metodo_pago_descripcion,
+          monto: parseFloat(r.monto),
+        })),
+      }
     });
   } catch (err) {
     console.error('reportes/corte-caja error:', err);

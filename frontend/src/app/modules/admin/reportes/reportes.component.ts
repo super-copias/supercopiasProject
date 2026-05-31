@@ -58,6 +58,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
   previewRows: any[] = [];
   previewColumns: string[] = [];
   previewResumen: any = null;
+  previewResumenArqueo: any = null;
+  previewArqueoMetodos: any[] = [];
+  previewArqueoMovimientos: any[] = [];
 
   // Filtros del formulario (objeto plano, se usa ngModel)
   filtros: Filtros = {
@@ -117,6 +120,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.previewRows = [];
     this.previewColumns = [];
     this.previewResumen = null;
+    this.previewResumenArqueo = null;
+    this.previewArqueoMetodos = [];
+    this.previewArqueoMovimientos = [];
     this.errorMsg = '';
   }
 
@@ -138,6 +144,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.errorMsg = '';
     this.previewRows = [];
     this.previewResumen = null;
+    this.previewResumenArqueo = null;
+    this.previewArqueoMetodos = [];
+    this.previewArqueoMovimientos = [];
 
     this.getPreviewObservable()
       .pipe(takeUntil(this.destroy$), finalize(() => this.loadingPreview = false))
@@ -152,6 +161,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
             : data.rows ?? data.ventas ?? [];
 
           this.previewResumen = data.resumen ?? null;
+          this.previewResumenArqueo = data.resumen_arqueo ?? null;
+          this.previewArqueoMetodos = data.arqueo_metodos_pago ?? [];
+          this.previewArqueoMovimientos = data.arqueo_movimientos ?? [];
 
           if (rawRows.length > 0) {
             this.previewColumns = Object.keys(rawRows[0]);
@@ -277,6 +289,15 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   formatColHeader(col: string): string {
     return col.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  formatOrigenArqueo(origen: string): string {
+    const map: Record<string, string> = {
+      venta: 'Venta mostrador/cotización',
+      anticipo_pedido: 'Anticipo cobrado',
+      saldo_pedido: 'Saldo cobrado',
+    };
+    return map[origen] || origen;
   }
 }
 
