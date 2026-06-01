@@ -83,10 +83,21 @@
 
 .pedido-card-totales {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  .total { font-weight: 700; font-size: .9rem; }
-  .anticipo { font-size: .75rem; color: #666; }
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .05rem;
+
+  .total-linea {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .total { font-weight: 700; font-size: .9rem; line-height: 1.15; }
+  .factura-badge { font-size: 10px; }
+  .anticipo { font-size: .75rem; color: #666; line-height: 1.2; }
 }
 
 .pedido-card-acciones {

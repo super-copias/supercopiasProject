@@ -15,6 +15,8 @@ const METODOS: { codigo: MetodoPagoCodigo; label: string; icono: string }[] = [
 export class SelectorPagoComponent implements OnChanges {
   /** Total a cobrar (ya con IVA/ISR si aplica) */
   @Input() totalRef = 0;
+  /** Permite ocultar el campo de efectivo entregado cuando el flujo no lo requiere */
+  @Input() mostrarRecibidoEfectivo = true;
 
   @Output() pagosChange = new EventEmitter<PagoInput[]>();
   @Output() validChange = new EventEmitter<boolean>();
@@ -114,11 +116,12 @@ export class SelectorPagoComponent implements OnChanges {
   }
 
   private _emit(): void {
+    const recibidoEfectivo = this.mostrarRecibidoEfectivo ? this._montoRecibidoEfectivo : null;
     const pagos: PagoInput[] = this.seleccionados.map((c, i) => ({
       codigo: c,
       monto: this.dosMetodos && i === 0 ? this.monto1Input : null,
       // monto_recibido solo aplica para efectivo en pago único (para calcular cambio)
-      monto_recibido: c === 'efectivo' && !this.dosMetodos ? this._montoRecibidoEfectivo : null,
+      monto_recibido: c === 'efectivo' && !this.dosMetodos ? recibidoEfectivo : null,
       nota: this._nota[c] || undefined,
     }));
     this.pagosChange.emit(pagos);

@@ -217,6 +217,7 @@
               <label class="form-label-xs">Método de pago del anticipo</label>
               <app-pos-selector-pago
                 [totalRef]="form.anticipo"
+                [mostrarRecibidoEfectivo]="false"
                 (pagosChange)="onPagosAnticipoChange($event)"
                 (validChange)="onPagosAnticipoValidChange($event)">
               </app-pos-selector-pago>

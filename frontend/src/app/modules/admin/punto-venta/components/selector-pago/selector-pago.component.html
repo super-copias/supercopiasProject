@@ -26,7 +26,7 @@
 
       <!-- Efectivo: Recibido (opcional, para cambio) + Nota -->
       <div class="metodo-sec" *ngIf="seleccionados[0] === 'efectivo'">
-        <div class="campo-row">
+        <div class="campo-row" *ngIf="mostrarRecibidoEfectivo">
           <label>Efectivo entregado por cliente <span class="text-muted fw-normal">(opcional — solo para calcular cambio)</span></label>
           <div class="input-group input-group-sm">
             <span class="input-group-text">$</span>
