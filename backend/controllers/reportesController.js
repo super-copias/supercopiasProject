@@ -69,12 +69,27 @@ function buildDateRange(desde, hasta) {
   return [d, h];
 }
 
+function dateMx(d = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+function buildFileDateSuffix(desde, hasta) {
+  const from = String(desde || dateMx());
+  const to = String(hasta || from);
+  return from === to ? from : `${from}_a_${to}`;
+}
+
 // ─────────────────────────────────────────────────────────────
 // PDF Builder
 // ─────────────────────────────────────────────────────────────
-function initPDF(res, titulo, subtitulo = '') {
+function initPDF(res, titulo, subtitulo = '', fileNameBase = null) {
   const doc = new PDFDocument({ margin: 40, size: 'LETTER', bufferPages: true });
-  const safeFilename = titulo.replace(/[^a-zA-Z0-9_\-]/g, '-');
+  const safeFilename = (fileNameBase || titulo).replace(/[^a-zA-Z0-9_\-]/g, '-');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.pdf"`);
   doc.pipe(res);
@@ -186,7 +201,7 @@ function drawTotalsRow(doc, labels, colWidths, opts = {}) {
 // ─────────────────────────────────────────────────────────────
 // Excel Builder
 // ─────────────────────────────────────────────────────────────
-async function sendExcel(res, titulo, sheetName, headers, rows, colWidths = [], extraSheets = []) {
+async function sendExcel(res, titulo, sheetName, headers, rows, colWidths = [], extraSheets = [], fileNameBase = null) {
   const wb = new ExcelJS.Workbook();
   wb.creator = COMPANY;
   wb.created = new Date();
@@ -256,7 +271,7 @@ async function sendExcel(res, titulo, sheetName, headers, rows, colWidths = [], 
   // Hojas adicionales opcionales (ej. Corte de caja)
   extraSheets.forEach(s => addSheet(s.name, s.headers, s.rows, s.colWidths || []));
 
-  const safeFilename = titulo.replace(/[^a-zA-Z0-9_\-]/g, '-');
+  const safeFilename = (fileNameBase || titulo).replace(/[^a-zA-Z0-9_\-]/g, '-');
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.xlsx"`);
   await wb.xlsx.write(res);
@@ -270,6 +285,7 @@ async function getReporteVentas(req, res) {
   try {
     const { desde, hasta, vendedor_id, cliente_id, metodo_pago, estatus, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
+    const nombreArchivo = `Reporte-Ventas-${buildFileDateSuffix(desde, hasta)}`;
 
     const params = [d, h];
     let paramIdx = 3;
@@ -307,13 +323,14 @@ async function getReporteVentas(req, res) {
       ]);
       // Fila de totales
       dataRows.push(['', '', '', '', 'TOTAL', '', parseFloat(totalDescuentos.toFixed(2)), '', parseFloat(totalIngresos.toFixed(2))]);
-      return sendExcel(res, `Reporte-Ventas-${desde || 'hoy'}`, 'Ventas',
-        headers, dataRows, [14, 18, 22, 18, 14, 12, 12, 10, 12]);
+      return sendExcel(res, 'Reporte de Ventas', 'Ventas',
+        headers, dataRows, [14, 18, 22, 18, 14, 12, 12, 10, 12], [], nombreArchivo);
     }
 
     if (formato === 'pdf') {
       const doc = initPDF(res, 'Reporte de Ventas',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} ventas  |  Total: ${fmtCurrency(totalIngresos)}`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} ventas  |  Total: ${fmtCurrency(totalIngresos)}`,
+        nombreArchivo);
       const headers = ['Folio', 'Fecha', 'Cliente', 'Vendedor', 'M.Pago', 'Subtotal', 'Desc.', 'Total'];
       const colW = [75, 85, 90, 80, 60, 50, 45, 55];
       const dataRows = rows.map(r => [
@@ -353,11 +370,16 @@ async function getReporteCorteCaja(req, res) {
   try {
     const { fecha, vendedor_id, formato } = req.query;
     const [d, h] = buildDateRange(fecha, fecha);
+    const fechaArchivo = String(fecha || dateMx(d));
+    const nombreArchivoCorte = `Corte-de-Caja-${fechaArchivo}`;
 
     const params = [d, h];
     let pidx = 3;
     const vendedorCond = vendedor_id ? `AND v.vendedor_usuario_id = $${pidx}` : '';
     if (vendedor_id) params.push(vendedor_id);
+    const vendedorCondArqueoVentas = vendedor_id ? `AND v.vendedor_usuario_id = $${pidx}` : '';
+    const vendedorCondArqueoAnticipo = vendedor_id ? `AND ped.creado_por_id = $${pidx}` : '';
+    const vendedorCondArqueoSaldo = vendedor_id ? `AND ped.entregado_por_id = $${pidx}` : '';
 
     // Resumen general
     const { rows: [resumen] } = await query(`
@@ -399,9 +421,143 @@ async function getReporteCorteCaja(req, res) {
       LIMIT ${MAX_ROWS}
     `, params);
 
+    // Arqueo físico del día (movimientos reales de caja por método)
+    const arqueoMovimientosSQL = `
+      WITH movs AS (
+        -- Ventas rápidas / cotización convertida: pagos reales de pos_ventas_pagos
+        SELECT
+          v.fecha_venta AS fecha_evento,
+          v.folio AS referencia,
+          v.vendedor_nombre,
+          'venta'::text AS origen,
+          p.metodo_pago_codigo,
+          COALESCE(NULLIF(TRIM(p.metodo_pago_descripcion), ''), p.metodo_pago_codigo) AS metodo_pago_descripcion,
+          p.monto::numeric AS monto
+        FROM pos_ventas_pagos p
+        JOIN pos_ventas v ON v.id = p.venta_id
+        WHERE v.estatus = 'completada'
+          AND v.origen_venta IN ('directa', 'cotizacion')
+          AND v.fecha_venta BETWEEN $1 AND $2
+          ${vendedorCondArqueoVentas}
+
+        UNION ALL
+
+        -- Anticipos de pedidos: se reconocen en la fecha de creación del pedido
+        SELECT
+          ped.fecha_creacion AS fecha_evento,
+          ped.folio AS referencia,
+          ped.creado_por_nombre AS vendedor_nombre,
+          'anticipo_pedido'::text AS origen,
+          pp.metodo_pago_codigo,
+          COALESCE(NULLIF(TRIM(pp.metodo_pago_descripcion), ''), pp.metodo_pago_codigo) AS metodo_pago_descripcion,
+          pp.monto::numeric AS monto
+        FROM pos_pedidos_pagos pp
+        JOIN pos_pedidos ped ON ped.id = pp.pedido_id
+        WHERE pp.tipo = 'anticipo'
+          AND ped.fecha_creacion BETWEEN $1 AND $2
+          ${vendedorCondArqueoAnticipo}
+
+        UNION ALL
+
+        -- Saldo de pedidos entregados: se reconoce en fecha de entrega
+        SELECT
+          ped.fecha_entregado AS fecha_evento,
+          ped.folio AS referencia,
+          ped.entregado_por_nombre AS vendedor_nombre,
+          'saldo_pedido'::text AS origen,
+          pp.metodo_pago_codigo,
+          COALESCE(NULLIF(TRIM(pp.metodo_pago_descripcion), ''), pp.metodo_pago_codigo) AS metodo_pago_descripcion,
+          pp.monto::numeric AS monto
+        FROM pos_pedidos_pagos pp
+        JOIN pos_pedidos ped ON ped.id = pp.pedido_id
+        WHERE pp.tipo = 'saldo'
+          AND ped.estatus = 'finalizado'
+          AND ped.fecha_entregado IS NOT NULL
+          AND ped.fecha_entregado BETWEEN $1 AND $2
+          ${vendedorCondArqueoSaldo}
+      )
+    `;
+
+    const { rows: arqueoResumenRows } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        COALESCE(SUM(monto), 0) AS total_cobrado,
+        COALESCE(SUM(monto) FILTER (WHERE origen = 'venta'), 0) AS total_ventas_directas,
+        COALESCE(SUM(monto) FILTER (WHERE origen = 'anticipo_pedido'), 0) AS total_anticipos_pedidos,
+        COALESCE(SUM(monto) FILTER (WHERE origen = 'saldo_pedido'), 0) AS total_saldos_pedidos
+      FROM movs
+    `, params);
+
+    const { rows: arqueoMetodos } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        metodo_pago_codigo,
+        metodo_pago_descripcion,
+        COUNT(*) AS movimientos,
+        COALESCE(SUM(monto), 0) AS total
+      FROM movs
+      GROUP BY metodo_pago_codigo, metodo_pago_descripcion
+      ORDER BY total DESC
+    `, params);
+
+    const { rows: arqueoOrigenes } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        origen,
+        COUNT(*) AS movimientos,
+        COALESCE(SUM(monto), 0) AS total
+      FROM movs
+      GROUP BY origen
+      ORDER BY total DESC
+    `, params);
+
+    const { rows: arqueoMovimientos } = await query(`
+      ${arqueoMovimientosSQL}
+      SELECT
+        fecha_evento,
+        referencia,
+        vendedor_nombre,
+        origen,
+        metodo_pago_codigo,
+        metodo_pago_descripcion,
+        monto
+      FROM movs
+      ORDER BY fecha_evento ASC
+      LIMIT ${MAX_ROWS}
+    `, params);
+
+    const arqueoResumenDB = arqueoResumenRows[0] || {};
+    const arqueoResumen = {
+      total_cobrado: parseFloat(arqueoResumenDB.total_cobrado || 0),
+      total_ventas_directas: parseFloat(arqueoResumenDB.total_ventas_directas || 0),
+      total_anticipos_pedidos: parseFloat(arqueoResumenDB.total_anticipos_pedidos || 0),
+      total_saldos_pedidos: parseFloat(arqueoResumenDB.total_saldos_pedidos || 0),
+      total_efectivo: 0,
+      total_tarjeta: 0,
+      total_transferencia: 0,
+    };
+
+    for (const m of arqueoMetodos) {
+      const codigo = String(m.metodo_pago_codigo || '').toLowerCase();
+      const totalMetodo = parseFloat(m.total || 0);
+      if (codigo === 'efectivo') arqueoResumen.total_efectivo += totalMetodo;
+      else if (codigo === 'transferencia') arqueoResumen.total_transferencia += totalMetodo;
+      else if (['tarjeta', 'tarjeta_debito', 'tarjeta_credito'].includes(codigo)) arqueoResumen.total_tarjeta += totalMetodo;
+    }
+
+    arqueoResumen.total_efectivo = parseFloat(arqueoResumen.total_efectivo.toFixed(2));
+    arqueoResumen.total_tarjeta = parseFloat(arqueoResumen.total_tarjeta.toFixed(2));
+    arqueoResumen.total_transferencia = parseFloat(arqueoResumen.total_transferencia.toFixed(2));
+
     const subtitulo = `Fecha: ${fmtDate(d)}  |  Ventas: ${resumen.ventas_completadas}  |  Total: ${fmtCurrency(resumen.total_ingresos)}`;
 
     if (formato === 'xlsx') {
+      const origenLabel = (origen) => ({
+        venta: 'Venta mostrador/cotización',
+        anticipo_pedido: 'Anticipo cobrado',
+        saldo_pedido: 'Saldo cobrado',
+      }[origen] || origen);
+
       const extraSheets = [
         {
           name: 'Por Método de Pago',
@@ -422,6 +578,31 @@ async function getReporteCorteCaja(req, res) {
             r.vendedor_nombre || '—', r.metodo_pago_descripcion || '—',
             parseFloat(r.total), r.estatus]),
           colWidths: [14, 18, 22, 18, 16, 12, 12]
+        },
+        {
+          name: 'Cobros por Método',
+          headers: ['Código', 'Método de Pago', 'Movimientos', 'Total'],
+          rows: arqueoMetodos.map(r => [
+            r.metodo_pago_codigo,
+            r.metodo_pago_descripcion,
+            parseInt(r.movimientos),
+            parseFloat(r.total),
+          ]),
+          colWidths: [20, 26, 14, 16]
+        },
+        {
+          name: 'Detalle Cobros del Día',
+          headers: ['Fecha/Hora', 'Origen', 'Referencia', 'Vendedor', 'Código', 'Método', 'Monto'],
+          rows: arqueoMovimientos.map(r => [
+            fmtDatetime(r.fecha_evento),
+            origenLabel(r.origen),
+            r.referencia,
+            r.vendedor_nombre || '—',
+            r.metodo_pago_codigo,
+            r.metodo_pago_descripcion,
+            parseFloat(r.monto),
+          ]),
+          colWidths: [20, 16, 15, 20, 14, 20, 14]
         }
       ];
       const resHeaders = ['Concepto', 'Valor'];
@@ -431,13 +612,19 @@ async function getReporteCorteCaja(req, res) {
         ['Total ingresos',     parseFloat(resumen.total_ingresos)],
         ['Total descuentos',   parseFloat(resumen.total_descuentos)],
         ['Total IVA',          parseFloat(resumen.total_iva)],
+        ['Total cobrado hoy', arqueoResumen.total_cobrado],
+        ['Cobrado en efectivo', arqueoResumen.total_efectivo],
+        ['Cobrado con tarjeta', arqueoResumen.total_tarjeta],
+        ['Cobrado por transferencia', arqueoResumen.total_transferencia],
+        ['Anticipos cobrados', arqueoResumen.total_anticipos_pedidos],
+        ['Saldos cobrados', arqueoResumen.total_saldos_pedidos],
       ];
-      return sendExcel(res, `Corte-de-Caja-${fecha || fmtDate(d)}`, 'Resumen General',
-        resHeaders, resRows, [28, 18], extraSheets);
+      return sendExcel(res, 'Corte de Caja', 'Resumen General',
+        resHeaders, resRows, [28, 18], extraSheets, nombreArchivoCorte);
     }
 
     if (formato === 'pdf') {
-      const doc = initPDF(res, 'Corte de Caja', subtitulo);
+      const doc = initPDF(res, 'Corte de Caja', subtitulo, nombreArchivoCorte);
 
       // Resumen box
       doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Resumen General');
@@ -465,6 +652,48 @@ async function getReporteCorteCaja(req, res) {
         vendedores.map(r => [r.vendedor || '—', r.ventas, fmtCurrency(r.total)]),
         [220, 80, 130], { rowHeight: 16 });
 
+      const origenLabelPdf = (origen) => ({
+        venta: 'Venta mostrador/cotización',
+        anticipo_pedido: 'Anticipo cobrado',
+        saldo_pedido: 'Saldo cobrado',
+      }[origen] || origen);
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Dinero Recibido Hoy');
+      doc.moveDown(0.3);
+      drawTable(doc, ['Concepto', 'Monto'], [
+        ['Total cobrado hoy', fmtCurrency(arqueoResumen.total_cobrado)],
+        ['Cobrado en efectivo', fmtCurrency(arqueoResumen.total_efectivo)],
+        ['Cobrado con tarjeta', fmtCurrency(arqueoResumen.total_tarjeta)],
+        ['Cobrado por transferencia', fmtCurrency(arqueoResumen.total_transferencia)],
+        ['Anticipos cobrados', fmtCurrency(arqueoResumen.total_anticipos_pedidos)],
+        ['Saldos cobrados', fmtCurrency(arqueoResumen.total_saldos_pedidos)],
+      ], [220, 130], { rowHeight: 16 });
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Cobros por Método de Pago');
+      doc.moveDown(0.3);
+      drawTable(doc, ['Método de Pago', 'Movimientos', 'Total'],
+        arqueoMetodos.map(r => [r.metodo_pago_descripcion || r.metodo_pago_codigo || '—', r.movimientos, fmtCurrency(r.total)]),
+        [180, 80, 130], { rowHeight: 16 });
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Detalle de Cobros del Día');
+      doc.moveDown(0.3);
+      drawTable(doc,
+        ['Fecha/Hora', 'Origen', 'Referencia', 'Vendedor', 'Código', 'Método', 'Monto'],
+        arqueoMovimientos.map(r => [
+          fmtDatetime(r.fecha_evento),
+          origenLabelPdf(r.origen),
+          r.referencia,
+          r.vendedor_nombre || '—',
+          r.metodo_pago_codigo,
+          r.metodo_pago_descripcion,
+          fmtCurrency(r.monto),
+        ]),
+        [78, 95, 65, 88, 45, 70, 62]
+      );
+
       doc.moveDown(0.8);
       doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Detalle de Ventas');
       doc.moveDown(0.3);
@@ -480,7 +709,33 @@ async function getReporteCorteCaja(req, res) {
 
     return res.json({
       ok: true,
-      data: { resumen, metodos_pago: metodosPago, vendedores, ventas }
+      data: {
+        resumen,
+        metodos_pago: metodosPago,
+        vendedores,
+        ventas,
+        resumen_arqueo: arqueoResumen,
+        arqueo_metodos_pago: arqueoMetodos.map(r => ({
+          metodo_pago_codigo: r.metodo_pago_codigo,
+          metodo_pago_descripcion: r.metodo_pago_descripcion,
+          movimientos: parseInt(r.movimientos),
+          total: parseFloat(r.total),
+        })),
+        arqueo_origenes: arqueoOrigenes.map(r => ({
+          origen: r.origen,
+          movimientos: parseInt(r.movimientos),
+          total: parseFloat(r.total),
+        })),
+        arqueo_movimientos: arqueoMovimientos.map(r => ({
+          fecha_evento: r.fecha_evento,
+          referencia: r.referencia,
+          vendedor_nombre: r.vendedor_nombre,
+          origen: r.origen,
+          metodo_pago_codigo: r.metodo_pago_codigo,
+          metodo_pago_descripcion: r.metodo_pago_descripcion,
+          monto: parseFloat(r.monto),
+        })),
+      }
     });
   } catch (err) {
     console.error('reportes/corte-caja error:', err);
@@ -496,6 +751,7 @@ async function getReporteProductos(req, res) {
     const { desde, hasta, top = 50, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
     const topN = Math.min(parseInt(top) || 50, 500);
+    const nombreArchivo = `Productos-mas-vendidos-${buildFileDateSuffix(desde, hasta)}`;
 
     const { rows } = await query(`
       SELECT d.nombre_producto, d.sku,
@@ -519,14 +775,15 @@ async function getReporteProductos(req, res) {
         parseFloat(parseFloat(r.precio_promedio).toFixed(2)),
         parseFloat(parseFloat(r.total_generado).toFixed(2))
       ]);
-      return sendExcel(res, `Productos-mas-vendidos-${desde || 'hoy'}`, 'Productos',
-        headers, dataRows, [32, 14, 14, 13, 14, 16]);
+      return sendExcel(res, 'Productos Más Vendidos', 'Productos',
+        headers, dataRows, [32, 14, 14, 13, 14, 16], [], nombreArchivo);
     }
 
     if (formato === 'pdf') {
       const totalGenerado = rows.reduce((s, r) => s + parseFloat(r.total_generado || 0), 0);
       const doc = initPDF(res, `Top ${topN} Productos / Servicios Más Vendidos`,
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  Total generado: ${fmtCurrency(totalGenerado)}`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  Total generado: ${fmtCurrency(totalGenerado)}`,
+        nombreArchivo);
       const headers = ['#', 'Producto/Servicio', 'SKU', 'Cant.', '# Ventas', 'P.Prom.', 'Total'];
       const colW = [25, 160, 65, 40, 45, 55, 65];
       const dataRows = rows.map((r, i) => [
@@ -554,6 +811,7 @@ async function getReporteClientes(req, res) {
   try {
     const { desde, hasta, cliente_id, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
+    const nombreArchivo = `Compras-por-Cliente-${buildFileDateSuffix(desde, hasta)}`;
 
     const params = [d, h];
     let pidx = 3;
@@ -595,14 +853,15 @@ async function getReporteClientes(req, res) {
         r.puntos_disponibles,
         r.nivel_cliente
       ]);
-      return sendExcel(res, `Compras-por-Cliente-${desde || 'hoy'}`, 'Clientes',
-        headers, dataRows, [28, 16, 26, 14, 11, 14, 14, 16, 15, 14, 15, 12]);
+      return sendExcel(res, 'Compras por Cliente', 'Clientes',
+        headers, dataRows, [28, 16, 26, 14, 11, 14, 14, 16, 15, 14, 15, 12], [], nombreArchivo);
     }
 
     if (formato === 'pdf') {
       const totalGeneral = rows.reduce((s, r) => s + parseFloat(r.monto_total || 0), 0);
       const doc = initPDF(res, 'Compras por Cliente',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} clientes  |  Total: ${fmtCurrency(totalGeneral)}`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} clientes  |  Total: ${fmtCurrency(totalGeneral)}`,
+        nombreArchivo);
       const headers = ['Cliente', 'RFC', 'Compras', 'Ticket Prom.', 'Monto Total', 'Ult. Compra', 'Pts. Disp.', 'Nivel'];
       const colW = [120, 72, 42, 62, 68, 62, 52, 50];
       const dataRows = rows.map(r => [
@@ -631,6 +890,7 @@ async function getReporteClientes(req, res) {
 async function getReporteInventario(req, res) {
   try {
     const { departamento_id, nivel_stock, formato } = req.query;
+    const nombreArchivo = `Inventario-Actual-${dateMx()}`;
 
     const params = [];
     let pidx = 1;
@@ -676,14 +936,15 @@ async function getReporteInventario(req, res) {
         parseFloat(r.costo_compra || 0), parseFloat(r.precio_venta || 0),
         r.unidad_medida || '—', r.nivel_stock
       ]);
-      return sendExcel(res, 'Inventario-Actual', 'Inventario',
-        headers, dataRows, [14, 32, 18, 18, 12, 9, 9, 12, 13, 10, 12]);
+      return sendExcel(res, 'Inventario Actual', 'Inventario',
+        headers, dataRows, [14, 32, 18, 18, 12, 9, 9, 12, 13, 10, 12], [], nombreArchivo);
     }
 
     if (formato === 'pdf') {
       const criticos = rows.filter(r => r.nivel_stock === 'critico' || r.nivel_stock === 'sin_stock').length;
       const doc = initPDF(res, 'Inventario Actual',
-        `${rows.length} artículos activos  |  ${criticos} en nivel crítico o sin stock`);
+        `${rows.length} artículos activos  |  ${criticos} en nivel crítico o sin stock`,
+        nombreArchivo);
       const headers = ['SKU', 'Producto', 'Departamento', 'Exist.', 'Mín.', 'Costo', 'P.Venta', 'Nivel'];
       const colW = [55, 140, 80, 35, 30, 55, 55, 55];
       const dataRows = rows.map(r => [
@@ -710,6 +971,7 @@ async function getReporteMovimientos(req, res) {
   try {
     const { desde, hasta, tipo_movimiento, inventario_id, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
+    const nombreArchivo = `Movimientos-Inventario-${buildFileDateSuffix(desde, hasta)}`;
 
     const params = [d, h];
     let pidx = 3;
@@ -739,13 +1001,14 @@ async function getReporteMovimientos(req, res) {
         parseFloat(r.saldo_anterior), parseFloat(r.saldo_nuevo),
         r.usuario_nombre || '—'
       ]);
-      return sendExcel(res, `Movimientos-Inventario-${desde || 'hoy'}`, 'Movimientos',
-        headers, dataRows, [18, 30, 14, 12, 22, 12, 12, 12, 18]);
+      return sendExcel(res, 'Movimientos de Inventario', 'Movimientos',
+        headers, dataRows, [18, 30, 14, 12, 22, 12, 12, 12, 18], [], nombreArchivo);
     }
 
     if (formato === 'pdf') {
       const doc = initPDF(res, 'Movimientos de Inventario',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} movimientos`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} movimientos`,
+        nombreArchivo);
       const headers = ['Fecha', 'Producto', 'SKU', 'Tipo', 'Concepto', 'Cant.', 'S.Ant.', 'S.Nuevo'];
       const colW = [78, 110, 50, 50, 80, 35, 40, 40];
       const dataRows = rows.map(r => [
@@ -772,6 +1035,7 @@ async function getReporteBitacora(req, res) {
   try {
     const { desde, hasta, modulo, accion, usuario_id, resultado, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
+    const nombreArchivo = `Bitacora-${buildFileDateSuffix(desde, hasta)}`;
 
     const params = [d, h];
     let pidx = 3;
@@ -799,13 +1063,14 @@ async function getReporteBitacora(req, res) {
         r.entidad || '—', r.entidad_id || '—', r.resultado || '—', r.ip_address || '—',
         r.detalle ? JSON.stringify(r.detalle).slice(0, 120) : '—'
       ]);
-      return sendExcel(res, `Bitacora-${desde || 'hoy'}`, 'Bitácora',
-        headers, dataRows, [18, 20, 14, 22, 16, 12, 12, 14, 40]);
+      return sendExcel(res, 'Bitácora del Sistema', 'Bitácora',
+        headers, dataRows, [18, 20, 14, 22, 16, 12, 12, 14, 40], [], nombreArchivo);
     }
 
     if (formato === 'pdf') {
       const doc = initPDF(res, 'Bitácora del Sistema',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} eventos`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} eventos`,
+        nombreArchivo);
       const headers = ['Fecha/Hora', 'Usuario', 'Módulo', 'Acción', 'Entidad', 'Resultado'];
       const colW = [90, 90, 65, 110, 80, 65];
       const dataRows = rows.map(r => [
@@ -849,6 +1114,7 @@ async function getReporteVendedores(req, res) {
   try {
     const { desde, hasta, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
+    const nombreArchivo = `Ventas-por-Vendedor-${buildFileDateSuffix(desde, hasta)}`;
 
     // Resumen por vendedor
     const { rows } = await query(`
@@ -948,15 +1214,16 @@ async function getReporteVendedores(req, res) {
         '', '', '', '', '', '', '', '', ''
       ]);
       return sendExcel(res,
-        `Ventas-por-Vendedor-${desde || 'hoy'}`, 'Vendedores',
+        'Ventas por Vendedor', 'Vendedores',
         headers, dataRows,
-        [24, 11, 12, 16, 16, 12, 14, 12, 14, 18, 28, 14, 14]
+        [24, 11, 12, 16, 16, 12, 14, 12, 14, 18, 28, 14, 14], [], nombreArchivo
       );
     }
 
     if (formato === 'pdf') {
       const doc = initPDF(res, 'Ventas por Vendedor',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} vendedores  |  Total: ${fmtCurrency(resumen.total_ingresos_global)}`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} vendedores  |  Total: ${fmtCurrency(resumen.total_ingresos_global)}`,
+        nombreArchivo);
 
       const headers = ['#', 'Vendedor', '# Ventas', 'Canceladas', 'Total Ingresos', 'Descuentos', 'Ticket Prom.', 'Clientes', 'M.Pago Fav.', 'Producto Top'];
       const colW   = [22, 100, 42, 48, 68, 58, 62, 48, 65, 90];
@@ -989,6 +1256,7 @@ async function getReporteAuditoria(req, res) {
   try {
     const { desde, hasta, tabla, operacion, usuario_id, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
+    const nombreArchivo = `Auditoria-${buildFileDateSuffix(desde, hasta)}`;
 
     const conditions = ['a.fecha_operacion BETWEEN $1 AND $2'];
     const params = [d, h];
@@ -1053,15 +1321,16 @@ async function getReporteAuditoria(req, res) {
         r.datos_nuevos     ? JSON.stringify(r.datos_nuevos)     : '',
       ]);
       return sendExcel(res,
-        `Auditoria-${desde || 'hoy'}`, 'Auditoría',
+        'Bitácora de Auditoría', 'Auditoría',
         headers, dataRows,
-        [8, 18, 18, 12, 14, 11, 22, 16, 22, 40, 40]
+        [8, 18, 18, 12, 14, 11, 22, 16, 22, 40, 40], [], nombreArchivo
       );
     }
 
     if (formato === 'pdf') {
       const doc = initPDF(res, 'Bitácora de Auditoría',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} registros`);
+        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} registros`,
+        nombreArchivo);
       const headers = ['Fecha', 'Tabla', 'Operación', 'Registro', 'Usuario', 'Módulo'];
       const colW    = [85, 85, 65, 60, 100, 70];
       const dataRows = rows.map(r => [

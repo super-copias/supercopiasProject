@@ -209,6 +209,23 @@ $white:  #FFFFFF;
   &[type="number"] { width: 100px; }
 }
 
+// ── Separadores de sección ───────────────────────────────────────────────────
+.section-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #BBDEFB;
+  background: #EFF6FF;
+  color: $blue;
+  font-size: 12px;
+  font-weight: 700;
+
+  i { font-size: 12px; }
+}
+
 // ── Resumen cards ─────────────────────────────────────────────────────────────
 .resumen-cards {
   display: flex;
