@@ -349,7 +349,7 @@
 <div class="modal-overlay" *ngIf="mostrarTicketPedido" (click)="mostrarTicketPedido=false; pedidoTicketReimprimir=null">
   <div class="modal-card" style="width:400px;max-width:95vw" (click)="$event.stopPropagation()">
     <app-pos-ticket
-      [esPedido]="true"
+      [ticketType]="'pedido'"
       [pedido]="pedidoTicketReimprimir"
       (cerrarPedido)="mostrarTicketPedido=false; pedidoTicketReimprimir=null">
     </app-pos-ticket>
@@ -360,9 +360,8 @@
 <div class="modal-overlay" *ngIf="mostrarTicketVenta && ventaEntregada" (click)="mostrarTicketVenta=false; ventaEntregada=null">
   <div class="modal-card" style="width:400px;max-width:95vw" (click)="$event.stopPropagation()">
     <app-pos-ticket
-      #ticketVentaRef
+      [ticketType]="'venta'"
       [venta]="ventaEntregada"
-      (imprimir)="ticketVentaRef.imprimirTicketInterno()"
       (nuevaVenta)="mostrarTicketVenta=false; ventaEntregada=null; cargar()">
     </app-pos-ticket>
   </div>

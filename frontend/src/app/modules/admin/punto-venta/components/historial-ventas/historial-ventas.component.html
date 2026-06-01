@@ -164,8 +164,8 @@
     <ng-container *ngIf="ventaDetalle && !cargandoDetalle">
       <ng-container *ngIf="mostrarTicket; else tablaDetalle">
         <app-pos-ticket
+          [ticketType]="'venta'"
           [venta]="ventaDetalle"
-          (imprimir)="imprimirTicket()"
           (nuevaVenta)="irANuevaVenta.emit()"
         ></app-pos-ticket>
       </ng-container>

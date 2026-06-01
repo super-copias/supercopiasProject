@@ -1,22 +1,23 @@
 <div class="ticket-wrapper" *ngIf="esVisible">
 
   <!-- ══════════════════════════ TICKET PEDIDO ══════════════════════════ -->
-  <ng-container *ngIf="esPedido && pedido">
+  <ng-container *ngIf="ticketType === 'pedido' && pedido">
 
   <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
     <button class="btn btn-outline-secondary btn-sm" (click)="cerrarPedido.emit()">
       <i class="bi bi-x-circle me-1"></i>Cerrar
     </button>
-    <button class="btn btn-primary btn-sm" (click)="imprimirTicketInterno()">
+    <button class="btn btn-primary btn-sm" (click)="imprimirTicket()">
       <i class="bi bi-printer me-1"></i>Imprimir comprobante
     </button>
   </div>
 
-  <div class="ticket-papel">
+  <div class="ticket-papel" #ticketPapel>
 
     <div class="t-header">
-      <div class="t-empresa">SUPERCOPIAS</div>
-      <div class="t-sub">Soluciones de impresión</div>
+      <div class="t-logo-wrap">
+        <img class="t-logo" [src]="logoSrc" alt="Logo Super Copias">
+      </div>
       <div class="t-sep"></div>
       <div class="t-pedido-badge">COMPROBANTE DE PEDIDO</div>
       <div class="t-sep"></div>
@@ -115,8 +116,7 @@
     <div class="t-sep"></div>
     <div class="t-footer">
       Conserve este comprobante para recoger su pedido.<br>
-      ¡Gracias por su preferencia!<br>
-      www.supercopias.com
+      ¡Gracias por su preferencia!
     </div>
 
   </div><!-- /ticket-papel pedido -->
@@ -124,25 +124,26 @@
   </ng-container>
 
   <!-- ══════════════════════════ TICKET VENTA ══════════════════════════ -->
-  <ng-container *ngIf="!esCotizacion && !esPedido && venta">
+  <ng-container *ngIf="ticketType === 'venta' && venta">
 
   <!-- ── Acciones (no se imprimen) ──────────────────────────── -->
   <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
     <button class="btn btn-outline-secondary btn-sm" (click)="onNuevaVenta()">
       <i class="bi bi-plus-circle me-1"></i>Nueva Venta
     </button>
-    <button class="btn btn-primary btn-sm" (click)="onImprimir()">
+    <button class="btn btn-primary btn-sm" (click)="imprimirTicket()">
       <i class="bi bi-printer me-1"></i>Imprimir Ticket
     </button>
   </div>
 
   <!-- ── Ticket papel ────────────────────────────────────────── -->
-  <div class="ticket-papel">
+  <div class="ticket-papel" #ticketPapel>
 
     <!-- Encabezado -->
     <div class="t-header">
-      <div class="t-empresa">SUPERCOPIAS</div>
-      <div class="t-sub">Soluciones de impresión</div>
+      <div class="t-logo-wrap">
+        <img class="t-logo" [src]="logoSrc" alt="Logo Super Copias">
+      </div>
       <div class="t-sep"></div>
     </div>
 
@@ -273,8 +274,7 @@
     <div class="t-sep"></div>
     <div class="t-nota-vol" *ngIf="tieneDescuentoVolumen">* Precio especial por volumen aplicado</div>
     <div class="t-footer">
-      ¡Gracias por su preferencia!<br>
-      www.supercopias.com
+      ¡Gracias por su preferencia!
     </div>
 
   </div><!-- /ticket-papel -->
@@ -282,22 +282,23 @@
   </ng-container>
 
   <!-- ══════════════════════════ TICKET COTIZACIÓN ══════════════════════════ -->
-  <ng-container *ngIf="esCotizacion && cotizacion">
+  <ng-container *ngIf="ticketType === 'cotizacion' && cotizacion">
 
   <div class="ticket-actions no-print d-flex gap-2 justify-content-center mb-3">
     <button class="btn btn-outline-secondary btn-sm" (click)="onNuevaVenta()">
       <i class="bi bi-plus-circle me-1"></i>Nueva Venta
     </button>
-    <button class="btn btn-primary btn-sm" (click)="onImprimir()">
+    <button class="btn btn-primary btn-sm" (click)="imprimirTicket()">
       <i class="bi bi-printer me-1"></i>Imprimir
     </button>
   </div>
 
-  <div class="ticket-papel">
+  <div class="ticket-papel" #ticketPapel>
 
     <div class="t-header">
-      <div class="t-empresa">SUPERCOPIAS</div>
-      <div class="t-sub">Soluciones de impresión</div>
+      <div class="t-logo-wrap">
+        <img class="t-logo" [src]="logoSrc" alt="Logo Super Copias">
+      </div>
       <div class="t-sep"></div>
       <div class="text-center fw-bold" style="font-size:13px;letter-spacing:1px;">COTIZACIÓN</div>
       <div class="t-sep"></div>
@@ -393,8 +394,7 @@
 
     <div class="t-sep"></div>
     <div class="t-footer">
-      Esta cotización es informativa y no garantiza disponibilidad.<br>
-      www.supercopias.com
+      Esta cotización es informativa y no garantiza disponibilidad.
     </div>
 
   </div><!-- /ticket-papel cotización -->

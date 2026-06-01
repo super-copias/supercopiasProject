@@ -1,15 +1,41 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
 import { VentaDetalle, CotizacionDetalle } from '../../../../../services/pos.service';
+import { PosService } from '../../../../../services/pos.service';
 
-const TICKET_PRINT_STYLES = `
-  @page { size: 80mm auto; margin: 2mm; }
+export type PosTicketType = 'venta' | 'cotizacion' | 'pedido';
+
+export interface PosTicketTheme {
+  pageWidthMm: number;
+  pageMarginMm: number;
+  paperWidthMm: number;
+  wrapperPaddingPx: number;
+  fontFamily: string;
+  fontSizePx: number;
+  fontWeight: number;
+}
+
+const DEFAULT_TICKET_THEME: PosTicketTheme = {
+  pageWidthMm: 80,
+  pageMarginMm: 2,
+  paperWidthMm: 72,
+  wrapperPaddingPx: 10,
+  fontFamily: "'Courier New', Courier, monospace",
+  fontSizePx: 12,
+  fontWeight: 600,
+};
+
+function buildTicketPrintStyles(theme: PosTicketTheme): string {
+  return `
+  @page { size: ${theme.pageWidthMm}mm auto; margin: ${theme.pageMarginMm}mm; }
   html, body { margin: 0; padding: 12px; background: #e0e0e0;
                display: flex; justify-content: center; align-items: flex-start; }
-  * { font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 600; box-sizing: border-box; }
-  .ticket-papel { width: 72mm; background: #fff; padding: 10px;
+  * { font-family: ${theme.fontFamily}; font-size: ${theme.fontSizePx}px; font-weight: ${theme.fontWeight}; box-sizing: border-box; }
+  .ticket-papel { width: ${theme.paperWidthMm}mm; background: #fff; padding: ${theme.wrapperPaddingPx}px;
                   box-shadow: 0 2px 10px rgba(0,0,0,.3); }
   .t-empresa    { font-weight: 700; font-size: 15px; text-align: center; }
   .t-sub        { text-align: center; font-size: 11px; margin-bottom: 4px; }
+  .t-logo-wrap  { text-align: center; margin-bottom: 2px; }
+  .t-logo       { width: 94px; max-width: 72%; height: auto; display: inline-block; }
   .t-sep        { border-top: 1px dashed #aaa; margin: 6px 0; }
   .t-meta       { line-height: 1.6; }
   .t-items      { width: 100%; border-collapse: collapse; }
@@ -34,7 +60,7 @@ const TICKET_PRINT_STYLES = `
   .t-anticipo-row { background:#fff8dc; padding: 2px 4px; border-radius:3px; }
   @media print {
     html, body { background: none; padding: 0; margin: 0;
-                 display: block; width: 80mm; height: auto; overflow: visible; }
+                 display: block; width: ${theme.pageWidthMm}mm; height: auto; overflow: visible; }
     .ticket-papel {
       box-shadow: none;
       width: 100%;
@@ -45,6 +71,7 @@ const TICKET_PRINT_STYLES = `
     }
   }
 `;
+}
 
 @Component({
   selector: 'app-pos-ticket',
@@ -53,27 +80,45 @@ const TICKET_PRINT_STYLES = `
 })
 export class TicketComponent {
 
+  @ViewChild('ticketPapel') ticketPapelRef?: ElementRef<HTMLElement>;
+
+  @Input() ticketType: PosTicketType = 'venta';
   @Input() venta: VentaDetalle | null = null;
   @Input() cotizacion: CotizacionDetalle | null = null;
-  @Input() esCotizacion = false;
-
   @Input() pedido: any = null;
-  @Input() esPedido = false;
+  @Input() marcarVentaComoImpresa = true;
+  @Input() ticketTheme: Partial<PosTicketTheme> = {};
 
   @Output() imprimir        = new EventEmitter<void>();
   @Output() nuevaVenta      = new EventEmitter<void>();
   @Output() cargarAlCarrito = new EventEmitter<CotizacionDetalle>();
   @Output() cerrarPedido    = new EventEmitter<void>();
 
-  onImprimir(): void    { this.imprimir.emit(); }
+  constructor(private posService: PosService) {}
+
+  onImprimir(): void    { this.imprimirTicket(); }
   onNuevaVenta(): void  { this.nuevaVenta.emit(); }
   onCargarAlCarrito(): void {
     if (this.cotizacion) this.cargarAlCarrito.emit(this.cotizacion);
   }
 
   get esVisible(): boolean {
-    if (this.esPedido) return !!this.pedido;
-    return this.esCotizacion ? !!this.cotizacion : !!this.venta;
+    if (this.ticketType === 'pedido') return !!this.pedido;
+    if (this.ticketType === 'cotizacion') return !!this.cotizacion;
+    return !!this.venta;
+  }
+
+  get temaImpresion(): PosTicketTheme {
+    return {
+      ...DEFAULT_TICKET_THEME,
+      ...this.ticketTheme,
+    };
+  }
+
+  get logoSrc(): string {
+    const logoPath = '/assets/img/logo%20completo.png';
+    if (typeof window === 'undefined') return logoPath;
+    return `${window.location.origin}${logoPath}`;
   }
 
   get cambio(): number {
@@ -136,7 +181,7 @@ export class TicketComponent {
   }
 
   imprimirTicketInterno(): void {
-    const papelEl = document.querySelector('.ticket-papel') as HTMLElement;
+    const papelEl = this.ticketPapelRef?.nativeElement;
     if (!papelEl) { window.print(); return; }
     const W = 320;
     const left = Math.round((screen.width - W) / 2);
@@ -145,7 +190,7 @@ export class TicketComponent {
       `width=${W},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,status=no,location=no`);
     if (!win) return;
     win.document.write(
-      `<!DOCTYPE html><html><head><title>Ticket</title><style>${TICKET_PRINT_STYLES}</style>
+      `<!DOCTYPE html><html><head><title>Ticket</title><style>${buildTicketPrintStyles(this.temaImpresion)}</style>
         <script>
           window.onload       = function(){ setTimeout(function(){ window.print(); }, 400); };
           window.onafterprint = function(){ window.close(); };
@@ -153,5 +198,13 @@ export class TicketComponent {
        </head><body>${papelEl.outerHTML}</body></html>`
     );
     win.document.close();
+  }
+
+  imprimirTicket(): void {
+    if (this.ticketType === 'venta' && this.marcarVentaComoImpresa && this.venta?.id) {
+      this.posService.marcarTicketGenerado(this.venta.id).subscribe();
+    }
+    this.imprimirTicketInterno();
+    this.imprimir.emit();
   }
 }

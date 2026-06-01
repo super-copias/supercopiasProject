@@ -163,9 +163,8 @@
     <!-- Modo ticket -->
     <ng-container *ngIf="cotizacionDetalle && !cargandoDetalle && mostrarTicketEnDetalle">
       <app-pos-ticket
-        [esCotizacion]="true"
+        [ticketType]="'cotizacion'"
         [cotizacion]="cotizacionDetalle"
-        (imprimir)="imprimirTicketCotizacion()"
         (nuevaVenta)="mostrarTicketEnDetalle = false"
       ></app-pos-ticket>
     </ng-container>

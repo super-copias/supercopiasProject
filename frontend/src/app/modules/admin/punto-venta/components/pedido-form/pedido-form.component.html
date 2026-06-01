@@ -14,7 +14,7 @@
     <!-- Vista ticket: post-guardado -->
     <ng-container *ngIf="mostrarTicketPedido && pedidoCreado">
       <app-pos-ticket
-        [esPedido]="true"
+        [ticketType]="'pedido'"
         [pedido]="pedidoCreado"
         (cerrarPedido)="onCerrarTicket()">
       </app-pos-ticket>
