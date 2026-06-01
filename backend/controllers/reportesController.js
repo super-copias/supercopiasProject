@@ -533,6 +533,8 @@ async function getReporteCorteCaja(req, res) {
       total_anticipos_pedidos: parseFloat(arqueoResumenDB.total_anticipos_pedidos || 0),
       total_saldos_pedidos: parseFloat(arqueoResumenDB.total_saldos_pedidos || 0),
       total_efectivo: 0,
+      total_tarjeta_debito: 0,
+      total_tarjeta_credito: 0,
       total_tarjeta: 0,
       total_transferencia: 0,
     };
@@ -542,10 +544,19 @@ async function getReporteCorteCaja(req, res) {
       const totalMetodo = parseFloat(m.total || 0);
       if (codigo === 'efectivo') arqueoResumen.total_efectivo += totalMetodo;
       else if (codigo === 'transferencia') arqueoResumen.total_transferencia += totalMetodo;
-      else if (['tarjeta', 'tarjeta_debito', 'tarjeta_credito'].includes(codigo)) arqueoResumen.total_tarjeta += totalMetodo;
+      else if (codigo === 'tarjeta_debito') {
+        arqueoResumen.total_tarjeta_debito += totalMetodo;
+        arqueoResumen.total_tarjeta += totalMetodo;
+      } else if (['tarjeta', 'tarjeta_credito'].includes(codigo)) {
+        // Compatibilidad: algunos registros históricos usan codigo "tarjeta".
+        arqueoResumen.total_tarjeta_credito += totalMetodo;
+        arqueoResumen.total_tarjeta += totalMetodo;
+      }
     }
 
     arqueoResumen.total_efectivo = parseFloat(arqueoResumen.total_efectivo.toFixed(2));
+    arqueoResumen.total_tarjeta_debito = parseFloat(arqueoResumen.total_tarjeta_debito.toFixed(2));
+    arqueoResumen.total_tarjeta_credito = parseFloat(arqueoResumen.total_tarjeta_credito.toFixed(2));
     arqueoResumen.total_tarjeta = parseFloat(arqueoResumen.total_tarjeta.toFixed(2));
     arqueoResumen.total_transferencia = parseFloat(arqueoResumen.total_transferencia.toFixed(2));
 
@@ -614,6 +625,8 @@ async function getReporteCorteCaja(req, res) {
         ['Total IVA',          parseFloat(resumen.total_iva)],
         ['Total cobrado hoy', arqueoResumen.total_cobrado],
         ['Cobrado en efectivo', arqueoResumen.total_efectivo],
+        ['Cobrado con T. débito', arqueoResumen.total_tarjeta_debito],
+        ['Cobrado con T. crédito', arqueoResumen.total_tarjeta_credito],
         ['Cobrado con tarjeta', arqueoResumen.total_tarjeta],
         ['Cobrado por transferencia', arqueoResumen.total_transferencia],
         ['Anticipos cobrados', arqueoResumen.total_anticipos_pedidos],
@@ -664,6 +677,8 @@ async function getReporteCorteCaja(req, res) {
       drawTable(doc, ['Concepto', 'Monto'], [
         ['Total cobrado hoy', fmtCurrency(arqueoResumen.total_cobrado)],
         ['Cobrado en efectivo', fmtCurrency(arqueoResumen.total_efectivo)],
+        ['Cobrado con T. débito', fmtCurrency(arqueoResumen.total_tarjeta_debito)],
+        ['Cobrado con T. crédito', fmtCurrency(arqueoResumen.total_tarjeta_credito)],
         ['Cobrado con tarjeta', fmtCurrency(arqueoResumen.total_tarjeta)],
         ['Cobrado por transferencia', fmtCurrency(arqueoResumen.total_transferencia)],
         ['Anticipos cobrados', fmtCurrency(arqueoResumen.total_anticipos_pedidos)],

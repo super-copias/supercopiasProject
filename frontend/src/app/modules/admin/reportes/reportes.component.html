@@ -269,18 +269,23 @@
         <div class="stat-value blue">${{ (previewResumenArqueo.total_efectivo || 0) | number:'1.2-2' }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Con tarjeta</div>
-        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta || 0) | number:'1.2-2' }}</div>
+        <div class="stat-label">Con T. débito</div>
+        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta_debito || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Con T. crédito</div>
+        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta_credito || 0) | number:'1.2-2' }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Por transferencia</div>
         <div class="stat-value blue">${{ (previewResumenArqueo.total_transferencia || 0) | number:'1.2-2' }}</div>
       </div>
-      <div class="stat-card">
+      <div class="resumen-cards-break" aria-hidden="true"></div>
+      <div class="stat-card stat-card-cierre-caja">
         <div class="stat-label">Anticipos cobrados</div>
         <div class="stat-value orange">${{ (previewResumenArqueo.total_anticipos_pedidos || 0) | number:'1.2-2' }}</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-card-cierre-caja">
         <div class="stat-label">Saldos cobrados</div>
         <div class="stat-value green">${{ (previewResumenArqueo.total_saldos_pedidos || 0) | number:'1.2-2' }}</div>
       </div>
