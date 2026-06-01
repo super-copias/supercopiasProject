@@ -24,6 +24,30 @@ const { registrarBitacora, getIp } = require('../utils/bitacora');
 
 const TIME_ZONE_MX = 'America/Mexico_City';
 
+function calcularTotalFacturaConTasas(totalBase, requiereFactura, tipoPersonaFactura, tasas) {
+  const totalNum = parseFloat(totalBase || 0);
+  if (!requiereFactura || !tasas) return parseFloat(totalNum.toFixed(2));
+
+  const ivaMonto = parseFloat((totalNum * (tasas.iva_pct || 0)).toFixed(2));
+  const isrMonto = tipoPersonaFactura === 'pf'
+    ? 0
+    : parseFloat((totalNum * (tasas.isr_pct || 0)).toFixed(2));
+
+  return parseFloat((totalNum + ivaMonto - isrMonto).toFixed(2));
+}
+
+function calcularSaldoPendientePedido(pedido, tasas) {
+  const totalBase = parseFloat(pedido.total || 0);
+  const anticipo = parseFloat(pedido.anticipo || 0);
+  const totalReferencia = calcularTotalFacturaConTasas(
+    totalBase,
+    !!pedido.requiere_factura,
+    pedido.tipo_persona_factura || 'pm',
+    tasas
+  );
+  return parseFloat(Math.max(0, totalReferencia - anticipo).toFixed(2));
+}
+
 function parseFechaAcordadaMX(fechaAcordada) {
   if (!fechaAcordada) return null;
 
@@ -134,6 +158,8 @@ async function getPedidoDetalle(id) {
     [id]
   );
 
+  const tasas = pedido.requiere_factura ? await leerTasas() : null;
+
   return {
     ...pedido,
     subtotal:       parseFloat(pedido.subtotal),
@@ -141,7 +167,7 @@ async function getPedidoDetalle(id) {
     descuento_monto: parseFloat(pedido.descuento_monto),
     total:          parseFloat(pedido.total),
     anticipo:       parseFloat(pedido.anticipo),
-    saldo_pendiente: parseFloat((parseFloat(pedido.total) - parseFloat(pedido.anticipo)).toFixed(2)),
+    saldo_pendiente: calcularSaldoPendientePedido(pedido, tasas),
     detalle: detR.rows.map(d => ({
       ...d,
       cantidad:              parseFloat(d.cantidad),
@@ -234,7 +260,14 @@ async function createPedido(req, res) {
     const descPct   = Math.min(parseFloat(descuento_pct || 0), 100);
     const descMonto = parseFloat((subtotal * descPct / 100).toFixed(2));
     const total     = parseFloat((subtotal - descMonto).toFixed(2));
-    const anticipoVal = Math.min(parseFloat(anticipo || 0), total);
+    const tasasFactura = requiere_factura ? await leerTasas() : null;
+    const totalReferenciaAnticipo = calcularTotalFacturaConTasas(
+      total,
+      !!requiere_factura,
+      tipo_persona_factura || 'pm',
+      tasasFactura
+    );
+    const anticipoVal = Math.min(parseFloat(anticipo || 0), totalReferenciaAnticipo);
 
     // Normalizar pagos_anticipo
     const _CODIGOS_PED = ['efectivo','tarjeta_debito','tarjeta_credito','transferencia'];
@@ -428,6 +461,8 @@ async function listPedidos(req, res) {
     ]);
 
     const total = parseInt(countR.rows[0].count);
+    const requiereTasas = dataR.rows.some((r) => !!r.requiere_factura);
+    const tasas = requiereTasas ? await leerTasas() : null;
     const pedidos = dataR.rows.map(r => ({
       ...r,
       subtotal:        parseFloat(r.subtotal),
@@ -435,7 +470,7 @@ async function listPedidos(req, res) {
       descuento_monto: parseFloat(r.descuento_monto),
       total:           parseFloat(r.total),
       anticipo:        parseFloat(r.anticipo),
-      saldo_pendiente: parseFloat((parseFloat(r.total) - parseFloat(r.anticipo)).toFixed(2)),
+      saldo_pendiente: calcularSaldoPendientePedido(r, tasas),
     }));
 
     return res.json(createPaginatedResponse(pedidos, parseInt(page), limitInt, total));
@@ -634,7 +669,7 @@ async function entregarPedido(req, res) {
     // Validar que el monto recibido cubra el saldo cuando se paga en efectivo
     const totalNum    = parseFloat(pedido.total);
     const anticipoNum = parseFloat(pedido.anticipo);
-    const saldoReq    = parseFloat((totalNum - anticipoNum).toFixed(2));
+    const saldoReq    = calcularSaldoPendientePedido(pedido, null);
 
     // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
     const rfacturaEnt      = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
@@ -649,7 +684,7 @@ async function entregarPedido(req, res) {
 
       // Monto a cobrar al entregar: total facturado completo menos anticipo ya recibido.
       // Esto evita subcobro cuando el anticipo se tomó antes y los impuestos se calculan al facturar.
-      const totalFactura = parseFloat((totalNum + ivaMonto - isrMonto).toFixed(2));
+      const totalFactura = calcularTotalFacturaConTasas(totalNum, true, tipoPersonaEnt, tasas);
       saldoACobrar = parseFloat(Math.max(0, totalFactura - anticipoNum).toFixed(2));
     }
 

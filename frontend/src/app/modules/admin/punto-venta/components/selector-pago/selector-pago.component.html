@@ -27,13 +27,16 @@
       <!-- Efectivo: Recibido (opcional, para cambio) + Nota -->
       <div class="metodo-sec" *ngIf="seleccionados[0] === 'efectivo'">
         <div class="campo-row">
-          <label>Recibido <span class="text-muted fw-normal">(opcional — para calcular cambio)</span></label>
+          <label>Efectivo entregado por cliente <span class="text-muted fw-normal">(opcional — solo para calcular cambio)</span></label>
           <div class="input-group input-group-sm">
             <span class="input-group-text">$</span>
             <input type="number" class="form-control text-end" min="0" step="0.01"
-              placeholder="Vacío = cobro exacto"
+              placeholder="Dejalo vacio si pago exacto"
               [(ngModel)]="_montoRecibidoEfectivo" (ngModelChange)="onMontoRecibidoChange()" />
           </div>
+          <small class="text-muted">
+            No modifica el monto del anticipo; solo sirve para calcular cambio.
+          </small>
           <small class="text-success fw-semibold" *ngIf="cambioEfectivo > 0">
             <i class="fa-solid fa-circle-check me-1"></i>Cambio: ${{ cambioEfectivo | number:'1.2-2' }}
           </small>

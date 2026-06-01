@@ -169,7 +169,12 @@
                 <span title="Persona Física">PF</span>
               </button>
             </div>
-            <app-factura-impuestos-preview [subtotal]="totales.total" [small]="true" [tipoPersona]="form.tipo_persona_factura"></app-factura-impuestos-preview>
+            <app-factura-impuestos-preview
+              [subtotal]="totales.total"
+              [small]="true"
+              [tipoPersona]="form.tipo_persona_factura"
+              (totalChange)="onFacturaTotalChange($event)">
+            </app-factura-impuestos-preview>
           </div>
 
           <!-- Anticipo -->
@@ -182,13 +187,13 @@
               <span class="input-group-text">$</span>
               <input type="number" class="form-control"
                 [min]="0"
-                [max]="totales.total"
+                [max]="totalReferenciaAnticipo"
                 step="0.5"
                 [(ngModel)]="form.anticipo"
                 placeholder="0.00">
               <button type="button" class="btn btn-outline-secondary btn-sm"
                 style="font-size:.72rem;padding:.2rem .5rem"
-                (click)="form.anticipo = totales.total"
+                (click)="form.anticipo = totalReferenciaAnticipo"
                 title="Pago total">Total</button>
             </div>
             <div class="hint-anticipo mt-1"
@@ -199,11 +204,11 @@
               </span>
               <span *ngIf="form.anticipo > 0 && !anticipoValido">
                 <i class="bi bi-exclamation-triangle me-1"></i>
-                Monto inválido — mín. ${{ minimoAnticipo | number:'1.2-2' }}, máx. ${{ totales.total | number:'1.2-2' }}
+                Monto inválido — mín. ${{ minimoAnticipo | number:'1.2-2' }}, máx. ${{ totalReferenciaAnticipo | number:'1.2-2' }}
               </span>
               <span *ngIf="anticipoValido">
                 <i class="bi bi-check-circle me-1"></i>
-                Resta: ${{ (totales.total - form.anticipo) | number:'1.2-2' }}
+                Resta: ${{ (totalReferenciaAnticipo - form.anticipo) | number:'1.2-2' }}
               </span>
             </div>
 
