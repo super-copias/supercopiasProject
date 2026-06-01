@@ -172,6 +172,22 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     return new Date(p.fecha_acordada) < new Date();
   }
 
+  totalMostradoPedido(p: any): number {
+    const totalBase = parseFloat(p?.total || 0);
+    const anticipo = parseFloat(p?.anticipo || 0);
+    const saldo = this.restaPedido(p);
+    return parseFloat((saldo + anticipo).toFixed(2)) || totalBase;
+  }
+
+  restaPedido(p: any): number {
+    const totalBase = parseFloat(p?.total || 0);
+    const anticipo = parseFloat(p?.anticipo || 0);
+    const saldoCalculado = parseFloat((totalBase - anticipo).toFixed(2));
+    const saldoPersistido = p?.saldo_pendiente;
+    const saldo = saldoPersistido != null ? parseFloat(saldoPersistido) : saldoCalculado;
+    return parseFloat(Math.max(0, saldo).toFixed(2));
+  }
+
   // ── Acciones ──────────────────────────────────────────────────
 
   tomar(p: any): void {

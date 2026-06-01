@@ -41,6 +41,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   pedidoCreado: any = null;
   mostrarTicketPedido = false;
   mostrarItems = true;
+  totalFacturaPreview = 0;
 
   form = {
     cliente_nombre:       '',
@@ -121,12 +122,17 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   }
 
   get minimoAnticipo(): number {
-    return parseFloat((this.totales.total * 0.20).toFixed(2));
+    return parseFloat((this.totalReferenciaAnticipo * 0.20).toFixed(2));
+  }
+
+  get totalReferenciaAnticipo(): number {
+    if (!this.form.requiere_factura) return this.totales.total;
+    return this.totalFacturaPreview > 0 ? this.totalFacturaPreview : this.totales.total;
   }
 
   get anticipoValido(): boolean {
     const a = this.form.anticipo;
-    return a >= 0 && a <= this.totales.total;
+    return a >= 0 && a <= this.totalReferenciaAnticipo;
   }
 
   get hoyISO(): string {
@@ -204,7 +210,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     }
 
     if (!this.anticipoValido) {
-      this.error = `El anticipo no puede ser mayor al total ($${this.totales.total.toFixed(2)})`;
+      this.error = `El anticipo no puede ser mayor al total ($${this.totalReferenciaAnticipo.toFixed(2)})`;
       return;
     }
 
@@ -276,6 +282,10 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     else { this.mostrarItems = true; }
   }
   onPagosAnticipoValidChange(v: boolean): void { this.pagosAnticipoValidos = v; }
+
+  onFacturaTotalChange(total: number): void {
+    this.totalFacturaPreview = Number(total) > 0 ? Number(total) : 0;
+  }
 
   onCerrarTicket(): void {
     this.generado.emit(this.pedidoCreado);

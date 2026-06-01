@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime } from 'rxjs/operators';
 import { FacturasService } from '../../services/facturas.service';
@@ -15,6 +15,7 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
   @Input() small = false;
   /** pf = Persona Física (solo IVA); pm = Persona Moral / PFAE (IVA + ISR) */
   @Input() tipoPersona: 'pf' | 'pm' = 'pm';
+  @Output() totalChange = new EventEmitter<number>();
 
   iva_pct  = 0.16;
   iva_monto = 0;
@@ -46,6 +47,7 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
   private calcularDesdeApi(sub: number): void {
     if (sub <= 0) {
       this.iva_monto = this.isr_monto = this.total = 0;
+      this.totalChange.emit(this.total);
       return;
     }
     this.facturasService.calcularImpuestos(sub, this.tipoPersona)
@@ -58,12 +60,14 @@ export class FacturaImpuestosPreviewComponent implements OnChanges, OnDestroy {
           this.isr_pct   = d.isr_pct;
           this.isr_monto = d.isr_monto;
           this.total     = d.total;
+          this.totalChange.emit(this.total);
         },
         error: () => {
           // Fallback local si la API falla
           this.iva_monto = parseFloat((sub * this.iva_pct).toFixed(2));
           this.isr_monto = this.tipoPersona === 'pf' ? 0 : parseFloat((sub * this.isr_pct).toFixed(2));
           this.total     = parseFloat((sub + this.iva_monto - this.isr_monto).toFixed(2));
+          this.totalChange.emit(this.total);
         },
       });
   }
