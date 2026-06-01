@@ -189,7 +189,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let art of depto.articulos">
+              <tr *ngFor="let art of depto.articulos" [attr.id]="'articulo-' + art.id">
                 <td>
                   <div class="fw-semibold">{{art.nombre}}</div>
                   <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>
@@ -226,7 +226,7 @@
                 <td class="text-end">
                   <div class="btn-group btn-group-sm">
                     <button class="btn btn-outline-primary" title="Ver" (click)="verDetalle(art.id!)"><i class="fas fa-eye"></i></button>
-                    <button class="btn btn-outline-warning" title="Editar" (click)="editar(art.id!)"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline-warning" title="Editar" (click)="editar(art.id!, depto.id)"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-outline-secondary d-none d-md-inline-flex" title="Archivar" (click)="archivar(art)"><i class="fas fa-archive"></i></button>
                     <button class="btn btn-outline-danger d-none d-md-inline-flex" title="Eliminar" (click)="eliminar(art)"><i class="fas fa-trash"></i></button>
                   </div>
@@ -265,7 +265,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let art of resultadosBusqueda">
+            <tr *ngFor="let art of resultadosBusqueda" [attr.id]="'articulo-' + art.id">
               <td>
                 <div class="fw-semibold">{{art.nombre}}</div>
                 <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>
@@ -302,7 +302,7 @@
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
                   <button class="btn btn-outline-primary" title="Ver" (click)="verDetalle(art.id!)"><i class="fas fa-eye"></i></button>
-                  <button class="btn btn-outline-warning" title="Editar" (click)="editar(art.id!)"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-outline-warning" title="Editar" (click)="editar(art.id!, art.departamento_id)"><i class="fas fa-edit"></i></button>
                   <button class="btn btn-outline-secondary d-none d-md-inline-flex" title="Archivar" (click)="archivar(art)"><i class="fas fa-archive"></i></button>
                   <button class="btn btn-outline-danger d-none d-md-inline-flex" title="Eliminar" (click)="eliminar(art)"><i class="fas fa-trash"></i></button>
                 </div>
