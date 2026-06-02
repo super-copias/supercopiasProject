@@ -1,7 +1,10 @@
+:host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
 .pedidos-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -233,7 +236,6 @@
 
 // Paginador (homologado con historial/cotizaciones)
 .paginador {
-  margin-top: auto;
   flex-shrink: 0;
   background: #fff;
 }
