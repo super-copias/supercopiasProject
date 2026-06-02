@@ -281,12 +281,12 @@
         <div class="stat-value blue">${{ (previewResumenArqueo.total_transferencia || 0) | number:'1.2-2' }}</div>
       </div>
       <div class="resumen-cards-break" aria-hidden="true"></div>
-      <div class="stat-card stat-card-cierre-caja">
-        <div class="stat-label">Anticipos cobrados</div>
+      <div class="stat-card stat-card-cierre-caja" title="Suma de anticipos (pagos parciales) cobrados al momento de registrar pedidos en este día.">
+        <div class="stat-label">Anticipos cobrados - pedido <i class="fas fa-info-circle stat-info-icon"></i></div>
         <div class="stat-value orange">${{ (previewResumenArqueo.total_anticipos_pedidos || 0) | number:'1.2-2' }}</div>
       </div>
-      <div class="stat-card stat-card-cierre-caja">
-        <div class="stat-label">Saldos cobrados</div>
+      <div class="stat-card stat-card-cierre-caja" title="Suma de saldos restantes cobrados al entregar pedidos finalizados en este día.">
+        <div class="stat-label">Saldos cobrados - pedido <i class="fas fa-info-circle stat-info-icon"></i></div>
         <div class="stat-value green">${{ (previewResumenArqueo.total_saldos_pedidos || 0) | number:'1.2-2' }}</div>
       </div>
     </section>
