@@ -196,6 +196,17 @@ $body-pad:  1.5rem;   // padding de .content-body en admin.component.scss
   }
 }
 
+// Móvil muy pequeño: solo iconos en la barra de navegación
+@media (max-width: 380px) {
+  .pos-topbar .topbar-center .btn-group .btn {
+    min-width: 0;
+    padding: .3rem .5rem;
+
+    .btn-label { display: none; }
+    i          { margin-right: 0 !important; }
+  }
+}
+
 // ─── Print ────────────────────────────────────────────────────
 @media print {
   :host { margin: 0; height: auto; overflow: visible; }

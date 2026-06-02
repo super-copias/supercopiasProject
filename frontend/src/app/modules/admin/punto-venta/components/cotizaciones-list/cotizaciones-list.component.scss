@@ -30,6 +30,7 @@
 .tabla-wrapper {
   flex: 1;
   overflow-y: auto;
+  overflow-x: auto;
 }
 .folio { font-size: .78rem; background: #e9ecef; border-radius: 3px; padding: 2px 5px; }
 .cursor-pointer { cursor: pointer; }
@@ -38,6 +39,12 @@
 // Paginador
 .paginador { flex-shrink: 0; background: #fff; }
 .page-link { cursor: pointer; }
+
+// Responsive
+@media (max-width: 576px) {
+  .filtros-bar    { padding: .5rem .75rem; }
+  .filtros-titulo { font-size: .88rem; flex-wrap: wrap; gap: .4rem; }
+}
 
 // Panel lateral detalle (igual que historial)
 .detalle-overlay {

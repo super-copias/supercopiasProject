@@ -14,15 +14,15 @@
   <!-- ── Filtros ────────────────────────────────────────────────── -->
   <div class="filtros-card mb-3">
     <div class="row g-2 align-items-end">
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Desde</label>
         <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroDesde">
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Hasta</label>
         <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroHasta">
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Estatus</label>
         <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus">
           <option value="">Todos</option>
@@ -31,7 +31,7 @@
           <option value="cancelada">Cancelada</option>
         </select>
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Origen</label>
         <select class="form-select form-select-sm" [(ngModel)]="filtroOrigen">
           <option value="">Todos</option>
@@ -40,12 +40,12 @@
           <option value="cotizacion">Cotización</option>
         </select>
       </div>
-      <div class="col">
+      <div class="col-12 col-sm">
         <label class="form-label form-label-sm mb-0">Folio</label>
         <input type="text" class="form-control form-control-sm" [(ngModel)]="filtroFolio"
           placeholder="FA-2026-..." (keydown.enter)="buscar()">
       </div>
-      <div class="col-auto d-flex gap-1 align-items-end">
+      <div class="col-12 col-sm-auto d-flex gap-1 align-items-end">
         <button class="btn btn-sm btn-primary" (click)="buscar()">
           <i class="bi bi-search me-1"></i>Buscar
         </button>
@@ -84,13 +84,13 @@
         <thead class="table-light">
           <tr>
             <th>Folio</th>
-            <th>Fecha</th>
-            <th>Origen</th>
+            <th class="d-none d-sm-table-cell">Fecha</th>
+            <th class="d-none d-md-table-cell">Origen</th>
             <th>Cliente</th>
-            <th>RFC</th>
-            <th class="text-end">Subtotal</th>
-            <th class="text-end">IVA</th>
-            <th class="text-end">ISR</th>
+            <th class="d-none d-sm-table-cell">RFC</th>
+            <th class="text-end d-none d-lg-table-cell">Subtotal</th>
+            <th class="text-end d-none d-lg-table-cell">IVA</th>
+            <th class="text-end d-none d-lg-table-cell">ISR</th>
             <th class="text-end fw-bold">Total</th>
             <th>Estatus</th>
             <th></th>
@@ -99,17 +99,17 @@
         <tbody>
           <tr *ngFor="let f of facturas" class="cursor-pointer" (click)="verDetalle(f)">
             <td><code class="folio-code">{{ f.folio }}</code></td>
-            <td class="text-nowrap">{{ f.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
-            <td>
+            <td class="text-nowrap d-none d-sm-table-cell">{{ f.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
+            <td class="d-none d-md-table-cell">
               <span class="badge-origen" [ngClass]="'origen-' + f.tipo_origen">
                 {{ labelOrigen(f.tipo_origen) }}
               </span>
             </td>
             <td>{{ f.cliente_nombre }}</td>
-            <td><code class="rfc-code">{{ f.cliente_rfc }}</code></td>
-            <td class="text-end">${{ f.subtotal | number:'1.2-2' }}</td>
-            <td class="text-end text-success">+${{ f.iva_monto | number:'1.2-2' }}</td>
-            <td class="text-end text-danger">-${{ f.isr_monto | number:'1.2-2' }}</td>
+            <td class="d-none d-sm-table-cell"><code class="rfc-code">{{ f.cliente_rfc }}</code></td>
+            <td class="text-end d-none d-lg-table-cell">${{ f.subtotal | number:'1.2-2' }}</td>
+            <td class="text-end text-success d-none d-lg-table-cell">+${{ f.iva_monto | number:'1.2-2' }}</td>
+            <td class="text-end text-danger d-none d-lg-table-cell">-${{ f.isr_monto | number:'1.2-2' }}</td>
             <td class="text-end fw-bold">${{ f.total_factura | number:'1.2-2' }}</td>
             <td>
               <span class="badge-estatus" [ngClass]="'est-' + f.estatus">

@@ -10,6 +10,11 @@
   background: #fff;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
+
+  .busqueda-input {
+    min-width: 180px;
+    @media (max-width: 480px) { min-width: 0; flex: 1; }
+  }
 }
 
 .vacío-state {
@@ -21,11 +26,12 @@
 
 .pedidos-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: .75rem;
   padding: .75rem 1rem;
   overflow-y: auto;
   flex: 1;
+  align-content: start;
 }
 
 .pedido-card {
