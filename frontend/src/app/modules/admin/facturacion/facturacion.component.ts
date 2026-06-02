@@ -20,7 +20,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   // Filtros
   filtroDesde   = '';
   filtroHasta   = '';
-  filtroEstatus = '';
+  filtroEstatus = 'pendiente';
   filtroOrigen  = '';
   filtroFolio   = '';
 
@@ -133,7 +133,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   }
 
   limpiarFiltros(): void {
-    this.filtroDesde = this.filtroHasta = this.filtroEstatus = this.filtroOrigen = this.filtroFolio = '';
+    this.filtroDesde = this.filtroHasta = this.filtroOrigen = this.filtroFolio = '';
+    this.filtroEstatus = 'pendiente';
     this.pagina = 1;
     this.cargar();
   }

@@ -26,7 +26,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
 
   // Filtros
   filtroFolio     = '';
-  filtroEstatus   = '';
+  filtroEstatus   = 'pendiente';
   filtroDesde     = '';
   filtroHasta     = '';
 
@@ -122,7 +122,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
 
   limpiarFiltros(): void {
     this.filtroFolio   = '';
-    this.filtroEstatus = '';
+    this.filtroEstatus = 'pendiente';
     this.filtroDesde   = '';
     this.filtroHasta   = '';
     this.pagina        = 1;
