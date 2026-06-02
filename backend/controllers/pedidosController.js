@@ -277,6 +277,34 @@ async function createPedido(req, res) {
       : (metodo_pago_anticipo && anticipoVal > 0 ? [{ codigo: metodo_pago_anticipo, monto: anticipoVal }] : []);
     const primerMetodoAnticipo = pagosAnticipo.length > 0 ? pagosAnticipo[0].codigo : (metodo_pago_anticipo || null);
 
+    // ── Validar stock disponible para productos físicos ───────────────
+    // Se valida con FOR UPDATE dentro de la transacción para evitar
+    // condiciones de carrera con otras operaciones concurrentes.
+    const lineasConInventario = lineas.filter(l => l.inventario_id && !l.es_servicio && !l.es_item_libre);
+    const reservasStock = []; // almacena { inventario_id, nombre, saldoAnterior, cantidad }
+    for (const l of lineasConInventario) {
+      const stockQ = await client.query(
+        'SELECT id, nombre, existencia_actual FROM inventarios WHERE id = $1 AND activo = true FOR UPDATE',
+        [l.inventario_id]
+      );
+      if (stockQ.rows.length === 0) continue;
+      const disponible = parseFloat(stockQ.rows[0].existencia_actual);
+      if (disponible < l.cantidad) {
+        const err = new Error(
+          `Stock insuficiente para "${stockQ.rows[0].nombre}": disponible ${disponible}, requerido ${l.cantidad}`
+        );
+        err.statusCode = 400;
+        err.errorCode  = CODIGOS_ERROR.DATOS_INVALIDOS;
+        throw err;
+      }
+      reservasStock.push({
+        inventario_id: l.inventario_id,
+        nombre:        stockQ.rows[0].nombre,
+        saldoAnterior: disponible,
+        cantidad:      l.cantidad,
+      });
+    }
+
     const folio = await generarFolioPedido(client);
 
     const pedidoQ = await client.query(`
@@ -345,6 +373,26 @@ async function createPedido(req, res) {
       ]);
     }
 
+    // ── Descontar stock (reserva / apartado) ─────────────────────────
+    for (const r of reservasStock) {
+      const saldoNuevo = parseFloat((r.saldoAnterior - r.cantidad).toFixed(2));
+
+      await client.query(
+        'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = NOW() WHERE id = $2',
+        [saldoNuevo, r.inventario_id]
+      );
+
+      await client.query(`
+        INSERT INTO inventarios_movimientos
+          (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo,
+           usuario_nombre, area_servicio, notas, pedido_id)
+        VALUES ($1, 'salida', 'apartado_pedido', $2, $3, $4, $5, 'Punto de Venta (Pedido)', $6, $7)
+      `, [
+        r.inventario_id, -r.cantidad, r.saldoAnterior, saldoNuevo,
+        creadoPorNombre, `Pedido apartado: ${folio}`, pedidoId,
+      ]);
+    }
+
     // Registrar en historial
     await registrarHistorial(client, pedidoId, null, 'pendiente', creadoPorId, creadoPorNombre, 'Pedido creado');
 
@@ -377,6 +425,9 @@ async function createPedido(req, res) {
     return res.status(201).json(createResponse(true, pedidoCompleto, `Pedido ${folio} creado exitosamente`));
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.statusCode === 400) {
+      return res.status(400).json(createErrorResponse(err.message, err.errorCode));
+    }
     console.error('createPedido:', err);
     return res.status(500).json(createErrorResponse('Error al crear pedido', CODIGOS_ERROR.ERROR_SERVIDOR));
   } finally {
@@ -804,28 +855,23 @@ async function entregarPedido(req, res) {
         parseFloat(linea.subtotal_linea),
       ]);
 
-      // Descontar inventario (solo productos físicos)
+      // Confirmar salida de inventario (el stock fue descontado al crear el pedido,
+      // aquí solo se registra el movimiento de auditoría de la venta generada)
       if (linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
         const stockQ = await client.query(
-          'SELECT existencia_actual FROM inventarios WHERE id = $1 FOR UPDATE',
+          'SELECT existencia_actual FROM inventarios WHERE id = $1',
           [linea.inventario_id]
         );
         if (stockQ.rows.length > 0) {
-          const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
-          const saldoNuevo    = parseFloat((saldoAnterior - cantidad).toFixed(2));
-
-          await client.query(
-            'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = NOW() WHERE id = $2',
-            [saldoNuevo, linea.inventario_id]
-          );
+          const saldoActual = parseFloat(stockQ.rows[0].existencia_actual);
 
           await client.query(`
             INSERT INTO inventarios_movimientos
               (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo,
                usuario_nombre, area_servicio, notas, venta_id)
-            VALUES ($1,'salida','venta',$2,$3,$4,$5,'Punto de Venta (Pedido)',$6,$7)
+            VALUES ($1,'salida','venta',$2,$3,$3,$4,'Punto de Venta (Pedido)',$5,$6)
           `, [
-            linea.inventario_id, -cantidad, saldoAnterior, saldoNuevo,
+            linea.inventario_id, -cantidad, saldoActual,
             usuarioNombre, `Pedido: ${pedido.folio} → Venta: ${folio}`, ventaId,
           ]);
         }
@@ -937,7 +983,7 @@ async function cancelarPedido(req, res) {
     const usuarioId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
 
     const r = await client.query(
-      `SELECT id, estatus FROM pos_pedidos WHERE id = $1 FOR UPDATE`, [pedidoId]
+      `SELECT id, estatus, folio FROM pos_pedidos WHERE id = $1 FOR UPDATE`, [pedidoId]
     );
     if (r.rows.length === 0)
       return res.status(404).json(createErrorResponse('Pedido no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
@@ -958,6 +1004,42 @@ async function cancelarPedido(req, res) {
     `, [motivo || null, pedidoId]);
 
     await registrarHistorial(client, pedidoId, estatusAnterior, 'cancelado', usuarioId, usuarioNombre, motivo || null);
+
+    // ── Liberar stock reservado al cancelar ───────────────────────────
+    const detCancelR = await client.query(
+      `SELECT inventario_id, cantidad, nombre_producto
+       FROM pos_pedidos_detalle
+       WHERE pedido_id = $1
+         AND es_servicio   = false
+         AND es_item_libre = false
+         AND inventario_id IS NOT NULL`,
+      [pedidoId]
+    );
+    for (const linea of detCancelR.rows) {
+      const cantidad = parseFloat(linea.cantidad);
+      const stockQ = await client.query(
+        'SELECT existencia_actual FROM inventarios WHERE id = $1 FOR UPDATE',
+        [linea.inventario_id]
+      );
+      if (stockQ.rows.length === 0) continue;
+      const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
+      const saldoNuevo    = parseFloat((saldoAnterior + cantidad).toFixed(2));
+
+      await client.query(
+        'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = NOW() WHERE id = $2',
+        [saldoNuevo, linea.inventario_id]
+      );
+
+      await client.query(`
+        INSERT INTO inventarios_movimientos
+          (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo,
+           usuario_nombre, area_servicio, notas, pedido_id)
+        VALUES ($1, 'entrada', 'liberacion_apartado', $2, $3, $4, $5, 'Punto de Venta (Pedido)', $6, $7)
+      `, [
+        linea.inventario_id, cantidad, saldoAnterior, saldoNuevo,
+        usuarioNombre, `Pedido cancelado: ${pedido.folio}`, pedidoId,
+      ]);
+    }
 
     await client.query('COMMIT');
 
