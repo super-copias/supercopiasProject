@@ -1,17 +1,16 @@
 <!-- ── Ticket post-venta ─────────────────────────────────────── -->
 <app-pos-ticket
   *ngIf="mostrarTicket && ventaExitosa"
+  [ticketType]="'venta'"
   [venta]="ventaExitosa"
-  (imprimir)="imprimirTicket()"
   (nuevaVenta)="nuevaVenta()"
 ></app-pos-ticket>
 
 <!-- ── Ticket post-cotización ───────────────────────────────────── -->
 <app-pos-ticket
   *ngIf="mostrarTicketCotizacion && cotizacionExitosa"
-  [esCotizacion]="true"
+  [ticketType]="'cotizacion'"
   [cotizacion]="cotizacionExitosa"
-  (imprimir)="imprimirTicket()"
   (nuevaVenta)="nuevaVenta()"
 ></app-pos-ticket>
 

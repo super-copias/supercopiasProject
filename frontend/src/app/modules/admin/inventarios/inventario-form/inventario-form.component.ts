@@ -14,6 +14,9 @@ export class InventarioFormComponent implements OnInit {
   loading = false;
   isEditMode = false;
   inventarioId: number | null = null;
+  returnTo: 'lista' | 'detalle' = 'lista';
+  returnDeptId: number | null = null;
+  returnArticuloId: number | null = null;
 
   // ── Paso 1: selector de tipo ─────────────────────────────────────────────
   paso: 1 | 2 = 1;          // 1 = selector tipo, 2 = formulario
@@ -72,6 +75,12 @@ export class InventarioFormComponent implements OnInit {
   ngOnInit(): void {
     this.cargarDepartamentos();
     this.cargarProveedores();
+
+    const qp = this.route.snapshot.queryParamMap;
+    const returnTo = qp.get('returnTo');
+    if (returnTo === 'detalle') this.returnTo = 'detalle';
+    this.returnDeptId = Number(qp.get('returnDept')) || null;
+    this.returnArticuloId = Number(qp.get('returnArticulo')) || null;
 
     this.route.params.subscribe(params => {
       if (params['id']) {
@@ -209,17 +218,43 @@ export class InventarioFormComponent implements OnInit {
     req.subscribe({
       next: r => {
         if (!r.success) { this.loading = false; return; }
-        const articuloId: number = r.data.id;
+        const articuloId: number = this.isEditMode ? this.inventarioId! : r.data.id;
         // Guardar tabulador (siempre, para borrar si se desactivó)
         this.inventariosService.saveTabulador(articuloId, this.tabuladorActivo ? this.tabuladorFilas : []).subscribe({
           next: () => {
             this.loading = false;
             this.notif.success(this.isEditMode ? 'Artículo actualizado' : 'Artículo creado correctamente');
+            if (this.isEditMode && this.returnTo === 'detalle') {
+              this.router.navigate(['/admin/inventarios/detalle', articuloId]);
+              return;
+            }
+            if (this.isEditMode && this.returnTo === 'lista') {
+              this.router.navigate(['/admin/inventarios'], {
+                queryParams: {
+                  openDept: this.returnDeptId || undefined,
+                  focusArt: this.returnArticuloId || articuloId
+                }
+              });
+              return;
+            }
             this.router.navigate(['/admin/inventarios']);
           },
           error: () => {
             this.loading = false;
             this.notif.warning('Artículo guardado, pero ocurrió un error al guardar el tabulador');
+            if (this.isEditMode && this.returnTo === 'detalle') {
+              this.router.navigate(['/admin/inventarios/detalle', articuloId]);
+              return;
+            }
+            if (this.isEditMode && this.returnTo === 'lista') {
+              this.router.navigate(['/admin/inventarios'], {
+                queryParams: {
+                  openDept: this.returnDeptId || undefined,
+                  focusArt: this.returnArticuloId || articuloId
+                }
+              });
+              return;
+            }
             this.router.navigate(['/admin/inventarios']);
           }
         });

@@ -1252,7 +1252,8 @@ CREATE TABLE public.inventarios_movimientos (
     notas text,
     evidencia_url character varying(500),
     fecha_movimiento timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_movimientos_concepto CHECK (((concepto)::text = ANY (ARRAY[('compra'::character varying)::text, ('devolucion'::character varying)::text, ('ajuste_entrada'::character varying)::text, ('venta'::character varying)::text, ('uso_operativo'::character varying)::text, ('servicio_tecnico'::character varying)::text, ('merma'::character varying)::text, ('ajuste_salida'::character varying)::text, ('transferencia'::character varying)::text]))),
+    pedido_id      integer,
+    CONSTRAINT chk_movimientos_concepto CHECK (((concepto)::text = ANY (ARRAY[('compra'::character varying)::text, ('devolucion'::character varying)::text, ('ajuste_entrada'::character varying)::text, ('venta'::character varying)::text, ('uso_operativo'::character varying)::text, ('servicio_tecnico'::character varying)::text, ('merma'::character varying)::text, ('ajuste_salida'::character varying)::text, ('transferencia'::character varying)::text, ('apartado_pedido'::character varying)::text, ('liberacion_apartado'::character varying)::text]))),
     CONSTRAINT chk_movimientos_tipo CHECK (((tipo_movimiento)::text = ANY (ARRAY[('entrada'::character varying)::text, ('salida'::character varying)::text, ('ajuste'::character varying)::text])))
 );
 
@@ -1276,6 +1277,12 @@ COMMENT ON COLUMN public.inventarios_movimientos.tipo_movimiento IS 'Tipo: entra
 --
 
 COMMENT ON COLUMN public.inventarios_movimientos.concepto IS 'Concepto específico del movimiento';
+
+--
+-- Name: COLUMN inventarios_movimientos.pedido_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.inventarios_movimientos.pedido_id IS 'Referencia al pedido que originó el movimiento (aplica para apartado_pedido y liberacion_apartado)';
 
 
 --

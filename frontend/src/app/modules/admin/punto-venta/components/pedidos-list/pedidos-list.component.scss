@@ -1,7 +1,10 @@
+:host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
 .pedidos-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -10,6 +13,11 @@
   background: #fff;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
+
+  .busqueda-input {
+    min-width: 180px;
+    @media (max-width: 480px) { min-width: 0; flex: 1; }
+  }
 }
 
 .vacío-state {
@@ -21,11 +29,12 @@
 
 .pedidos-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: .75rem;
   padding: .75rem 1rem;
   overflow-y: auto;
   flex: 1;
+  align-content: start;
 }
 
 .pedido-card {
@@ -225,61 +234,14 @@
   &:hover:not(.active) { background: #e9ecef; }
 }
 
-// Paginador
-.pedidos-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .5rem 1rem;
-  background: #fff;
-  border-top: 1px solid #e9ecef;
+// Paginador (homologado con historial/cotizaciones)
+.paginador {
   flex-shrink: 0;
-  gap: 1rem;
+  background: #fff;
+}
 
-  .pag-info {
-    font-size: .78rem;
-    color: #666;
-    white-space: nowrap;
-  }
-
-  .pag-btns {
-    display: flex;
-    gap: .25rem;
-    align-items: center;
-  }
-
-  .pag-btn {
-    width: 30px;
-    height: 30px;
-    border: 1.5px solid #dee2e6;
-    background: #fff;
-    border-radius: 6px;
-    font-size: .78rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #333;
-    transition: all .15s;
-    padding: 0;
-
-    &.activa {
-      background: #1a237e;
-      border-color: #1a237e;
-      color: #fff;
-      font-weight: 700;
-    }
-    &:hover:not(.activa):not(:disabled) {
-      background: #e8eaf6;
-      border-color: #1a237e;
-      color: #1a237e;
-    }
-    &:disabled {
-      opacity: .35;
-      cursor: default;
-    }
-  }
+.page-link {
+  cursor: pointer;
 }
 
 // ── Dropdown buscador clientes (modal entrega) ────────────────

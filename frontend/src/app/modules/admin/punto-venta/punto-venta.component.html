@@ -11,22 +11,22 @@
         <button class="btn" [class.btn-primary]="vistaActiva==='pos'"
           [class.btn-outline-primary]="vistaActiva!=='pos'"
           (click)="cambiarVista('pos')">
-          <i class="bi bi-bag-plus me-1"></i>Nueva Venta
+          <i class="bi bi-bag-plus me-1"></i><span class="btn-label">Nueva Venta</span>
         </button>
         <button class="btn" [class.btn-primary]="vistaActiva==='historial'"
           [class.btn-outline-primary]="vistaActiva!=='historial'"
           (click)="cambiarVista('historial')">
-          <i class="bi bi-clock-history me-1"></i>Historial
+          <i class="bi bi-clock-history me-1"></i><span class="btn-label">Historial</span>
         </button>
         <button class="btn" [class.btn-primary]="vistaActiva==='cotizaciones'"
           [class.btn-outline-primary]="vistaActiva!=='cotizaciones'"
           (click)="cambiarVista('cotizaciones')">
-          <i class="bi bi-file-earmark-text me-1"></i>Cotizaciones
+          <i class="bi bi-file-earmark-text me-1"></i><span class="btn-label">Cotizaciones</span>
         </button>
         <button class="btn" [class.btn-primary]="vistaActiva==='pedidos'"
           [class.btn-outline-primary]="vistaActiva!=='pedidos'"
           (click)="cambiarVista('pedidos')">
-          <i class="bi bi-card-list me-1"></i>Pedidos
+          <i class="bi bi-card-list me-1"></i><span class="btn-label">Pedidos</span>
           <span class="badge bg-danger ms-1" *ngIf="pedidosActivos > 0">{{ pedidosActivos }}</span>
         </button>
       </div>

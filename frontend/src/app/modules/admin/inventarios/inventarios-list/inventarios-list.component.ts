@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { InventariosService, Articulo, Departamento, DepartamentoConArticulos, EstadisticasInventario } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 
@@ -26,6 +26,8 @@ export class InventariosListComponent implements OnInit, OnDestroy {
 
   // ── Acordeón ───────────────────────────────────────────────────────────────
   seccionesAbiertas = new Set<number>();
+  private pendingOpenDeptId: number | null = null;
+  private pendingFocusArtId: number | null = null;
 
   // ── Filtros ────────────────────────────────────────────────────────────────
   filtroBusqueda = '';
@@ -46,14 +48,22 @@ export class InventariosListComponent implements OnInit, OnDestroy {
 
   constructor(
     private inventariosService: InventariosService,
+    private route: ActivatedRoute,
     private router: Router,
     private notif: NotificationService
   ) {}
 
   ngOnInit() {
+    this.pendingOpenDeptId = Number(this.route.snapshot.queryParamMap.get('openDept')) || null;
+    this.pendingFocusArtId = Number(this.route.snapshot.queryParamMap.get('focusArt')) || null;
+
     this.cargarDepartamentos();
     this.cargarEstadisticas();
     this.cargarAlertas();
+
+    if (this.pendingOpenDeptId || this.pendingFocusArtId) {
+      this.verTodos();
+    }
 
     // Debounce para búsqueda por texto — siempre escucha
     this.busqueda$.pipe(debounceTime(350), takeUntil(this.destroy$))
@@ -117,11 +127,32 @@ export class InventariosListComponent implements OnInit, OnDestroy {
           this.departamentosConArticulos = r.data || [];
           // Iniciar todos los departamentos contraídos
           this.seccionesAbiertas.clear();
+          this.restaurarContextoRetorno();
           this.vistaActiva = 'acordeon';
         }
       },
       error: () => { this.loading = false; this.notif.error('Error al cargar inventario'); }
     });
+  }
+
+  private restaurarContextoRetorno() {
+    const focusId = this.pendingFocusArtId;
+    if (!focusId) return;
+
+    let deptoId = this.pendingOpenDeptId;
+    if (!deptoId) {
+      const depto = this.departamentosConArticulos.find(d => d.articulos?.some(a => a.id === focusId));
+      deptoId = depto?.id || null;
+    }
+
+    if (deptoId) this.seccionesAbiertas.add(deptoId);
+
+    setTimeout(() => {
+      const el = document.getElementById(`articulo-${focusId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.pendingOpenDeptId = null;
+      this.pendingFocusArtId = null;
+    }, 120);
   }
 
   toggleSeccion(id: number) {
@@ -220,7 +251,15 @@ export class InventariosListComponent implements OnInit, OnDestroy {
 
   nuevo() { this.router.navigate(['/admin/inventarios/nuevo']); }
   verDetalle(id: number) { this.router.navigate(['/admin/inventarios/detalle', id]); }
-  editar(id: number) { this.router.navigate(['/admin/inventarios/editar', id]); }
+  editar(id: number, deptoId?: number | null) {
+    this.router.navigate(['/admin/inventarios/editar', id], {
+      queryParams: {
+        returnTo: 'lista',
+        returnDept: deptoId || undefined,
+        returnArticulo: id
+      }
+    });
+  }
   verHistorial() { this.router.navigate(['/admin/inventarios/movimientos']); }
   verDepartamentos() { this.router.navigate(['/admin/inventarios/departamentos']); }
   ocultarAlertas() { this.mostrarAlertas = false; }

@@ -140,7 +140,9 @@ export class InventarioDetalleComponent implements OnInit {
 
   onEditar(): void {
     if (this.inventarioId) {
-      this.router.navigate(['/admin/inventarios/editar', this.inventarioId]);
+      this.router.navigate(['/admin/inventarios/editar', this.inventarioId], {
+        queryParams: { returnTo: 'detalle' }
+      });
     }
   }
 

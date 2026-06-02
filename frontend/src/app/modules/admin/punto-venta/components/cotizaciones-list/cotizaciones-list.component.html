@@ -12,26 +12,26 @@
       </button>
     </div>
     <div class="row g-2 align-items-end">
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Desde</label>
         <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroDesde">
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Hasta</label>
         <input type="date" class="form-control form-control-sm" [(ngModel)]="filtroHasta">
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Estatus</label>
         <select class="form-select form-select-sm" [(ngModel)]="filtroEstatus">
           <option *ngFor="let op of estatusOpciones" [value]="op.valor">{{ op.label }}</option>
         </select>
       </div>
-      <div class="col">
+      <div class="col-12 col-sm">
         <label class="form-label form-label-sm mb-0">Folio</label>
         <input type="text" class="form-control form-control-sm" [(ngModel)]="filtroFolio"
           placeholder="CQ-2026-..." (keydown.enter)="buscar()">
       </div>
-      <div class="col-auto d-flex gap-1 align-items-end">
+      <div class="col-12 col-sm-auto d-flex gap-1 align-items-end">
         <button class="btn btn-sm btn-primary" (click)="buscar()">
           <i class="bi bi-search me-1"></i>Buscar
         </button>
@@ -56,11 +56,11 @@
       <thead>
         <tr>
           <th>Folio</th>
-          <th>Fecha</th>
+          <th class="d-none d-sm-table-cell">Fecha</th>
           <th>Cliente</th>
-          <th>Vendedor</th>
+          <th class="d-none d-md-table-cell">Vendedor</th>
           <th class="text-end">Total</th>
-          <th>Vigencia</th>
+          <th class="d-none d-md-table-cell">Vigencia</th>
           <th>Estatus</th>
           <th></th>
         </tr>
@@ -68,11 +68,11 @@
       <tbody>
         <tr *ngFor="let c of cotizaciones" class="cursor-pointer" (click)="verDetalle(c.id)">
           <td><code class="folio">{{ c.folio }}</code></td>
-          <td>{{ c.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
+          <td class="d-none d-sm-table-cell">{{ c.fecha_creacion | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
           <td>{{ c.cliente_nombre }}</td>
-          <td>{{ c.vendedor_nombre || '—' }}</td>
+          <td class="d-none d-md-table-cell">{{ c.vendedor_nombre || '—' }}</td>
           <td class="text-end fw-semibold">${{ c.total | number:'1.2-2' }}</td>
-          <td>
+          <td class="d-none d-md-table-cell">
             <span *ngIf="c.fecha_vencimiento">{{ c.fecha_vencimiento | date:'dd/MM/yy' }}</span>
             <span *ngIf="!c.fecha_vencimiento" class="text-muted">—</span>
           </td>
@@ -163,9 +163,8 @@
     <!-- Modo ticket -->
     <ng-container *ngIf="cotizacionDetalle && !cargandoDetalle && mostrarTicketEnDetalle">
       <app-pos-ticket
-        [esCotizacion]="true"
+        [ticketType]="'cotizacion'"
         [cotizacion]="cotizacionDetalle"
-        (imprimir)="imprimirTicketCotizacion()"
         (nuevaVenta)="mostrarTicketEnDetalle = false"
       ></app-pos-ticket>
     </ng-container>

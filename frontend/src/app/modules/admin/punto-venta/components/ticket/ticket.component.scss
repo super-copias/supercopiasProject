@@ -23,6 +23,13 @@
 // Encabezado
 .t-empresa { font-weight: 700; font-size: 15px; text-align: center; }
 .t-sub     { text-align: center; font-size: 11px; margin-bottom: 4px; }
+.t-logo-wrap { text-align: center; margin-bottom: 2px; }
+.t-logo {
+  width: 96px;
+  max-width: 72%;
+  height: auto;
+  display: inline-block;
+}
 .t-sep     { border-top: 1px dashed #aaa; margin: 6px 0; }
 
 // Meta

@@ -7,32 +7,32 @@
         <i class="bi bi-plus-circle me-1"></i>Nueva Venta
       </button>
     </div>    <div class="row g-2 align-items-end">
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Desde</label>
         <input type="date" class="form-control form-control-sm" [formControl]="filtroFechaInicio">
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Hasta</label>
         <input type="date" class="form-control form-control-sm" [formControl]="filtroFechaFin">
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Estatus</label>
         <select class="form-select form-select-sm" [formControl]="filtroEstatus">
           <option *ngFor="let op of estatusOpciones" [value]="op.value">{{ op.label }}</option>
         </select>
       </div>
-      <div class="col-auto">
+      <div class="col-6 col-sm-auto">
         <label class="form-label form-label-sm mb-0">Origen</label>
         <select class="form-select form-select-sm" [formControl]="filtroOrigen">
           <option *ngFor="let op of origenOpciones" [value]="op.value">{{ op.label }}</option>
         </select>
       </div>
-      <div class="col">
+      <div class="col-12 col-sm">
         <label class="form-label form-label-sm mb-0">Folio</label>
         <input type="text" class="form-control form-control-sm" [formControl]="filtroFolio"
           placeholder="PV-2025-..." (keydown.enter)="buscar()">
       </div>
-      <div class="col-auto d-flex gap-1 align-items-end">
+      <div class="col-12 col-sm-auto d-flex gap-1 align-items-end">
         <button class="btn btn-sm btn-primary" (click)="buscar()">
           <i class="bi bi-search me-1"></i>Buscar
         </button>
@@ -57,14 +57,14 @@
       <thead>
         <tr>
           <th>Folio</th>
-          <th>Fecha</th>
-          <th>Origen</th>
-          <th>Cliente</th>
-          <th>Vendedor</th>
-          <th>Items</th>
+          <th class="d-none d-sm-table-cell">Fecha</th>
+          <th class="d-none d-md-table-cell">Origen</th>
+          <th class="d-none d-sm-table-cell">Cliente</th>
+          <th class="d-none d-md-table-cell">Vendedor</th>
+          <th class="d-none d-lg-table-cell">Items</th>
           <th class="text-end">Total</th>
-          <th class="text-center" style="min-width:90px">Imp.</th>
-          <th>Pago</th>
+          <th class="text-center d-none d-lg-table-cell" style="min-width:90px">Imp.</th>
+          <th class="d-none d-md-table-cell">Pago</th>
           <th>Estatus</th>
           <th></th>
         </tr>
@@ -75,24 +75,24 @@
         </tr>
         <tr *ngFor="let v of ventas" class="cursor-pointer" (click)="verDetalle(v)">
           <td><code class="folio">{{ v.folio }}</code></td>
-          <td>{{ v.fecha_venta | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
-          <td>
+          <td class="d-none d-sm-table-cell">{{ v.fecha_venta | date:'dd/MM/yy h:mm a':'America/Mexico_City' }}</td>
+          <td class="d-none d-md-table-cell">
             <span class="badge origen-badge" [ngClass]="origenClass(v.origen_venta)">
               <i class="bi" [ngClass]="origenIcon(v.origen_venta)"></i>
               {{ origenLabel(v.origen_venta) }}
             </span>
           </td>
-          <td>{{ v.cliente_nombre || '— Público general —' }}</td>
-          <td>{{ v.vendedor_nombre || '—' }}</td>
-          <td class="text-center">{{ v.num_items ?? '—' }}</td>
+          <td class="d-none d-sm-table-cell">{{ v.cliente_nombre || '— Público general —' }}</td>
+          <td class="d-none d-md-table-cell">{{ v.vendedor_nombre || '—' }}</td>
+          <td class="text-center d-none d-lg-table-cell">{{ v.num_items ?? '—' }}</td>
           <td class="text-end fw-semibold">${{ v.total | number:'1.2-2' }}</td>
-          <td class="text-center">
+          <td class="text-center d-none d-lg-table-cell">
             <ng-container *ngIf="v.requiere_factura && (v.iva_monto || 0) > 0">
               <span class="text-primary fw-semibold" title="IVA - ISR Ret.">+${{ (v.iva_monto - v.isr_monto) | number:'1.2-2' }}</span>
             </ng-container>
             <span *ngIf="!v.requiere_factura || !(v.iva_monto > 0)" class="text-muted">—</span>
           </td>
-          <td>{{ v.metodo_pago_descripcion }}</td>
+          <td class="d-none d-md-table-cell">{{ v.metodo_pago_descripcion }}</td>
           <td>
             <span class="badge" [class.bg-success]="v.estatus==='completada'"
               [class.bg-danger]="v.estatus==='cancelada'">
@@ -164,8 +164,8 @@
     <ng-container *ngIf="ventaDetalle && !cargandoDetalle">
       <ng-container *ngIf="mostrarTicket; else tablaDetalle">
         <app-pos-ticket
+          [ticketType]="'venta'"
           [venta]="ventaDetalle"
-          (imprimir)="imprimirTicket()"
           (nuevaVenta)="irANuevaVenta.emit()"
         ></app-pos-ticket>
       </ng-container>

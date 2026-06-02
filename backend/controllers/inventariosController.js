@@ -336,7 +336,8 @@ async function updateInventario(req, res) {
     const {
       departamento_id, tipo, nombre, descripcion, codigo_sku,
       marca, modelo, proveedor_id, unidad_medida, stock_minimo, stock_maximo,
-      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, tabulador_activo
+      ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, tabulador_activo,
+      existencia_actual
     } = req.body;
 
     const check = await query('SELECT id, tipo, es_servicio FROM inventarios WHERE id=$1', [id]);
@@ -355,7 +356,7 @@ async function updateInventario(req, res) {
         tipo=COALESCE($2,tipo),
         nombre=COALESCE($3,nombre), descripcion=$4, codigo_sku=$5, marca=$6, modelo=$7, proveedor_id=$8,
         unidad_medida=COALESCE($9,unidad_medida), stock_minimo=COALESCE($10,stock_minimo), stock_maximo=$11,
-        ubicacion_fisica=$12, costo_compra=$13, precio_venta=$14,
+        ubicacion_fisica=$12, costo_compra=$13, precio_venta=$14, existencia_actual=COALESCE($19,existencia_actual),
         costo_promedio=COALESCE($13,costo_compra,costo_promedio),
         disponible_en_pos=COALESCE($15,disponible_en_pos), estatus=COALESCE($16,estatus),
         tabulador_activo=COALESCE($18,tabulador_activo),
@@ -367,7 +368,8 @@ async function updateInventario(req, res) {
       esServicio ? null : stock_minimo,
       esServicio ? null : stock_maximo,
       ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, id,
-      tabulador_activo !== undefined ? (tabulador_activo === true || tabulador_activo === 'true') : undefined
+      tabulador_activo !== undefined ? (tabulador_activo === true || tabulador_activo === 'true') : undefined,
+      esServicio ? null : existencia_actual
     ], req.user?.id, req.user?.nombre || req.user?.username);
 
     return res.json(createResponse(true, r.rows[0], 'Artículo actualizado'));

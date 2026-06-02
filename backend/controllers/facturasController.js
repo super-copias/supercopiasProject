@@ -361,8 +361,15 @@ exports.listFacturas = async (req, res) => {
     if (tipo_origen)  { conditions.push(`f.tipo_origen = $${idx++}`);          params.push(tipo_origen); }
     if (cliente_id)   { conditions.push(`f.cliente_id = $${idx++}`);           params.push(parseInt(cliente_id)); }
     if (folio)        { conditions.push(`f.folio ILIKE $${idx++}`);            params.push(`%${folio}%`); }
-    if (fecha_inicio) { conditions.push(`f.fecha_creacion >= $${idx++}::date`); params.push(fecha_inicio); }
-    if (fecha_fin)    { conditions.push(`f.fecha_creacion < ($${idx++}::date + INTERVAL '1 day')`); params.push(fecha_fin); }
+    // Convertir límites de fecha en zona horaria MX para evitar desfases (ej. salto a siguiente día a las 18:00 en UTC-6).
+    if (fecha_inicio) {
+      conditions.push(`f.fecha_creacion >= (($${idx++}::date)::timestamp AT TIME ZONE 'America/Mexico_City')`);
+      params.push(fecha_inicio);
+    }
+    if (fecha_fin) {
+      conditions.push(`f.fecha_creacion < ((($${idx++}::date + INTERVAL '1 day')::timestamp) AT TIME ZONE 'America/Mexico_City')`);
+      params.push(fecha_fin);
+    }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const offset = (parseInt(page) - 1) * parseInt(limit);
