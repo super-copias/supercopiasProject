@@ -137,25 +137,21 @@
   </div>
 
   <!-- Paginador -->
-  <div class="pedidos-pagination" *ngIf="totalPaginas > 1">
-    <span class="pag-info">{{ (paginaActual - 1) * LIMIT + 1 }} – {{ rangoFin }} de {{ totalRegistros }}</span>
-    <div class="pag-btns">
-      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(1)" title="Primera">
-        <i class="bi bi-chevron-double-left"></i>
-      </button>
-      <button class="pag-btn" [disabled]="paginaActual === 1" (click)="irAPagina(paginaActual - 1)" title="Anterior">
-        <i class="bi bi-chevron-left"></i>
-      </button>
-      <button *ngFor="let pg of paginasVisibles"
-        class="pag-btn" [class.activa]="pg === paginaActual"
-        (click)="irAPagina(pg)">{{ pg }}</button>
-      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(paginaActual + 1)" title="Siguiente">
-        <i class="bi bi-chevron-right"></i>
-      </button>
-      <button class="pag-btn" [disabled]="paginaActual === totalPaginas" (click)="irAPagina(totalPaginas)" title="Última">
-        <i class="bi bi-chevron-double-right"></i>
-      </button>
-    </div>
+  <div class="paginador d-flex justify-content-between align-items-center px-3 py-2 border-top" *ngIf="totalRegistros > 0">
+    <small class="text-muted">{{ (paginaActual - 1) * LIMIT + 1 }} - {{ rangoFin }} de {{ totalRegistros }}</small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="paginaActual === 1">
+          <a class="page-link" (click)="irAPagina(paginaActual - 1)">&lsaquo;</a>
+        </li>
+        <li *ngFor="let pg of paginasVisibles" class="page-item" [class.active]="pg === paginaActual">
+          <a class="page-link" (click)="irAPagina(pg)">{{ pg }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+          <a class="page-link" (click)="irAPagina(paginaActual + 1)">&rsaquo;</a>
+        </li>
+      </ul>
+    </nav>
   </div>
 
 </div>
