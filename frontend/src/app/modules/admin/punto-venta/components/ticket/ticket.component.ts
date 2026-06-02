@@ -16,9 +16,9 @@ export interface PosTicketTheme {
 
 const DEFAULT_TICKET_THEME: PosTicketTheme = {
   pageWidthMm: 80,
-  pageMarginMm: 2,
+  pageMarginMm: 1,
   paperWidthMm: 72,
-  wrapperPaddingPx: 10,
+  wrapperPaddingPx: 7,
   fontFamily: "'Courier New', Courier, monospace",
   fontSizePx: 12,
   fontWeight: 600,
@@ -34,9 +34,9 @@ function buildTicketPrintStyles(theme: PosTicketTheme): string {
                   box-shadow: 0 2px 10px rgba(0,0,0,.3); }
   .t-empresa    { font-weight: 700; font-size: 15px; text-align: center; }
   .t-sub        { text-align: center; font-size: 11px; margin-bottom: 4px; }
-  .t-logo-wrap  { text-align: center; margin-bottom: 2px; }
-  .t-logo       { width: 94px; max-width: 72%; height: auto; display: inline-block; }
-  .t-sep        { border-top: 1px dashed #aaa; margin: 6px 0; }
+  .t-logo-wrap  { text-align: center; margin-bottom: 0; }
+  .t-logo       { width: 142px; max-width: 92%; height: auto; display: inline-block; }
+  .t-sep        { border-top: 1px dashed #aaa; margin: 4px 0; }
   .t-meta       { line-height: 1.6; }
   .t-items      { width: 100%; border-collapse: collapse; }
   .t-items th, .t-items td { padding: 2px 0; vertical-align: top; }
@@ -116,7 +116,7 @@ export class TicketComponent {
   }
 
   get logoSrc(): string {
-    const logoPath = '/assets/img/logo%20completo.png';
+    const logoPath = '/assets/img/logo%20azul.png';
     if (typeof window === 'undefined') return logoPath;
     return `${window.location.origin}${logoPath}`;
   }
