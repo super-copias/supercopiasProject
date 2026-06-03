@@ -231,6 +231,11 @@
 
       <!-- Pagos múltiples (nuevo) -->
       <ng-container *ngIf="venta.pagos && venta.pagos.length > 0; else pagosLegacy">
+        <!-- Anticipo del pedido (si la venta proviene de un pedido con anticipo) -->
+        <div class="t-trow t-anticipo-row" *ngIf="(venta.pedido_anticipo_monto || 0) > 0">
+          <span>Anticipo ({{ venta.pedido_anticipo_metodo | titlecase }})</span>
+          <span>${{ venta.pedido_anticipo_monto | number:'1.2-2' }}</span>
+        </div>
         <div class="t-trow" *ngFor="let p of venta.pagos">
           <span>{{ p.metodo_pago_descripcion || p.metodo_pago_codigo }}</span>
           <span>${{ p.monto | number:'1.2-2' }}</span>
@@ -249,6 +254,11 @@
 
       <!-- Pago legacy (un solo método) -->
       <ng-template #pagosLegacy>
+        <!-- Anticipo del pedido (si la venta proviene de un pedido con anticipo) -->
+        <div class="t-trow t-anticipo-row" *ngIf="(venta.pedido_anticipo_monto || 0) > 0">
+          <span>Anticipo ({{ venta.pedido_anticipo_metodo | titlecase }})</span>
+          <span>${{ venta.pedido_anticipo_monto | number:'1.2-2' }}</span>
+        </div>
         <div class="t-trow" *ngIf="venta.metodo_pago_codigo === 'efectivo'">
           <span>Recibido</span>
           <span>${{ venta.monto_recibido | number:'1.2-2' }}</span>

@@ -3865,6 +3865,8 @@ CREATE TABLE public.pos_ventas (
     tipo_persona_factura        character varying(2) DEFAULT 'pm',
     origen_venta                character varying(15) NOT NULL DEFAULT 'directa'::character varying,
     fecha_modificacion          timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    pedido_anticipo_monto       numeric(12,2) DEFAULT 0,
+    pedido_anticipo_metodo      character varying(100),
     CONSTRAINT chk_pos_ventas_origen CHECK (((origen_venta)::text = ANY (ARRAY[
         ('directa'::character varying)::text,
         ('pedido'::character varying)::text,

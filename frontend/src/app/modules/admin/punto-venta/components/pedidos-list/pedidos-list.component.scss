@@ -270,3 +270,106 @@
   font-size: .75rem;
   line-height: 1.2;
 }
+
+// ── Modal editar cantidades ───────────────────────────────────
+.modal-editar-items {
+  max-width: 560px;
+}
+
+.editar-items-table {
+  font-size: .82rem;
+
+  thead tr th {
+    color: #6c757d;
+    font-weight: 600;
+    padding-bottom: .3rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  tbody tr td {
+    vertical-align: middle;
+    padding: .35rem .25rem;
+    border-bottom: 1px solid #f5f5f5;
+  }
+}
+
+.cantidad-input {
+  max-width: 80px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.editar-totales-resumen {
+  background: #f8f9fa;
+  font-size: .82rem;
+
+  hr { margin: .4rem 0; opacity: .3; }
+}
+
+// ── Modal editar: buscador de catálogo ──────────────────────────
+.editar-buscador-wrap {
+  .editar-buscador-row {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+}
+
+.editar-search-box {
+  .editar-search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: .8rem;
+    pointer-events: none;
+  }
+
+  .editar-search-input { padding-left: 26px; }
+
+  .editar-search-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    z-index: 2200;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.10);
+    max-height: 240px;
+    overflow-y: auto;
+
+    .editar-search-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: .82rem;
+      border-bottom: 1px solid #f0f0f0;
+      &:last-child { border-bottom: none; }
+      &:hover { background: #f8f9fa; }
+      &.sin-stock { opacity: .5; cursor: not-allowed; }
+      .editar-item-nombre { font-weight: 500; }
+      .editar-item-sku    { font-size: .75rem; }
+      .editar-item-badge  { font-size: .68rem; }
+      .editar-item-precio { font-weight: 600; font-size: .8rem; }
+    }
+  }
+}
+
+// ── Filas de líneas editadas ─────────────────────────────────────
+.linea-eliminada {
+  opacity: .4;
+  text-decoration: line-through;
+  background: #fff5f5;
+}
+
+.linea-nueva {
+  background: #f0fff4;
+  td:first-child { border-left: 3px solid #198754; }
+}
+
+
