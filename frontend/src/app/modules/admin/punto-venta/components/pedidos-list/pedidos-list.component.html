@@ -100,6 +100,14 @@
           <i class="bi bi-eye"></i>
         </button>
 
+        <!-- Editar cantidades: solo activos -->
+        <button *ngIf="['pendiente','en_proceso','terminado'].includes(p.estatus)"
+          class="btn btn-sm btn-outline-warning"
+          title="Editar cantidades"
+          (click)="abrirEditar(p)">
+          <i class="bi bi-pencil"></i>
+        </button>
+
         <!-- Tomar: solo pendiente -->
         <button *ngIf="p.estatus === 'pendiente'"
           class="btn btn-sm btn-primary"
@@ -221,9 +229,16 @@
 
         <!-- Reimprimir comprobante -->
         <hr>
-        <button class="btn btn-sm btn-outline-primary w-100" (click)="reimprimir(pedidoDetalle)">
-          <i class="bi bi-printer me-1"></i>Reimprimir comprobante de pedido
-        </button>
+        <div class="d-flex gap-2">
+          <button *ngIf="['pendiente','en_proceso','terminado'].includes(pedidoDetalle.estatus)"
+            class="btn btn-sm btn-outline-warning flex-fill"
+            (click)="abrirEditar(pedidoDetalle); mostrarDetalle=false">
+            <i class="bi bi-pencil me-1"></i>Editar cantidades
+          </button>
+          <button class="btn btn-sm btn-outline-primary flex-fill" (click)="reimprimir(pedidoDetalle)">
+            <i class="bi bi-printer me-1"></i>Reimprimir comprobante
+          </button>
+        </div>
       </ng-container>
     </div>
   </div>
@@ -359,6 +374,223 @@
       [venta]="ventaEntregada"
       (nuevaVenta)="mostrarTicketVenta=false; ventaEntregada=null; cargar()">
     </app-pos-ticket>
+  </div>
+</div>
+
+<!-- ── Modal Editar cantidades ──────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarModalEditar" (click)="mostrarModalEditar=false">
+  <div class="modal-card modal-editar-items" (click)="$event.stopPropagation()">
+    <div class="modal-header-bar">
+      <span><i class="bi bi-pencil me-2"></i>Editar pedido — {{ pedidoEditar?.folio }}</span>
+      <button class="btn-close-modal" (click)="mostrarModalEditar=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="modal-body-scroll" *ngIf="pedidoEditar">
+
+      <!-- ── Buscador de productos ────────────────────────── -->
+      <div class="editar-buscador-wrap mb-3">
+        <div class="editar-buscador-row">
+          <div class="editar-search-box position-relative flex-fill">
+            <i class="bi bi-search editar-search-icon"></i>
+            <input type="text"
+              class="form-control form-control-sm editar-search-input"
+              placeholder="Buscar producto o SKU para agregar..."
+              [formControl]="busquedaEditar"
+              autocomplete="off">
+            <!-- Dropdown resultados -->
+            <div class="editar-search-dropdown" *ngIf="resultadosBusquedaEditar.length > 0">
+              <div class="editar-search-item"
+                *ngFor="let item of resultadosBusquedaEditar"
+                [class.sin-stock]="item.nivel_stock === 'sin_stock' && !item.es_servicio"
+                (click)="agregarDesdeCatalogoEditar(item)">
+                <span class="editar-item-nombre">{{ item.nombre }}</span>
+                <span *ngIf="item.sku" class="editar-item-sku text-muted">{{ item.sku }}</span>
+                <span class="badge bg-{{ badgeStockEditar(item.nivel_stock) }} editar-item-badge">
+                  {{ item.nivel_stock === 'servicio' ? 'Svc' : item.existencia_actual }}
+                </span>
+                <span class="editar-item-precio ms-auto">{{ item.precio_venta | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-warning ms-2 text-dark"
+            title="Agregar ítem libre"
+            (click)="abrirItemLibreEditar()">
+            <i class="bi bi-plus-circle me-1"></i>Ítem libre
+          </button>
+        </div>
+        <div *ngIf="busquedaEditar.value && resultadosBusquedaEditar.length === 0"
+          class="text-muted small mt-1 ps-1">
+          <i class="bi bi-info-circle me-1"></i>Sin resultados para "{{ busquedaEditar.value }}"
+        </div>
+      </div>
+
+      <!-- ── Tabla de líneas ─────────────────────────────── -->
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-borderless editar-items-table">
+          <thead>
+            <tr class="text-muted small">
+              <th>Producto</th>
+              <th class="text-end" style="width:82px">P. Unit.</th>
+              <th class="text-center" style="width:88px">Cant.</th>
+              <th class="text-end" style="width:82px">Subtotal</th>
+              <th style="width:32px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of lineasEditar"
+              [class.linea-eliminada]="l._eliminado"
+              [class.linea-nueva]="l._esNuevo && !l._eliminado">
+
+              <td>
+                <span class="fw-semibold">{{ l.nombre_producto }}</span>
+                <span *ngIf="l.es_servicio"   class="badge bg-info-subtle text-info ms-1 small">Svc</span>
+                <span *ngIf="l.es_item_libre"  class="badge bg-secondary-subtle text-secondary ms-1 small">Libre</span>
+                <span *ngIf="l._esNuevo && !l._eliminado" class="badge bg-success-subtle text-success ms-1 small">Nuevo</span>
+                <span *ngIf="l.descuento_linea_pct > 0"   class="text-muted small ms-1">-{{ l.descuento_linea_pct }}%</span>
+              </td>
+              <td class="text-end small text-muted">
+                {{ l.precio_unitario | currency:'MXN':'symbol-narrow':'1.2-2' }}
+              </td>
+              <td class="text-center">
+                <input *ngIf="!l._eliminado" type="number"
+                  class="form-control form-control-sm text-center cantidad-input"
+                  [(ngModel)]="l.cantidad"
+                  (ngModelChange)="onCantidadEditarChange(l)"
+                  (blur)="forzarEnteroEditar(l)"
+                  min="1" step="1" pattern="[0-9]*">
+                <span *ngIf="l._eliminado" class="text-muted small">{{ l.cantidad }}</span>
+              </td>
+              <td class="text-end small fw-semibold" [class.text-muted]="l._eliminado">
+                {{ l.subtotal_linea | currency:'MXN':'symbol-narrow':'1.2-2' }}
+              </td>
+              <td class="text-center">
+                <!-- Botón eliminar/restaurar -->
+                <button *ngIf="!l._eliminado"
+                  class="btn btn-xs btn-outline-danger"
+                  title="Eliminar línea"
+                  (click)="eliminarLineaEditar(l)">
+                  <i class="bi bi-trash3"></i>
+                </button>
+                <button *ngIf="l._eliminado && !l._esNuevo"
+                  class="btn btn-xs btn-outline-success"
+                  title="Restaurar línea"
+                  (click)="restaurarLineaEditar(l)">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Sin líneas activas -->
+            <tr *ngIf="lineasActivasEditar.length === 0">
+              <td colspan="5" class="text-center text-danger small py-2">
+                <i class="bi bi-exclamation-triangle me-1"></i>El pedido debe tener al menos un ítem
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Resumen de totales ───────────────────────────── -->
+      <div class="editar-totales-resumen border rounded p-2 mb-3 small">
+        <div class="d-flex justify-content-between" *ngIf="pedidoEditar.descuento_pct > 0">
+          <span class="text-muted">Subtotal</span>
+          <span>{{ nuevoSubtotalEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between" *ngIf="pedidoEditar.descuento_pct > 0">
+          <span class="text-muted">Desc. {{ pedidoEditar.descuento_pct }}%</span>
+          <span class="text-danger">- {{ nuevoDescuentoMontoEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between fw-semibold">
+          <span>Total</span>
+          <span>{{ nuevoTotalEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <ng-container *ngIf="pedidoEditar.requiere_factura && totalConFacturaEditar !== null">
+          <div class="d-flex justify-content-between text-primary small mt-1">
+            <span><i class="bi bi-receipt me-1"></i>Total c/factura</span>
+            <span>{{ totalConFacturaEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="pedidoEditar.anticipo > 0">
+          <hr class="my-1">
+          <div class="d-flex justify-content-between text-muted">
+            <span>Anticipo ya cobrado</span>
+            <span>{{ pedidoEditar.anticipo | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+          </div>
+          <div class="d-flex justify-content-between fw-bold"
+            [class.text-danger]="anticipoSuperaTotalEditar">
+            <span>Nuevo saldo pendiente</span>
+            <span>{{ nuevoSaldoPendienteEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Advertencias -->
+      <div *ngIf="anticipoSuperaTotalEditar" class="alert alert-danger py-2 px-2 small mb-2">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        El anticipo (${{ pedidoEditar.anticipo | number:'1.2-2' }}) supera el nuevo total. No puedes reducir por debajo del anticipo ya cobrado.
+      </div>
+      <div *ngIf="!hayModificacionEditar" class="alert alert-secondary py-2 px-2 small mb-2">
+        <i class="bi bi-info-circle me-1"></i>No hay cambios pendientes.
+      </div>
+
+      <!-- Notas -->
+      <div class="mb-3">
+        <label class="form-label small">Motivo / notas del cambio (opcional)</label>
+        <input type="text" class="form-control form-control-sm"
+          [(ngModel)]="notasEditar"
+          placeholder="Ej: cliente solicitó ajuste...">
+      </div>
+
+      <div *ngIf="errorEditar" class="alert alert-danger py-1 px-2 small mb-2">{{ errorEditar }}</div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary flex-fill" (click)="mostrarModalEditar=false">Cancelar</button>
+        <button class="btn btn-warning flex-fill text-dark"
+          [disabled]="!puedeConfirmarEditar()"
+          (click)="confirmarEditar()">
+          <span *ngIf="procesandoEditar" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!procesandoEditar" class="bi bi-check-circle me-1"></i>Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sub-modal: Ítem libre dentro de editar ───────────────── -->
+<div class="modal-overlay" style="z-index:2100" *ngIf="mostrarModalLibreEditar" (click)="mostrarModalLibreEditar=false">
+  <div class="modal-card" style="max-width:380px" (click)="$event.stopPropagation()">
+    <div class="modal-header-bar">
+      <span><i class="bi bi-pencil-square me-2"></i>Agregar ítem libre</span>
+      <button class="btn-close-modal" (click)="mostrarModalLibreEditar=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="p-3">
+      <div class="mb-3">
+        <label class="form-label small">Descripción *</label>
+        <input type="text" class="form-control form-control-sm"
+          [(ngModel)]="itemLibreEditar.nombre"
+          placeholder="Ej: Servicio especial, Impresión extra...">
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label small">Precio (MXN) *</label>
+          <input type="number" class="form-control form-control-sm"
+            [(ngModel)]="itemLibreEditar.precio" min="0.01" step="0.01">
+        </div>
+        <div class="col-6">
+          <label class="form-label small">Cantidad *</label>
+          <input type="number" class="form-control form-control-sm"
+            [(ngModel)]="itemLibreEditar.cantidad" min="1" step="1">
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary flex-fill btn-sm" (click)="mostrarModalLibreEditar=false">Cancelar</button>
+        <button class="btn btn-primary flex-fill btn-sm"
+          [disabled]="!itemLibreEditar.nombre.trim() || itemLibreEditar.precio <= 0 || itemLibreEditar.cantidad <= 0"
+          (click)="confirmarItemLibreEditar()">
+          <i class="bi bi-plus-circle me-1"></i>Agregar
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 

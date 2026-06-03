@@ -111,6 +111,9 @@ export interface VentaDetalle {
   notas?: string;
   ticket_generado: boolean;
   fecha_modificacion: string;
+  origen_venta?: string;
+  pedido_anticipo_monto?: number;
+  pedido_anticipo_metodo?: string | null;
   detalle: LineaDetalle[];
   puntos_cliente?: PuntosCliente;
 }
@@ -535,6 +538,24 @@ export class PosService {
 
   cancelarPedido(id: number, motivo?: string): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/cancelar`, { motivo });
+  }
+
+  actualizarItemsPedido(id: number, payload: {
+    items_cantidad?: { detalle_id: number; cantidad: number }[];
+    items_eliminar?: number[];
+    items_agregar?: {
+      inventario_id?: number | null;
+      nombre_producto: string;
+      sku?: string;
+      es_servicio: boolean;
+      es_item_libre: boolean;
+      cantidad: number;
+      precio_unitario: number;
+      descuento_linea_pct?: number;
+    }[];
+    notas?: string;
+  }): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/items`, payload);
   }
 
   getStatsPedidos(): Observable<any> {

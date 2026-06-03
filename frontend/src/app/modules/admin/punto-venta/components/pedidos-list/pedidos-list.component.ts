@@ -4,7 +4,7 @@ import { takeUntil, finalize, debounceTime, distinctUntilChanged } from 'rxjs/op
 import { FormControl } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../../../environments/environment';
-import { PosService, PagoInput } from '../../../../../services/pos.service';
+import { PosService, PagoInput, CatalogoItem } from '../../../../../services/pos.service';
 import { FacturasService } from '../../../../../services/facturas.service';
 
 @Component({
@@ -73,6 +73,37 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   procesandoCancelacion = false;
   errorCancelacion = '';
 
+  // Modal editar cantidades
+  mostrarModalEditar = false;
+  pedidoEditar: any = null;
+  lineasEditar: {
+    detalle_id: number;
+    nombre_producto: string;
+    precio_unitario: number;
+    cantidad: number;
+    descuento_linea_pct: number;
+    subtotal_linea: number;
+    es_servicio: boolean;
+    es_item_libre: boolean;
+    inventario_id: number | null;
+    _esNuevo: boolean;
+    _eliminado: boolean;
+  }[] = [];
+  notasEditar = '';
+  procesandoEditar = false;
+  errorEditar = '';
+  totalConFacturaEditar: number | null = null;
+
+  // Buscador de catálogo dentro del modal editar
+  busquedaEditar = new FormControl('');
+  catalogoEditar: CatalogoItem[] = [];
+  catalogoCargado = false;
+  resultadosBusquedaEditar: CatalogoItem[] = [];
+
+  // Modal ítem libre dentro de editar
+  mostrarModalLibreEditar = false;
+  itemLibreEditar = { nombre: '', precio: 0, cantidad: 1 };
+
   readonly ESTATUS_LABELS: Record<string, string> = {
     pendiente:  'Pendiente',
     en_proceso: 'En proceso',
@@ -100,6 +131,11 @@ export class PedidosListComponent implements OnInit, OnDestroy {
       if (!q || q.length < 2) { this.resultadosClienteEntregar = []; return; }
       this.buscarClientesEntregar(q);
     });
+    this.busquedaEditar.valueChanges.pipe(
+      debounceTime(250),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(q => this.filtrarCatalogoEditar(q || ''));
   }
 
   ngOnDestroy(): void {
@@ -364,6 +400,274 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     this.posService.getPedidoById(p.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.pedidoDetalle = r.data; },
       error: () => { this.mostrarDetalle = false; }
+    });
+  }
+
+  // ── Editar cantidades ─────────────────────────────────────
+
+  abrirEditar(p: any): void {
+    // Siempre cargamos el detalle fresco del servidor para tener las cantidades actuales
+    this.posService.getPedidoById(p.id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r) => {
+        const pedido = r.data;
+        this.pedidoEditar = pedido;
+        this.lineasEditar = (pedido.detalle || []).map((d: any) => ({
+          detalle_id:         d.id,
+          nombre_producto:    d.nombre_producto,
+          precio_unitario:    parseFloat(d.precio_unitario),
+          cantidad:           parseFloat(d.cantidad),
+          descuento_linea_pct: parseFloat(d.descuento_linea_pct || 0),
+          subtotal_linea:     parseFloat(d.subtotal_linea),
+          es_servicio:        !!d.es_servicio,
+          es_item_libre:      !!d.es_item_libre,
+          inventario_id:      d.inventario_id || null,
+          _esNuevo:    false,
+          _eliminado:  false,
+        }));
+        this.notasEditar = '';
+        this.errorEditar = '';
+        this.totalConFacturaEditar = null;
+        this.busquedaEditar.setValue('', { emitEvent: false });
+        this.resultadosBusquedaEditar = [];
+        this.mostrarModalEditar = true;
+        if (pedido.requiere_factura) {
+          this.recalcularTotalConFacturaEditar();
+        }
+        // Cargar catálogo una vez por sesión del modal
+        if (!this.catalogoCargado) {
+          this.posService.getCatalogo().pipe(takeUntil(this.destroy$)).subscribe({
+            next: (cr) => {
+              this.catalogoEditar = cr.data || [];
+              this.catalogoCargado = true;
+            },
+          });
+        }
+      },
+    });
+  }
+
+  onCantidadEditarChange(linea: any): void {
+    const cant = parseFloat(linea.cantidad) || 0;
+    const base = cant * linea.precio_unitario;
+    const desc = base * (linea.descuento_linea_pct / 100);
+    linea.subtotal_linea = parseFloat((base - desc).toFixed(2));
+    if (this.pedidoEditar?.requiere_factura) {
+      this.recalcularTotalConFacturaEditar();
+    }
+  }
+
+  forzarEnteroEditar(linea: any): void {
+    const val = Math.floor(parseFloat(linea.cantidad) || 1);
+    linea.cantidad = val < 1 ? 1 : val;
+    this.onCantidadEditarChange(linea);
+  }
+
+  recalcularTotalConFacturaEditar(): void {
+    if (!this.pedidoEditar) return;
+    this.facturasService.calcularImpuestos(this.nuevoTotalEditar, this.pedidoEditar.tipo_persona_factura || 'pm')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: (r) => { this.totalConFacturaEditar = r.data?.total ?? null; } });
+  }
+
+  get lineasActivasEditar() {
+    return this.lineasEditar.filter(l => !l._eliminado);
+  }
+
+  get nuevoSubtotalEditar(): number {
+    return parseFloat(this.lineasActivasEditar.reduce((s, l) => s + l.subtotal_linea, 0).toFixed(2));
+  }
+
+  get nuevoDescuentoMontoEditar(): number {
+    if (!this.pedidoEditar) return 0;
+    return parseFloat((this.nuevoSubtotalEditar * (parseFloat(this.pedidoEditar.descuento_pct) / 100)).toFixed(2));
+  }
+
+  get nuevoTotalEditar(): number {
+    return parseFloat((this.nuevoSubtotalEditar - this.nuevoDescuentoMontoEditar).toFixed(2));
+  }
+
+  get nuevoTotalReferenciaEditar(): number {
+    if (this.pedidoEditar?.requiere_factura && this.totalConFacturaEditar != null) {
+      return this.totalConFacturaEditar;
+    }
+    return this.nuevoTotalEditar;
+  }
+
+  get nuevoSaldoPendienteEditar(): number {
+    if (!this.pedidoEditar) return 0;
+    const anticipo = parseFloat(this.pedidoEditar.anticipo || 0);
+    return parseFloat(Math.max(0, this.nuevoTotalReferenciaEditar - anticipo).toFixed(2));
+  }
+
+  get anticipoSuperaTotalEditar(): boolean {
+    if (!this.pedidoEditar) return false;
+    const anticipo = parseFloat(this.pedidoEditar.anticipo || 0);
+    return anticipo > 0 && anticipo > this.nuevoTotalReferenciaEditar + 0.01;
+  }
+
+  get hayModificacionEditar(): boolean {
+    if (!this.pedidoEditar) return false;
+    // Hay cambio si: alguna línea fue eliminada, o hay líneas nuevas, o alguna cantidad cambió
+    const hayEliminados = this.lineasEditar.some(l => !l._esNuevo && l._eliminado);
+    const hayNuevos     = this.lineasEditar.some(l => l._esNuevo && !l._eliminado);
+    const hayCambiosCantidad = this.lineasEditar
+      .filter(l => !l._esNuevo && !l._eliminado)
+      .some(l => {
+        const original = this.pedidoEditar.detalle.find((d: any) => d.id === l.detalle_id);
+        return original && Math.abs(parseFloat(original.cantidad) - l.cantidad) > 0.0001;
+      });
+    return hayEliminados || hayNuevos || hayCambiosCantidad;
+  }
+
+  puedeConfirmarEditar(): boolean {
+    if (!this.pedidoEditar || this.procesandoEditar) return false;
+    if (!this.hayModificacionEditar) return false;
+    if (this.anticipoSuperaTotalEditar) return false;
+    if (this.lineasActivasEditar.length === 0) return false;
+    return this.lineasActivasEditar.every(l => l.cantidad > 0);
+  }
+
+  // ── Gestión de líneas (marcar/quitar) ─────────────────────
+
+  eliminarLineaEditar(linea: any): void {
+    if (linea._esNuevo) {
+      // Las líneas nuevas se quitan directamente del array
+      this.lineasEditar = this.lineasEditar.filter(l => l !== linea);
+    } else {
+      // Las líneas originales se marcan como eliminadas (para poder revertir)
+      linea._eliminado = true;
+    }
+    if (this.pedidoEditar?.requiere_factura) {
+      this.recalcularTotalConFacturaEditar();
+    }
+  }
+
+  restaurarLineaEditar(linea: any): void {
+    linea._eliminado = false;
+    if (this.pedidoEditar?.requiere_factura) {
+      this.recalcularTotalConFacturaEditar();
+    }
+  }
+
+  // ── Buscador de catálogo inline ───────────────────────────
+
+  filtrarCatalogoEditar(q: string): void {
+    if (!q.trim()) { this.resultadosBusquedaEditar = []; return; }
+    const term = q.toLowerCase();
+    this.resultadosBusquedaEditar = this.catalogoEditar
+      .filter(i =>
+        i.nombre.toLowerCase().includes(term) ||
+        (i.sku || '').toLowerCase().includes(term)
+      )
+      .slice(0, 7);
+  }
+
+  agregarDesdeCatalogoEditar(item: CatalogoItem): void {
+    if (item.nivel_stock === 'sin_stock' && !item.es_servicio) return;
+    this.lineasEditar.push({
+      detalle_id:         null,
+      nombre_producto:    item.nombre,
+      precio_unitario:    item.precio_venta,
+      cantidad:           1,
+      descuento_linea_pct: 0,
+      subtotal_linea:     item.precio_venta,
+      es_servicio:        item.es_servicio,
+      es_item_libre:      false,
+      inventario_id:      item.id,
+      _esNuevo:   true,
+      _eliminado: false,
+    });
+    this.busquedaEditar.setValue('', { emitEvent: false });
+    this.resultadosBusquedaEditar = [];
+    if (this.pedidoEditar?.requiere_factura) {
+      this.recalcularTotalConFacturaEditar();
+    }
+  }
+
+  badgeStockEditar(nivel: string): string {
+    const m: Record<string, string> = { ok: 'success', bajo: 'warning', critico: 'danger', sin_stock: 'secondary', servicio: 'info' };
+    return m[nivel] || 'secondary';
+  }
+
+  // ── Ítem libre dentro del modal editar ────────────────────
+
+  abrirItemLibreEditar(): void {
+    this.itemLibreEditar = { nombre: '', precio: 0, cantidad: 1 };
+    this.mostrarModalLibreEditar = true;
+  }
+
+  confirmarItemLibreEditar(): void {
+    const { nombre, precio, cantidad } = this.itemLibreEditar;
+    if (!nombre.trim() || precio <= 0 || cantidad <= 0) return;
+    this.lineasEditar.push({
+      detalle_id:         null,
+      nombre_producto:    nombre.trim(),
+      precio_unitario:    precio,
+      cantidad,
+      descuento_linea_pct: 0,
+      subtotal_linea:     parseFloat((precio * cantidad).toFixed(2)),
+      es_servicio:        false,
+      es_item_libre:      true,
+      inventario_id:      null,
+      _esNuevo:   true,
+      _eliminado: false,
+    });
+    this.mostrarModalLibreEditar = false;
+    if (this.pedidoEditar?.requiere_factura) {
+      this.recalcularTotalConFacturaEditar();
+    }
+  }
+
+  confirmarEditar(): void {
+    if (!this.pedidoEditar || !this.puedeConfirmarEditar()) return;
+    this.procesandoEditar = true;
+    this.errorEditar = '';
+
+    const items_cantidad = this.lineasEditar
+      .filter(l => !l._esNuevo && !l._eliminado)
+      .filter(l => {
+        const original = this.pedidoEditar.detalle.find((d: any) => d.id === l.detalle_id);
+        return original && Math.abs(parseFloat(original.cantidad) - l.cantidad) > 0.0001;
+      })
+      .map(l => ({ detalle_id: l.detalle_id as number, cantidad: l.cantidad }));
+
+    const items_eliminar = this.lineasEditar
+      .filter(l => !l._esNuevo && l._eliminado && l.detalle_id !== null)
+      .map(l => l.detalle_id as number);
+
+    const items_agregar = this.lineasEditar
+      .filter(l => l._esNuevo && !l._eliminado)
+      .map(l => ({
+        inventario_id:      l.inventario_id,
+        nombre_producto:    l.nombre_producto,
+        sku:                undefined as string | undefined,
+        es_servicio:        l.es_servicio,
+        es_item_libre:      l.es_item_libre,
+        cantidad:           l.cantidad,
+        precio_unitario:    l.precio_unitario,
+        descuento_linea_pct: l.descuento_linea_pct,
+      }));
+
+    this.posService.actualizarItemsPedido(this.pedidoEditar.id, {
+      items_cantidad,
+      items_eliminar,
+      items_agregar,
+      notas: this.notasEditar || undefined,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.procesandoEditar = false;
+        this.mostrarModalEditar = false;
+        if (this.mostrarDetalle && this.pedidoDetalle?.id === this.pedidoEditar.id) {
+          this.posService.getPedidoById(this.pedidoEditar.id).pipe(takeUntil(this.destroy$)).subscribe({
+            next: (r) => { this.pedidoDetalle = r.data; },
+          });
+        }
+        this.cargar();
+      },
+      error: (e) => {
+        this.errorEditar = e?.error?.error?.message || 'Error al actualizar pedido';
+        this.procesandoEditar = false;
+      },
     });
   }
 }

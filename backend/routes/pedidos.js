@@ -15,6 +15,7 @@ const {
   entregarPedido,
   cancelarPedido,
   getStatsPedidos,
+  actualizarItemsPedido,
 } = require('../controllers/pedidosController');
 
 // Stats generales (badge UI) — antes del :id para no colisionar
@@ -30,5 +31,8 @@ router.patch('/:id/tomar',         auth, tomarPedido);
 router.patch('/:id/terminar',      auth, terminarPedido);
 router.patch('/:id/entregar',      auth, entregarPedido);
 router.patch('/:id/cancelar',      auth, cancelarPedido);
+
+// Edición de cantidades (cualquier estado activo)
+router.patch('/:id/items',         auth, actualizarItemsPedido);
 
 module.exports = router;

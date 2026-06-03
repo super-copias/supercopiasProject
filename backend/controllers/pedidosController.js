@@ -799,8 +799,9 @@ async function entregarPedido(req, res) {
         monto_recibido, cambio,
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por,
-        notas, requiere_factura, iva_monto, isr_monto, tipo_persona_factura, origen_venta
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+        notas, requiere_factura, iva_monto, isr_monto, tipo_persona_factura, origen_venta,
+        pedido_anticipo_monto, pedido_anticipo_metodo
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
       RETURNING id
     `, [
       folio,
@@ -812,6 +813,8 @@ async function entregarPedido(req, res) {
       primerPagoS.codigo, primerPagoS.descripcion,
       pedido.descuento_config_id || null, pedido.descuento_autorizado_por || null,
       notasVenta, rfacturaEnt, ivaMonto, isrMonto, tipoPersonaEnt, 'pedido',
+      anticipo > 0 ? anticipo : 0,
+      anticipo > 0 ? (pedido.metodo_pago_anticipo || null) : null,
     ]);
 
     const ventaId = ventaQ.rows[0].id;
@@ -1064,6 +1067,346 @@ async function cancelarPedido(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// PATCH /api/pos/pedidos/:id/items
+// Editar cantidades de líneas existentes en cualquier estado activo
+// Body: { items: [{ detalle_id, cantidad }], notas? }
+// ─────────────────────────────────────────────────────────────
+async function actualizarItemsPedido(req, res) {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const pedidoId = parseInt(req.params.id);
+    const {
+      // Cambios de cantidad en líneas existentes (backward compat: también acepta `items`)
+      items_cantidad,
+      items = [],
+      // IDs de líneas existentes a eliminar
+      items_eliminar = [],
+      // Nuevas líneas a agregar
+      items_agregar  = [],
+      notas,
+    } = req.body;
+
+    const cantidadItems = Array.isArray(items_cantidad) ? items_cantidad : items;
+
+    const hayAlgo = cantidadItems.length > 0 || items_eliminar.length > 0 || items_agregar.length > 0;
+    if (!hayAlgo)
+      return res.status(400).json(createErrorResponse('No se enviaron cambios', CODIGOS_ERROR.DATOS_INVALIDOS));
+
+    const usuarioNombre = req.user?.nombre || req.user?.username || 'Sistema';
+    const usuarioId     = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
+
+    // Cargar pedido con lock
+    const pedidoR = await client.query(
+      `SELECT * FROM pos_pedidos WHERE id = $1 FOR UPDATE`, [pedidoId]
+    );
+    if (pedidoR.rows.length === 0)
+      return res.status(404).json(createErrorResponse('Pedido no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
+
+    const pedido = pedidoR.rows[0];
+    const ESTADOS_EDITABLES = ['pendiente', 'en_proceso', 'terminado'];
+    if (!ESTADOS_EDITABLES.includes(pedido.estatus))
+      return res.status(400).json(createErrorResponse(
+        `No se puede editar un pedido en estado "${pedido.estatus}"`,
+        CODIGOS_ERROR.DATOS_INVALIDOS
+      ));
+
+    // Cargar líneas actuales
+    const detalleR = await client.query(
+      `SELECT * FROM pos_pedidos_detalle WHERE pedido_id = $1`, [pedidoId]
+    );
+    const detalleActual = detalleR.rows;
+
+    // ── Validar items_eliminar ─────────────────────────────────
+    const eliminarSet = new Set(items_eliminar.map(id => parseInt(id)));
+    for (const id of eliminarSet) {
+      if (!detalleActual.find(d => d.id === id))
+        return res.status(400).json(createErrorResponse(
+          `El ítem #${id} no pertenece a este pedido`, CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+    }
+
+    // Verificar que no quede el pedido vacío
+    const lineasTrasEliminar = detalleActual.filter(d => !eliminarSet.has(d.id));
+    if (lineasTrasEliminar.length === 0 && items_agregar.length === 0)
+      return res.status(400).json(createErrorResponse(
+        'El pedido debe tener al menos un producto o servicio', CODIGOS_ERROR.DATOS_INVALIDOS
+      ));
+
+    // ── Validar cantidadItems ──────────────────────────────────
+    const cantidadMap = new Map();
+    for (const i of cantidadItems) {
+      const detalleId = parseInt(i.detalle_id);
+      const nuevaCantidad = parseFloat(i.cantidad);
+      if (isNaN(nuevaCantidad) || nuevaCantidad <= 0)
+        return res.status(400).json(createErrorResponse(
+          `La cantidad del ítem #${detalleId} debe ser mayor a 0`, CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      if (!detalleActual.find(d => d.id === detalleId))
+        return res.status(400).json(createErrorResponse(
+          `El ítem #${detalleId} no pertenece a este pedido`, CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      if (eliminarSet.has(detalleId))
+        return res.status(400).json(createErrorResponse(
+          `El ítem #${detalleId} no puede modificarse y eliminarse al mismo tiempo`, CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      cantidadMap.set(detalleId, nuevaCantidad);
+    }
+
+    // ── Validar items_agregar ──────────────────────────────────
+    for (const n of items_agregar) {
+      if (!n.nombre_producto?.trim())
+        return res.status(400).json(createErrorResponse(
+          'Los ítems nuevos deben tener nombre', CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      if (isNaN(parseFloat(n.cantidad)) || parseFloat(n.cantidad) <= 0)
+        return res.status(400).json(createErrorResponse(
+          `Cantidad inválida para "${n.nombre_producto}"`, CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      if (isNaN(parseFloat(n.precio_unitario)) || parseFloat(n.precio_unitario) < 0)
+        return res.status(400).json(createErrorResponse(
+          `Precio inválido para "${n.nombre_producto}"`, CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+    }
+
+    // ── 1. Eliminar líneas y liberar stock ─────────────────────
+    for (const detalleId of eliminarSet) {
+      const linea = detalleActual.find(d => d.id === detalleId);
+      if (!linea) continue;
+
+      if (linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
+        const cantidad = parseFloat(linea.cantidad);
+        const stockQ = await client.query(
+          'SELECT existencia_actual FROM inventarios WHERE id = $1 FOR UPDATE',
+          [linea.inventario_id]
+        );
+        if (stockQ.rows.length > 0) {
+          const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
+          const saldoNuevo    = parseFloat((saldoAnterior + cantidad).toFixed(2));
+
+          await client.query(
+            'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = NOW() WHERE id = $2',
+            [saldoNuevo, linea.inventario_id]
+          );
+          await client.query(`
+            INSERT INTO inventarios_movimientos
+              (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo,
+               usuario_nombre, area_servicio, notas, pedido_id)
+            VALUES ($1, 'entrada', 'liberacion_apartado', $2, $3, $4, $5,
+                    'Punto de Venta (Pedido)', $6, $7)
+          `, [
+            linea.inventario_id, cantidad, saldoAnterior, saldoNuevo,
+            usuarioNombre, `Ítem eliminado del pedido: ${pedido.folio}`, pedidoId,
+          ]);
+        }
+      }
+      await client.query(
+        'DELETE FROM pos_pedidos_detalle WHERE id = $1 AND pedido_id = $2',
+        [detalleId, pedidoId]
+      );
+    }
+
+    // ── 2. Ajustar cantidades en líneas conservadas ────────────
+    const subtotalesConservados = [];
+    for (const linea of lineasTrasEliminar) {
+      const nuevaCantidad    = cantidadMap.has(linea.id) ? cantidadMap.get(linea.id) : parseFloat(linea.cantidad);
+      const cantidadAnterior = parseFloat(linea.cantidad);
+      const delta = parseFloat((nuevaCantidad - cantidadAnterior).toFixed(6));
+
+      if (Math.abs(delta) > 0.0001 && linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
+        const stockQ = await client.query(
+          'SELECT id, nombre, existencia_actual FROM inventarios WHERE id = $1 AND activo = true FOR UPDATE',
+          [linea.inventario_id]
+        );
+        if (stockQ.rows.length > 0) {
+          const existenciaActual = parseFloat(stockQ.rows[0].existencia_actual);
+          if (delta > 0 && existenciaActual < delta) {
+            const err = new Error(
+              `Stock insuficiente para "${stockQ.rows[0].nombre}": disponible ${existenciaActual}, adicional requerido ${delta}`
+            );
+            err.statusCode = 400; err.errorCode = CODIGOS_ERROR.DATOS_INVALIDOS;
+            throw err;
+          }
+          const saldoAnterior = existenciaActual;
+          const saldoNuevo    = parseFloat((existenciaActual - delta).toFixed(2));
+          await client.query(
+            'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = NOW() WHERE id = $2',
+            [saldoNuevo, linea.inventario_id]
+          );
+          const tipoMov    = delta > 0 ? 'salida'  : 'entrada';
+          const conceptoMov = delta > 0 ? 'apartado_pedido' : 'liberacion_apartado';
+          const cantidadMov = parseFloat(Math.abs(delta).toFixed(6));
+          await client.query(`
+            INSERT INTO inventarios_movimientos
+              (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo,
+               usuario_nombre, area_servicio, notas, pedido_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'Punto de Venta (Pedido)', $8, $9)
+          `, [
+            linea.inventario_id, tipoMov, conceptoMov,
+            delta > 0 ? -cantidadMov : cantidadMov,
+            saldoAnterior, saldoNuevo,
+            usuarioNombre,
+            `Pedido editado: ${pedido.folio} (${cantidadAnterior} → ${nuevaCantidad})`,
+            pedidoId,
+          ]);
+        }
+      }
+
+      const precioUnit    = parseFloat(linea.precio_unitario);
+      const descLinPct    = parseFloat(linea.descuento_linea_pct || 0);
+      const descLinMonto  = parseFloat(((nuevaCantidad * precioUnit) * descLinPct / 100).toFixed(2));
+      const subtotalLinea = parseFloat(((nuevaCantidad * precioUnit) - descLinMonto).toFixed(2));
+
+      await client.query(`
+        UPDATE pos_pedidos_detalle
+        SET cantidad = $1, descuento_linea_monto = $2, subtotal_linea = $3
+        WHERE id = $4 AND pedido_id = $5
+      `, [nuevaCantidad, descLinMonto, subtotalLinea, linea.id, pedidoId]);
+
+      subtotalesConservados.push(subtotalLinea);
+    }
+
+    // ── 3. Agregar nuevas líneas ───────────────────────────────
+    const subtotalesNuevos = [];
+    for (const n of items_agregar) {
+      const cantidad    = parseFloat(n.cantidad);
+      const precioUnit  = parseFloat(n.precio_unitario);
+      const descLinPct  = parseFloat(n.descuento_linea_pct || 0);
+      const descLinMonto  = parseFloat(((cantidad * precioUnit) * descLinPct / 100).toFixed(2));
+      const subtotalLinea = parseFloat(((cantidad * precioUnit) - descLinMonto).toFixed(2));
+
+      // Reservar stock para productos físicos
+      if (n.inventario_id && !n.es_servicio && !n.es_item_libre) {
+        const stockQ = await client.query(
+          'SELECT id, nombre, existencia_actual FROM inventarios WHERE id = $1 AND activo = true FOR UPDATE',
+          [n.inventario_id]
+        );
+        if (stockQ.rows.length > 0) {
+          const disponible = parseFloat(stockQ.rows[0].existencia_actual);
+          if (disponible < cantidad) {
+            const err = new Error(
+              `Stock insuficiente para "${stockQ.rows[0].nombre}": disponible ${disponible}, requerido ${cantidad}`
+            );
+            err.statusCode = 400; err.errorCode = CODIGOS_ERROR.DATOS_INVALIDOS;
+            throw err;
+          }
+          const saldoAnterior = disponible;
+          const saldoNuevo    = parseFloat((disponible - cantidad).toFixed(2));
+          await client.query(
+            'UPDATE inventarios SET existencia_actual = $1, fecha_modificacion = NOW() WHERE id = $2',
+            [saldoNuevo, n.inventario_id]
+          );
+          await client.query(`
+            INSERT INTO inventarios_movimientos
+              (inventario_id, tipo_movimiento, concepto, cantidad, saldo_anterior, saldo_nuevo,
+               usuario_nombre, area_servicio, notas, pedido_id)
+            VALUES ($1, 'salida', 'apartado_pedido', $2, $3, $4, $5,
+                    'Punto de Venta (Pedido)', $6, $7)
+          `, [
+            n.inventario_id, -cantidad, saldoAnterior, saldoNuevo,
+            usuarioNombre, `Ítem agregado al pedido: ${pedido.folio}`, pedidoId,
+          ]);
+        }
+      }
+
+      await client.query(`
+        INSERT INTO pos_pedidos_detalle
+          (pedido_id, inventario_id, nombre_producto, sku, es_servicio, es_item_libre,
+           cantidad, precio_unitario, descuento_linea_pct, descuento_linea_monto, subtotal_linea)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `, [
+        pedidoId, n.inventario_id || null, n.nombre_producto.trim(), n.sku || null,
+        !!n.es_servicio, !!n.es_item_libre,
+        cantidad, precioUnit, descLinPct, descLinMonto, subtotalLinea,
+      ]);
+
+      subtotalesNuevos.push(subtotalLinea);
+    }
+
+    // ── 4. Recalcular totales del pedido ───────────────────────
+    const nuevoSubtotal  = parseFloat(
+      [...subtotalesConservados, ...subtotalesNuevos].reduce((s, v) => s + v, 0).toFixed(2)
+    );
+    const descPct        = parseFloat(pedido.descuento_pct || 0);
+    const nuevoDescMonto = parseFloat((nuevoSubtotal * descPct / 100).toFixed(2));
+    const nuevoTotal     = parseFloat((nuevoSubtotal - nuevoDescMonto).toFixed(2));
+    const anticipo       = parseFloat(pedido.anticipo || 0);
+
+    const tasas = pedido.requiere_factura ? await leerTasas() : null;
+    const totalRefNuevo = calcularTotalFacturaConTasas(
+      nuevoTotal, !!pedido.requiere_factura, pedido.tipo_persona_factura || 'pm', tasas
+    );
+    if (anticipo > totalRefNuevo + 0.01) {
+      const err = new Error(
+        `El anticipo ya cobrado ($${anticipo.toFixed(2)}) supera el nuevo total${pedido.requiere_factura ? ' c/factura' : ''} ($${totalRefNuevo.toFixed(2)}). Reduzca menos o cancele el pedido.`
+      );
+      err.statusCode = 400; err.errorCode = CODIGOS_ERROR.DATOS_INVALIDOS;
+      throw err;
+    }
+
+    await client.query(`
+      UPDATE pos_pedidos
+      SET subtotal = $1, descuento_monto = $2, total = $3, fecha_modificacion = NOW()
+      WHERE id = $4
+    `, [nuevoSubtotal, nuevoDescMonto, nuevoTotal, pedidoId]);
+
+    if (pedido.requiere_factura && tasas) {
+      const ivaMonto  = parseFloat((nuevoTotal * tasas.iva_pct).toFixed(2));
+      const isrMonto  = pedido.tipo_persona_factura === 'pf'
+        ? 0
+        : parseFloat((nuevoTotal * tasas.isr_pct).toFixed(2));
+      const totalFact = parseFloat((nuevoTotal + ivaMonto - isrMonto).toFixed(2));
+      await client.query(`
+        UPDATE facturas
+        SET subtotal = $1, iva_monto = $2, isr_monto = $3, total_factura = $4,
+            fecha_modificacion = NOW()
+        WHERE pedido_id = $5 AND estatus = 'pendiente'
+      `, [nuevoTotal, ivaMonto, isrMonto, totalFact, pedidoId]);
+    }
+
+    // Resumen para historial
+    const partes = [];
+    if (items_eliminar.length > 0)  partes.push(`${items_eliminar.length} eliminado(s)`);
+    if (items_agregar.length > 0)   partes.push(`${items_agregar.length} agregado(s)`);
+    if (cantidadItems.length > 0)   partes.push(`${cantidadItems.length} cantidad(s) editada(s)`);
+    const notasHist = `${partes.join(', ')}${notas ? `: ${notas}` : ''} — total: $${parseFloat(pedido.total).toFixed(2)} → $${nuevoTotal.toFixed(2)}`;
+
+    await registrarHistorial(client, pedidoId, pedido.estatus, pedido.estatus,
+      usuarioId, usuarioNombre, notasHist);
+
+    await client.query('COMMIT');
+
+    const pedidoCompleto = await getPedidoDetalle(pedidoId);
+
+    registrarBitacora({
+      modulo: 'pedidos', accion: 'PEDIDO_ITEMS_EDITADOS',
+      entidad: 'pos_pedidos', entidadId: pedido.folio,
+      usuarioId, usuarioNombre,
+      ip: getIp(req),
+      detalle: {
+        folio: pedido.folio,
+        total_anterior: parseFloat(pedido.total),
+        total_nuevo: nuevoTotal,
+        eliminados: items_eliminar.length,
+        agregados: items_agregar.length,
+        cantidades_editadas: cantidadItems.length,
+      },
+    });
+
+    return res.json(createResponse(true, pedidoCompleto, 'Pedido actualizado correctamente'));
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err.statusCode === 400)
+      return res.status(400).json(createErrorResponse(err.message, err.errorCode));
+    console.error('actualizarItemsPedido:', err);
+    return res.status(500).json(createErrorResponse('Error al actualizar pedido', CODIGOS_ERROR.ERROR_SERVIDOR));
+  } finally {
+    client.release();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // GET /api/pos/pedidos/stats
 // Contadores por estatus (para badge en la UI)
 // ─────────────────────────────────────────────────────────────
@@ -1104,4 +1447,5 @@ module.exports = {
   entregarPedido,
   cancelarPedido,
   getStatsPedidos,
+  actualizarItemsPedido,
 };
