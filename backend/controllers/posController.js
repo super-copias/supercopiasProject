@@ -65,7 +65,39 @@ async function getCatalogo(req, res) {
   try {
     const { q, departamento_id } = req.query;
 
-    let sql = `
+    // CORRECCIÓN: la subconsulta correlacionada de veces_vendido se reemplaza
+    // por un CTE pre-agregado. Esto elimina O(n_items) lookups y permite al
+    // planificador de PostgreSQL usar un solo Hash Join en lugar de N index scans.
+    // El tabulador se mantiene como subconsulta porque ya tiene índice UNIQUE
+    // en (inventario_id, cantidad_desde) y postgres lo evalúa eficientemente.
+    const params = [];
+    const filters = [
+      'i.activo = true',
+      "i.estatus = 'activo'",
+      'i.disponible_en_pos = true',
+      'i.precio_venta IS NOT NULL',
+      'i.precio_venta > 0',
+    ];
+
+    if (q) {
+      params.push(`%${q}%`);
+      filters.push(`(i.nombre ILIKE $${params.length} OR i.codigo_sku ILIKE $${params.length} OR i.descripcion ILIKE $${params.length})`);
+    }
+    if (departamento_id) {
+      params.push(departamento_id);
+      filters.push(`i.departamento_id = $${params.length}`);
+    }
+
+    const whereStr = filters.join(' AND ');
+
+    const sql = `
+      WITH ventas_por_item AS (
+        SELECT det.inventario_id, SUM(det.cantidad) AS veces_vendido
+        FROM pos_ventas_detalle det
+        JOIN pos_ventas v ON v.id = det.venta_id AND v.estatus = 'completada'
+        WHERE det.inventario_id IS NOT NULL
+        GROUP BY det.inventario_id
+      )
       SELECT
         i.id,
         i.nombre,
@@ -81,13 +113,7 @@ async function getCatalogo(req, res) {
         d.nombre AS departamento_nombre,
         d.color  AS departamento_color,
         d.id     AS departamento_id,
-        COALESCE((
-          SELECT SUM(det.cantidad)
-          FROM pos_ventas_detalle det
-          JOIN pos_ventas v ON v.id = det.venta_id
-          WHERE det.inventario_id = i.id
-            AND v.estatus = 'completada'
-        ), 0) AS veces_vendido,
+        COALESCE(vpi.veces_vendido, 0) AS veces_vendido,
         CASE
           WHEN i.es_servicio = true THEN 'servicio'
           WHEN i.existencia_actual <= 0 THEN 'sin_stock'
@@ -105,24 +131,11 @@ async function getCatalogo(req, res) {
         ), '[]'::json) AS tabulador
       FROM inventarios i
       LEFT JOIN inv_departamentos d ON d.id = i.departamento_id
-      WHERE i.activo = true
-        AND i.estatus = 'activo'
-        AND i.disponible_en_pos = true
-        AND i.precio_venta IS NOT NULL
-        AND i.precio_venta > 0
+      LEFT JOIN ventas_por_item vpi ON vpi.inventario_id = i.id
+      WHERE ${whereStr}
+      ORDER BY veces_vendido DESC, d.orden ASC NULLS LAST, i.nombre ASC
+      LIMIT 500
     `;
-    const params = [];
-
-    if (q) {
-      params.push(`%${q}%`);
-      sql += ` AND (i.nombre ILIKE $${params.length} OR i.codigo_sku ILIKE $${params.length} OR i.descripcion ILIKE $${params.length})`;
-    }
-    if (departamento_id) {
-      params.push(departamento_id);
-      sql += ` AND i.departamento_id = $${params.length}`;
-    }
-
-    sql += ' ORDER BY veces_vendido DESC, d.orden ASC NULLS LAST, i.nombre ASC';
 
     const result = await query(sql, params);
     const items = result.rows.map(r => ({

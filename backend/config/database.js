@@ -19,9 +19,14 @@ const dbConfig = process.env.DATABASE_URL
       // Configuración para producción (usando DATABASE_URL de Render/Railway/etc)
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
-      idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
-      connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
+      // Pool más amplio para absorber ráfagas concurrentes.
+      // Railway (Hobby/Pro) admite hasta 100 conexiones simultáneas en PostgreSQL.
+      max: parseInt(process.env.DB_CONNECTION_LIMIT) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 30000,
+      // CRÍTICO: 60000ms era la causa directa del p99 > 20s.
+      // Con 5s, los requests que no obtengan conexión fallan rápido (503) en lugar
+      // de quedar congelados en silencio durante decenas de segundos.
+      connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 5000,
       application_name: 'SuperCopias_Backend',
       options: '-c timezone=America/Mexico_City'
     }
@@ -32,9 +37,9 @@ const dbConfig = process.env.DATABASE_URL
       user: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'supercopias',
-      max: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
-      idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 60000,
-      connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 60000,
+      max: parseInt(process.env.DB_CONNECTION_LIMIT) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_TIMEOUT) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 5000,
       ssl: false,
       application_name: 'SuperCopias_Backend',
       options: '-c timezone=America/Mexico_City'
@@ -102,6 +107,11 @@ async function query(text, params = []) {
     
     return result;
   } catch (error) {
+    // Timeout de pool: exponer código específico para que los controladores
+    // puedan devolver 503 en lugar de 500 genérico.
+    if (error.message && error.message.includes('timeout')) {
+      error.code = 'POOL_TIMEOUT';
+    }
     console.error('❌ Error en consulta PostgreSQL:', {
       error: error.message,
       query: text.substring(0, 200),
