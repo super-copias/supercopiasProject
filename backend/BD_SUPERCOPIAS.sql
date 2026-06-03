@@ -4524,6 +4524,33 @@ ALTER TABLE ONLY public.pos_pedidos
     ADD CONSTRAINT fk_pedidos_factura FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE SET NULL;
 
 
+-- ============================================================
+-- Índices de rendimiento - reducción de picos p99
+-- Migración: migrate-performance-indexes.sql
+-- ============================================================
+
+-- 1. Índice parcial para el JOIN pos_ventas_detalle → pos_ventas
+--    Usado por el CTE ventas_por_item en getCatalogo (posController).
+CREATE INDEX IF NOT EXISTS idx_pos_ventas_id_completada
+  ON public.pos_ventas (id)
+  WHERE estatus = 'completada';
+
+-- 2. Índice compuesto para reportes de ventas por período + vendedor
+CREATE INDEX IF NOT EXISTS idx_pos_ventas_fecha_vendedor
+  ON public.pos_ventas (fecha_venta DESC, vendedor_usuario_id)
+  WHERE estatus = 'completada';
+
+-- 3. Búsqueda de texto ILIKE en catálogo POS con GIN trigram
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_inventarios_nombre_trgm
+  ON public.inventarios USING GIN (nombre gin_trgm_ops)
+  WHERE activo = true AND estatus = 'activo';
+
+CREATE INDEX IF NOT EXISTS idx_inventarios_sku_trgm
+  ON public.inventarios USING GIN (codigo_sku gin_trgm_ops)
+  WHERE activo = true AND estatus = 'activo' AND codigo_sku IS NOT NULL;
+
 --
 -- PostgreSQL database dump complete
 --

@@ -96,6 +96,10 @@ function tryParseJSON(str) {
   try { return JSON.parse(str); } catch { return str; }
 }
 
+// Tamaño máximo del body de RESPUESTA que se loguea (en caracteres).
+// Evita JSON.parse + JSON.stringify de payloads de cientos de KB en el hilo principal.
+const LOG_RESPONSE_BODY_LIMIT = 2000;
+
 function formatJSON(obj) {
   if (obj === null || obj === undefined) return 'null';
   try {
@@ -106,23 +110,31 @@ function formatJSON(obj) {
 app.use((req, res, next) => {
   const startTime = Date.now();
 
-  // Interceptar res.send para capturar el body de respuesta
+  // Interceptar res.send para capturar SOLO los primeros bytes del body de respuesta.
+  // PROBLEMA ANTERIOR: se capturaba el body completo y luego se hacía JSON.parse +
+  // JSON.stringify de toda la respuesta en res.on('finish'), bloqueando el event loop
+  // durante decenas de ms por cada request en ráfagas concurrentes.
   const originalSend = res.send.bind(res);
-  let responseBody;
+  let responseBodySnippet = '';
   res.send = function (body) {
-    responseBody = body;
+    if (body) {
+      const raw = typeof body === 'string' ? body : String(body);
+      responseBodySnippet = raw.length > LOG_RESPONSE_BODY_LIMIT
+        ? raw.slice(0, LOG_RESPONSE_BODY_LIMIT) + `… [+${raw.length - LOG_RESPONSE_BODY_LIMIT} chars truncados]`
+        : raw;
+    }
     return originalSend(body);
   };
 
   res.on('finish', () => {
     const duration = Date.now() - startTime;
+    // sanitizeBody solo se aplica al REQUEST (siempre pequeño), no a la respuesta.
     const reqBody  = sanitizeBody(req.body && Object.keys(req.body).length ? req.body : null);
-    const resBody  = tryParseJSON(responseBody);
 
     console.log('================================================================================');
     console.log(`URL: ${req.method} ${req.originalUrl}`);
     console.log(`REQUEST: ${formatJSON(reqBody)}`);
-    console.log(`RESPONSE: ${formatJSON(resBody)}`);
+    console.log(`RESPONSE: ${responseBodySnippet || 'null'}`);
     console.log(`STATUS: ${res.statusCode} (${duration}ms)`);
   });
 

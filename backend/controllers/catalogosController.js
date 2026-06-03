@@ -126,7 +126,8 @@ async function getMetodosPago(req, res) {
  */
 async function getModulos(req, res) {
   try {
-    // Siempre upsertear los módulos definidos para garantizar que existan todos
+    // CORRECCIÓN: en lugar de 9 queries en serie (for-await), se hace UN solo
+    // INSERT ... ON CONFLICT con VALUES múltiples + el SELECT final = 2 round-trips.
     const modulos = [
       { clave: 'dashboard',    nombre: 'Dashboard',       icono: 'fas fa-tachometer-alt', orden: 1 },
       { clave: 'empleados',   nombre: 'Empleados',       icono: 'fas fa-users',          orden: 2 },
@@ -139,17 +140,23 @@ async function getModulos(req, res) {
       { clave: 'facturacion', nombre: 'Facturación',     icono: 'fas fa-file-invoice',    orden: 9 },
     ];
 
-    for (const modulo of modulos) {
-      await query(`
-          INSERT INTO modulos (clave, nombre, icono, activo, orden) 
-          VALUES ($1, $2, $3, true, $4)
-          ON CONFLICT (clave) DO UPDATE SET
-              nombre = EXCLUDED.nombre,
-              icono = EXCLUDED.icono,
-              activo = EXCLUDED.activo,
-              orden = EXCLUDED.orden
-        `, [modulo.clave, modulo.nombre, modulo.icono, modulo.orden]);
-    }
+    // Construir un único INSERT con N filas en un solo round-trip
+    const values = modulos.map((m, i) => {
+      const base = i * 4;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, true, $${base + 4})`;
+    }).join(', ');
+    const params = modulos.flatMap(m => [m.clave, m.nombre, m.icono, m.orden]);
+
+    await query(
+      `INSERT INTO modulos (clave, nombre, icono, activo, orden)
+       VALUES ${values}
+       ON CONFLICT (clave) DO UPDATE SET
+         nombre = EXCLUDED.nombre,
+         icono  = EXCLUDED.icono,
+         activo = EXCLUDED.activo,
+         orden  = EXCLUDED.orden`,
+      params
+    );
 
     const result = await query('SELECT * FROM modulos WHERE activo = true ORDER BY orden, nombre');
     

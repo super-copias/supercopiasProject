@@ -55,9 +55,11 @@ export class AuthService {
           next: (response) => {
             // Token verificado exitosamente
           },
-          error: (error) => {
-            // Token inválido o expirado, limpiando sesión
-            this.clearSession();
+          error: (error: HttpErrorResponse) => {
+            // Solo limpiar sesión si el token es rechazado (401), no por errores transitorios
+            if (error.status === 401) {
+              this.clearSession();
+            }
           }
         });
       } catch (error) {
@@ -119,9 +121,12 @@ export class AuthService {
           }
         }),
         shareReplay({ bufferSize: 1, refCount: true }), // Compartir resultado entre suscriptores
-        catchError(error => {
-          this.clearSession();
+        catchError((error: HttpErrorResponse) => {
           this.verifyTokenCache$ = null; // Limpiar caché en caso de error
+          if (error.status === 401) {
+            this.clearSession();
+          }
+          // Errores 500 / red → no destruir sesión, el token puede ser aún válido
           return this.handleError(error);
         })
       );

@@ -193,39 +193,65 @@ async function getInventariosPorDepartamento(req, res) {
     const disponible_en_pos = req.query.disponible_en_pos;
     const filtroDepartamento = req.query.departamento_id ? parseInt(req.query.departamento_id, 10) : null;
 
-    const baseWhere = ['i.activo = true'];
+    const artWhere = ['i.activo = true'];
     const params = [];
     let p = 1;
-    if (tipo) { baseWhere.push(`i.tipo = $${p}`); params.push(tipo); p++; }
-    if (es_servicio !== undefined) { baseWhere.push(`i.es_servicio = $${p}`); params.push(es_servicio === 'true'); p++; }
-    if (disponible_en_pos !== undefined) { baseWhere.push(`i.disponible_en_pos = $${p}`); params.push(disponible_en_pos === 'true'); p++; }
+    if (tipo) { artWhere.push(`i.tipo = $${p}`); params.push(tipo); p++; }
+    if (es_servicio !== undefined) { artWhere.push(`i.es_servicio = $${p}`); params.push(es_servicio === 'true'); p++; }
+    if (disponible_en_pos !== undefined) { artWhere.push(`i.disponible_en_pos = $${p}`); params.push(disponible_en_pos === 'true'); p++; }
+    if (filtroDepartamento) { artWhere.push(`d.id = $${p}`); params.push(filtroDepartamento); p++; }
 
-    // Filtrar departamentos si se especifica uno
-    const deptoWhere = filtroDepartamento ? `AND d.id = ${filtroDepartamento}` : '';
-
-    const deptos = await query(`
-      SELECT d.*, COUNT(i.id) AS total_articulos,
-             COALESCE(SUM(i.costo_compra * i.existencia_actual), 0) AS costo_total
+    // CORRECCIÓN: reemplaza 1 query de departamentos + N queries de artículos (N+1)
+    // por UN SOLO query con json_agg que devuelve todo en un único round-trip.
+    const sql = `
+      SELECT
+        d.id, d.nombre, d.descripcion, d.color, d.orden, d.activo,
+        COUNT(i.id)                                                    AS total_articulos,
+        COALESCE(SUM(i.costo_compra * i.existencia_actual), 0)         AS costo_total,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id',                 i.id,
+              'nombre',             i.nombre,
+              'tipo',               i.tipo,
+              'es_servicio',        i.es_servicio,
+              'codigo_sku',         i.codigo_sku,
+              'marca',              i.marca,
+              'unidad_medida',      i.unidad_medida,
+              'existencia_actual',  i.existencia_actual,
+              'stock_minimo',       i.stock_minimo,
+              'stock_maximo',       i.stock_maximo,
+              'costo_compra',       i.costo_compra,
+              'precio_venta',       i.precio_venta,
+              'costo_promedio',     i.costo_promedio,
+              'disponible_en_pos',  i.disponible_en_pos,
+              'activo',             i.activo,
+              'estatus',            i.estatus,
+              'foto_url',           i.foto_url,
+              'descripcion',        i.descripcion,
+              'tabulador_activo',   i.tabulador_activo,
+              'departamento_id',    i.departamento_id
+            ) ORDER BY i.nombre ASC
+          ) FILTER (WHERE i.id IS NOT NULL),
+          '[]'::json
+        ) AS articulos
       FROM inv_departamentos d
-      INNER JOIN inventarios i ON i.departamento_id=d.id AND i.activo=true
-      WHERE d.activo=true ${deptoWhere} GROUP BY d.id ORDER BY d.orden ASC, d.nombre ASC
-    `);
+      INNER JOIN inventarios i ON i.departamento_id = d.id AND ${artWhere.join(' AND ')}
+      WHERE d.activo = true
+      GROUP BY d.id
+      ORDER BY d.orden ASC, d.nombre ASC
+    `;
 
-    const resultado = await Promise.all(deptos.rows.map(async (depto) => {
-      const artParams = [...params, depto.id];
-      const artResult = await query(
-        `SELECT i.* FROM inventarios i WHERE ${baseWhere.join(' AND ')} AND i.departamento_id=$${p} ORDER BY i.nombre ASC`,
-        artParams
-      );
-      return {
-        ...depto,
-        total_articulos: parseInt(depto.total_articulos),
-        costo_total: parseFloat(depto.costo_total) || 0,
-        articulos: artResult.rows.map(r => ({
-          ...parseNumericFields(r),
-          nivel_stock: r.es_servicio ? null : nivelStock(r.existencia_actual, r.stock_minimo)
-        }))
-      };
+    const { rows } = await query(sql, params);
+
+    const resultado = rows.map(depto => ({
+      ...depto,
+      total_articulos: parseInt(depto.total_articulos),
+      costo_total: parseFloat(depto.costo_total) || 0,
+      articulos: (depto.articulos || []).map(r => ({
+        ...parseNumericFields(r),
+        nivel_stock: r.es_servicio ? null : nivelStock(r.existencia_actual, r.stock_minimo),
+      })),
     }));
 
     return res.json(createResponse(true, resultado, 'Inventario agrupado por departamento'));
