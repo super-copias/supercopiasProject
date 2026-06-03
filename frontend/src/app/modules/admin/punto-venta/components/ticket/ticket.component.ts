@@ -26,7 +26,7 @@ const DEFAULT_TICKET_THEME: PosTicketTheme = {
 
 function buildTicketPrintStyles(theme: PosTicketTheme): string {
   return `
-  @page { size: ${theme.pageWidthMm}mm auto; margin: ${theme.pageMarginMm}mm; }
+  @page { size: ${theme.pageWidthMm}mm auto; margin: 0; }
   html, body { margin: 0; padding: 12px; background: #e0e0e0;
                display: flex; justify-content: center; align-items: flex-start; }
   * { font-family: ${theme.fontFamily}; font-size: ${theme.fontSizePx}px; font-weight: ${theme.fontWeight}; box-sizing: border-box; }
@@ -63,7 +63,8 @@ function buildTicketPrintStyles(theme: PosTicketTheme): string {
                  display: block; width: ${theme.pageWidthMm}mm; height: auto; overflow: visible; }
     .ticket-papel {
       box-shadow: none;
-      width: 100%;
+      width: ${theme.paperWidthMm}mm;
+      margin: 0 auto;
       height: auto;
       overflow: visible;
       page-break-inside: auto;
