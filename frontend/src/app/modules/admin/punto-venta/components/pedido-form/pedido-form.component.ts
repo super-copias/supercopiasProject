@@ -263,6 +263,8 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       notas:                  [this.form.notas, this.form.notas_anticipo ? `Ref. anticipo: ${this.form.notas_anticipo}` : ''].filter(Boolean).join(' | ') || undefined,
     };
 
+    this.procesando = true;
+    this.error = '';
     this.posService.createPedido(payload).subscribe({
       next: (r) => {
         this.procesando = false;
