@@ -490,6 +490,47 @@
         </table>
       </div>
 
+      <!-- ── Anticipo ──────────────────────────────────────── -->
+      <div class="editar-anticipo-wrap border rounded p-2 mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-semibold"><i class="bi bi-cash-coin me-1"></i>Anticipo</span>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" role="switch"
+              id="switchAnticipo"
+              [(ngModel)]="tieneAnticipo"
+              (change)="onToggleAnticipo()">
+            <label class="form-check-label small" for="switchAnticipo">
+              {{ tieneAnticipo ? 'Con anticipo' : 'Sin anticipo' }}
+            </label>
+          </div>
+        </div>
+        <div class="row g-2" *ngIf="tieneAnticipo">
+          <div class="col-6">
+            <label class="form-label small mb-1">Monto *</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control form-control-sm"
+                [(ngModel)]="anticipoEditar"
+                min="0.01" step="0.01"
+                placeholder="0.00"
+                [class.is-invalid]="tieneAnticipo && (!anticipoEditar || anticipoEditar <= 0)">
+            </div>
+          </div>
+          <div class="col-6">
+            <label class="form-label small mb-1">Método de pago</label>
+            <select class="form-select form-select-sm" [(ngModel)]="metodoAnticipo">
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta_credito">Tarjeta crédito</option>
+              <option value="tarjeta_debito">Tarjeta débito</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+        </div>
+        <div *ngIf="tieneAnticipo && anticipoSuperaTotalEditar" class="text-danger small mt-1">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>El anticipo supera el total del pedido.
+        </div>
+      </div>
+
       <!-- ── Resumen de totales ───────────────────────────── -->
       <div class="editar-totales-resumen border rounded p-2 mb-3 small">
         <div class="d-flex justify-content-between" *ngIf="pedidoEditar.descuento_pct > 0">
@@ -510,15 +551,17 @@
             <span>{{ totalConFacturaEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
           </div>
         </ng-container>
-        <ng-container *ngIf="pedidoEditar.anticipo > 0">
+        <ng-container *ngIf="anticipoEfectivoEditar > 0 || tieneAnticipo">
           <hr class="my-1">
           <div class="d-flex justify-content-between text-muted">
-            <span>Anticipo ya cobrado</span>
-            <span>{{ pedidoEditar.anticipo | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
+            <span>Anticipo{{ tieneAnticipo && metodoAnticipo ? ' (' + metodoAnticipo + ')' : '' }}</span>
+            <span [class.text-warning]="anticipoEfectivoEditar !== anticipoEditarOriginal">
+              {{ anticipoEfectivoEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}
+            </span>
           </div>
           <div class="d-flex justify-content-between fw-bold"
             [class.text-danger]="anticipoSuperaTotalEditar">
-            <span>Nuevo saldo pendiente</span>
+            <span>Saldo pendiente</span>
             <span>{{ nuevoSaldoPendienteEditar | currency:'MXN':'symbol-narrow':'1.2-2' }}</span>
           </div>
         </ng-container>
@@ -527,7 +570,7 @@
       <!-- Advertencias -->
       <div *ngIf="anticipoSuperaTotalEditar" class="alert alert-danger py-2 px-2 small mb-2">
         <i class="bi bi-exclamation-triangle-fill me-1"></i>
-        El anticipo (${{ pedidoEditar.anticipo | number:'1.2-2' }}) supera el nuevo total. No puedes reducir por debajo del anticipo ya cobrado.
+        El anticipo (${{ anticipoEfectivoEditar | number:'1.2-2' }}) supera el total. Ajusta el monto o quita el anticipo.
       </div>
       <div *ngIf="!hayModificacionEditar" class="alert alert-secondary py-2 px-2 small mb-2">
         <i class="bi bi-info-circle me-1"></i>No hay cambios pendientes.
