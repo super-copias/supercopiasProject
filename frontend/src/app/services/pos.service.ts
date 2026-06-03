@@ -554,6 +554,8 @@ export class PosService {
       descuento_linea_pct?: number;
     }[];
     notas?: string;
+    anticipo?: number;
+    metodo_pago_anticipo?: string | null;
   }): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/items`, payload);
   }

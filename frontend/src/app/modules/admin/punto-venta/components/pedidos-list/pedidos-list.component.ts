@@ -94,6 +94,13 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   errorEditar = '';
   totalConFacturaEditar: number | null = null;
 
+  // Anticipo en editar
+  tieneAnticipo = false;
+  anticipoEditar: number | null = null;
+  metodoAnticipo: string = 'efectivo';
+  anticipoEditarOriginal: number = 0;
+  metodoAnticipoOriginal: string = '';
+
   // Buscador de catálogo dentro del modal editar
   busquedaEditar = new FormControl('');
   catalogoEditar: CatalogoItem[] = [];
@@ -429,6 +436,11 @@ export class PedidosListComponent implements OnInit, OnDestroy {
         this.totalConFacturaEditar = null;
         this.busquedaEditar.setValue('', { emitEvent: false });
         this.resultadosBusquedaEditar = [];
+        this.anticipoEditarOriginal = parseFloat(pedido.anticipo || 0);
+        this.metodoAnticipoOriginal = pedido.metodo_pago_anticipo || 'efectivo';
+        this.anticipoEditar = this.anticipoEditarOriginal > 0 ? this.anticipoEditarOriginal : null;
+        this.metodoAnticipo = this.metodoAnticipoOriginal;
+        this.tieneAnticipo  = this.anticipoEditarOriginal > 0;
         this.mostrarModalEditar = true;
         if (pedido.requiere_factura) {
           this.recalcularTotalConFacturaEditar();
@@ -493,16 +505,27 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     return this.nuevoTotalEditar;
   }
 
+  get anticipoEfectivoEditar(): number {
+    return this.tieneAnticipo ? (parseFloat(String(this.anticipoEditar)) || 0) : 0;
+  }
+
   get nuevoSaldoPendienteEditar(): number {
     if (!this.pedidoEditar) return 0;
-    const anticipo = parseFloat(this.pedidoEditar.anticipo || 0);
-    return parseFloat(Math.max(0, this.nuevoTotalReferenciaEditar - anticipo).toFixed(2));
+    return parseFloat(Math.max(0, this.nuevoTotalReferenciaEditar - this.anticipoEfectivoEditar).toFixed(2));
   }
 
   get anticipoSuperaTotalEditar(): boolean {
     if (!this.pedidoEditar) return false;
-    const anticipo = parseFloat(this.pedidoEditar.anticipo || 0);
-    return anticipo > 0 && anticipo > this.nuevoTotalReferenciaEditar + 0.01;
+    return this.anticipoEfectivoEditar > 0 && this.anticipoEfectivoEditar > this.nuevoTotalReferenciaEditar + 0.01;
+  }
+
+  onToggleAnticipo(): void {
+    if (this.tieneAnticipo && this.anticipoEditar === null) {
+      // Al activar, pre-rellenar con el original si existe, si no dejar vacío para que el usuario ingrese
+      this.anticipoEditar = this.anticipoEditarOriginal > 0 ? this.anticipoEditarOriginal : null;
+    } else if (!this.tieneAnticipo) {
+      this.anticipoEditar = null;
+    }
   }
 
   get hayModificacionEditar(): boolean {
@@ -516,7 +539,10 @@ export class PedidosListComponent implements OnInit, OnDestroy {
         const original = this.pedidoEditar.detalle.find((d: any) => d.id === l.detalle_id);
         return original && Math.abs(parseFloat(original.cantidad) - l.cantidad) > 0.0001;
       });
-    return hayEliminados || hayNuevos || hayCambiosCantidad;
+    const hayAnticipoCambio =
+      Math.abs(this.anticipoEfectivoEditar - this.anticipoEditarOriginal) > 0.001 ||
+      (this.tieneAnticipo && this.anticipoEfectivoEditar > 0 && this.metodoAnticipo !== this.metodoAnticipoOriginal);
+    return hayEliminados || hayNuevos || hayCambiosCantidad || hayAnticipoCambio;
   }
 
   puedeConfirmarEditar(): boolean {
@@ -524,6 +550,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     if (!this.hayModificacionEditar) return false;
     if (this.anticipoSuperaTotalEditar) return false;
     if (this.lineasActivasEditar.length === 0) return false;
+    if (this.tieneAnticipo && (!this.anticipoEditar || this.anticipoEditar <= 0)) return false;
     return this.lineasActivasEditar.every(l => l.cantidad > 0);
   }
 
@@ -648,11 +675,22 @@ export class PedidosListComponent implements OnInit, OnDestroy {
         descuento_linea_pct: l.descuento_linea_pct,
       }));
 
+    // Anticipo: solo enviar si cambió
+    const anticipoCambio = Math.abs(this.anticipoEfectivoEditar - this.anticipoEditarOriginal) > 0.001 ||
+      (this.tieneAnticipo && this.anticipoEfectivoEditar > 0 && this.metodoAnticipo !== this.metodoAnticipoOriginal);
+
+    const anticipoPayload: { anticipo?: number; metodo_pago_anticipo?: string | null } = {};
+    if (anticipoCambio) {
+      anticipoPayload.anticipo = this.anticipoEfectivoEditar;
+      anticipoPayload.metodo_pago_anticipo = this.anticipoEfectivoEditar > 0 ? this.metodoAnticipo : null;
+    }
+
     this.posService.actualizarItemsPedido(this.pedidoEditar.id, {
       items_cantidad,
       items_eliminar,
       items_agregar,
       notas: this.notasEditar || undefined,
+      ...anticipoPayload,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.procesandoEditar = false;

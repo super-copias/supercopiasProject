@@ -1086,11 +1086,32 @@ async function actualizarItemsPedido(req, res) {
       // Nuevas líneas a agregar
       items_agregar  = [],
       notas,
+      // Anticipo: undefined = sin cambio; number = nuevo monto (0 = quitar anticipo)
+      anticipo: anticipoNuevoRaw,
+      metodo_pago_anticipo: metodoAnticipoNuevo,
     } = req.body;
 
     const cantidadItems = Array.isArray(items_cantidad) ? items_cantidad : items;
+    const hayAnticipoCambio = anticipoNuevoRaw !== undefined && anticipoNuevoRaw !== null;
 
-    const hayAlgo = cantidadItems.length > 0 || items_eliminar.length > 0 || items_agregar.length > 0;
+    // Validación previa del anticipo
+    const _CODIGOS_ANTICIPO = ['efectivo', 'tarjeta_debito', 'tarjeta_credito', 'transferencia'];
+    const _LABELS_ANTICIPO  = { efectivo: 'Efectivo', tarjeta_debito: 'Tarjeta Débito', tarjeta_credito: 'Tarjeta Crédito', transferencia: 'Transferencia' };
+    if (hayAnticipoCambio) {
+      const val = parseFloat(anticipoNuevoRaw);
+      if (isNaN(val) || val < 0)
+        return res.status(400).json(createErrorResponse(
+          'El monto de anticipo debe ser un número mayor o igual a cero',
+          CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      if (val > 0 && !_CODIGOS_ANTICIPO.includes(metodoAnticipoNuevo))
+        return res.status(400).json(createErrorResponse(
+          `Método de pago del anticipo inválido: ${metodoAnticipoNuevo}. Valores permitidos: ${_CODIGOS_ANTICIPO.join(', ')}`,
+          CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+    }
+
+    const hayAlgo = cantidadItems.length > 0 || items_eliminar.length > 0 || items_agregar.length > 0 || hayAnticipoCambio;
     if (!hayAlgo)
       return res.status(400).json(createErrorResponse('No se enviaron cambios', CODIGOS_ERROR.DATOS_INVALIDOS));
 
@@ -1331,15 +1352,22 @@ async function actualizarItemsPedido(req, res) {
     const descPct        = parseFloat(pedido.descuento_pct || 0);
     const nuevoDescMonto = parseFloat((nuevoSubtotal * descPct / 100).toFixed(2));
     const nuevoTotal     = parseFloat((nuevoSubtotal - nuevoDescMonto).toFixed(2));
-    const anticipo       = parseFloat(pedido.anticipo || 0);
+
+    // Anticipo efectivo: si viene cambio usamos el nuevo; si no, el original del pedido
+    const anticipoOriginal    = parseFloat(pedido.anticipo || 0);
+    const anticipoEfectivo    = hayAnticipoCambio ? (parseFloat(anticipoNuevoRaw) || 0) : anticipoOriginal;
+    const metodoAnticipoFinal = hayAnticipoCambio
+      ? (anticipoEfectivo > 0 ? (metodoAnticipoNuevo || null) : null)
+      : pedido.metodo_pago_anticipo;
 
     const tasas = pedido.requiere_factura ? await leerTasas() : null;
     const totalRefNuevo = calcularTotalFacturaConTasas(
       nuevoTotal, !!pedido.requiere_factura, pedido.tipo_persona_factura || 'pm', tasas
     );
-    if (anticipo > totalRefNuevo + 0.01) {
+    if (anticipoEfectivo > totalRefNuevo + 0.01) {
+      const etiqueta = hayAnticipoCambio ? 'El anticipo nuevo' : 'El anticipo ya cobrado';
       const err = new Error(
-        `El anticipo ya cobrado ($${anticipo.toFixed(2)}) supera el nuevo total${pedido.requiere_factura ? ' c/factura' : ''} ($${totalRefNuevo.toFixed(2)}). Reduzca menos o cancele el pedido.`
+        `${etiqueta} ($${anticipoEfectivo.toFixed(2)}) supera el total${pedido.requiere_factura ? ' c/factura' : ''} ($${totalRefNuevo.toFixed(2)}).`
       );
       err.statusCode = 400; err.errorCode = CODIGOS_ERROR.DATOS_INVALIDOS;
       throw err;
@@ -1350,6 +1378,30 @@ async function actualizarItemsPedido(req, res) {
       SET subtotal = $1, descuento_monto = $2, total = $3, fecha_modificacion = NOW()
       WHERE id = $4
     `, [nuevoSubtotal, nuevoDescMonto, nuevoTotal, pedidoId]);
+
+    // Actualizar anticipo si cambió
+    if (hayAnticipoCambio) {
+      await client.query(
+        `UPDATE pos_pedidos SET anticipo = $1, metodo_pago_anticipo = $2, fecha_modificacion = NOW() WHERE id = $3`,
+        [anticipoEfectivo, metodoAnticipoFinal, pedidoId]
+      );
+
+      // Sincronizar pos_pedidos_pagos (anticipo) para que los reportes/corte-caja reflejen el cambio
+      await client.query(
+        `DELETE FROM pos_pedidos_pagos WHERE pedido_id = $1 AND tipo = 'anticipo'`,
+        [pedidoId]
+      );
+      if (anticipoEfectivo > 0 && metodoAnticipoFinal) {
+        await client.query(
+          `INSERT INTO pos_pedidos_pagos
+             (pedido_id, tipo, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+           VALUES ($1, 'anticipo', 1, $2, $3, $4, NULL, 0)`,
+          [pedidoId, metodoAnticipoFinal,
+           _LABELS_ANTICIPO[metodoAnticipoFinal] || metodoAnticipoFinal,
+           anticipoEfectivo]
+        );
+      }
+    }
 
     if (pedido.requiere_factura && tasas) {
       const ivaMonto  = parseFloat((nuevoTotal * tasas.iva_pct).toFixed(2));
@@ -1370,6 +1422,15 @@ async function actualizarItemsPedido(req, res) {
     if (items_eliminar.length > 0)  partes.push(`${items_eliminar.length} eliminado(s)`);
     if (items_agregar.length > 0)   partes.push(`${items_agregar.length} agregado(s)`);
     if (cantidadItems.length > 0)   partes.push(`${cantidadItems.length} cantidad(s) editada(s)`);
+    if (hayAnticipoCambio) {
+      if (anticipoEfectivo === 0 && anticipoOriginal > 0) {
+        partes.push('anticipo eliminado');
+      } else if (anticipoOriginal === 0 && anticipoEfectivo > 0) {
+        partes.push(`anticipo agregado $${anticipoEfectivo.toFixed(2)}`);
+      } else {
+        partes.push(`anticipo $${anticipoOriginal.toFixed(2)} → $${anticipoEfectivo.toFixed(2)}`);
+      }
+    }
     const notasHist = `${partes.join(', ')}${notas ? `: ${notas}` : ''} — total: $${parseFloat(pedido.total).toFixed(2)} → $${nuevoTotal.toFixed(2)}`;
 
     await registrarHistorial(client, pedidoId, pedido.estatus, pedido.estatus,
@@ -1391,6 +1452,8 @@ async function actualizarItemsPedido(req, res) {
         eliminados: items_eliminar.length,
         agregados: items_agregar.length,
         cantidades_editadas: cantidadItems.length,
+        anticipo_anterior: hayAnticipoCambio ? anticipoOriginal : undefined,
+        anticipo_nuevo:    hayAnticipoCambio ? anticipoEfectivo : undefined,
       },
     });
 
