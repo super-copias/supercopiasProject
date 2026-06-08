@@ -12,6 +12,7 @@ import { NotificationService } from '../../services/notification.service';
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   isPasswordVisible = false;
+  isLoading = false;
   constructor(
     private auth: AuthService, 
     private router: Router, 
@@ -38,7 +39,8 @@ export class LoginComponent implements OnInit {
   get passwordControlInvalid() { return this.passwordControl.touched && this.passwordControl.invalid; }
 
   onSubmit() {
-    if (this.loginForm.invalid) return;
+    if (this.loginForm.invalid || this.isLoading) return;
+    this.isLoading = true;
     const v = this.loginForm.value;
     
     // Guardar o limpiar credenciales según el checkbox
@@ -73,6 +75,7 @@ export class LoginComponent implements OnInit {
         const errorCode = err?.error?.error?.code || err?.error?.code;
         const errorMsg  = err?.error?.error?.message || err?.error?.message || err?.message;
 
+        this.isLoading = false;
         if (err.status === 403 && errorCode === 'CUENTA_DESACTIVADA') {
           this.notificationService.error(
             errorMsg || 'Tu cuenta está desactivada. Contacta al administrador.',

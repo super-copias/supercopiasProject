@@ -105,7 +105,8 @@ async function login(req, res) {
         id: user.id, 
         username: user.username, 
         nombre: user.nombre || user.username,
-        role: user.role 
+        role: user.role,
+        jti: crypto.randomUUID()  // garantiza unicidad del hash aunque dos requests lleguen en el mismo segundo
       }, 
       SECRET, 
       { expiresIn: '8h' }
@@ -129,7 +130,8 @@ async function login(req, res) {
     const userAgent = req.headers['user-agent'] || null;
     await query(
       `INSERT INTO user_sessions (usuario_id, token_hash, ip_address, user_agent, expires_at)
-       VALUES ($1, $2, $3, $4, NOW() + INTERVAL '8 hours')`,
+       VALUES ($1, $2, $3, $4, NOW() + INTERVAL '8 hours')
+       ON CONFLICT (token_hash) DO NOTHING`,
       [user.id, tokenHash, ipAddress, userAgent]
     );
     // -----------------------------------------------------------------
