@@ -68,9 +68,10 @@
                 [class.is-invalid]="!form.cliente_nombre.trim() && !!error">
             </div>
             <div>
-              <label class="form-label-xs">Teléfono</label>
+              <label class="form-label-xs">Teléfono <span class="text-danger">*</span></label>
               <input type="tel" class="form-control form-control-sm" placeholder="10 dígitos"
-                [(ngModel)]="form.cliente_telefono">
+                [(ngModel)]="form.cliente_telefono"
+                [class.is-invalid]="!form.cliente_telefono.trim() && !!error">
             </div>
           </ng-template>
 
