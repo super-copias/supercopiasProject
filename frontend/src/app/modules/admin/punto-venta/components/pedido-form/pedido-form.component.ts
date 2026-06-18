@@ -204,6 +204,12 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const telefonoFinal = this.clienteSeleccionado?.telefono || this.form.cliente_telefono?.trim();
+    if (!telefonoFinal) {
+      this.error = 'El teléfono del cliente es obligatorio.';
+      return;
+    }
+
     if (this.form.requiere_factura && !this.clienteSeleccionado?.id) {
       this.error = 'Para generar factura debes seleccionar un cliente registrado en el sistema con RFC y datos fiscales.';
       return;
