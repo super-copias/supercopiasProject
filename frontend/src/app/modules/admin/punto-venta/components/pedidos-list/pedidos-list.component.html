@@ -184,6 +184,9 @@
           </span>
         </div>
         <p class="mb-1"><small class="text-muted">Cliente:</small> {{ pedidoDetalle.cliente_nombre || 'Sin cliente' }}</p>
+        <p class="mb-1" *ngIf="pedidoDetalle.cliente_telefono">
+          <small class="text-muted">Teléfono:</small> {{ pedidoDetalle.cliente_telefono }}
+        </p>
         <p class="mb-1" *ngIf="pedidoDetalle.fecha_acordada">
           <small class="text-muted">Entrega acordada:</small> {{ pedidoDetalle.fecha_acordada | date:'dd/MM/yyyy h:mm a':'America/Mexico_City' }}
         </p>
