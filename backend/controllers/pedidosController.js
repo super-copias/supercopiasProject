@@ -723,8 +723,9 @@ async function entregarPedido(req, res) {
     const saldoReq    = calcularSaldoPendientePedido(pedido, null);
 
     // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
-    const rfacturaEnt      = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
-    const tipoPersonaEnt   = tipo_persona_factura || pedido.tipo_persona_factura || 'pm';
+    // Siempre se toman del pedido guardado para garantizar consistencia con el cálculo original.
+    const rfacturaEnt      = !!(pedido.requiere_factura);
+    const tipoPersonaEnt   = pedido.tipo_persona_factura || 'pm';
     let saldoACobrar = Math.max(0, saldoReq);
     let ivaMonto = 0, isrMonto = 0;
     if (rfacturaEnt) {
@@ -932,13 +933,13 @@ async function entregarPedido(req, res) {
 
     // Crear registro de factura si se solicita
     const clienteParaFactura = parseInt(cliente_factura_id) || pedido.cliente_id || null;
-    if (requiere_factura && clienteParaFactura) {
+    if (rfacturaEnt && clienteParaFactura) {
       await crearFacturaEnTransaccion(client, {
         tipo_origen: 'venta',
         venta_id: ventaId,
         cliente_id: clienteParaFactura,
         subtotal: total,
-        tipo_persona: tipo_persona_factura || 'pm',
+        tipo_persona: tipoPersonaEnt,
         usuario_id: usuarioId,
         usuario_nombre: usuarioNombre,
         notas: `Pedido: ${pedido.folio}`,
