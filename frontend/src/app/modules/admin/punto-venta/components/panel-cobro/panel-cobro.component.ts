@@ -198,8 +198,10 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
       tipo_persona_factura: this.tipoPersonaFactura,
     };
 
+    this.posService._ventaEnProceso = true;
     this.posService.createVenta(payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
+        this.posService._ventaEnProceso = false;
         this.ventaExitosa = r.data;
         this.mostrarTicket = true;
         this.procesando = false;
@@ -209,6 +211,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
         this.ventaCompletada.emit();
       },
       error: (e) => {
+        this.posService._ventaEnProceso = false;
         this.error = e?.error?.error?.message || 'Error al procesar la venta';
         this.procesando = false;
       }
