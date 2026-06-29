@@ -120,19 +120,37 @@ async function updateDepartamento(req, res) {
 async function deleteDepartamento(req, res) {
   try {
     const { id } = req.params;
-    const check = await query('SELECT nombre FROM inv_departamentos WHERE id=$1', [id]);
+    const check = await query('SELECT nombre FROM inv_departamentos WHERE id=$1 AND activo=true', [id]);
     if (check.rows.length === 0)
       return res.status(404).json(createErrorResponse('Departamento no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
 
     const arts = await query('SELECT COUNT(*) AS total FROM inventarios WHERE departamento_id=$1 AND activo=true', [id]);
-    if (parseInt(arts.rows[0].total) > 0)
-      return res.status(400).json(createErrorResponse(`No se puede eliminar: tiene ${arts.rows[0].total} artículo(s) asociado(s)`, CODIGOS_ERROR.DATOS_INVALIDOS));
+    const totalArts = parseInt(arts.rows[0].total);
 
-    await query('DELETE FROM inv_departamentos WHERE id=$1', [id]);
-    return res.json(createResponse(true, { nombre: check.rows[0].nombre }, 'Departamento eliminado'));
+    // Soft delete en cascada dentro de una transacción
+    await query('BEGIN');
+    await queryAudit(
+      'UPDATE inv_departamentos SET activo=false, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$1',
+      [id], req.user?.id, req.user?.nombre || req.user?.username
+    );
+    if (totalArts > 0) {
+      await queryAudit(
+        'UPDATE inventarios SET activo=false, fecha_modificacion=CURRENT_TIMESTAMP WHERE departamento_id=$1 AND activo=true',
+        [id], req.user?.id, req.user?.nombre || req.user?.username
+      );
+    }
+    await query('COMMIT');
+
+    return res.json(createResponse(true,
+      { nombre: check.rows[0].nombre, articulos_archivados: totalArts },
+      totalArts > 0
+        ? `Departamento archivado junto con ${totalArts} artículo(s) asociado(s)`
+        : 'Departamento archivado'
+    ));
   } catch (err) {
+    await query('ROLLBACK').catch(() => {});
     console.error('deleteDepartamento:', err);
-    return res.status(500).json(createErrorResponse('Error al eliminar departamento', CODIGOS_ERROR.ERROR_SERVIDOR));
+    return res.status(500).json(createErrorResponse('Error al archivar departamento', CODIGOS_ERROR.ERROR_SERVIDOR));
   }
 }
 
@@ -428,13 +446,40 @@ async function archivarInventario(req, res) {
   try {
     const { id } = req.params;
     const archivar = req.body.archivar !== false;
+
     const r = await queryAudit(
-      'UPDATE inventarios SET activo=$1, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$2 RETURNING nombre, activo',
+      'UPDATE inventarios SET activo=$1, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$2 RETURNING nombre, activo, departamento_id',
       [!archivar, id], req.user?.id, req.user?.nombre || req.user?.username
     );
     if (r.rows.length === 0)
       return res.status(404).json(createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
-    return res.json(createResponse(true, r.rows[0], archivar ? 'Artículo archivado' : 'Artículo restaurado'));
+
+    let deptoReactivado = null;
+
+    // Al restaurar: si el departamento está archivado, reactivarlo también
+    if (!archivar) {
+      const deptoId = r.rows[0].departamento_id;
+      if (deptoId) {
+        const depto = await query(
+          'SELECT id, nombre, activo FROM inv_departamentos WHERE id=$1', [deptoId]
+        );
+        if (depto.rows.length > 0 && !depto.rows[0].activo) {
+          await queryAudit(
+            'UPDATE inv_departamentos SET activo=true, fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$1',
+            [deptoId], req.user?.id, req.user?.nombre || req.user?.username
+          );
+          deptoReactivado = depto.rows[0].nombre;
+        }
+      }
+    }
+
+    const mensaje = archivar
+      ? 'Artículo archivado'
+      : deptoReactivado
+        ? `Artículo restaurado (también se reactivó el departamento "${deptoReactivado}")`
+        : 'Artículo restaurado';
+
+    return res.json(createResponse(true, r.rows[0], mensaje));
   } catch (err) {
     console.error('archivarInventario:', err);
     return res.status(500).json(createErrorResponse('Error al archivar artículo', CODIGOS_ERROR.ERROR_SERVIDOR));

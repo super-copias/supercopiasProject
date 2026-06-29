@@ -71,10 +71,13 @@ export class DepartamentosComponent implements OnInit {
   }
 
   eliminar(d: Departamento) {
-    if (!confirm(`¿Eliminar el departamento "${d.nombre}"?\n${d.total_articulos ? `Tiene ${d.total_articulos} artículo(s) asignados.` : ''}`)) return;
+    const aviso = d.total_articulos
+      ? `\n⚠ También se archivarán los ${d.total_articulos} artículo(s) asignados.`
+      : '';
+    if (!confirm(`¿Archivar el departamento "${d.nombre}"?${aviso}\n\nPodrás restaurarlos desde la vista de archivados.`)) return;
     this.inventariosService.deleteDepartamento(d.id!).subscribe({
-      next: r => { this.notif.success(r.message || 'Departamento eliminado'); this.cargar(); },
-      error: e => this.notif.error(e.error?.message || 'Error al eliminar')
+      next: r => { this.notif.success(r.message || 'Departamento archivado'); this.cargar(); },
+      error: e => this.notif.error(e.error?.message || 'Error al archivar')
     });
   }
 
