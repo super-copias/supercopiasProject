@@ -35,6 +35,7 @@ router.get('/:id', auth, getInventarioById);
 router.put('/:id', auth, updateInventario);
 router.delete('/:id', auth, deleteInventario);
 router.patch('/:id/archivar', auth, archivarInventario);
+router.put('/:id/archivar',   auth, archivarInventario);
 
 // ── Movimientos por artículo ──────────────────────────────────────────────────
 router.post('/:id/movimientos', auth, addMovimiento);
