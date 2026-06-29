@@ -101,7 +101,12 @@ async function getEquipoById(req, res) {
     const { id } = req.params;
     
     const equipoQuery = `
-      SELECT e.*
+      SELECT
+        e.*,
+        (SELECT contador_actual FROM equipos_historial_contador
+         WHERE equipo_id = e.id ORDER BY fecha_lectura DESC LIMIT 1) AS ultimo_contador,
+        (SELECT fecha_servicio FROM equipos_mantenimiento
+         WHERE equipo_id = e.id ORDER BY fecha_servicio DESC LIMIT 1) AS ultimo_mantenimiento
       FROM equipos e
       WHERE e.id = $1
     `;
@@ -373,6 +378,72 @@ async function addContador(req, res) {
 }
 
 /**
+ * Actualizar registro de contador
+ * PUT /api/equipos/:id/contador/:registroId
+ */
+async function updateContador(req, res) {
+  try {
+    const { registroId } = req.params;
+    const { contador_actual, tecnico_nombre, observaciones } = req.body;
+
+    if (!contador_actual) {
+      return res.status(400).json(
+        createErrorResponse('El contador es obligatorio', CODIGOS_ERROR.DATOS_INVALIDOS)
+      );
+    }
+
+    const result = await query(
+      `UPDATE equipos_historial_contador
+       SET contador_actual = $1, tecnico_nombre = $2, observaciones = $3
+       WHERE id = $4
+       RETURNING *`,
+      [contador_actual, tecnico_nombre || null, observaciones || null, registroId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+
+    return res.json(createResponse(true, result.rows[0], 'Contador actualizado exitosamente'));
+  } catch (error) {
+    console.error('Error al actualizar contador:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al actualizar contador', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
+ * Eliminar registro de contador (hard delete)
+ * DELETE /api/equipos/:id/contador/:registroId
+ */
+async function deleteContador(req, res) {
+  try {
+    const { registroId } = req.params;
+
+    const result = await query(
+      'DELETE FROM equipos_historial_contador WHERE id = $1 RETURNING id',
+      [registroId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+
+    return res.json(createResponse(null, 'Registro de contador eliminado exitosamente'));
+  } catch (error) {
+    console.error('Error al eliminar contador:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al eliminar contador', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
  * Obtener historial de contadores
  * GET /api/equipos/:id/contador
  */
@@ -439,6 +510,75 @@ async function addMantenimiento(req, res) {
     console.error('Error al registrar mantenimiento:', error);
     return res.status(500).json(
       createErrorResponse('Error al registrar mantenimiento', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
+ * Actualizar registro de mantenimiento
+ * PUT /api/equipos/:id/mantenimiento/:registroId
+ */
+async function updateMantenimiento(req, res) {
+  try {
+    const { registroId } = req.params;
+    const { descripcion, contador_servicio, costo, tecnico_nombre, proveedor_nombre, observaciones } = req.body;
+
+    if (!descripcion) {
+      return res.status(400).json(
+        createErrorResponse('La descripción es obligatoria', CODIGOS_ERROR.DATOS_INVALIDOS)
+      );
+    }
+
+    const result = await query(
+      `UPDATE equipos_mantenimiento
+       SET descripcion = $1, contador_servicio = $2, costo = $3,
+           tecnico_nombre = $4, proveedor_nombre = $5, observaciones = $6
+       WHERE id = $7
+       RETURNING *`,
+      [descripcion, contador_servicio || null, costo || null,
+       tecnico_nombre || null, proveedor_nombre || null, observaciones || null,
+       registroId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+
+    return res.json(createResponse(true, result.rows[0], 'Mantenimiento actualizado exitosamente'));
+  } catch (error) {
+    console.error('Error al actualizar mantenimiento:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al actualizar mantenimiento', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
+ * Eliminar registro de mantenimiento (hard delete)
+ * DELETE /api/equipos/:id/mantenimiento/:registroId
+ */
+async function deleteMantenimiento(req, res) {
+  try {
+    const { registroId } = req.params;
+
+    const result = await query(
+      'DELETE FROM equipos_mantenimiento WHERE id = $1 RETURNING id',
+      [registroId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+
+    return res.json(createResponse(null, 'Registro de mantenimiento eliminado exitosamente'));
+  } catch (error) {
+    console.error('Error al eliminar mantenimiento:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al eliminar mantenimiento', CODIGOS_ERROR.ERROR_SERVIDOR)
     );
   }
 }
@@ -516,6 +656,81 @@ async function addConsumible(req, res) {
     console.error('Error al registrar consumible:', error);
     return res.status(500).json(
       createErrorResponse('Error al registrar consumible', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
+ * Actualizar consumible
+ * PUT /api/equipos/:id/consumibles/:registroId
+ */
+async function updateConsumible(req, res) {
+  try {
+    const { registroId } = req.params;
+    const {
+      tipo_consumible,
+      rendimiento_estimado,
+      contador_instalacion,
+      contador_proximo_cambio,
+      observaciones
+    } = req.body;
+
+    if (!tipo_consumible) {
+      return res.status(400).json(
+        createErrorResponse('El tipo de consumible es obligatorio', CODIGOS_ERROR.DATOS_INVALIDOS)
+      );
+    }
+
+    const result = await query(
+      `UPDATE equipos_consumibles
+       SET tipo_consumible = $1, rendimiento_estimado = $2, contador_instalacion = $3,
+           contador_proximo_cambio = $4, observaciones = $5
+       WHERE id = $6
+       RETURNING *`,
+      [tipo_consumible, rendimiento_estimado || null, contador_instalacion || null,
+       contador_proximo_cambio || null, observaciones || null,
+       registroId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+
+    return res.json(createResponse(true, result.rows[0], 'Consumible actualizado exitosamente'));
+  } catch (error) {
+    console.error('Error al actualizar consumible:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al actualizar consumible', CODIGOS_ERROR.ERROR_SERVIDOR)
+    );
+  }
+}
+
+/**
+ * Eliminar consumible (hard delete)
+ * DELETE /api/equipos/:id/consumibles/:registroId
+ */
+async function deleteConsumible(req, res) {
+  try {
+    const { registroId } = req.params;
+
+    const result = await query(
+      'DELETE FROM equipos_consumibles WHERE id = $1 RETURNING id',
+      [registroId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(
+        createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
+      );
+    }
+
+    return res.json(createResponse(null, 'Consumible eliminado exitosamente'));
+  } catch (error) {
+    console.error('Error al eliminar consumible:', error);
+    return res.status(500).json(
+      createErrorResponse('Error al eliminar consumible', CODIGOS_ERROR.ERROR_SERVIDOR)
     );
   }
 }
@@ -736,10 +951,16 @@ module.exports = {
   updateEquipo,
   deleteEquipo,
   addContador,
+  updateContador,
+  deleteContador,
   getHistorialContador,
   addMantenimiento,
+  updateMantenimiento,
+  deleteMantenimiento,
   getHistorialMantenimiento,
   addConsumible,
+  updateConsumible,
+  deleteConsumible,
   getConsumibles,
   getStats,
   configurarMantenimientoPreventivo,

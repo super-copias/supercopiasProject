@@ -25,10 +25,19 @@ export class EquipoDetalleComponent implements OnInit {
   showFormContador = false;
   showFormMantenimiento = false;
   showFormConsumible = false;
-  
+
   formContador = { contador_actual: null, tecnico_nombre: '', observaciones: '' };
   formMantenimiento = { descripcion: '', contador_servicio: null, costo: null, tecnico_nombre: '', proveedor_nombre: '', observaciones: '' };
   formConsumible = { tipo_consumible: '', rendimiento_estimado: null, contador_instalacion: null, contador_proximo_cambio: null, observaciones: '' };
+
+  // Edición de registros
+  editingContadorId: number | null = null;
+  editingMantenimientoId: number | null = null;
+  editingConsumibleId: number | null = null;
+
+  formEditContador: any = {};
+  formEditMantenimiento: any = {};
+  formEditConsumible: any = {};
   
   // Configuración de mantenimiento preventivo
   configMantenimiento = {
@@ -137,6 +146,7 @@ export class EquipoDetalleComponent implements OnInit {
           this.notificationService.success('Contador registrado exitosamente');
           this.showFormContador = false;
           this.formContador = { contador_actual: null, tecnico_nombre: '', observaciones: '' };
+          this.loadEquipo();
           this.loadHistoriales();
         }
       },
@@ -169,6 +179,7 @@ export class EquipoDetalleComponent implements OnInit {
           this.notificationService.success('Mantenimiento registrado exitosamente');
           this.showFormMantenimiento = false;
           this.formMantenimiento = { descripcion: '', contador_servicio: null, costo: null, tecnico_nombre: '', proveedor_nombre: '', observaciones: '' };
+          this.loadEquipo();
           this.loadHistoriales();
         }
       },
@@ -216,6 +227,168 @@ export class EquipoDetalleComponent implements OnInit {
     this.formConsumible = { tipo_consumible: '', rendimiento_estimado: null, contador_instalacion: null, contador_proximo_cambio: null, observaciones: '' };
   }
 
+  // ---- Edición / Eliminación: Contador ----
+  onEditarContador(item: any) {
+    this.editingContadorId = item.id;
+    this.editingMantenimientoId = null;
+    this.editingConsumibleId = null;
+    this.showFormContador = false;
+    this.formEditContador = {
+      contador_actual: item.contador_actual,
+      tecnico_nombre: item.tecnico_nombre || '',
+      observaciones: item.observaciones || ''
+    };
+  }
+
+  onGuardarEditContador() {
+    if (!this.formEditContador.contador_actual) {
+      this.notificationService.warning('El contador es obligatorio');
+      return;
+    }
+    this.equiposService.updateContador(this.equipoId, this.editingContadorId!, this.formEditContador).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.notificationService.success('Contador actualizado exitosamente');
+          this.editingContadorId = null;
+          this.loadEquipo();
+          this.loadHistoriales();
+        }
+      },
+      error: (err) => {
+        console.error('Error al actualizar contador:', err);
+        this.notificationService.error('Error al actualizar contador');
+      }
+    });
+  }
+
+  onCancelarEditContador() {
+    this.editingContadorId = null;
+  }
+
+  onEliminarContador(item: any) {
+    if (!confirm(`¿Eliminar la lectura de contador ${item.contador_actual}? Esta acción no se puede deshacer.`)) return;
+    this.equiposService.deleteContador(this.equipoId, item.id).subscribe({
+      next: () => {
+        this.notificationService.success('Registro eliminado exitosamente');
+        this.loadEquipo();
+        this.loadHistoriales();
+      },
+      error: (err) => {
+        console.error('Error al eliminar contador:', err);
+        this.notificationService.error('Error al eliminar registro');
+      }
+    });
+  }
+
+  // ---- Edición / Eliminación: Mantenimiento ----
+  onEditarMantenimiento(item: any) {
+    this.editingMantenimientoId = item.id;
+    this.editingContadorId = null;
+    this.editingConsumibleId = null;
+    this.showFormMantenimiento = false;
+    this.formEditMantenimiento = {
+      descripcion: item.descripcion || '',
+      contador_servicio: item.contador_servicio,
+      costo: item.costo,
+      tecnico_nombre: item.tecnico_nombre || '',
+      proveedor_nombre: item.proveedor_nombre || '',
+      observaciones: item.observaciones || ''
+    };
+  }
+
+  onGuardarEditMantenimiento() {
+    if (!this.formEditMantenimiento.descripcion) {
+      this.notificationService.warning('La descripción es obligatoria');
+      return;
+    }
+    this.equiposService.updateMantenimiento(this.equipoId, this.editingMantenimientoId!, this.formEditMantenimiento).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.notificationService.success('Mantenimiento actualizado exitosamente');
+          this.editingMantenimientoId = null;
+          this.loadEquipo();
+          this.loadHistoriales();
+        }
+      },
+      error: (err) => {
+        console.error('Error al actualizar mantenimiento:', err);
+        this.notificationService.error('Error al actualizar mantenimiento');
+      }
+    });
+  }
+
+  onCancelarEditMantenimiento() {
+    this.editingMantenimientoId = null;
+  }
+
+  onEliminarMantenimiento(item: any) {
+    if (!confirm(`¿Eliminar el registro de mantenimiento "${item.descripcion}"? Esta acción no se puede deshacer.`)) return;
+    this.equiposService.deleteMantenimiento(this.equipoId, item.id).subscribe({
+      next: () => {
+        this.notificationService.success('Registro eliminado exitosamente');
+        this.loadEquipo();
+        this.loadHistoriales();
+      },
+      error: (err) => {
+        console.error('Error al eliminar mantenimiento:', err);
+        this.notificationService.error('Error al eliminar registro');
+      }
+    });
+  }
+
+  // ---- Edición / Eliminación: Consumible ----
+  onEditarConsumible(item: any) {
+    this.editingConsumibleId = item.id;
+    this.editingContadorId = null;
+    this.editingMantenimientoId = null;
+    this.showFormConsumible = false;
+    this.formEditConsumible = {
+      tipo_consumible: item.tipo_consumible || '',
+      rendimiento_estimado: item.rendimiento_estimado,
+      contador_instalacion: item.contador_instalacion,
+      contador_proximo_cambio: item.contador_proximo_cambio,
+      observaciones: item.observaciones || ''
+    };
+  }
+
+  onGuardarEditConsumible() {
+    if (!this.formEditConsumible.tipo_consumible) {
+      this.notificationService.warning('El tipo de consumible es obligatorio');
+      return;
+    }
+    this.equiposService.updateConsumible(this.equipoId, this.editingConsumibleId!, this.formEditConsumible).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.notificationService.success('Consumible actualizado exitosamente');
+          this.editingConsumibleId = null;
+          this.loadHistoriales();
+        }
+      },
+      error: (err) => {
+        console.error('Error al actualizar consumible:', err);
+        this.notificationService.error('Error al actualizar consumible');
+      }
+    });
+  }
+
+  onCancelarEditConsumible() {
+    this.editingConsumibleId = null;
+  }
+
+  onEliminarConsumible(item: any) {
+    if (!confirm(`¿Eliminar el consumible "${item.tipo_consumible}"? Esta acción no se puede deshacer.`)) return;
+    this.equiposService.deleteConsumible(this.equipoId, item.id).subscribe({
+      next: () => {
+        this.notificationService.success('Consumible eliminado exitosamente');
+        this.loadHistoriales();
+      },
+      error: (err) => {
+        console.error('Error al eliminar consumible:', err);
+        this.notificationService.error('Error al eliminar consumible');
+      }
+    });
+  }
+
   get esImpresora(): boolean {
     if (!this.equipo) return false;
     return this.equipo.tipo_equipo === 'fotocopiadora' || this.equipo.tipo_equipo === 'impresora';
@@ -232,6 +405,8 @@ export class EquipoDetalleComponent implements OnInit {
     return Object.keys(this.equipo.caracteristicas)
       .filter(key => {
         const value = this.equipo.caracteristicas[key];
+        // Excluir contador_actual (se muestra dinámicamente desde el historial)
+        if (key === 'contador_actual') return false;
         // Filtrar solo valores que no sean null, undefined, vacíos o strings vacíos
         return value !== null && value !== undefined && value !== '' && value !== 0 && !(Array.isArray(value) && value.length === 0);
       })
