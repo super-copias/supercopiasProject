@@ -84,7 +84,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let m of movimientos">
-            <td class="text-nowrap small">{{formatFecha(m.created_at)}}</td>
+            <td class="text-nowrap small">{{formatFecha(m.fecha_movimiento)}}</td>
             <td>
               <div class="fw-semibold small">{{m.articulo_nombre}}</div>
               <div class="text-muted" style="font-size:.75rem" *ngIf="m.articulo_sku">{{m.articulo_sku}}</div>
