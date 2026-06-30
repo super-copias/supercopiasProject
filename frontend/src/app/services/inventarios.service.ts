@@ -145,7 +145,7 @@ export class InventariosService {
   }
 
   archivarInventario(id: number, archivado: boolean): Observable<any> {
-    return this.http.put<any>(`${this.baseUrl}/${id}/archivar`, { archivado });
+    return this.http.patch<any>(`${this.baseUrl}/${id}/archivar`, { archivar: archivado });
   }
 
   // ── Tabulador de precios por volumen ────────────────────────────────────────

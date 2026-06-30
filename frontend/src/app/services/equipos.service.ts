@@ -122,6 +122,14 @@ export class EquiposService {
     return this.http.get<any>(`${this.apiUrl}/${equipoId}/contador`);
   }
 
+  updateContador(equipoId: number, registroId: number, data: Partial<HistorialContador>): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${equipoId}/contador/${registroId}`, data);
+  }
+
+  deleteContador(equipoId: number, registroId: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${equipoId}/contador/${registroId}`);
+  }
+
   // Mantenimientos
   addMantenimiento(equipoId: number, mantenimiento: Partial<Mantenimiento>): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${equipoId}/mantenimiento`, mantenimiento);
@@ -131,6 +139,14 @@ export class EquiposService {
     return this.http.get<any>(`${this.apiUrl}/${equipoId}/mantenimiento`);
   }
 
+  updateMantenimiento(equipoId: number, registroId: number, data: Partial<Mantenimiento>): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${equipoId}/mantenimiento/${registroId}`, data);
+  }
+
+  deleteMantenimiento(equipoId: number, registroId: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${equipoId}/mantenimiento/${registroId}`);
+  }
+
   // Consumibles
   addConsumible(equipoId: number, consumible: Partial<Consumible>): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${equipoId}/consumibles`, consumible);
@@ -138,6 +154,14 @@ export class EquiposService {
 
   getConsumibles(equipoId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/${equipoId}/consumibles`);
+  }
+
+  updateConsumible(equipoId: number, registroId: number, data: Partial<Consumible>): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${equipoId}/consumibles/${registroId}`, data);
+  }
+
+  deleteConsumible(equipoId: number, registroId: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${equipoId}/consumibles/${registroId}`);
   }
 
   // Estadísticas

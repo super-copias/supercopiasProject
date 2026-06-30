@@ -28,8 +28,10 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
   constructor(private posService: PosService) {}
 
   ngOnInit(): void {
-    // Restaurar estado del carrito si el usuario navegó a otro módulo y volvió
-    if (this.posService._carritoGuardado.length > 0) {
+    // Restaurar estado del carrito si el usuario navegó a otro módulo y volvió.
+    // No restaurar si había una venta en proceso: el servidor pudo haber ya
+    // registrado la venta aunque el frontend no recibiera la respuesta.
+    if (this.posService._carritoGuardado.length > 0 && !this.posService._ventaEnProceso) {
       this.carrito               = [...this.posService._carritoGuardado];
       this.clienteSeleccionado   = this.posService._clienteGuardado;
       this.descuentoGlobalPct    = this.posService._descuentoPctGuardado;
@@ -37,6 +39,7 @@ export class PuntoVentaComponent implements OnInit, OnDestroy {
       this.descuentoAutorizadoPor = this.posService._descuentoAutorizadoPorGuardado;
       this.recalcularTotales();
     }
+    this.posService._ventaEnProceso = false;
   }
 
   ngOnDestroy(): void {

@@ -13,7 +13,7 @@ import { NotificationService } from '../../../../services/notification.service';
 export class InventariosListComponent implements OnInit, OnDestroy {
 
   // ── Estado de vista ────────────────────────────────────────────────────────
-  vistaActiva: 'vacia' | 'acordeon' | 'busqueda' = 'vacia';
+  vistaActiva: 'vacia' | 'acordeon' | 'busqueda' | 'archivados' = 'vacia';
   loading = false;
 
   // ── Datos ──────────────────────────────────────────────────────────────────
@@ -41,6 +41,15 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   limit = 15;
   get paginasArray(): number[] {
     return Array.from({ length: Math.min(this.pages, 7) }, (_, i) => i + 1);
+  }
+
+  // ── Archivados ─────────────────────────────────────────────────────────────
+  articulosArchivados: Articulo[] = [];
+  pageArchivados = 1;
+  totalArchivados = 0;
+  pagesArchivados = 1;
+  get paginasArchivadosArray(): number[] {
+    return Array.from({ length: Math.min(this.pagesArchivados, 7) }, (_, i) => i + 1);
   }
 
   private destroy$ = new Subject<void>();
@@ -240,6 +249,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     this.vistaActiva = 'vacia';
     this.resultadosBusqueda = [];
     this.departamentosConArticulos = [];
+    this.articulosArchivados = [];
   }
 
   limpiarBusqueda() {
@@ -264,6 +274,27 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   verDepartamentos() { this.router.navigate(['/admin/inventarios/departamentos']); }
   ocultarAlertas() { this.mostrarAlertas = false; }
 
+  verArchivados(p: number = 1) {
+    if (p < 1) return;
+    this.pageArchivados = p;
+    this.loading = true;
+    this.filtroBusqueda = '';
+    this.filtroDepartamento = '';
+    this.filtroTipo = '';
+    this.inventariosService.getInventarios({ incluirArchivados: 'true', page: p, limit: this.limit }).subscribe({
+      next: r => {
+        this.loading = false;
+        if (r.success) {
+          this.articulosArchivados = r.data || [];
+          this.totalArchivados = r.pagination?.total || 0;
+          this.pagesArchivados = r.pagination?.pages || 1;
+          this.vistaActiva = 'archivados';
+        }
+      },
+      error: () => { this.loading = false; this.notif.error('Error al cargar archivados'); }
+    });
+  }
+
   // ── Acciones sobre artículos ───────────────────────────────────────────────
 
   archivar(art: Articulo) {
@@ -275,6 +306,18 @@ export class InventariosListComponent implements OnInit, OnDestroy {
         this.cargarEstadisticas();
       },
       error: e => this.notif.error(e.error?.message || 'Error al archivar')
+    });
+  }
+
+  desarchivar(art: Articulo) {
+    if (!confirm(`¿Restaurar "${art.nombre}"? El artículo volverá a estar disponible en el inventario.`)) return;
+    this.inventariosService.archivarInventario(art.id!, false).subscribe({
+      next: r => {
+        this.notif.success(r.message || 'Artículo restaurado');
+        this.verArchivados(this.pageArchivados);
+        this.cargarEstadisticas();
+      },
+      error: e => this.notif.error(e.error?.message || 'Error al restaurar')
     });
   }
 
@@ -294,6 +337,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   private refrescarVista() {
     if (this.vistaActiva === 'acordeon') this.verTodos();
     else if (this.vistaActiva === 'busqueda') this.cargarListaBusqueda(this.page);
+    else if (this.vistaActiva === 'archivados') this.verArchivados(this.pageArchivados);
   }
 
   // ── Helpers de presentación ────────────────────────────────────────────────

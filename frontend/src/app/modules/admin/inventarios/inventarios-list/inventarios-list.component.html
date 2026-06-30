@@ -127,6 +127,12 @@
         <button class="btn btn-outline-primary btn-sm toolbar-btn" (click)="verDepartamentos()" title="Departamentos">
           <i class="fas fa-tags me-1"></i>Departamentos
         </button>
+        <button class="btn btn-sm toolbar-btn"
+                [class.btn-warning]="vistaActiva !== 'archivados'"
+                [class.btn-outline-warning]="vistaActiva === 'archivados'"
+                (click)="verArchivados()" title="Ver productos archivados">
+          <i class="fas fa-archive me-1"></i>Archivados
+        </button>
         <div class="ms-auto">
           <button class="btn btn-primary btn-sm" (click)="nuevo()">
             <i class="fas fa-plus me-1"></i>Nuevo artículo
@@ -323,6 +329,88 @@
             </li>
             <li class="page-item" [class.disabled]="page === pages">
               <button class="page-link" (click)="cargarListaBusqueda(page + 1)">›</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISTA ARCHIVADOS -->
+  <div *ngIf="!loading && vistaActiva === 'archivados'">
+    <div class="card mb-3 border-warning">
+      <div class="card-header bg-warning bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-archive me-2 text-warning"></i><strong>Artículos archivados</strong>
+          <span class="badge bg-warning text-dark ms-2">{{totalArchivados}}</span>
+        </span>
+        <button class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltros()">
+          <i class="fas fa-times me-1"></i>Cerrar
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="articulosArchivados.length === 0" class="text-center py-4 text-muted">
+      <i class="fas fa-archive fa-3x mb-2 opacity-25"></i>
+      <p>No hay artículos archivados</p>
+    </div>
+
+    <div class="card" *ngIf="articulosArchivados.length > 0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Artículo</th>
+              <th class="d-none d-md-table-cell">Departamento</th>
+              <th class="d-none d-md-table-cell">Tipo</th>
+              <th class="d-none d-md-table-cell">Precio venta</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let art of articulosArchivados">
+              <td>
+                <div class="fw-semibold text-muted">{{art.nombre}}</div>
+                <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>
+                <div class="d-md-none mt-1">
+                  <span class="badge me-1" [style.background-color]="art.departamento_color || '#6c757d'">
+                    {{art.departamento_nombre || 'Sin depto.'}}
+                  </span>
+                </div>
+              </td>
+              <td class="d-none d-md-table-cell">
+                <span class="badge" [style.background-color]="art.departamento_color || '#6c757d'">
+                  {{art.departamento_nombre || 'Sin depto.'}}
+                </span>
+              </td>
+              <td class="d-none d-md-table-cell">
+                <i [class]="getTipoIcon(art) + ' me-1 text-muted'"></i>
+                {{art.es_servicio ? 'Servicio' : (art.tipo | titlecase)}}
+              </td>
+              <td class="d-none d-md-table-cell">
+                <span *ngIf="art.precio_venta">{{formatCurrency(art.precio_venta)}}</span>
+                <span *ngIf="!art.precio_venta" class="text-muted">—</span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-success" title="Restaurar artículo" (click)="desarchivar(art)">
+                  <i class="fas fa-box-open me-1"></i>Restaurar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center py-2" *ngIf="pagesArchivados > 1">
+        <small class="text-muted">Página {{pageArchivados}} de {{pagesArchivados}}</small>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="pageArchivados === 1">
+              <button class="page-link" (click)="verArchivados(pageArchivados - 1)">‹</button>
+            </li>
+            <li class="page-item" *ngFor="let p of paginasArchivadosArray" [class.active]="p === pageArchivados">
+              <button class="page-link" (click)="verArchivados(p)">{{p}}</button>
+            </li>
+            <li class="page-item" [class.disabled]="pageArchivados === pagesArchivados">
+              <button class="page-link" (click)="verArchivados(pageArchivados + 1)">›</button>
             </li>
           </ul>
         </nav>

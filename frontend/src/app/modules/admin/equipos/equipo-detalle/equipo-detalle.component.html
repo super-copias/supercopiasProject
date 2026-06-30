@@ -23,7 +23,7 @@
 
     <!-- Tabs -->
     <div class="card-body p-2 p-md-3">
-      <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto">
+      <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
           <a class="nav-link" [class.active]="activeTab === 'info'" (click)="setTab('info')" style="cursor: pointer;">
             <i class="fas fa-info-circle me-1"></i><span class="d-none d-sm-inline">Información</span>
@@ -94,6 +94,21 @@
           </div>
           <div class="col-md-6">
             <h6 class="mb-3">Características</h6>
+            <!-- Último contador y último mantenimiento dinámicos -->
+            <ul class="list-unstyled mb-2">
+              <li *ngIf="esImpresora" class="mb-2">
+                <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                <strong>Último Contador:</strong>
+                <span *ngIf="equipo.ultimo_contador"> {{equipo.ultimo_contador | number}}</span>
+                <span *ngIf="!equipo.ultimo_contador" class="text-muted"> Sin registros</span>
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-tools text-primary me-2"></i>
+                <strong>Último Mantenimiento:</strong>
+                <span *ngIf="equipo.ultimo_mantenimiento"> {{equipo.ultimo_mantenimiento | date:'dd/MM/yyyy':'America/Mexico_City'}}</span>
+                <span *ngIf="!equipo.ultimo_mantenimiento" class="text-muted"> Sin registros</span>
+              </li>
+            </ul>
             <div *ngIf="equipo.caracteristicas && hasCaracteristicas()">
               <ul class="list-unstyled">
                 <li *ngFor="let item of getCaracteristicasArray()" class="mb-2">
@@ -101,10 +116,6 @@
                   <strong>{{item.key}}:</strong> {{item.value}}
                 </li>
               </ul>
-            </div>
-            <div *ngIf="!equipo.caracteristicas || !hasCaracteristicas()" class="text-center py-4">
-              <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
-              <p class="text-muted mb-0">Sin características registradas</p>
             </div>
           </div>
         </div>
@@ -162,17 +173,56 @@
                 <th>Contador</th>
                 <th>Técnico</th>
                 <th>Observaciones</th>
+                <th width="90"></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of historialContador">
-                <td>{{item.fecha_lectura | date:'dd/MM/yyyy h:mm a':'America/Mexico_City'}}</td>
-                <td><strong>{{item.contador_actual}}</strong></td>
-                <td>{{item.tecnico_nombre || '-'}}</td>
-                <td>{{item.observaciones || '-'}}</td>
-              </tr>
+              <ng-container *ngFor="let item of historialContador">
+                <!-- Fila de edición -->
+                <tr *ngIf="editingContadorId === item.id" class="table-warning">
+                  <td colspan="5">
+                    <div class="row g-2 align-items-end py-1">
+                      <div class="col-md-3">
+                        <label class="form-label form-label-sm mb-1">Contador *</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="formEditContador.contador_actual">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label form-label-sm mb-1">Técnico</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditContador.tecnico_nombre">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label form-label-sm mb-1">Observaciones</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditContador.observaciones">
+                      </div>
+                      <div class="col-md-2 d-flex gap-1">
+                        <button class="btn btn-success btn-sm" (click)="onGuardarEditContador()">
+                          <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-secondary btn-sm" (click)="onCancelarEditContador()">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Fila normal -->
+                <tr *ngIf="editingContadorId !== item.id">
+                  <td>{{item.fecha_lectura | date:'dd/MM/yyyy h:mm a':'America/Mexico_City'}}</td>
+                  <td><strong>{{item.contador_actual}}</strong></td>
+                  <td>{{item.tecnico_nombre || '-'}}</td>
+                  <td>{{item.observaciones || '-'}}</td>
+                  <td class="text-end">
+                    <button class="btn btn-outline-primary btn-sm me-1" title="Editar" (click)="onEditarContador(item)">
+                      <i class="fas fa-pen fa-xs"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" title="Eliminar" (click)="onEliminarContador(item)">
+                      <i class="fas fa-trash fa-xs"></i>
+                    </button>
+                  </td>
+                </tr>
+              </ng-container>
               <tr *ngIf="historialContador.length === 0">
-                <td colspan="4" class="text-center text-muted">No hay registros</td>
+                <td colspan="5" class="text-center text-muted">No hay registros</td>
               </tr>
             </tbody>
           </table>
@@ -241,19 +291,70 @@
                 <th>Costo</th>
                 <th>Técnico</th>
                 <th>Proveedor</th>
+                <th width="90"></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of historialMantenimiento">
-                <td>{{item.fecha_servicio | date:'dd/MM/yyyy'}}</td>
-                <td>{{item.descripcion}}</td>
-                <td>{{item.contador_servicio || '-'}}</td>
-                <td>{{item.costo ? (item.costo | currency) : '-'}}</td>
-                <td>{{item.tecnico_nombre || '-'}}</td>
-                <td>{{item.proveedor_nombre || '-'}}</td>
-              </tr>
+              <ng-container *ngFor="let item of historialMantenimiento">
+                <!-- Fila de edición -->
+                <tr *ngIf="editingMantenimientoId === item.id" class="table-warning">
+                  <td colspan="7">
+                    <div class="row g-2 align-items-end py-1">
+                      <div class="col-md-12">
+                        <label class="form-label form-label-sm mb-1">Descripción *</label>
+                        <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="formEditMantenimiento.descripcion"></textarea>
+                      </div>
+                      <div class="col-md-3" *ngIf="esImpresora">
+                        <label class="form-label form-label-sm mb-1">Contador al Servicio</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="formEditMantenimiento.contador_servicio">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label form-label-sm mb-1">Costo</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="formEditMantenimiento.costo" step="0.01">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label form-label-sm mb-1">Técnico</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditMantenimiento.tecnico_nombre">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label form-label-sm mb-1">Proveedor</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditMantenimiento.proveedor_nombre">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label form-label-sm mb-1">Observaciones</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditMantenimiento.observaciones">
+                      </div>
+                      <div class="col-md-2 d-flex gap-1">
+                        <button class="btn btn-success btn-sm" (click)="onGuardarEditMantenimiento()">
+                          <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-secondary btn-sm" (click)="onCancelarEditMantenimiento()">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Fila normal -->
+                <tr *ngIf="editingMantenimientoId !== item.id">
+                  <td>{{item.fecha_servicio | date:'dd/MM/yyyy h:mm a':'America/Mexico_City'}}</td>
+                  <td>{{item.descripcion}}</td>
+                  <td>{{item.contador_servicio || '-'}}</td>
+                  <td>{{item.costo ? (item.costo | currency) : '-'}}</td>
+                  <td>{{item.tecnico_nombre || '-'}}</td>
+                  <td>{{item.proveedor_nombre || '-'}}</td>
+                  <td class="text-end">
+                    <button class="btn btn-outline-primary btn-sm me-1" title="Editar" (click)="onEditarMantenimiento(item)">
+                      <i class="fas fa-pen fa-xs"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" title="Eliminar" (click)="onEliminarMantenimiento(item)">
+                      <i class="fas fa-trash fa-xs"></i>
+                    </button>
+                  </td>
+                </tr>
+              </ng-container>
               <tr *ngIf="historialMantenimiento.length === 0">
-                <td colspan="6" class="text-center text-muted">No hay registros</td>
+                <td colspan="7" class="text-center text-muted">No hay registros</td>
               </tr>
             </tbody>
           </table>
@@ -312,19 +413,67 @@
                 <th>Rendimiento</th>
                 <th>Próximo Cambio</th>
                 <th>Observaciones</th>
+                <th width="90"></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of consumibles">
-                <td>{{item.fecha_instalacion | date:'dd/MM/yyyy'}}</td>
-                <td>{{item.tipo_consumible}}</td>
-                <td>{{item.contador_instalacion || '-'}}</td>
-                <td>{{item.rendimiento_estimado || '-'}}</td>
-                <td>{{item.contador_proximo_cambio || '-'}}</td>
-                <td>{{item.observaciones || '-'}}</td>
-              </tr>
+              <ng-container *ngFor="let item of consumibles">
+                <!-- Fila de edición -->
+                <tr *ngIf="editingConsumibleId === item.id" class="table-warning">
+                  <td colspan="7">
+                    <div class="row g-2 align-items-end py-1">
+                      <div class="col-md-4">
+                        <label class="form-label form-label-sm mb-1">Tipo de Consumible *</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditConsumible.tipo_consumible"
+                               placeholder="Ej: Toner Negro, Cilindro">
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label form-label-sm mb-1">Contador Inst.</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="formEditConsumible.contador_instalacion">
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label form-label-sm mb-1">Rendimiento</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="formEditConsumible.rendimiento_estimado">
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label form-label-sm mb-1">Próx. Cambio</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="formEditConsumible.contador_proximo_cambio">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label form-label-sm mb-1">Observaciones</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="formEditConsumible.observaciones">
+                      </div>
+                      <div class="col-md-2 d-flex gap-1">
+                        <button class="btn btn-success btn-sm" (click)="onGuardarEditConsumible()">
+                          <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-secondary btn-sm" (click)="onCancelarEditConsumible()">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Fila normal -->
+                <tr *ngIf="editingConsumibleId !== item.id">
+                  <td>{{item.fecha_instalacion | date:'dd/MM/yyyy h:mm a':'America/Mexico_City'}}</td>
+                  <td>{{item.tipo_consumible}}</td>
+                  <td>{{item.contador_instalacion || '-'}}</td>
+                  <td>{{item.rendimiento_estimado || '-'}}</td>
+                  <td>{{item.contador_proximo_cambio || '-'}}</td>
+                  <td>{{item.observaciones || '-'}}</td>
+                  <td class="text-end">
+                    <button class="btn btn-outline-primary btn-sm me-1" title="Editar" (click)="onEditarConsumible(item)">
+                      <i class="fas fa-pen fa-xs"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" title="Eliminar" (click)="onEliminarConsumible(item)">
+                      <i class="fas fa-trash fa-xs"></i>
+                    </button>
+                  </td>
+                </tr>
+              </ng-container>
               <tr *ngIf="consumibles.length === 0">
-                <td colspan="6" class="text-center text-muted">No hay registros</td>
+                <td colspan="7" class="text-center text-muted">No hay registros</td>
               </tr>
             </tbody>
           </table>

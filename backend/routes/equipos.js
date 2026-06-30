@@ -14,10 +14,16 @@ const {
   updateEquipo,
   deleteEquipo,
   addContador,
+  updateContador,
+  deleteContador,
   getHistorialContador,
   addMantenimiento,
+  updateMantenimiento,
+  deleteMantenimiento,
   getHistorialMantenimiento,
   addConsumible,
+  updateConsumible,
+  deleteConsumible,
   getConsumibles,
   getStats,
   configurarMantenimientoPreventivo,
@@ -82,6 +88,18 @@ router.post('/:id/contador', auth, addContador);
 router.get('/:id/contador', auth, getHistorialContador);
 
 /**
+ * PUT /api/equipos/:id/contador/:registroId
+ * Actualizar registro de contador
+ */
+router.put('/:id/contador/:registroId', auth, updateContador);
+
+/**
+ * DELETE /api/equipos/:id/contador/:registroId
+ * Eliminar registro de contador (hard delete)
+ */
+router.delete('/:id/contador/:registroId', auth, deleteContador);
+
+/**
  * POST /api/equipos/:id/mantenimiento
  * Agregar registro de mantenimiento
  */
@@ -94,6 +112,18 @@ router.post('/:id/mantenimiento', auth, addMantenimiento);
 router.get('/:id/mantenimiento', auth, getHistorialMantenimiento);
 
 /**
+ * PUT /api/equipos/:id/mantenimiento/:registroId
+ * Actualizar registro de mantenimiento
+ */
+router.put('/:id/mantenimiento/:registroId', auth, updateMantenimiento);
+
+/**
+ * DELETE /api/equipos/:id/mantenimiento/:registroId
+ * Eliminar registro de mantenimiento (hard delete)
+ */
+router.delete('/:id/mantenimiento/:registroId', auth, deleteMantenimiento);
+
+/**
  * POST /api/equipos/:id/consumibles
  * Agregar consumible al equipo
  */
@@ -104,6 +134,18 @@ router.post('/:id/consumibles', auth, addConsumible);
  * Obtener consumibles del equipo
  */
 router.get('/:id/consumibles', auth, getConsumibles);
+
+/**
+ * PUT /api/equipos/:id/consumibles/:registroId
+ * Actualizar consumible
+ */
+router.put('/:id/consumibles/:registroId', auth, updateConsumible);
+
+/**
+ * DELETE /api/equipos/:id/consumibles/:registroId
+ * Eliminar consumible (hard delete)
+ */
+router.delete('/:id/consumibles/:registroId', auth, deleteConsumible);
 
 /**
  * PUT /api/equipos/:id/mantenimiento-preventivo

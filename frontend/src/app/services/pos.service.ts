@@ -352,6 +352,9 @@ export class PosService {
   _descuentoPctGuardado = 0;
   _descuentoConfigIdGuardado: number | null = null;
   _descuentoAutorizadoPorGuardado: string | null = null;
+  /** true mientras haya un POST /ventas en vuelo; evita restaurar el carrito si la
+   *  navegación ocurrió con una venta ya enviada al servidor pero sin respuesta aún. */
+  _ventaEnProceso = false;
 
   constructor(private http: HttpClient) {}
 
