@@ -219,7 +219,7 @@
       <button class="btn btn-sm flex-fill fw-bold"
         [class.btn-success]="accionPendiente==='venta'"
         [class.btn-primary]="accionPendiente==='cotizacion'"
-        [disabled]="!puedeVender"
+        [disabled]="accionPendiente === 'venta' ? !puedeVender : !puedeGuardarCotizacion"
         (click)="confirmarAccion()">
         {{ accionPendiente === 'venta' ? 'Sí, cobrar' : 'Sí, guardar' }}
       </button>
