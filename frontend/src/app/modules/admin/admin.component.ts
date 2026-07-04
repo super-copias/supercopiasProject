@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
@@ -9,10 +9,6 @@ import { RequestCancellationService } from '../../services/request-cancellation.
   selector: 'app-admin',
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.scss'],
-  // OnPush: Angular solo re-evalúa este componente cuando cambia un @Input,
-  // un observable del async pipe emite, o un event handler del propio componente
-  // dispara. Elimina las re-evaluaciones del navbar causadas por eventos de hijos.
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminComponent implements OnInit, OnDestroy {
   // collapsed: reduce width on desktop
