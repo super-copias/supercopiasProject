@@ -20,7 +20,10 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   @Input() descuentoConfigId: number | null = null;
   @Input() descuentoAutorizadoPor: string | null = null;
   @Input() clientePreseleccionado: any = null;
-  @Input() requiereFactura = false;
+  @Input() requiereFactura    = false;
+  @Input() tipoPersonaFactura: 'pf' | 'pm' = 'pm';
+  @Input() cotizacionId: number | null     = null;
+  @Input() clienteNombreLibre: string      = '';
 
   @Output() cerrado    = new EventEmitter<void>();
   @Output() generado   = new EventEmitter<any>();
@@ -70,7 +73,11 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     if (this.clientePreseleccionado) {
       this.clienteSeleccionado = this.clientePreseleccionado;
     }
-    this.form.requiere_factura = this.requiereFactura;
+    this.form.requiere_factura     = this.requiereFactura;
+    this.form.tipo_persona_factura = this.tipoPersonaFactura;
+    if (!this.clientePreseleccionado && this.clienteNombreLibre) {
+      this.form.cliente_nombre = this.clienteNombreLibre;
+    }
 
     this.busquedaCliente.valueChanges.pipe(
       debounceTime(300),
@@ -267,6 +274,7 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
       pagos_anticipo:         this.form.anticipo > 0 ? this.pagosAnticipo : undefined,
       fecha_acordada:         fechaAcordada,
       notas:                  [this.form.notas, this.form.notas_anticipo ? `Ref. anticipo: ${this.form.notas_anticipo}` : ''].filter(Boolean).join(' | ') || undefined,
+      cotizacion_id:          this.cotizacionId ?? undefined,
     };
 
     this.procesando = true;

@@ -4,7 +4,7 @@ import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../../../environments/environment';
-import { PosService, CotizacionDetalle, FiltrosCotizaciones, PagoInput } from '../../../../../services/pos.service';
+import { PosService, CotizacionDetalle, FiltrosCotizaciones, PagoInput, LineaCarrito } from '../../../../../services/pos.service';
 import { FacturasService } from '../../../../../services/facturas.service';
 
 @Component({
@@ -70,6 +70,19 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     { valor: 'vencida',   label: 'Vencida' },
   ];
 
+  // Convertir cotización → pedido
+  cargandoPedidoFormCot    = false;
+  errorPedidoFormCot       = '';
+  mostrarPedidoFormCot     = false;
+  pedidoFormCarrito:         LineaCarrito[] = [];
+  pedidoFormTotales          = { subtotal: 0, descuentoMonto: 0, total: 0 };
+  pedidoFormDescPct          = 0;
+  pedidoFormCliente:         any = null;
+  pedidoFormNombreLibre      = '';
+  pedidoFormRequiereFactura  = false;
+  pedidoFormTipoPersona:    'pf' | 'pm' = 'pm';
+  pedidoFormCotizacionId:    number | null = null;
+
   constructor(private posService: PosService, private http: HttpClient, private facturasService: FacturasService) {}
 
   ngOnInit(): void {
@@ -82,6 +95,52 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
       if (!q || q.length < 2) { this.resultadosClienteConvertir = []; return; }
       this.buscarClientesConvertir(q);
     });
+  }
+
+  abrirConvertirAPedido(cot: any): void {
+    this.cargandoPedidoFormCot = true;
+    this.errorPedidoFormCot    = '';
+    this.posService.getCotizacionById(cot.id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r) => {
+        const cotiz = r.data as CotizacionDetalle;
+        this.pedidoFormCarrito = cotiz.detalle.map(d => ({
+          inventario_id:         d.inventario_id,
+          nombre_producto:       d.nombre_producto,
+          sku:                   d.sku,
+          es_servicio:           d.es_servicio,
+          es_item_libre:         d.es_item_libre,
+          cantidad:              d.cantidad,
+          precio_unitario:       d.precio_unitario,
+          descuento_linea_pct:   d.descuento_linea_pct,
+          descuento_linea_monto: d.descuento_linea_monto,
+          subtotal_linea:        d.subtotal_linea,
+          _id_ui:                `cotiz-${d.id}`,
+        }));
+        this.pedidoFormTotales         = { subtotal: cotiz.subtotal, descuentoMonto: cotiz.descuento_monto, total: cotiz.total };
+        this.pedidoFormDescPct         = cotiz.descuento_pct;
+        this.pedidoFormCliente         = cotiz.cliente_id
+          ? { id: cotiz.cliente_id, nombreComercial: cotiz.cliente_nombre_comercial || cotiz.cliente_nombre, nombre: cotiz.cliente_nombre, telefono: cotiz.cliente_telefono || null }
+          : null;
+        this.pedidoFormNombreLibre     = (!cotiz.cliente_id && cotiz.cliente_nombre && cotiz.cliente_nombre !== 'Público General')
+          ? cotiz.cliente_nombre : '';
+        this.pedidoFormRequiereFactura = !!cotiz.requiere_factura;
+        this.pedidoFormTipoPersona     = cotiz.tipo_persona_factura || 'pm';
+        this.pedidoFormCotizacionId    = cotiz.id;
+        this.cargandoPedidoFormCot     = false;
+        this.mostrarPedidoFormCot      = false;
+        setTimeout(() => { this.mostrarPedidoFormCot = true; });
+      },
+      error: (e) => {
+        this.cargandoPedidoFormCot = false;
+        this.errorPedidoFormCot    = e?.error?.error?.message || 'Error al cargar cotización';
+      }
+    });
+  }
+
+  onPedidoGuardadoDesdeCotizacion(_pedido: any): void {
+    this.mostrarPedidoFormCot   = false;
+    this.pedidoFormCotizacionId = null;
+    this.cargar();
   }
 
   ngOnDestroy(): void {

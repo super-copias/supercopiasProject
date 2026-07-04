@@ -4336,6 +4336,9 @@ CREATE TABLE IF NOT EXISTS public.pos_pedidos (
     -- Factura asociada
     factura_id                  INTEGER,
 
+    -- Cotización de origen (si el pedido fue convertido desde una cotización)
+    cotizacion_id               INTEGER,
+
     fecha_modificacion          TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -4384,12 +4387,15 @@ CREATE INDEX IF NOT EXISTS idx_pos_pedidos_tomado_por    ON public.pos_pedidos (
 CREATE INDEX IF NOT EXISTS idx_pos_pedidos_fecha         ON public.pos_pedidos (fecha_creacion DESC);
 CREATE INDEX IF NOT EXISTS idx_pos_pedidos_detalle_ped   ON public.pos_pedidos_detalle (pedido_id);
 CREATE INDEX IF NOT EXISTS idx_pos_pedidos_hist_ped      ON public.pos_pedidos_historial (pedido_id);
+CREATE INDEX IF NOT EXISTS idx_pos_pedidos_cotizacion    ON public.pos_pedidos (cotizacion_id) WHERE cotizacion_id IS NOT NULL;
 
 -- Foreign keys
 ALTER TABLE ONLY public.pos_pedidos
     ADD CONSTRAINT fk_pedidos_cliente  FOREIGN KEY (cliente_id)  REFERENCES public.clientes(id)    ON DELETE SET NULL;
 ALTER TABLE ONLY public.pos_pedidos
-    ADD CONSTRAINT fk_pedidos_venta    FOREIGN KEY (venta_id)    REFERENCES public.pos_ventas(id)  ON DELETE SET NULL;
+    ADD CONSTRAINT fk_pedidos_venta      FOREIGN KEY (venta_id)      REFERENCES public.pos_ventas(id)         ON DELETE SET NULL;
+ALTER TABLE ONLY public.pos_pedidos
+    ADD CONSTRAINT fk_pedidos_cotizacion FOREIGN KEY (cotizacion_id) REFERENCES public.pos_cotizaciones(id)  ON DELETE SET NULL;
 ALTER TABLE ONLY public.pos_pedidos_detalle
     ADD CONSTRAINT fk_pedidos_det_ped  FOREIGN KEY (pedido_id)   REFERENCES public.pos_pedidos(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.pos_pedidos_detalle

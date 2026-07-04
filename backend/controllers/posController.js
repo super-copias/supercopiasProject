@@ -967,7 +967,8 @@ async function getCotizacionDetalle(id) {
     SELECT c.*,
            cl.nombre_comercial AS cliente_nombre_comercial,
            cl.rfc AS cliente_rfc,
-           cl.email AS cliente_email
+           cl.email AS cliente_email,
+           cl.telefono AS cliente_telefono
     FROM pos_cotizaciones c
     LEFT JOIN clientes cl ON cl.id = c.cliente_id
     WHERE c.id = $1
