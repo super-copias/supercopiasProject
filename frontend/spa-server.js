@@ -32,6 +32,11 @@ app.use((req, res, next) => {
   } else if (/\.[0-9a-f]{16,}\.[^.]+$/.test(url)) {
     // Archivos con hash en el nombre → inmutables, caché agresivo
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (/\.(png|jpe?g|gif|svg|ico|webp|woff2?|ttf|eot)$/i.test(url)) {
+    // Assets estáticos sin hash (imágenes, fuentes) → caché moderado 7 días.
+    // Resuelve las ráfagas de GET repetitivos para '/assets/img/logo azul.png'
+    // que ocurren cuando el navegador no tiene directiva de caché explícita.
+    res.setHeader('Cache-Control', 'public, max-age=604800');
   }
   next();
 });

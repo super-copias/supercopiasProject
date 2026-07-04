@@ -12,12 +12,17 @@
 // Cargar variables de entorno
 require('dotenv').config();
 
+const http    = require('http');
 const express = require('express');
-const cors = require('cors');
+const cors    = require('cors');
 const bodyParser = require('body-parser');
+const { Server: SocketIOServer } = require('socket.io');
 
 // Importar configuración de base de datos
 const { initializeDatabase } = require('./config/database');
+
+// Singleton de Socket.io para emitir eventos desde los controladores
+const { setIo } = require('./utils/socketEmitter');
 
 // Scheduler de horarios de acceso
 const { iniciarScheduler, detenerScheduler } = require('./utils/horariosScheduler');
@@ -37,8 +42,9 @@ const pedidosRoutes = require('./routes/pedidos');
 const facturasRoutes = require('./routes/facturas');
 const reportesRoutes = require('./routes/reportes');
 
-// Configuración del servidor Express
-const app = express();
+// Configuración del servidor Express + HTTP nativo (requerido por Socket.io)
+const app    = express();
+const server = http.createServer(app);
 
 // Middlewares globales
 // CORS: configurar orígenes permitidos
@@ -237,8 +243,41 @@ async function startServer() {
     // Iniciar scheduler de horarios de acceso
     await iniciarScheduler();
 
-    // Iniciar el servidor Express
-    app.listen(PORT, '0.0.0.0', () => {
+    // Inicializar Socket.io — mismas reglas CORS que el servidor HTTP
+    const io = new SocketIOServer(server, {
+      cors: {
+        origin: allowedOrigins,
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
+      // Sólo WebSocket en producción; en dev permite polling como fallback
+      transports: process.env.NODE_ENV === 'production'
+        ? ['websocket']
+        : ['websocket', 'polling'],
+    });
+    setIo(io);
+
+    io.on('connection', (socket) => {
+      console.log(`🔌 Socket conectado: ${socket.id}`);
+
+      // Un cliente se une a la sala de un equipo específico
+      socket.on('join:equipo', (equipoId) => {
+        const room = `equipo:${equipoId}`;
+        socket.join(room);
+        console.log(`   Socket ${socket.id} unido a sala ${room}`);
+      });
+
+      socket.on('leave:equipo', (equipoId) => {
+        socket.leave(`equipo:${equipoId}`);
+      });
+
+      socket.on('disconnect', () => {
+        console.log(`🔌 Socket desconectado: ${socket.id}`);
+      });
+    });
+
+    // Iniciar el servidor HTTP (con Socket.io montado)
+    server.listen(PORT, '0.0.0.0', () => {
       console.log('='.repeat(60));
       console.log(`🚀 SuperCopias Backend Server STARTED`);
       console.log('='.repeat(60));
@@ -280,13 +319,13 @@ async function startServer() {
 process.on('SIGINT', () => {
   console.log('\n🛑 Cerrando servidor...');
   detenerScheduler();
-  process.exit(0);
+  server.close(() => process.exit(0));
 });
 
 process.on('SIGTERM', () => {
   console.log('\n🛑 Cerrando servidor...');
   detenerScheduler();
-  process.exit(0);
+  server.close(() => process.exit(0));
 });
 
 // Iniciar el servidor

@@ -28,7 +28,9 @@ const dbConfig = process.env.DATABASE_URL
       // de quedar congelados en silencio durante decenas de segundos.
       connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 5000,
       application_name: 'SuperCopias_Backend',
-      options: '-c timezone=America/Mexico_City'
+      // statement_timeout: cancela queries que superen 30 s (evita que bloqueen el pool).
+      // idle_in_transaction_session_timeout: cierra transacciones colgadas a los 10 s.
+      options: '-c timezone=America/Mexico_City -c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000'
     }
   : {
       // Configuración para desarrollo local (usando variables individuales)
@@ -42,7 +44,7 @@ const dbConfig = process.env.DATABASE_URL
       connectionTimeoutMillis: parseInt(process.env.DB_ACQUIRE_TIMEOUT) || 5000,
       ssl: false,
       application_name: 'SuperCopias_Backend',
-      options: '-c timezone=America/Mexico_City'
+      options: '-c timezone=America/Mexico_City -c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000'
     };
 
 
