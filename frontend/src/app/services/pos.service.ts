@@ -212,6 +212,7 @@ export interface CotizacionDetalle {
   cliente_id?: number;
   cliente_nombre: string;
   cliente_nombre_comercial?: string;
+  cliente_telefono?: string;
   vendedor_nombre?: string;
   subtotal: number;
   descuento_pct: number;
@@ -271,6 +272,7 @@ export interface PedidoPayload {
   /** @deprecated usar pagos_anticipo[] */ metodo_pago_anticipo?: string;
   fecha_acordada?: string | null;
   notas?: string;
+  cotizacion_id?: number | null;
 }
 
 export interface HistorialPedido {

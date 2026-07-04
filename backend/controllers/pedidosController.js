@@ -210,7 +210,10 @@ async function createPedido(req, res) {
       metodo_pago_anticipo,         // backward compat
       fecha_acordada,
       notas,
+      cotizacion_id,
     } = req.body;
+
+    const cotizacionIdVal = cotizacion_id ? parseInt(cotizacion_id, 10) : null;
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json(createErrorResponse('Debe incluir al menos un producto', CODIGOS_ERROR.DATOS_INVALIDOS));
@@ -315,7 +318,7 @@ async function createPedido(req, res) {
         subtotal, descuento_pct, descuento_monto, total, anticipo,
         descuento_config_id, descuento_autorizado_por,
         metodo_pago_anticipo, fecha_acordada, notas,
-        creado_por_id, creado_por_nombre
+        creado_por_id, creado_por_nombre, cotizacion_id
       ) VALUES (
         $1, 'pendiente',
         $2, $3, $4,
@@ -323,7 +326,7 @@ async function createPedido(req, res) {
         $8, $9, $10, $11, $12,
         $13, $14,
         $15, $16, $17,
-        $18, $19
+        $18, $19, $20
       ) RETURNING id
     `, [
       folio,
@@ -334,6 +337,7 @@ async function createPedido(req, res) {
       primerMetodoAnticipo || null,
       fecha_acordada || null, notas || null,
       creadoPorId, creadoPorNombre,
+      cotizacionIdVal,
     ]);
 
     const pedidoId = pedidoQ.rows[0].id;
@@ -408,6 +412,16 @@ async function createPedido(req, res) {
         usuario_nombre: creadoPorNombre,
         notas: notas || null,
       });
+    }
+
+    // Si el pedido proviene de una cotización, marcarla como aceptada
+    if (cotizacionIdVal) {
+      await client.query(
+        `UPDATE pos_cotizaciones
+            SET estatus = 'aceptada', fecha_modificacion = NOW()
+          WHERE id = $1 AND estatus = 'pendiente'`,
+        [cotizacionIdVal]
+      );
     }
 
     await client.query('COMMIT');
