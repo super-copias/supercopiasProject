@@ -1,14 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { EquiposService } from '../../../../services/equipos.service';
 import { NotificationService } from '../../../../services/notification.service';
+import { SocketService } from '../../../../services/socket.service';
 
 @Component({
   selector: 'app-equipo-detalle',
   templateUrl: './equipo-detalle.component.html',
   styleUrls: ['./equipo-detalle.component.scss']
 })
-export class EquipoDetalleComponent implements OnInit {
+export class EquipoDetalleComponent implements OnInit, OnDestroy {
   equipo: any = null;
   loading = false;
   equipoId!: number;
@@ -25,6 +28,8 @@ export class EquipoDetalleComponent implements OnInit {
   showFormContador = false;
   showFormMantenimiento = false;
   showFormConsumible = false;
+
+  private destroy$ = new Subject<void>();
 
   formContador = { contador_actual: null, tecnico_nombre: '', observaciones: '' };
   formMantenimiento = { descripcion: '', contador_servicio: null, costo: null, tecnico_nombre: '', proveedor_nombre: '', observaciones: '' };
@@ -50,7 +55,8 @@ export class EquipoDetalleComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private equiposService: EquiposService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private socketService: SocketService,
   ) {}
 
   ngOnInit() {
@@ -59,6 +65,15 @@ export class EquipoDetalleComponent implements OnInit {
       this.equipoId = parseInt(id);
       this.loadEquipo();
       this.loadHistoriales();
+
+      // Escuchar actualizaciones de contador en tiempo real vía Socket.io.
+      // Reemplaza el polling HTTP frecuente para este equipo específico.
+      this.socketService.onContadorUpdated(this.equipoId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => {
+          this.loadHistoriales();
+          this.loadEquipo(); // refresca el último contador del header
+        });
     }
   }
 
@@ -482,5 +497,10 @@ export class EquipoDetalleComponent implements OnInit {
         }
       });
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -4,6 +4,7 @@
  */
 
 const { query, queryAudit } = require('../config/database');
+const { getIo } = require('../utils/socketEmitter');
 const { 
   createResponse, 
   createPaginatedResponse, 
@@ -365,10 +366,16 @@ async function addContador(req, res) {
       observaciones || null
     ]);
     
+    // Notificar a todos los clientes suscritos al equipo que el contador cambió
+    getIo()?.to(`equipo:${id}`).emit('equipo:contador:updated', {
+      equipoId: parseInt(id),
+      registro: result.rows[0],
+    });
+
     return res.status(201).json(
       createResponse(true, result.rows[0], 'Contador registrado exitosamente')
     );
-    
+
   } catch (error) {
     console.error('Error al registrar contador:', error);
     return res.status(500).json(
@@ -383,7 +390,7 @@ async function addContador(req, res) {
  */
 async function updateContador(req, res) {
   try {
-    const { registroId } = req.params;
+    const { id, registroId } = req.params;
     const { contador_actual, tecnico_nombre, observaciones } = req.body;
 
     if (!contador_actual) {
@@ -405,6 +412,12 @@ async function updateContador(req, res) {
         createErrorResponse('Registro no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
       );
     }
+
+    // Notificar a todos los clientes suscritos al equipo que el contador cambió
+    getIo()?.to(`equipo:${id}`).emit('equipo:contador:updated', {
+      equipoId: parseInt(id),
+      registro: result.rows[0],
+    });
 
     return res.json(createResponse(true, result.rows[0], 'Contador actualizado exitosamente'));
   } catch (error) {
