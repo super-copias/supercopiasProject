@@ -1401,21 +1401,50 @@ async function actualizarItemsPedido(req, res) {
         [anticipoEfectivo, metodoAnticipoFinal, pedidoId]
       );
 
-      // Sincronizar pos_pedidos_pagos (anticipo) para que los reportes/corte-caja reflejen el cambio
-      await client.query(
-        `DELETE FROM pos_pedidos_pagos WHERE pedido_id = $1 AND tipo = 'anticipo'`,
-        [pedidoId]
-      );
-      if (anticipoEfectivo > 0 && metodoAnticipoFinal) {
+      const deltaAnticipo = parseFloat((anticipoEfectivo - anticipoOriginal).toFixed(2));
+
+      if (anticipoEfectivo === 0) {
+        // Anticipo eliminado: quitar todos los registros de pago
+        await client.query(
+          `DELETE FROM pos_pedidos_pagos WHERE pedido_id = $1 AND tipo = 'anticipo'`,
+          [pedidoId]
+        );
+      } else if (deltaAnticipo > 0 && metodoAnticipoNuevo) {
+        // Anticipo AUMENTÓ: solo registrar el delta con fecha de hoy.
+        // Los pagos anteriores se conservan con sus fechas y métodos originales.
+        const maxOrdenQ = await client.query(
+          `SELECT COALESCE(MAX(orden), 0) AS max_orden
+           FROM pos_pedidos_pagos WHERE pedido_id = $1 AND tipo = 'anticipo'`,
+          [pedidoId]
+        );
+        const nextOrden = parseInt(maxOrdenQ.rows[0].max_orden) + 1;
         await client.query(
           `INSERT INTO pos_pedidos_pagos
              (pedido_id, tipo, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
-           VALUES ($1, 'anticipo', 1, $2, $3, $4, NULL, 0)`,
-          [pedidoId, metodoAnticipoFinal,
-           _LABELS_ANTICIPO[metodoAnticipoFinal] || metodoAnticipoFinal,
-           anticipoEfectivo]
+           VALUES ($1, 'anticipo', $2, $3, $4, $5, NULL, 0)`,
+          [pedidoId, nextOrden, metodoAnticipoNuevo,
+           _LABELS_ANTICIPO[metodoAnticipoNuevo] || metodoAnticipoNuevo,
+           deltaAnticipo]
         );
+      } else if (deltaAnticipo < 0) {
+        // Anticipo REDUCIDO (caso excepcional): reemplazar todos los registros
+        // con el nuevo monto total para mantener coherencia contable.
+        await client.query(
+          `DELETE FROM pos_pedidos_pagos WHERE pedido_id = $1 AND tipo = 'anticipo'`,
+          [pedidoId]
+        );
+        if (anticipoEfectivo > 0 && metodoAnticipoFinal) {
+          await client.query(
+            `INSERT INTO pos_pedidos_pagos
+               (pedido_id, tipo, orden, metodo_pago_codigo, metodo_pago_descripcion, monto, monto_recibido, cambio)
+             VALUES ($1, 'anticipo', 1, $2, $3, $4, NULL, 0)`,
+            [pedidoId, metodoAnticipoFinal,
+             _LABELS_ANTICIPO[metodoAnticipoFinal] || metodoAnticipoFinal,
+             anticipoEfectivo]
+          );
+        }
       }
+      // Si delta === 0: el monto no cambió, no se altera el historial de pagos.
     }
 
     if (pedido.requiere_factura && tasas) {

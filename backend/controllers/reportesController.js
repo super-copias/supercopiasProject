@@ -442,9 +442,10 @@ async function getReporteCorteCaja(req, res) {
 
         UNION ALL
 
-        -- Anticipos de pedidos: se reconocen en la fecha de creación del pedido
+        -- Anticipos de pedidos: se reconocen en la fecha real del pago (fecha_pago)
+        -- Así los anticipos editados hoy aparecen en el corte de hoy aunque el pedido sea de otro día
         SELECT
-          ped.fecha_creacion AS fecha_evento,
+          pp.fecha_pago AS fecha_evento,
           ped.folio AS referencia,
           ped.creado_por_nombre AS vendedor_nombre,
           'anticipo_pedido'::text AS origen,
@@ -454,14 +455,14 @@ async function getReporteCorteCaja(req, res) {
         FROM pos_pedidos_pagos pp
         JOIN pos_pedidos ped ON ped.id = pp.pedido_id
         WHERE pp.tipo = 'anticipo'
-          AND ped.fecha_creacion BETWEEN $1 AND $2
+          AND pp.fecha_pago BETWEEN $1 AND $2
           ${vendedorCondArqueoAnticipo}
 
         UNION ALL
 
-        -- Saldo de pedidos entregados: se reconoce en fecha de entrega
+        -- Saldo de pedidos entregados: se reconoce en la fecha real del pago (fecha_pago)
         SELECT
-          ped.fecha_entregado AS fecha_evento,
+          pp.fecha_pago AS fecha_evento,
           ped.folio AS referencia,
           ped.entregado_por_nombre AS vendedor_nombre,
           'saldo_pedido'::text AS origen,
@@ -471,9 +472,7 @@ async function getReporteCorteCaja(req, res) {
         FROM pos_pedidos_pagos pp
         JOIN pos_pedidos ped ON ped.id = pp.pedido_id
         WHERE pp.tipo = 'saldo'
-          AND ped.estatus = 'finalizado'
-          AND ped.fecha_entregado IS NOT NULL
-          AND ped.fecha_entregado BETWEEN $1 AND $2
+          AND pp.fecha_pago BETWEEN $1 AND $2
           ${vendedorCondArqueoSaldo}
       )
     `;
