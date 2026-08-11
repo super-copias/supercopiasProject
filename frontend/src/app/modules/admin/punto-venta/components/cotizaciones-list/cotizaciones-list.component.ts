@@ -256,7 +256,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     this.notasConvertir               = '';
     this.errorConvertir               = '';
     this.requiereFacturaConvertir     = !!(cot.requiere_factura);
-    this.tipoPersonaConvertir         = 'pm';
+    this.tipoPersonaConvertir         = cot.tipo_persona_factura || 'pm';
     this.clienteFacturaConvertir      = cot.cliente_id ? { id: cot.cliente_id, nombreComercial: cot.cliente_nombre } : null;
     this.busquedaClienteConvertir.setValue('', { emitEvent: false });
     this.resultadosClienteConvertir   = [];
