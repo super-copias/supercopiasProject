@@ -736,10 +736,13 @@ async function entregarPedido(req, res) {
     const anticipoNum = parseFloat(pedido.anticipo);
     const saldoReq    = calcularSaldoPendientePedido(pedido, null);
 
-    // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion)
-    // Siempre se toman del pedido guardado para garantizar consistencia con el cálculo original.
+    // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion).
+    // Se respeta el valor enviado desde la UI (modal de entrega) para tipo_persona, permitiendo correcciones
+    // si el pedido fue creado con el tipo incorrecto. Para rfactura se mantiene el valor del pedido.
     const rfacturaEnt      = !!(pedido.requiere_factura);
-    const tipoPersonaEnt   = pedido.tipo_persona_factura || 'pm';
+    const tipoPersonaEnt   = (['pf', 'pm'].includes(tipo_persona_factura) ? tipo_persona_factura : null)
+                              || pedido.tipo_persona_factura
+                              || 'pm';
     let saldoACobrar = Math.max(0, saldoReq);
     let ivaMonto = 0, isrMonto = 0;
     if (rfacturaEnt) {
