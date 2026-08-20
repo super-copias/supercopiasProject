@@ -30,6 +30,18 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                   <i class="fas fa-calendar-alt me-1"></i> Eventos de Personal
                 </button>
               </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" [class.active]="tabActivo === 'sueldos'" 
+                        (click)="tabActivo = 'sueldos'" type="button">
+                  <i class="fas fa-money-bill-wave me-1"></i> Sueldos
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" [class.active]="tabActivo === 'turnos'" 
+                        (click)="tabActivo = 'turnos'" type="button">
+                  <i class="fas fa-calendar-week me-1"></i> Turnos
+                </button>
+              </li>
             </ul>
 
             <!-- Tab: Información General -->
@@ -94,11 +106,6 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                     <div class="info-item">
                       <span class="label">Sucursal:</span>
                       <span class="value">{{empleado.sucursalNombre || getSucursalNombre(empleado.sucursal) || 'No asignada'}}</span>
-                    </div>
-                    
-                    <div class="info-item">
-                      <span class="label">Turno:</span>
-                      <span class="value">{{empleado.turno || 'No definido'}}</span>
                     </div>
                     
                     <div class="info-item">
@@ -181,6 +188,16 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
             <!-- Tab: Eventos de Personal -->
             <div *ngIf="tabActivo === 'eventos'">
               <app-eventos-personal [empleadoId]="empleado.id"></app-eventos-personal>
+            </div>
+
+            <!-- Tab: Sueldos -->
+            <div *ngIf="tabActivo === 'sueldos'">
+              <app-sueldos [empleadoId]="empleado.id"></app-sueldos>
+            </div>
+
+            <!-- Tab: Turnos -->
+            <div *ngIf="tabActivo === 'turnos'">
+              <app-turnos-semana [empleadoId]="empleado.id"></app-turnos-semana>
             </div>
 
           </div>
@@ -292,7 +309,7 @@ export class EmpleadoDetailModalComponent {
   
   @Output() cerrarModal = new EventEmitter<void>();
 
-  tabActivo: 'informacion' | 'eventos' = 'informacion';
+  tabActivo: 'informacion' | 'eventos' | 'sueldos' | 'turnos' = 'informacion';
 
   cerrar() {
     this.visible = false;

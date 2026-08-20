@@ -149,7 +149,8 @@ async function getResumenVacaciones(req, res) {
 async function createEvento(req, res) {
   try {
     const empleadoId = parseInt(req.params.empleadoId);
-    const usuarioId = req.user?.id; // Del middleware de autenticación
+    const usuarioIdRaw = parseInt(req.user?.id); // Del middleware de autenticación
+    const usuarioId = Number.isInteger(usuarioIdRaw) ? usuarioIdRaw : null; // 'dev' en modo desarrollo no es un id válido
     
     const {
       tipo,
@@ -253,9 +254,29 @@ async function createEvento(req, res) {
           total_con_registro: totalDias
         };
       }
+    } else if (tipo === 'permiso') {
+      // Verificar si se supera el límite diario GLOBAL de permisos (configurable).
+      // Es solo informativo: el registro siempre se permite.
+      const configResult = await query('SELECT limite_diario FROM config_permisos WHERE id = 1');
+      const limiteDiario = configResult.rows.length > 0 ? configResult.rows[0].limite_diario : 2;
+
+      const countResult = await query(
+        `SELECT COUNT(*) FROM eventos_personal
+         WHERE tipo = 'permiso' AND estado != 'rechazado' AND fecha_inicio = $1`,
+        [fecha_inicio]
+      );
+      const totalPermisosDia = parseInt(countResult.rows[0].count);
+
+      if (totalPermisosDia > limiteDiario) {
+        advertencia = {
+          mensaje: `Se superó el límite diario de permisos (${limiteDiario}). Ya hay ${totalPermisosDia} permisos registrados para el ${fecha_inicio}.`,
+          limite_diario: limiteDiario,
+          total_registrados: totalPermisosDia
+        };
+      }
     }
 
-    res.status(201).json(createResponse(true, nuevoEvento, null, advertencia));
+    res.status(201).json({ ...createResponse(true, nuevoEvento), ...(advertencia && { advertencia }) });
   } catch (error) {
     console.error('Error al crear evento:', error);
     res.status(500).json(createErrorResponse(

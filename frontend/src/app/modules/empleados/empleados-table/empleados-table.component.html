@@ -8,8 +8,7 @@
                 <th style="width: 11%;">Teléfono</th>
                 <th style="width: 14%;">Email</th>
                 <th style="width: 13%;">Puesto</th>
-                <th style="width: 13%;">Sucursal</th>
-                <th style="width: 9%;">Turno</th>
+                <th style="width: 15%;">Sucursal</th>
                 <th style="width: 8%;">Estado</th>
                 <th style="width: 7%;">Acciones</th>
             </tr>
@@ -33,9 +32,6 @@
                 </td>
                 <td class="text-truncate" style="max-width: 0;">
                     <span [title]="e.sucursal">{{e.sucursal || '-'}}</span>
-                </td>
-                <td class="text-nowrap">
-                    <small>{{e.turno || '-'}}</small>
                 </td>
                 <td>
                     <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
@@ -118,10 +114,6 @@
                                 <div class="col-6">
                                     <small class="text-muted d-block">Sucursal</small>
                                     <span class="fw-medium">{{e.sucursal || 'N/A'}}</span>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted d-block">Turno</small>
-                                    <span class="fw-medium">{{e.turno || 'N/A'}}</span>
                                 </div>
                             </div>
                             

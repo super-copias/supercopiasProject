@@ -139,7 +139,7 @@ export interface Empleado extends BaseEntity {
   salario?: number;
   fechaIngreso?: string;
   fechaBaja?: string;
-  turno?: 'Matutino' | 'Vespertino' | 'Nocturno' | 'Mixto';
+  turnosDias?: TurnoDia[]; // Turno asignado por día de la semana (1=Lunes...7=Domingo)
   tipoAcceso?: 'completo' | 'limitado';
   diasVacacionesSugeridos?: number;
   notasVacaciones?: string;
@@ -151,6 +151,37 @@ export interface Empleado extends BaseEntity {
   usuarioRoles?: number[]; // Dato del join con usuarios
 }
 
+/** Turno asignado a un empleado para un día específico de la semana */
+export interface TurnoDia {
+  dia_semana: number; // 1=Lunes ... 7=Domingo
+  turno_id: number | null;
+  turno_nombre?: string | null;
+  hora_entrada?: string;
+  hora_salida?: string;
+}
+
+/** Catálogo de turnos (nombre + horario de entrada/salida) */
+export interface Turno {
+  id: number;
+  nombre: string;
+  hora_entrada: string;
+  hora_salida: string;
+  activo: boolean;
+}
+
+/** Registro del historial de sueldos de un empleado */
+export interface SueldoHistorial {
+  id: number;
+  empleado_id: number;
+  monto: number;
+  fecha_asignacion: string;
+  observaciones?: string;
+  registrado_por?: number;
+  registrado_por_nombre?: string;
+  fecha_registro?: string;
+  fecha_modificacion?: string;
+}
+
 export interface CrearEmpleado {
   nombre: string;
   email?: string;
@@ -159,7 +190,7 @@ export interface CrearEmpleado {
   sucursalId?: number;
   salario?: number;
   fechaIngreso?: string;
-  turno?: 'Matutino' | 'Vespertino' | 'Nocturno' | 'Mixto';
+  turnosDias?: { diaSemana: number; turnoId: number | null }[];
   tipoAcceso?: 'completo' | 'limitado';
   diasVacacionesSugeridos?: number;
   notasVacaciones?: string;

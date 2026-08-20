@@ -19,6 +19,9 @@ import { FormFaltaComponent } from './form-falta.component';
 import { FormPermisoComponent } from './form-permiso.component';
 import { FormOtroComponent } from './form-otro.component';
 import { HorariosAccesoComponent } from './horarios-acceso.component';
+import { SueldosComponent } from './sueldos.component';
+import { TurnosSemanaComponent } from './turnos-semana.component';
+import { ConfiguracionPersonalComponent } from './configuracion-personal.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
@@ -34,7 +37,10 @@ import { SharedModule } from '../../shared/shared.module';
     FormFaltaComponent,
     FormPermisoComponent,
     FormOtroComponent,
-    HorariosAccesoComponent
+    HorariosAccesoComponent,
+    SueldosComponent,
+    TurnosSemanaComponent,
+    ConfiguracionPersonalComponent
   ],
   imports: [
     CommonModule, 
@@ -45,7 +51,8 @@ import { SharedModule } from '../../shared/shared.module';
       { path: '', component: EmpleadosListComponent },
       { path: 'nuevo', component: EmpleadosFormComponent },
       { path: 'editar/:id', component: EmpleadosFormComponent },
-      { path: 'horarios', component: HorariosAccesoComponent }
+      { path: 'horarios', component: HorariosAccesoComponent },
+      { path: 'configuracion', component: ConfiguracionPersonalComponent }
     ])
   ]
 })

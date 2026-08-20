@@ -51,7 +51,6 @@ export class EmpleadosService {
               email: empleado.email,
               puesto: empleado.puesto_nombre || '-',
               sucursal: empleado.sucursal_nombre || '-',
-              turno: empleado.turno,
               activo: empleado.activo,
               fechaIngreso: empleado.fecha_ingreso,
               fechaRegistro: empleado.fecha_registro
@@ -273,7 +272,7 @@ export class EmpleadosService {
       puestoNombre: empleado.puestoNombre || empleado.puesto_nombre, // Nombre para mostrar
       sucursal: empleado.sucursal || empleado.sucursal_id, // ID para el formulario
       sucursalNombre: empleado.sucursalNombre || empleado.sucursal_nombre, // Nombre para mostrar
-      turno: empleado.turno,
+      turnosDias: empleado.turnosDias || empleado.turnos_dias || [],
       departamento: empleado.sucursalNombre || empleado.sucursal_nombre || `Sucursal ${empleado.sucursal || empleado.sucursal_id}`,
       salario: parseFloat(empleado.salario) || 0,
       fechaIngreso: this.formatDateForInput(empleado.fechaIngreso || empleado.fecha_ingreso),
