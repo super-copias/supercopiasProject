@@ -3,6 +3,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { FacturasService, FacturaResumen, FacturaDetalle, FiltrosFacturas } from '../../../services/facturas.service';
 import { CatalogosService } from '../../../services/catalogos.service';
+import { PosService, VentaDetalle } from '../../../services/pos.service';
 
 @Component({
   selector: 'app-facturacion',
@@ -48,7 +49,17 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   regimenMap: Record<string, string> = {};
   usoCfdiMap: Record<string, string> = {};
 
-  constructor(private facturasService: FacturasService, private catalogosService: CatalogosService) {}
+  // Ticket de venta asociada
+  mostrarTicketVenta = false;
+  cargandoTicket = false;
+  errorTicket = '';
+  ventaTicket: VentaDetalle | null = null;
+
+  constructor(
+    private facturasService: FacturasService,
+    private catalogosService: CatalogosService,
+    private posService: PosService,
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -181,6 +192,36 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   cerrarDetalle(): void {
     this.facturaDetalle  = null;
     this.cargandoDetalle = false;
+    this.cerrarTicketVenta();
+  }
+
+  // ── Ticket de venta asociada ─────────────────────────────────────
+
+  verTicketVenta(): void {
+    if (!this.facturaDetalle?.venta_id) return;
+    this.mostrarTicketVenta = true;
+    this.cargandoTicket     = true;
+    this.errorTicket        = '';
+    this.ventaTicket        = null;
+    this.posService.getVentaById(this.facturaDetalle.venta_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (r) => {
+          this.ventaTicket    = r.data;
+          this.cargandoTicket = false;
+        },
+        error: () => {
+          this.errorTicket    = 'Error al cargar el ticket de la venta';
+          this.cargandoTicket = false;
+        },
+      });
+  }
+
+  cerrarTicketVenta(): void {
+    this.mostrarTicketVenta = false;
+    this.cargandoTicket     = false;
+    this.errorTicket        = '';
+    this.ventaTicket        = null;
   }
 
   // ── Acciones ───────────────────────────────────────────────────

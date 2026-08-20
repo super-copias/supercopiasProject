@@ -9,7 +9,7 @@ import { CatalogoComponent }           from './components/catalogo/catalogo.comp
 import { CarritoComponent }            from './components/carrito/carrito.component';
 import { SelectorClienteComponent }    from './components/selector-cliente/selector-cliente.component';
 import { PanelCobroComponent }         from './components/panel-cobro/panel-cobro.component';
-import { TicketComponent }             from './components/ticket/ticket.component';
+import { TicketModule }                 from './components/ticket/ticket.module';
 import { HistorialVentasComponent }    from './components/historial-ventas/historial-ventas.component';
 import { CotizacionesListComponent }   from './components/cotizaciones-list/cotizaciones-list.component';
 import { PedidoFormComponent }         from './components/pedido-form/pedido-form.component';
@@ -24,7 +24,6 @@ import { SharedModule }                from '../../../shared/shared.module';
     CarritoComponent,
     SelectorClienteComponent,
     PanelCobroComponent,
-    TicketComponent,
     HistorialVentasComponent,
     CotizacionesListComponent,
     PedidoFormComponent,
@@ -37,7 +36,8 @@ import { SharedModule }                from '../../../shared/shared.module';
     ReactiveFormsModule,
     HttpClientModule,
     SharedModule,
+    TicketModule,
     RouterModule.forChild([{ path: '', component: PuntoVentaComponent }]),
-  ]
+  ],
 })
 export class PuntoVentaModule { }

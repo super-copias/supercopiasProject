@@ -113,10 +113,11 @@ async function crearFacturaEnTransaccion(client, {
   );
   const facturaId = ins.rows[0].id;
 
-  // Actualizar el origen con el factura_id
-  if (tipo_origen === 'venta' && venta_id) {
+  // Siempre vincular la venta si existe (cubre pedidos/cotizaciones ya finalizados como venta)
+  if (venta_id) {
     await client.query(`UPDATE pos_ventas SET factura_id = $1 WHERE id = $2`, [facturaId, venta_id]);
-  } else if (tipo_origen === 'pedido' && pedido_id) {
+  }
+  if (tipo_origen === 'pedido' && pedido_id) {
     await client.query(`UPDATE pos_pedidos SET factura_id = $1 WHERE id = $2`, [facturaId, pedido_id]);
   } else if (tipo_origen === 'cotizacion' && cotizacion_id) {
     await client.query(`UPDATE pos_cotizaciones SET factura_id = $1 WHERE id = $2`, [facturaId, cotizacion_id]);
@@ -213,9 +214,9 @@ exports.createFactura = async (req, res) => {
     notas,
   } = req.body;
 
-  // Validaciones básicas
-  if (!['venta', 'pedido', 'cotizacion'].includes(tipo_origen)) {
-    return res.status(400).json(createErrorResponse('tipo_origen inválido'));
+  // Solo se permite crear facturas vinculadas a una venta finalizada
+  if (tipo_origen !== 'venta' || !venta_id) {
+    return res.status(400).json(createErrorResponse('Solo se pueden crear facturas a partir de una venta finalizada (tipo_origen=venta con venta_id)'));
   }
   if (!cliente_id) {
     return res.status(400).json(createErrorResponse('Se requiere un cliente registrado para facturar'));

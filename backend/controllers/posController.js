@@ -1351,7 +1351,8 @@ async function convertirCotizacion(req, res) {
     const clienteParaFacturaCotiz = parseInt(cliente_factura_id) || cotiz.cliente_id || null;
     if (rfactura && clienteParaFacturaCotiz) {
       await crearFacturaEnTransaccion(client, {
-        tipo_origen: 'venta',
+        tipo_origen: 'cotizacion',
+        cotizacion_id: cotizId,
         venta_id: ventaId,
         cliente_id: clienteParaFacturaCotiz,
         subtotal: total,

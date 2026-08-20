@@ -144,6 +144,31 @@
 }
 .info-lbl { color: #868e96; }
 
+/* ── Origen card ── */
+.origen-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.85rem;
+}
+.origen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.origen-folios { display: flex; flex-direction: column; gap: 0.25rem; }
+.origen-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.origen-fila-lbl {
+  color: #868e96;
+  min-width: 72px;
+  font-size: 0.78rem;
+}
+
 /* ── Sección título ── */
 .seccion-titulo {
   font-size: 0.8rem;
@@ -210,6 +235,11 @@
   width: 420px;
   max-width: 95vw;
   box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+.ticket-modal-box {
+  width: auto;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* ── Responsive ── */

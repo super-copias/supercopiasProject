@@ -400,20 +400,6 @@ async function createPedido(req, res) {
     // Registrar en historial
     await registrarHistorial(client, pedidoId, null, 'pendiente', creadoPorId, creadoPorNombre, 'Pedido creado');
 
-    // Crear registro de factura si se requiere y hay cliente registrado
-    if (requiere_factura && cliente_id) {
-      await crearFacturaEnTransaccion(client, {
-        tipo_origen: 'pedido',
-        pedido_id: pedidoId,
-        cliente_id,
-        subtotal: total,
-        tipo_persona: tipo_persona_factura || 'pm',
-        usuario_id: creadoPorId,
-        usuario_nombre: creadoPorNombre,
-        notas: notas || null,
-      });
-    }
-
     // Si el pedido proviene de una cotización, marcarla como aceptada
     if (cotizacionIdVal) {
       await client.query(
@@ -501,7 +487,7 @@ async function listPedidos(req, res) {
         SELECT
           p.id, p.folio, p.estatus,
           p.cliente_id, p.cliente_nombre, p.cliente_telefono,
-          p.via_whatsapp, p.requiere_factura,
+          p.via_whatsapp, p.requiere_factura, p.tipo_persona_factura,
           p.subtotal, p.descuento_pct, p.descuento_monto, p.total, p.anticipo,
           p.metodo_pago_anticipo, p.fecha_acordada, p.notas,
           p.creado_por_id, p.creado_por_nombre, p.fecha_creacion,
@@ -736,10 +722,8 @@ async function entregarPedido(req, res) {
     const anticipoNum = parseFloat(pedido.anticipo);
     const saldoReq    = calcularSaldoPendientePedido(pedido, null);
 
-    // Total a cobrar para el saldo: con IVA/ISR si requiere factura (tasas desde cat_impuestos_facturacion).
-    // Se respeta el valor enviado desde la UI (modal de entrega) para tipo_persona, permitiendo correcciones
-    // si el pedido fue creado con el tipo incorrecto. Para rfactura se mantiene el valor del pedido.
-    const rfacturaEnt      = !!(pedido.requiere_factura);
+    // La intención de factura puede cambiar al entregar; el valor del body tiene prioridad sobre el del pedido
+    const rfacturaEnt      = requiere_factura !== undefined ? !!requiere_factura : !!(pedido.requiere_factura);
     const tipoPersonaEnt   = (['pf', 'pm'].includes(tipo_persona_factura) ? tipo_persona_factura : null)
                               || pedido.tipo_persona_factura
                               || 'pm';
@@ -951,8 +935,12 @@ async function entregarPedido(req, res) {
     // Crear registro de factura si se solicita
     const clienteParaFactura = parseInt(cliente_factura_id) || pedido.cliente_id || null;
     if (rfacturaEnt && clienteParaFactura) {
+      // Si el pedido proviene de una cotización, el origen de la factura es la cotización
+      const origenFactura = pedido.cotizacion_id ? 'cotizacion' : 'pedido';
       await crearFacturaEnTransaccion(client, {
-        tipo_origen: 'venta',
+        tipo_origen: origenFactura,
+        pedido_id: pedidoId,
+        cotizacion_id: pedido.cotizacion_id || null,
         venta_id: ventaId,
         cliente_id: clienteParaFactura,
         subtotal: total,

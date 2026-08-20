@@ -198,18 +198,37 @@
       </div>
 
       <!-- Origen -->
-      <div class="info-grid mb-3">
-        <div>
+      <div class="origen-card mb-3">
+        <div class="origen-header">
           <span class="info-lbl">Origen</span>
-          <span>
-            <span class="badge-origen" [ngClass]="'origen-' + facturaDetalle.tipo_origen">
-              {{ labelOrigen(facturaDetalle.tipo_origen) }}
-            </span>
-            <code class="ms-2 small" *ngIf="facturaDetalle.venta_folio">{{ facturaDetalle.venta_folio }}</code>
-            <code class="ms-2 small" *ngIf="facturaDetalle.pedido_folio">{{ facturaDetalle.pedido_folio }}</code>
-            <code class="ms-2 small" *ngIf="facturaDetalle.cotizacion_folio">{{ facturaDetalle.cotizacion_folio }}</code>
+          <span class="badge-origen" [ngClass]="'origen-' + facturaDetalle.tipo_origen">
+            {{ labelOrigen(facturaDetalle.tipo_origen) }}
           </span>
         </div>
+        <div class="origen-folios">
+          <div *ngIf="facturaDetalle.venta_folio" class="origen-fila">
+            <span class="origen-fila-lbl">Venta</span>
+            <code>{{ facturaDetalle.venta_folio }}</code>
+          </div>
+          <div *ngIf="facturaDetalle.pedido_folio" class="origen-fila">
+            <span class="origen-fila-lbl">Pedido</span>
+            <code>{{ facturaDetalle.pedido_folio }}</code>
+          </div>
+          <div *ngIf="facturaDetalle.cotizacion_folio" class="origen-fila">
+            <span class="origen-fila-lbl">Cotización</span>
+            <code>{{ facturaDetalle.cotizacion_folio }}</code>
+          </div>
+        </div>
+        <div class="mt-2" *ngIf="facturaDetalle.venta_id">
+          <button class="btn btn-xs btn-outline-primary"
+            (click)="verTicketVenta()" title="Previsualizar ticket de la venta">
+            <i class="bi bi-receipt me-1"></i>Ver ticket de venta
+          </button>
+        </div>
+      </div>
+
+      <!-- Creado por -->
+      <div class="info-grid mb-3">
         <div>
           <span class="info-lbl">Creada por</span>
           <span>{{ facturaDetalle.creado_por_nombre }}</span>
@@ -295,5 +314,24 @@
         Confirmar cancelación
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ── Modal ver ticket de venta ────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarTicketVenta" (click)="cerrarTicketVenta()">
+  <div class="modal-box ticket-modal-box" (click)="$event.stopPropagation()">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Ticket de la venta</h6>
+      <button class="btn btn-sm btn-outline-dark" (click)="cerrarTicketVenta()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="text-center py-4" *ngIf="cargandoTicket">
+      <div class="spinner-border text-primary"></div>
+    </div>
+    <div class="alert alert-danger small" *ngIf="errorTicket">{{ errorTicket }}</div>
+    <app-pos-ticket *ngIf="ventaTicket && !cargandoTicket"
+      [ticketType]="'venta'" [venta]="ventaTicket" [marcarVentaComoImpresa]="false">
+    </app-pos-ticket>
   </div>
 </div>
