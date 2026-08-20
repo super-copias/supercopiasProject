@@ -42,6 +42,10 @@ import { NotificationService } from '../../services/notification.service';
               <i class="fas fa-clock"></i>
               <span class="ms-1 d-none d-sm-inline">Horarios</span>
             </a>
+            <a class="btn btn-outline-secondary btn-sm d-flex align-items-center" [routerLink]="['/admin/empleados/configuracion']" title="Configurar turnos y límite de permisos">
+              <i class="fas fa-sliders-h"></i>
+              <span class="ms-1 d-none d-sm-inline">Configuración</span>
+            </a>
             <a class="btn btn-primary btn-sm d-flex align-items-center" [routerLink]="['/admin/empleados/nuevo']">
               <i class="fas fa-plus d-none d-sm-inline"></i>
               <span class="ms-0 ms-sm-1">Nuevo</span>

@@ -293,10 +293,6 @@ export class EmpleadosTableComponent {
               <div class="info-value">${empleado.sucursal || 'No especificado'}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Turno:</div>
-              <div class="info-value">${empleado.turno || 'No especificado'}</div>
-            </div>
-            <div class="info-row">
               <div class="info-label">Fecha de Ingreso:</div>
               <div class="info-value">${empleado.fechaIngreso ? new Date(empleado.fechaIngreso).toLocaleDateString('es-MX') : 'No especificada'}</div>
             </div>

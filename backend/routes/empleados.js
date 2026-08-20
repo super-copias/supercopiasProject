@@ -45,6 +45,18 @@ router.get('/puestos', auth, getPuestos);
 router.get('/modulos', auth, getModulos);
 
 /**
+ * Catálogo de turnos (Matutino, Vespertino, etc.)
+ * Base: /api/empleados/turnos
+ */
+router.use('/turnos', require('./turnos'));
+
+/**
+ * Configuración global del límite diario de permisos
+ * Base: /api/empleados/permisos-config
+ */
+router.use('/permisos-config', require('./permisosConfig'));
+
+/**
  * GET /api/empleados/:id
  * Obtener un empleado específico por ID
  */
@@ -88,5 +100,17 @@ router.patch('/:id/reset-password', auth, roles(['admin']), resetPassword);
  */
 const eventosPersonalRoutes = require('./eventosPersonal');
 router.use('/:empleadoId/eventos', eventosPersonalRoutes);
+
+/**
+ * Historial de sueldos por empleado
+ * Base: /api/empleados/:empleadoId/sueldos
+ */
+router.use('/:empleadoId/sueldos', require('./sueldos'));
+
+/**
+ * Asignación semanal de turnos e historial por empleado
+ * Base: /api/empleados/:empleadoId/turnos-dias y /turnos-historial
+ */
+router.use('/:empleadoId', require('./empleadoTurnos'));
 
 module.exports = router;

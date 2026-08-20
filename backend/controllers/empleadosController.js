@@ -13,6 +13,7 @@ const {
 } = require('../utils/apiStandard');
 const { getAllRoles } = require('../utils/rolesSystem');
 const { registrarBitacora, getIp } = require('../utils/bitacora');
+const { sincronizarSalarioEmpleado } = require('./sueldosController');
 
 /**
  * Helper: Obtener todos los módulos activos de la base de datos
@@ -205,6 +206,20 @@ async function getEmpleado(req, res) {
       modulosPermitidos = todosLosModulos;
     }
 
+    // Turno asignado por cada día de la semana (1=Lunes...7=Domingo)
+    const turnosDiasResult = await query(
+      `SELECT d.dia_semana, d.turno_id, t.nombre as turno_nombre, t.hora_entrada, t.hora_salida
+       FROM empleados_turnos_dias d
+       JOIN turnos t ON t.id = d.turno_id
+       WHERE d.empleado_id = $1
+       ORDER BY d.dia_semana ASC`,
+      [empleadoId]
+    );
+    const turnosPorDia = new Map(turnosDiasResult.rows.map(r => [r.dia_semana, r]));
+    const turnosDias = [1, 2, 3, 4, 5, 6, 7].map(dia =>
+      turnosPorDia.get(dia) || { dia_semana: dia, turno_id: null, turno_nombre: null }
+    );
+
     // Convertir tipo_acceso de la BD al formato del frontend
     let tipoPermiso = 'sin_permisos';
     if (empleado.tipo_acceso === 'completo') {
@@ -225,13 +240,13 @@ async function getEmpleado(req, res) {
       puestoNombre: empleado.puesto_nombre,
       sucursal: empleado.sucursal_id, // Normalizar nombre de campo
       sucursalNombre: empleado.sucursal_nombre,
-      turno: empleado.turno,
       salario: empleado.salario,
       fechaIngreso: empleado.fecha_ingreso,
       activo: empleado.activo,
       fechaBaja: empleado.fecha_baja,
       fechaRegistro: empleado.fecha_registro,
       fechaModificacion: empleado.fecha_modificacion,
+      turnosDias,
       tipoAcceso: empleado.tipo_acceso,
       tipoPermiso, // Agregar el tipo de permiso en formato frontend
       modulosPermitidos,
@@ -271,7 +286,6 @@ async function createEmpleado(req, res) {
       telefono,
       puesto,
       sucursal,
-      turno,
       salario,
       fechaIngreso,
       diasVacacionesSugeridos,
@@ -279,27 +293,19 @@ async function createEmpleado(req, res) {
       fechaBaja = null,
       // Campos del frontend
       tipoPermiso,
-      modulosPermitidos = []
+      modulosPermitidos = [],
+      // Asignación semanal de turnos: [{ diaSemana, turnoId }]
+      turnosDias = []
     } = req.body;
     
     // Debug: Log de datos recibidos
     
     // Validaciones requeridas
-    if (!nombre || !puesto || !sucursal || !turno) {
+    if (!nombre || !puesto || !sucursal) {
       return res.status(400).json(
         createErrorResponse(
           CODIGOS_ERROR.REQUIRED_FIELD,
-          'Nombre, puesto, sucursal y turno son requeridos'
-        )
-      );
-    }
-    
-    // Validar que el turno sea válido
-    if (turno && !['Matutino', 'Vespertino'].includes(turno)) {
-      return res.status(400).json(
-        createErrorResponse(
-          CODIGOS_ERROR.VALIDATION_ERROR,
-          'El turno debe ser "Matutino" o "Vespertino"'
+          'Nombre, puesto y sucursal son requeridos'
         )
       );
     }
@@ -370,10 +376,10 @@ async function createEmpleado(req, res) {
     // Insertar nuevo empleado en PostgreSQL (sin modulos_permitidos)
     const insertQuery = `
       INSERT INTO empleados (
-        nombre, email, telefono, puesto_id, sucursal_id, turno, salario,
+        nombre, email, telefono, puesto_id, sucursal_id, salario,
         fecha_ingreso, dias_vacaciones_sugeridos, activo, fecha_baja, tipo_acceso,
         fecha_registro
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
       RETURNING *
     `;
     
@@ -383,7 +389,6 @@ async function createEmpleado(req, res) {
       telefono || null,
       puesto || null,
       sucursal || null,
-      turno, // Requerido, no usar fallback
       salario ? parseFloat(salario) : null,
       fechaIngreso || new Date().toISOString().split('T')[0],
       diasVacacionesSugeridos || 12,
@@ -394,6 +399,37 @@ async function createEmpleado(req, res) {
     
     const result = await queryAudit(insertQuery, values, req.user?.id, req.user?.nombre || req.user?.username);
     const nuevoEmpleado = result.rows[0];
+
+    // Sanitizar el id de usuario para columnas FK enteras (en modo desarrollo puede ser 'dev')
+    const usuarioIdRaw = parseInt(req.user?.id);
+    const usuarioIdSafe = Number.isInteger(usuarioIdRaw) ? usuarioIdRaw : null;
+
+    // Registrar el sueldo inicial en el historial (fuente de verdad de empleados.salario)
+    if (nuevoEmpleado.salario !== null && nuevoEmpleado.salario !== undefined) {
+      await query(
+        `INSERT INTO empleados_sueldos_historial (empleado_id, monto, fecha_asignacion, observaciones, registrado_por)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [nuevoEmpleado.id, nuevoEmpleado.salario, nuevoEmpleado.fecha_ingreso, 'Sueldo inicial de alta', usuarioIdSafe]
+      );
+    }
+
+    // Asignar el horario semanal de turnos, si se proporcionó
+    if (Array.isArray(turnosDias) && turnosDias.length > 0) {
+      for (const d of turnosDias) {
+        if (d.turnoId === null || d.turnoId === undefined) continue;
+        await query(
+          `INSERT INTO empleados_turnos_dias (empleado_id, dia_semana, turno_id)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (empleado_id, dia_semana) DO UPDATE SET turno_id = $3, fecha_modificacion = NOW()`,
+          [nuevoEmpleado.id, parseInt(d.diaSemana), parseInt(d.turnoId)]
+        );
+        await query(
+          `INSERT INTO empleados_turnos_historial (empleado_id, dia_semana, turno_id, turno_nombre, accion, usuario_id, usuario_nombre)
+           SELECT $1, $2, $3, t.nombre, 'asignado', $4, $5 FROM turnos t WHERE t.id = $3`,
+          [nuevoEmpleado.id, parseInt(d.diaSemana), parseInt(d.turnoId), usuarioIdSafe, req.user?.nombre || req.user?.username]
+        );
+      }
+    }
 
     // Insertar módulos en la tabla empleados_modulos
     // SOLO insertar los módulos que tienen acceso = true
@@ -652,9 +688,6 @@ async function updateEmpleado(req, res) {
     if (datosConvertidos.email) {
       datosConvertidos.email = datosConvertidos.email.toLowerCase();
     }
-    if (datosConvertidos.salario) {
-      datosConvertidos.salario = parseFloat(datosConvertidos.salario);
-    }
     
     // Preparar campos dinámicos para actualizar
     const camposActualizar = [];
@@ -680,14 +713,6 @@ async function updateEmpleado(req, res) {
     if (datosConvertidos.sucursal !== undefined) {
       camposActualizar.push(`sucursal_id = $${contador++}`);
       valores.push(datosConvertidos.sucursal);
-    }
-    if (datosConvertidos.turno !== undefined && datosConvertidos.turno !== '') {
-      camposActualizar.push(`turno = $${contador++}`);
-      valores.push(datosConvertidos.turno);
-    }
-    if (datosConvertidos.salario !== undefined) {
-      camposActualizar.push(`salario = $${contador++}`);
-      valores.push(datosConvertidos.salario);
     }
     if (datosConvertidos.fechaIngreso !== undefined) {
       camposActualizar.push(`fecha_ingreso = $${contador++}`);

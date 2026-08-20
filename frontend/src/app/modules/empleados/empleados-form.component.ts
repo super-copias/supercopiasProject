@@ -3,6 +3,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EmpleadosService } from '../../services/empleados.service';
 import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.service';
+import { TurnosService, DIAS_SEMANA_LABELS } from '../../services/turnos.service';
+import { Turno } from '../../shared/interfaces';
 import { NotificationService } from '../../services/notification.service';
 
 @Component({
@@ -133,21 +135,6 @@ import { NotificationService } from '../../services/notification.service';
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Turno *</label>
-                  <select 
-                    class="form-select" 
-                    formControlName="turno"
-                    [class.is-invalid]="isInvalid('turno')">
-                    <option value="">Seleccione un turno</option>
-                    <option value="Matutino">Matutino</option>
-                    <option value="Vespertino">Vespertino</option>
-                  </select>
-                  <div class="invalid-feedback" *ngIf="isInvalid('turno')">
-                    Debe seleccionar un turno
-                  </div>
-                </div>
-
-                <div class="mb-3">
                   <label class="form-label">Salario Mensual *</label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
@@ -164,6 +151,9 @@ import { NotificationService } from '../../services/notification.service';
                   <div class="invalid-feedback" *ngIf="isInvalid('salario')">
                     El salario es requerido y debe ser mayor a 0
                   </div>
+                  <small class="form-text text-muted" *ngIf="isEditing">
+                    El sueldo se gestiona desde la pestaña <strong>Sueldos</strong> del detalle del empleado.
+                  </small>
                 </div>
 
                 <div class="mb-3">
@@ -194,6 +184,31 @@ import { NotificationService } from '../../services/notification.service';
                   <small class="form-text text-muted">
                     Solo como referencia. El sistema permite registrar más días si es necesario.
                   </small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-clock me-2"></i>
+                  Horario Semanal (Turnos)
+                </h5>
+                <small class="text-muted">Asigna el turno de cada día de la semana. Deja "Sin turno" para marcar un día de descanso.</small>
+              </div>
+              <div class="card-body">
+                <div class="row g-2">
+                  <div class="col-6 col-md-3" *ngFor="let dia of diasSemana">
+                    <label class="form-label small">{{dia.label}}</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="dia.turnoId" [ngModelOptions]="{standalone: true}">
+                      <option [ngValue]="null">Sin turno (descanso)</option>
+                      <option *ngFor="let turno of turnos" [ngValue]="turno.id">{{turno.nombre}} ({{turno.hora_entrada}}-{{turno.hora_salida}})</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -440,6 +455,10 @@ export class EmpleadosFormComponent implements OnInit {
   seleccionadosPersonalizados: string[] = []; // Mantiene los módulos seleccionados para personalizado
   sucursales: Sucursal[] = [];
   puestos: Puesto[] = [];
+  turnos: Turno[] = [];
+  diasSemana: { dia: number; label: string; turnoId: number | null }[] = [1, 2, 3, 4, 5, 6, 7].map(dia => ({
+    dia, label: DIAS_SEMANA_LABELS[dia], turnoId: null
+  }));
   
   // Modal de credenciales
   mostrarModalCredenciales = false;
@@ -479,6 +498,7 @@ export class EmpleadosFormComponent implements OnInit {
     private fb: FormBuilder,
     private empleadosService: EmpleadosService,
     private catalogosService: CatalogosService,
+    private turnosService: TurnosService,
     private router: Router,
     private route: ActivatedRoute,
     private notificationService: NotificationService
@@ -600,6 +620,16 @@ export class EmpleadosFormComponent implements OnInit {
         this.puestos = [];
       }
     });
+
+    // Cargar catálogo de turnos
+    this.turnosService.listar().subscribe({
+      next: (response) => {
+        this.turnos = response && response.success && Array.isArray(response.data) ? response.data : [];
+      },
+      error: () => {
+        this.turnos = [];
+      }
+    });
   }
 
   /**
@@ -634,13 +664,21 @@ export class EmpleadosFormComponent implements OnInit {
       email: empleado.email,
       puesto: empleado.puesto,
       sucursal: empleado.sucursal,
-      turno: empleado.turno || 'Matutino',
       salario: empleado.salario,
       fechaIngreso: empleado.fechaIngreso,
       activo: empleado.activo,
       fechaBaja: empleado.fechaBaja || '',
       tipoPermiso: empleado.tipoPermiso || 'sin_permisos'
     });
+
+    // El sueldo se gestiona solo desde la pestaña Sueldos al editar
+    this.empleadoForm.get('salario')?.disable();
+
+    // Horario semanal (turno por día)
+    if (Array.isArray(empleado.turnosDias)) {
+      const porDia = new Map(empleado.turnosDias.map((t: any) => [t.dia_semana, t.turno_id]));
+      this.diasSemana = this.diasSemana.map(d => ({ ...d, turnoId: porDia.has(d.dia) ? (porDia.get(d.dia) as number | null) : null }));
+    }
 
     // Configurar módulos seleccionados y tipo de permiso
     this.tipoPermiso = empleado.tipoPermiso || 'sin_permisos';
@@ -666,7 +704,6 @@ export class EmpleadosFormComponent implements OnInit {
       email: ['', [Validators.email]],
       puesto: ['', Validators.required],
       sucursal: ['', Validators.required],
-      turno: ['Matutino', Validators.required],
       salario: [0, [Validators.required, Validators.min(1)]],
       fechaIngreso: [this.getCurrentDate(), Validators.required],
       diasVacacionesSugeridos: [12, [Validators.min(0), Validators.max(99)]],
@@ -767,7 +804,8 @@ export class EmpleadosFormComponent implements OnInit {
       tipoPermiso: this.tipoPermiso,
       modulosPermitidos: this.tipoPermiso === 'administrador' 
         ? this.modulos.map(m => m.clave) 
-        : this.seleccionados
+        : this.seleccionados,
+      turnosDias: this.diasSemana.map(d => ({ diaSemana: d.dia, turnoId: d.turnoId }))
     };
     
     if (this.isEditing && this.empleadoId) {
@@ -844,6 +882,9 @@ export class EmpleadosFormComponent implements OnInit {
     this.empleadosService.update(this.empleadoId!, datos).subscribe({
       next: (response) => {
         this.loading = false;
+
+        // Guardar el horario semanal por separado (no forma parte del PUT de empleado)
+        this.turnosService.setTurnosDias(this.empleadoId!, datos.turnosDias).subscribe();
         
         // Verificar si se devolvieron credenciales de usuario
         const responseData = response as any;
