@@ -378,7 +378,7 @@ async function updateInventario(req, res) {
   try {
     const { id } = req.params;
     const {
-      departamento_id, tipo, nombre, descripcion, codigo_sku,
+      departamento_id, tipo, es_servicio, nombre, descripcion, codigo_sku,
       marca, modelo, proveedor_id, unidad_medida, stock_minimo, stock_maximo,
       ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, tabulador_activo,
       existencia_actual
@@ -388,8 +388,16 @@ async function updateInventario(req, res) {
     if (check.rows.length === 0)
       return res.status(404).json(createErrorResponse('Artículo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO));
 
-    const esServicio = check.rows[0].es_servicio;
+    if (tipo !== undefined && !['venta','insumo','generico'].includes(tipo))
+      return res.status(400).json(createErrorResponse('Tipo inválido: venta | insumo | generico', CODIGOS_ERROR.DATOS_INVALIDOS));
+
     const tipoFinal = tipo || check.rows[0].tipo;
+    const esServicio = es_servicio !== undefined
+      ? (es_servicio === true || es_servicio === 'true')
+      : check.rows[0].es_servicio;
+
+    if (esServicio && tipoFinal !== 'venta')
+      return res.status(400).json(createErrorResponse('Un servicio solo puede ser de tipo "venta"', CODIGOS_ERROR.DATOS_INVALIDOS));
     if ((tipoFinal === 'venta' || esServicio) && precio_venta !== undefined && !precio_venta)
       return res.status(400).json(createErrorResponse('El precio de venta no puede estar vacío para venta/servicio', CODIGOS_ERROR.DATOS_INVALIDOS));
 
@@ -398,6 +406,7 @@ async function updateInventario(req, res) {
         departamento_id=COALESCE($1,departamento_id),
         categoria=COALESCE((SELECT nombre FROM inv_departamentos WHERE id=$1), categoria),
         tipo=COALESCE($2,tipo),
+        es_servicio=$20,
         nombre=COALESCE($3,nombre), descripcion=$4, codigo_sku=$5, marca=$6, modelo=$7, proveedor_id=$8,
         unidad_medida=COALESCE($9,unidad_medida), stock_minimo=COALESCE($10,stock_minimo), stock_maximo=$11,
         ubicacion_fisica=$12, costo_compra=$13, precio_venta=$14, existencia_actual=COALESCE($19,existencia_actual),
@@ -408,12 +417,13 @@ async function updateInventario(req, res) {
       WHERE id=$17 RETURNING *
     `, [
       departamento_id, tipo, nombre?.trim(), descripcion, codigo_sku, marca, modelo, proveedor_id,
-      esServicio ? null : unidad_medida,
-      esServicio ? null : stock_minimo,
+      esServicio ? 'Servicio' : unidad_medida,
+      esServicio ? 0 : stock_minimo,
       esServicio ? null : stock_maximo,
       ubicacion_fisica, costo_compra, precio_venta, disponible_en_pos, estatus, id,
       tabulador_activo !== undefined ? (tabulador_activo === true || tabulador_activo === 'true') : undefined,
-      esServicio ? null : existencia_actual
+      esServicio ? 0 : existencia_actual,
+      esServicio
     ], req.user?.id, req.user?.nombre || req.user?.username);
 
     return res.json(createResponse(true, r.rows[0], 'Artículo actualizado'));

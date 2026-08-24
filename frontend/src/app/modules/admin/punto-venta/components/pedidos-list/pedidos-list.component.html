@@ -47,7 +47,7 @@
   </div>
 
   <!-- Lista -->
-  <div class="pedidos-grid" *ngIf="!cargando && pedidos.length > 0">
+  <div class="pedidos-grid" #gridContainer *ngIf="!cargando && pedidos.length > 0">
     <div class="pedido-card" *ngFor="let p of pedidos"
       [class.atrasado]="esAtrasado(p)"
       [class.terminado]="p.estatus === 'terminado'">
