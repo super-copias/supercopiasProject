@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
@@ -16,17 +16,21 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   @Output() irANuevaVenta = new EventEmitter<void>();
   @Output() statsActualizadas = new EventEmitter<number>();
 
+  @ViewChild('gridContainer') gridContainerRef?: ElementRef<HTMLDivElement>;
+
   private destroy$ = new Subject<void>();
 
   pedidos: any[] = [];
   cargando = false;
   error = '';
 
-  // Paginación
-  readonly LIMIT = 18;
+  // Paginación (LIMIT se recalcula según el espacio disponible en pantalla)
+  LIMIT = 18;
   paginaActual = 1;
   totalPaginas = 1;
   totalRegistros = 0;
+  private tamanoCalculado = '';
+  private resizeTimeout: any;
 
   // Filtros
   filtroEstatus = '';      // '' = solo activos (pendiente/en_proceso/terminado)
@@ -160,10 +164,17 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    clearTimeout(this.resizeTimeout);
   }
 
-  cargar(): void {
-    this.cargando = true;
+  @HostListener('window:resize')
+  onResize(): void {
+    clearTimeout(this.resizeTimeout);
+    this.resizeTimeout = setTimeout(() => this.recalcularLimite(), 200);
+  }
+
+  cargar(silencioso = false): void {
+    if (!silencioso) this.cargando = true;
     this.error = '';
 
     const f: any = { page: this.paginaActual, limit: this.LIMIT };
@@ -181,7 +192,7 @@ export class PedidosListComponent implements OnInit, OnDestroy {
 
     this.posService.listPedidos(f).pipe(
       takeUntil(this.destroy$),
-      finalize(() => this.cargando = false)
+      finalize(() => { if (!silencioso) this.cargando = false; })
     ).subscribe({
       next: (r) => {
         this.pedidos = r.data || [];
@@ -191,9 +202,36 @@ export class PedidosListComponent implements OnInit, OnDestroy {
         const activos = this.pedidos.filter(p =>
           ['pendiente','en_proceso','terminado'].includes(p.estatus)).length;
         this.statsActualizadas.emit(activos);
+        setTimeout(() => this.recalcularLimite());
       },
       error: () => { this.error = 'Error al cargar pedidos'; }
     });
+  }
+
+  // Calcula cuántas tarjetas caben (columnas × filas) en el espacio visible del
+  // grid y ajusta LIMIT para que la página aproveche toda la pantalla en vez de
+  // usar un tamaño fijo que deja hueco vacío en monitores grandes.
+  private recalcularLimite(): void {
+    const grid = this.gridContainerRef?.nativeElement;
+    if (!grid || !grid.clientWidth || !grid.clientHeight) return;
+
+    const card = grid.querySelector('.pedido-card') as HTMLElement | null;
+    if (!card || !card.offsetWidth || !card.offsetHeight) return;
+
+    const key = `${grid.clientWidth}x${grid.clientHeight}`;
+    if (key === this.tamanoCalculado) return;
+    this.tamanoCalculado = key;
+
+    const gap = parseFloat(getComputedStyle(grid).rowGap) || 12;
+    const cols = Math.max(1, Math.floor((grid.clientWidth + gap + 1) / (card.offsetWidth + gap)));
+    const rows = Math.max(1, Math.floor((grid.clientHeight + gap + 1) / (card.offsetHeight + gap)));
+    const nuevoLimite = cols * rows;
+
+    if (nuevoLimite > 0 && nuevoLimite !== this.LIMIT) {
+      this.LIMIT = nuevoLimite;
+      this.paginaActual = 1;
+      this.cargar(true);
+    }
   }
 
   cambiarFiltro(): void {
