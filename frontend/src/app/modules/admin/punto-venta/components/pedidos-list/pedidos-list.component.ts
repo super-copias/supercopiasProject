@@ -66,6 +66,18 @@ export class PedidosListComponent implements OnInit, OnDestroy {
   buscandoClienteEntregar = false;
   totalConFacturaEntregar: number | null = null;
 
+  // Trabajo en equipo (al terminar)
+  esTrabajoEquipo = false;
+  equipoParticipantes: { empleado_id: number | null; empleado_nombre: string; comentario: string }[] = [];
+  empleadosDisponibles: { id: number; nombre: string }[] = [];
+  cargandoEmpleados = false;
+
+  // Modal terminar
+  mostrarModalTerminar = false;
+  pedidoTerminar: any = null;
+  procesandoTerminar = false;
+  errorTerminar = '';
+
   // Modal cancelar
   mostrarModalCancelar = false;
   pedidoCancelar: any = null;
@@ -245,14 +257,35 @@ export class PedidosListComponent implements OnInit, OnDestroy {
     });
   }
 
-  terminar(p: any): void {
-    this.procesando[p.id] = true;
-    this.errorAccion[p.id] = '';
-    this.posService.terminarPedido(p.id).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { delete this.procesando[p.id]; this.cargar(); },
+  abrirTerminar(p: any): void {
+    this.pedidoTerminar = p;
+    this.errorTerminar = '';
+    this.esTrabajoEquipo = false;
+    this.equipoParticipantes = [];
+    this.mostrarModalTerminar = true;
+  }
+
+  confirmarTerminar(): void {
+    if (!this.pedidoTerminar) return;
+    this.procesandoTerminar = true;
+    this.errorTerminar = '';
+    const participantes = this.esTrabajoEquipo
+      ? this.equipoParticipantes.filter(p => p.empleado_id)
+      : [];
+    this.posService.terminarPedido(
+      this.pedidoTerminar.id,
+      undefined,
+      this.esTrabajoEquipo,
+      participantes,
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.procesandoTerminar = false;
+        this.mostrarModalTerminar = false;
+        this.cargar();
+      },
       error: (e) => {
-        this.errorAccion[p.id] = e?.error?.error?.message || 'Error';
-        delete this.procesando[p.id];
+        this.errorTerminar = e?.error?.error?.message || 'Error al terminar';
+        this.procesandoTerminar = false;
       }
     });
   }
@@ -329,6 +362,51 @@ export class PedidosListComponent implements OnInit, OnDestroy {
 
   onPagosSaldoChange(p: PagoInput[]): void { this.pagosSaldo = p; }
   onPagosSaldoValidChange(v: boolean): void { this.pagosSaldoValidos = v; }
+
+  onToggleTrabajoEquipo(): void {
+    if (this.esTrabajoEquipo) {
+      if (this.empleadosDisponibles.length === 0) {
+        this.cargarEmpleadosEquipo();
+      }
+      if (this.equipoParticipantes.length === 0) {
+        this.equipoParticipantes = [{ empleado_id: null, empleado_nombre: '', comentario: '' }];
+      }
+    } else {
+      this.equipoParticipantes = [];
+    }
+  }
+
+  private cargarEmpleadosEquipo(): void {
+    this.cargandoEmpleados = true;
+    const params = new HttpParams().set('limit', '100');
+    this.http.get<any>(`${environment.apiUrl}/empleados`, { params }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (r) => {
+        this.empleadosDisponibles = (r.data || []).map((e: any) => ({ id: e.id, nombre: e.nombre }));
+        this.cargandoEmpleados = false;
+      },
+      error: () => { this.cargandoEmpleados = false; }
+    });
+  }
+
+  agregarParticipante(): void {
+    this.equipoParticipantes.push({ empleado_id: null, empleado_nombre: '', comentario: '' });
+  }
+
+  quitarParticipante(i: number): void {
+    this.equipoParticipantes.splice(i, 1);
+  }
+
+  tieneParticipantesValidos(): boolean {
+    return this.equipoParticipantes.some(p => p.empleado_id != null);
+  }
+
+  onSelectParticipante(i: number, empleadoId: string): void {
+    const emp = this.empleadosDisponibles.find(e => e.id === +empleadoId);
+    this.equipoParticipantes[i].empleado_id = emp ? emp.id : null;
+    this.equipoParticipantes[i].empleado_nombre = emp ? emp.nombre : '';
+  }
 
   confirmarEntrega(): void {
     if (!this.pedidoEntregar) return;

@@ -429,6 +429,75 @@
       </div>
     </section>
 
+    <!-- Tabla secundaria: Trabajo en Equipo (solo reporte vendedores) -->
+    <section class="preview-section equipo-section" *ngIf="selectedId === 'vendedores' && previewEquipoVentas.length > 0">
+      <div class="preview-header equipo-header">
+        <span class="preview-count">
+          <i class="fas fa-people-group" style="color:#F59E0B"></i>
+          Trabajo en Equipo &mdash; {{ previewEquipoVentas.length }} venta{{ previewEquipoVentas.length !== 1 ? 's' : '' }}
+        </span>
+        <span class="preview-hint">Ventas atribuidas al equipo; no incluidas en la tabla de vendedores.</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="preview-table">
+          <thead>
+            <tr>
+              <th>Folio Venta</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Método Pago</th>
+              <th>Participantes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of previewEquipoVentas">
+              <td>{{ v.folio_venta }}</td>
+              <td>{{ formatCell(v.fecha_venta, 'fecha_venta') }}</td>
+              <td>{{ v.cliente_nombre || '—' }}</td>
+              <td>{{ formatCell(v.total, 'total') }}</td>
+              <td>{{ v.metodo_pago || '—' }}</td>
+              <td>
+                <button class="btn-ver-participantes" (click)="abrirModalParticipantes(v)" title="Ver participantes">
+                  <i class="fas fa-eye"></i>
+                  <span>{{ v.participantes.length }} participante{{ v.participantes.length !== 1 ? 's' : '' }}</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Modal participantes de trabajo en equipo -->
+    <div class="equipo-modal-overlay" *ngIf="mostrarModalEquipo" (click)="mostrarModalEquipo=false">
+      <div class="equipo-modal-card" (click)="$event.stopPropagation()">
+        <div class="equipo-modal-header">
+          <div>
+            <div class="equipo-modal-title"><i class="fas fa-people-group me-2"></i>Participantes del equipo</div>
+            <div class="equipo-modal-sub" *ngIf="equipoModalVenta">
+              {{ equipoModalVenta.folio_venta }} &mdash; {{ equipoModalVenta.cliente_nombre }} &mdash; {{ formatCell(equipoModalVenta.total, 'total') }}
+            </div>
+          </div>
+          <button class="equipo-modal-close" (click)="mostrarModalEquipo=false"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="equipo-modal-body" *ngIf="equipoModalVenta">
+          <table class="equipo-participantes-table">
+            <thead>
+              <tr><th>#</th><th>Empleado</th><th>Comentario</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of equipoModalVenta.participantes; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ p.empleado_nombre }}</td>
+                <td>{{ p.comentario || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Estado vacío -->
     <section class="empty-state" *ngIf="!loadingPreview && previewRows.length === 0 && !errorMsg">
       <i class="fas fa-chart-line empty-icon"></i>

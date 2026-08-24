@@ -83,7 +83,14 @@
             </span>
           </td>
           <td class="d-none d-sm-table-cell">{{ v.cliente_nombre || '— Público general —' }}</td>
-          <td class="d-none d-md-table-cell">{{ v.vendedor_nombre || '—' }}</td>
+          <td class="d-none d-md-table-cell">
+            <ng-container *ngIf="v.es_trabajo_equipo; else vendedorNormal">
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-people-fill me-1"></i>Trabajo en equipo
+              </span>
+            </ng-container>
+            <ng-template #vendedorNormal>{{ v.vendedor_nombre || '—' }}</ng-template>
+          </td>
           <td class="text-center d-none d-lg-table-cell">{{ v.num_items ?? '—' }}</td>
           <td class="text-end fw-semibold">${{ v.total | number:'1.2-2' }}</td>
           <td class="text-center d-none d-lg-table-cell">
@@ -180,7 +187,14 @@
               </span>
             </div>
             <div><span>Cliente</span>       <span>{{ ventaDetalle.cliente_nombre || 'Público general' }}</span></div>
-            <div><span>Vendedor</span>       <span>{{ ventaDetalle.vendedor_nombre || '—' }}</span></div>
+            <div><span>Vendedor</span>
+              <span *ngIf="ventaDetalle.es_trabajo_equipo; else vendedorDetalleNormal">
+                <span class="badge bg-warning text-dark"><i class="bi bi-people-fill me-1"></i>Trabajo en equipo</span>
+              </span>
+              <ng-template #vendedorDetalleNormal>
+                <span>{{ ventaDetalle.vendedor_nombre || '—' }}</span>
+              </ng-template>
+            </div>
             <div><span>Método de pago</span><span>{{ ventaDetalle.metodo_pago_descripcion }}</span></div>
           </div>
 
