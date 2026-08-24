@@ -130,7 +130,7 @@
               <i class="fas fa-inbox me-2"></i>No se encontraron equipos
             </td>
           </tr>
-          <tr *ngFor="let equipo of equipos">
+          <tr *ngFor="let equipo of equipos" [attr.data-scroll-id]="'equipo-' + equipo.id">
             <td>{{equipo.id}}</td>
             <td>
               <strong>{{equipo.nombre_equipo || '-'}}</strong>
@@ -175,7 +175,7 @@
     <!-- Vista de cards para pantallas pequeñas -->
     <div class="d-lg-none">
       <div class="row g-3" *ngFor="let equipo of equipos">
-        <div class="col-12">
+        <div class="col-12" [attr.data-scroll-id]="'equipo-' + equipo.id">
           <div class="card border-0 shadow-sm">
             <div class="card-body p-3">
               <div class="row align-items-center">

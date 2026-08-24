@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { EquiposService } from '../../../../services/equipos.service';
 import { NotificationService } from '../../../../services/notification.service';
 
@@ -24,6 +25,7 @@ export class EquiposFormComponent implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
+    private location: Location,
     private equiposService: EquiposService,
     private notificationService: NotificationService
   ) {
@@ -153,7 +155,9 @@ export class EquiposFormComponent implements OnInit {
           this.notificationService.success(
             this.isEdit ? 'Equipo actualizado exitosamente' : 'Equipo creado exitosamente'
           );
-          this.router.navigate(['/admin/equipos']);
+          // Vuelve a la lista preservando filtros, página y scroll (en vez de
+          // navegar a una URL fija que reiniciaba el estado de la lista).
+          this.location.back();
         }
         this.loading = false;
       },
@@ -166,7 +170,7 @@ export class EquiposFormComponent implements OnInit {
   }
 
   onCancel() {
-    this.router.navigate(['/admin/equipos']);
+    this.location.back();
   }
 
   get tipoSeleccionado(): string {

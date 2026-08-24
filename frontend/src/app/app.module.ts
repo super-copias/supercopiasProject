@@ -21,7 +21,17 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, HttpClientModule, RouterModule.forRoot(routes), SharedModule],
+  imports: [
+    BrowserModule,
+    HttpClientModule,
+    RouterModule.forRoot(routes, {
+      // Restaura el scroll nativo del navegador al usar "Atrás/Adelante" entre rutas
+      // (p. ej. lista -> detalle -> Atrás vuelve a la posición exacta de la lista).
+      scrollPositionRestoration: 'enabled',
+      anchorScrolling: 'enabled'
+    }),
+    SharedModule
+  ],
   providers: [
     { provide: ErrorHandler, useClass: ChunkErrorHandler },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }

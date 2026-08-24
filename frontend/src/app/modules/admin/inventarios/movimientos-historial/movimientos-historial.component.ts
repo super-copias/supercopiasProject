@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Location } from '@angular/common';
 import { InventariosService, Departamento } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 
@@ -41,7 +42,8 @@ export class MovimientosHistorialComponent implements OnInit {
 
   constructor(
     private inventariosService: InventariosService,
-    private notif: NotificationService
+    private notif: NotificationService,
+    private location: Location
   ) {}
 
   ngOnInit() {
@@ -50,6 +52,8 @@ export class MovimientosHistorialComponent implements OnInit {
     this.filtros.fecha_desde = hoy;
     this.filtros.fecha_hasta = hoy;
   }
+
+  volver() { this.location.back(); }
 
   private toDateInput(d: Date): string {
     const y = d.getFullYear();
