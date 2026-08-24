@@ -1,9 +1,228 @@
 #!/bin/bash
 
 ###############################################################################
-# Script para actualizar la base de datos en Railway (usando .env)
+# Script de gestión de BD Railway — SuperCopias
+# Usa Railway CLI con DATABASE_PUBLIC_URL (el método que funciona desde fuera)
 # Uso: ./update-railway-db-env.sh
 ###############################################################################
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; BLUE='\033[0;34m'; NC='\033[0m'
+
+ok()   { echo -e "${GREEN}✅ $1${NC}"; }
+err()  { echo -e "${RED}❌ $1${NC}"; }
+info() { echo -e "${YELLOW}ℹ️  $1${NC}"; }
+step() { echo -e "${CYAN}▶ $1${NC}"; }
+warn() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo -e "${CYAN}══════════════════════════════════════════${NC}"
+echo -e "${CYAN}  🚂 Railway DB Manager — SuperCopias${NC}"
+echo -e "${CYAN}══════════════════════════════════════════${NC}"
+echo ""
+
+# ── 1. Verificar Railway CLI ──────────────────────────────────────────────────
+step "1. Verificando Railway CLI..."
+if ! command -v railway &>/dev/null; then
+    err "Railway CLI no instalado. Instálalo con:"
+    info "  brew install railway   (macOS)"
+    info "  npm i -g @railway/cli  (cualquier SO)"
+    exit 1
+fi
+ok "Railway CLI $(railway --version 2>/dev/null | head -1)"
+
+# ── 2. Verificar psql ────────────────────────────────────────────────────────
+step "2. Verificando PostgreSQL client..."
+if ! command -v psql &>/dev/null; then
+    err "psql no instalado."
+    info "macOS: brew install libpq && brew link --force libpq"
+    exit 1
+fi
+ok "$(psql --version)"
+echo ""
+
+# ── 3. Autenticación Railway ─────────────────────────────────────────────────
+step "3. Verificando autenticación Railway..."
+if ! railway status &>/dev/null; then
+    warn "No autenticado. Iniciando login browserless..."
+    railway login --browserless
+    if [ $? -ne 0 ]; then err "Login fallido"; exit 1; fi
+fi
+
+RAILWAY_STATUS=$(railway status 2>&1)
+PROJECT=$(echo "$RAILWAY_STATUS" | grep 'Project:' | awk -F': ' '{print $2}')
+ENVIRONMENT=$(echo "$RAILWAY_STATUS" | grep 'Environment:' | awk -F': ' '{print $2}')
+SERVICE=$(echo "$RAILWAY_STATUS" | grep 'Service:' | awk -F': ' '{print $2}')
+
+if [ -z "$PROJECT" ]; then
+    warn "Sin proyecto vinculado. Ejecutando railway link..."
+    railway link
+    if [ $? -ne 0 ]; then err "No se pudo vincular el proyecto"; exit 1; fi
+    RAILWAY_STATUS=$(railway status 2>&1)
+    PROJECT=$(echo "$RAILWAY_STATUS" | grep 'Project:' | awk -F': ' '{print $2}')
+    ENVIRONMENT=$(echo "$RAILWAY_STATUS" | grep 'Environment:' | awk -F': ' '{print $2}')
+fi
+
+echo -e "  Proyecto   : ${CYAN}${PROJECT}${NC}"
+echo -e "  Entorno    : ${CYAN}${ENVIRONMENT}${NC}"
+echo -e "  Servicio   : ${CYAN}${SERVICE:-Postgres}${NC}"
+echo ""
+
+# Función helper: ejecuta psql contra Railway inyectando DATABASE_PUBLIC_URL
+railway_psql() {
+    railway run bash -c "psql \"\$DATABASE_PUBLIC_URL\" $*"
+}
+
+# ── 4. Menú ───────────────────────────────────────────────────────────────────
+echo -e "${CYAN}══════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Selecciona una opción:${NC}"
+echo -e "${CYAN}══════════════════════════════════════════${NC}"
+echo "  1. 🎯 Aplicar migración específica (migrate-*.sql)"
+echo "  2. 🔄 Aplicar TODAS las migraciones (en orden)"
+echo "  3. 📄 Aplicar esquema completo (BD_SUPERCOPIAS.sql) ⚠️  destructivo"
+echo "  4. 🔌 Shell interactivo PostgreSQL"
+echo "  5. 🔍 Ver tablas y conteo de registros"
+echo "  6. 📊 Crear backup"
+echo ""
+read -rp "Opción [1-6]: " opcion
+
+case $opcion in
+
+# ── Migración específica ───────────────────────────────────────────────────────
+1)
+    echo ""
+    step "Archivos de migración disponibles:"
+    echo ""
+    MIGRATE_DIR="backend/scripts"
+    mapfile -t FILES < <(ls "$MIGRATE_DIR"/migrate-*.sql 2>/dev/null | sort)
+
+    if [ ${#FILES[@]} -eq 0 ]; then
+        err "No hay archivos migrate-*.sql en $MIGRATE_DIR"
+        exit 1
+    fi
+
+    for i in "${!FILES[@]}"; do
+        echo "  $((i+1)). $(basename "${FILES[$i]}")"
+    done
+    echo ""
+    read -rp "Número de migración a aplicar: " sel
+    idx=$((sel-1))
+
+    if [ $idx -lt 0 ] || [ $idx -ge ${#FILES[@]} ]; then
+        err "Selección inválida"; exit 1
+    fi
+
+    MIGRATION_FILE="${FILES[$idx]}"
+    echo ""
+    step "Aplicando: $(basename "$MIGRATION_FILE")"
+    railway_psql "-f $MIGRATION_FILE"
+    [ $? -eq 0 ] && ok "Migración aplicada" || { err "Error en la migración"; exit 1; }
+    ;;
+
+# ── Todas las migraciones ─────────────────────────────────────────────────────
+2)
+    echo ""
+    MIGRATE_DIR="backend/scripts"
+    mapfile -t FILES < <(ls "$MIGRATE_DIR"/migrate-*.sql 2>/dev/null | sort)
+
+    if [ ${#FILES[@]} -eq 0 ]; then
+        err "No hay archivos migrate-*.sql en $MIGRATE_DIR"
+        exit 1
+    fi
+
+    step "Se aplicarán ${#FILES[@]} migraciones en orden:"
+    for f in "${FILES[@]}"; do echo "  • $(basename "$f")"; done
+    echo ""
+    read -rp "¿Continuar? (S/N): " conf
+    [[ ! $conf =~ ^[Ss]$ ]] && { info "Cancelado"; exit 0; }
+
+    ERRORS=0
+    for f in "${FILES[@]}"; do
+        step "→ $(basename "$f")"
+        railway_psql "-f $f"
+        if [ $? -ne 0 ]; then
+            err "Falló: $(basename "$f")"
+            ERRORS=$((ERRORS+1))
+        else
+            ok "OK: $(basename "$f")"
+        fi
+        echo ""
+    done
+
+    if [ $ERRORS -eq 0 ]; then
+        ok "Todas las migraciones completadas"
+    else
+        warn "$ERRORS migración(es) fallaron"
+        exit 1
+    fi
+    ;;
+
+# ── Esquema completo ──────────────────────────────────────────────────────────
+3)
+    echo ""
+    warn "PELIGRO: Esto eliminará y recreará todas las tablas en ${ENVIRONMENT}."
+    read -rp "Escribe 'SI ENTIENDO' para continuar: " conf
+    if [ "$conf" != "SI ENTIENDO" ]; then info "Cancelado"; exit 0; fi
+
+    if [ ! -f "backend/BD_SUPERCOPIAS.sql" ]; then
+        err "No se encontró backend/BD_SUPERCOPIAS.sql"; exit 1
+    fi
+
+    step "Aplicando BD_SUPERCOPIAS.sql..."
+    railway_psql "-f backend/BD_SUPERCOPIAS.sql"
+    [ $? -eq 0 ] && ok "Esquema aplicado" || { err "Error al aplicar esquema"; exit 1; }
+    ;;
+
+# ── Shell interactivo ─────────────────────────────────────────────────────────
+4)
+    echo ""
+    info "Abriendo shell PostgreSQL en Railway. Usa \\q para salir."
+    railway run bash -c 'psql "$DATABASE_PUBLIC_URL"'
+    ;;
+
+# ── Ver tablas ────────────────────────────────────────────────────────────────
+5)
+    echo ""
+    step "Consultando estado de la BD..."
+    railway_psql "-c \"
+    SELECT table_name, pg_size_pretty(pg_total_relation_size(quote_ident(table_name))) AS size
+    FROM information_schema.tables
+    WHERE table_schema='public' AND table_type='BASE TABLE'
+    ORDER BY table_name;\""
+    ;;
+
+# ── Backup ───────────────────────────────────────────────────────────────────
+6)
+    echo ""
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    BACKUP_DIR="backend/backups"
+    BACKUP_FILE="$BACKUP_DIR/backup_railway_${ENVIRONMENT}_${TIMESTAMP}.sql"
+    mkdir -p "$BACKUP_DIR"
+
+    step "Creando backup → $BACKUP_FILE"
+    railway run bash -c "pg_dump \"\$DATABASE_PUBLIC_URL\"" > "$BACKUP_FILE"
+
+    if [ $? -eq 0 ]; then
+        SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+        ok "Backup creado: $BACKUP_FILE ($SIZE)"
+    else
+        err "Error al crear backup"
+        rm -f "$BACKUP_FILE"
+        exit 1
+    fi
+    ;;
+
+*)
+    err "Opción no válida"
+    exit 1
+    ;;
+esac
+
+echo ""
+ok "¡Listo!"
+
 
 # Colores para output
 RED='\033[0;31m'
