@@ -617,6 +617,8 @@ async function terminarPedido(req, res) {
     const pedidoId = parseInt(req.params.id);
     const usuarioNombre = req.user?.nombre || req.user?.username || 'Sistema';
     const usuarioId     = req.user?.id && req.user.id !== 'dev' ? parseInt(req.user.id) : null;
+    const trabajo_equipo       = !!req.body?.trabajo_equipo;
+    const equipo_participantes = Array.isArray(req.body?.equipo_participantes) ? req.body.equipo_participantes : [];
 
     const r = await client.query(
       `SELECT id, estatus, tomado_por_id FROM pos_pedidos WHERE id = $1 FOR UPDATE`, [pedidoId]
@@ -637,9 +639,25 @@ async function terminarPedido(req, res) {
           terminado_por_id    = $1,
           terminado_por_nombre = $2,
           fecha_terminado     = NOW(),
+          es_trabajo_equipo   = $4,
           fecha_modificacion  = NOW()
       WHERE id = $3
-    `, [usuarioId, usuarioNombre, pedidoId]);
+    `, [usuarioId, usuarioNombre, pedidoId, trabajo_equipo]);
+
+    // Reemplazar participantes previos y registrar los actuales
+    await client.query(
+      `DELETE FROM pos_pedidos_trabajo_equipo WHERE pedido_id = $1 AND venta_id IS NULL`, [pedidoId]
+    );
+    if (trabajo_equipo) {
+      for (const p of equipo_participantes) {
+        if (!p.empleado_id) continue;
+        await client.query(
+          `INSERT INTO pos_pedidos_trabajo_equipo (pedido_id, empleado_id, empleado_nombre, comentario)
+           VALUES ($1, $2, $3, $4)`,
+          [pedidoId, p.empleado_id, p.empleado_nombre || '', p.comentario || null]
+        );
+      }
+    }
 
     await registrarHistorial(client, pedidoId, 'en_proceso', 'terminado', usuarioId, usuarioNombre,
       req.body?.notas || `Terminado por ${usuarioNombre}`);
@@ -680,7 +698,7 @@ async function entregarPedido(req, res) {
       pagos_saldo,                    // nuevo: array [{ codigo, monto, monto_recibido? }]
       metodo_pago_saldo,              // backward compat
       monto_recibido_saldo,           // backward compat
-      notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm'
+      notas, requiere_factura, cliente_factura_id, tipo_persona_factura = 'pm',
     } = req.body;
 
     const usuarioNombre = req.user?.nombre || req.user?.username || 'Sistema';
@@ -782,6 +800,20 @@ async function entregarPedido(req, res) {
     );
     const lineas = detR.rows;
 
+    // ── Trabajo en equipo: leer desde el pedido (se registró al terminar) ──
+    const trabajo_equipo = !!pedido.es_trabajo_equipo;
+    let vendedorId   = pedido.terminado_por_id || usuarioId;
+    let vendedorNomb = pedido.terminado_por_nombre || usuarioNombre;
+    if (trabajo_equipo) {
+      const adminR = await client.query(
+        `SELECT id, nombre FROM usuarios WHERE username = 'admin' LIMIT 1`
+      );
+      if (adminR.rows.length > 0) {
+        vendedorId   = adminR.rows[0].id;
+      }
+      vendedorNomb = 'Trabajo en equipo';
+    }
+
     // ── Generar la venta ───────────────────────────────────────
     const folio       = await generarFolioVenta(client);
     const total       = parseFloat(pedido.total);
@@ -802,13 +834,13 @@ async function entregarPedido(req, res) {
         metodo_pago_codigo, metodo_pago_descripcion,
         descuento_config_id, descuento_autorizado_por,
         notas, requiere_factura, iva_monto, isr_monto, tipo_persona_factura, origen_venta,
-        pedido_anticipo_monto, pedido_anticipo_metodo
-      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+        pedido_anticipo_monto, pedido_anticipo_metodo, es_trabajo_equipo
+      ) VALUES ($1,NOW(),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
       RETURNING id
     `, [
       folio,
       pedido.cliente_id || null, pedido.cliente_nombre,
-      pedido.terminado_por_id || usuarioId, pedido.terminado_por_nombre || usuarioNombre,
+      vendedorId, vendedorNomb,
       parseFloat(pedido.subtotal), parseFloat(pedido.descuento_pct),
       parseFloat(pedido.descuento_monto), total,
       montoRecibido, cambio,
@@ -817,9 +849,18 @@ async function entregarPedido(req, res) {
       notasVenta, rfacturaEnt, ivaMonto, isrMonto, tipoPersonaEnt, 'pedido',
       anticipo > 0 ? anticipo : 0,
       anticipo > 0 ? (pedido.metodo_pago_anticipo || null) : null,
+      trabajo_equipo ? true : false,
     ]);
 
     const ventaId = ventaQ.rows[0].id;
+
+    // Vincular participantes de trabajo en equipo con la venta generada
+    if (trabajo_equipo) {
+      await client.query(
+        `UPDATE pos_pedidos_trabajo_equipo SET venta_id = $1 WHERE pedido_id = $2`,
+        [ventaId, pedidoId]
+      );
+    }
 
     // Registrar pagos del saldo en pos_ventas_pagos (omitir si monto es 0, ej. pedido totalmente cubierto por anticipo)
     for (let _pi = 0; _pi < pagosFinalesS.length; _pi++) {

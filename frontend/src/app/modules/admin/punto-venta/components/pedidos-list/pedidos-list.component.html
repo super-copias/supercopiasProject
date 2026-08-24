@@ -120,10 +120,8 @@
         <!-- Terminar: solo en_proceso -->
         <button *ngIf="p.estatus === 'en_proceso'"
           class="btn btn-sm btn-warning"
-          [disabled]="procesando[p.id]"
-          (click)="terminar(p)">
-          <span *ngIf="procesando[p.id]" class="spinner-border spinner-border-sm me-1"></span>
-          <i *ngIf="!procesando[p.id]" class="bi bi-check-circle me-1"></i>Terminar
+          (click)="abrirTerminar(p)">
+          <i class="bi bi-check-circle me-1"></i>Terminar
         </button>
 
         <!-- Entregar: solo terminado -->
@@ -248,6 +246,81 @@
 </div>
 
 <!-- ── Modal Entregar ────────────────────────────────────────── -->
+<!-- ── Modal Terminar ─────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="mostrarModalTerminar" (click)="mostrarModalTerminar=false">
+  <div class="modal-card modal-sm-form" (click)="$event.stopPropagation()">
+    <div class="modal-header-bar">
+      <span><i class="bi bi-check-circle me-2 text-warning"></i>Terminar pedido</span>
+      <button class="btn-close-modal" (click)="mostrarModalTerminar=false"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="p-3" *ngIf="pedidoTerminar">
+      <p class="mb-3 small text-muted">
+        Pedido <strong>{{ pedidoTerminar.folio }}</strong> — ¿Confirmas que el trabajo está listo?
+      </p>
+
+      <!-- Trabajo en equipo -->
+      <div class="mb-3 border rounded p-2">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="chkTrabajoEquipoTerminar"
+            [(ngModel)]="esTrabajoEquipo"
+            (ngModelChange)="onToggleTrabajoEquipo()">
+          <label class="form-check-label small fw-semibold" for="chkTrabajoEquipoTerminar">
+            <i class="bi bi-people-fill me-1 text-warning"></i>Trabajo en equipo
+          </label>
+        </div>
+        <div *ngIf="esTrabajoEquipo" class="mt-2">
+          <div class="text-muted small mb-2">
+            <i class="bi bi-info-circle me-1"></i>Registra los participantes del equipo.
+          </div>
+          <div *ngIf="cargandoEmpleados" class="text-center py-2">
+            <span class="spinner-border spinner-border-sm text-warning"></span>
+          </div>
+          <div *ngFor="let p of equipoParticipantes; let i = index" class="row g-1 align-items-center mb-2">
+            <div class="col-5">
+              <select class="form-select form-select-sm"
+                [ngModel]="p.empleado_id"
+                (ngModelChange)="onSelectParticipante(i, $event)">
+                <option [ngValue]="null">— Empleado —</option>
+                <option *ngFor="let e of empleadosDisponibles" [value]="e.id">{{ e.nombre }}</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <input type="text" class="form-control form-control-sm"
+                [(ngModel)]="p.comentario"
+                placeholder="Comentario (opcional)">
+            </div>
+            <div class="col-1 text-center">
+              <button class="btn btn-xs btn-outline-danger" type="button"
+                *ngIf="equipoParticipantes.length > 1"
+                (click)="quitarParticipante(i)">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-warning" type="button" (click)="agregarParticipante()">
+            <i class="bi bi-plus-circle me-1"></i>Agregar empleado
+          </button>
+          <div *ngIf="!tieneParticipantesValidos()" class="text-danger small mt-1">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>Selecciona al menos un empleado.
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="errorTerminar" class="alert alert-danger py-1 px-2 small mb-2">{{ errorTerminar }}</div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary flex-fill" (click)="mostrarModalTerminar=false">Cancelar</button>
+        <button class="btn btn-warning flex-fill text-dark"
+          [disabled]="procesandoTerminar || (esTrabajoEquipo && !tieneParticipantesValidos())"
+          (click)="confirmarTerminar()">
+          <span *ngIf="procesandoTerminar" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!procesandoTerminar" class="bi bi-check-circle me-1"></i>Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Entregar ─────────────────────────────────────── -->
 <div class="modal-overlay" *ngIf="mostrarModalEntregar" (click)="mostrarModalEntregar=false">
   <div class="modal-card modal-sm-form" (click)="$event.stopPropagation()">
     <div class="modal-header-bar">
@@ -277,7 +350,7 @@
         (validChange)="onPagosSaldoValidChange($event)">
       </app-pos-selector-pago>
 
-      <!-- Notas de entrega -->
+      <!-- ── Notas de entrega -->
       <div class="mb-2 mt-2">
         <label class="form-label small">Notas de entrega (opcional)</label>
         <input type="text" class="form-control form-control-sm" [(ngModel)]="notasEntrega" placeholder="Observaciones...">

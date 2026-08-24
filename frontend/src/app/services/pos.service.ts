@@ -527,11 +527,27 @@ export class PosService {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/tomar`, {});
   }
 
-  terminarPedido(id: number, notas?: string): Observable<any> {
-    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/terminar`, { notas });
+  terminarPedido(
+    id: number,
+    notas?: string,
+    trabajoEquipo?: boolean,
+    equipoParticipantes?: { empleado_id: number | null; empleado_nombre: string; comentario?: string }[]
+  ): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/terminar`, {
+      notas,
+      trabajo_equipo: trabajoEquipo || false,
+      equipo_participantes: equipoParticipantes || [],
+    });
   }
 
-  entregarPedido(id: number, pagos: PagoInput[], notas?: string, requiereFactura?: boolean, clienteFacturaId?: number | null, tipoPersonaFactura?: 'pf' | 'pm'): Observable<any> {
+  entregarPedido(
+    id: number,
+    pagos: PagoInput[],
+    notas?: string,
+    requiereFactura?: boolean,
+    clienteFacturaId?: number | null,
+    tipoPersonaFactura?: 'pf' | 'pm',
+  ): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/pedidos/${id}/entregar`, {
       pagos_saldo: pagos,
       notas,

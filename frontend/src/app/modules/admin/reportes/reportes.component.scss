@@ -456,3 +456,117 @@ $white:  #FFFFFF;
 
   .btn { padding: 6px 10px; font-size: 12px; }
 }
+
+// ── Sección Trabajo en Equipo ─────────────────────────────────────────────────
+.equipo-section {
+  .preview-header.equipo-header {
+    background: #FFF8E1;
+    border-left: 4px solid #F59E0B;
+    border-bottom-color: #FFE082;
+    .preview-count { color: #E65100; }
+  }
+}
+
+.btn-ver-participantes {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1.5px solid #1565C0;
+  border-radius: 20px;
+  background: transparent;
+  color: #1565C0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: #1565C0;
+    color: #fff;
+  }
+  i { font-size: 12px; }
+}
+
+// ── Modal participantes ───────────────────────────────────────────────────────
+.equipo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.equipo-modal-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  width: 560px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.equipo-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #E0E0E0;
+  background: #E3F2FD;
+
+  .equipo-modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1565C0;
+  }
+  .equipo-modal-sub {
+    font-size: 12px;
+    color: #555;
+    margin-top: 3px;
+  }
+}
+
+.equipo-modal-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  &:hover { color: #333; }
+}
+
+.equipo-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.equipo-participantes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr { background: #1565C0; }
+  th {
+    padding: 8px 12px;
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    &:first-child { width: 32px; text-align: center; }
+  }
+  tbody tr {
+    border-bottom: 1px solid #F0F0F0;
+    &:nth-child(even) { background: #E3F2FD; }
+  }
+  td {
+    padding: 8px 12px;
+    color: #333;
+    &:first-child { text-align: center; color: #888; font-size: 12px; }
+  }
+}

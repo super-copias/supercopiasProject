@@ -58,6 +58,10 @@ export class ReportesComponent implements OnInit, OnDestroy {
   previewRows: any[] = [];
   previewColumns: string[] = [];
   previewResumen: any = null;
+  // Tabla secundaria para Trabajo en Equipo (reporte vendedores)
+  previewEquipoVentas: { folio_venta: string; fecha_venta: any; cliente_nombre: string; total: any; metodo_pago: string; participantes: { empleado_nombre: string; comentario: string }[] }[] = [];
+  mostrarModalEquipo = false;
+  equipoModalVenta: { folio_venta: string; fecha_venta: any; cliente_nombre: string; total: any; metodo_pago: string; participantes: { empleado_nombre: string; comentario: string }[] } | null = null;
   previewResumenArqueo: any = null;
   previewArqueoMetodos: any[] = [];
   previewArqueoMovimientos: any[] = [];
@@ -119,6 +123,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.selectedId = id;
     this.previewRows = [];
     this.previewColumns = [];
+    this.previewEquipoVentas = [];
     this.previewResumen = null;
     this.previewResumenArqueo = null;
     this.previewArqueoMetodos = [];
@@ -143,6 +148,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.loadingPreview = true;
     this.errorMsg = '';
     this.previewRows = [];
+    this.previewEquipoVentas = [];
     this.previewResumen = null;
     this.previewResumenArqueo = null;
     this.previewArqueoMetodos = [];
@@ -164,6 +170,12 @@ export class ReportesComponent implements OnInit, OnDestroy {
           this.previewResumenArqueo = data.resumen_arqueo ?? null;
           this.previewArqueoMetodos = data.arqueo_metodos_pago ?? [];
           this.previewArqueoMovimientos = data.arqueo_movimientos ?? [];
+
+          // Tabla secundaria: Trabajo en Equipo (solo reporte vendedores)
+          const equipoRows = data.equipo_rows ?? [];
+          if (equipoRows.length > 0) {
+            this.previewEquipoVentas = this.groupEquipoRows(equipoRows);
+          }
 
           if (rawRows.length > 0) {
             this.previewColumns = Object.keys(rawRows[0]);
@@ -293,17 +305,20 @@ export class ReportesComponent implements OnInit, OnDestroy {
     if (value === null || value === undefined) return '—';
     const colLower = col.toLowerCase();
 
-    // Columnas de dinero (solo si no son conteos)
+    // Columnas de conteo: nunca se formatean como moneda ni como fecha
     const isCount = this._countCols.some(k => colLower.includes(k));
+
     if (!isCount && this._moneyCols.some(k => colLower.includes(k))) {
       const n = parseFloat(value);
       if (!isNaN(n)) return `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
-    // Columna con nombre de fecha/date O valor con forma ISO-8601
-    const isDateCol = colLower.includes('fecha') || colLower.includes('date')
-                   || colLower.includes('compra') || colLower.includes('venta')
-                   || colLower.includes('primera') || colLower.includes('ultima');
+    // Columna de fecha o valor ISO-8601 (nunca si es conteo)
+    const isDateCol = !isCount && (
+      colLower.includes('fecha') || colLower.includes('date')
+      || colLower.includes('compra') || colLower.includes('venta')
+      || colLower.includes('primera') || colLower.includes('ultima')
+    );
     const isIsoStr  = typeof value === 'string' && this._isoDateRe.test(value);
     if (isDateCol || isIsoStr) {
       try {
@@ -328,6 +343,32 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   formatColHeader(col: string): string {
     return col.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  private groupEquipoRows(rows: any[]) {
+    const map = new Map<string, any>();
+    rows.forEach(r => {
+      if (!map.has(r.folio_venta)) {
+        map.set(r.folio_venta, {
+          folio_venta: r.folio_venta,
+          fecha_venta: r.fecha_venta,
+          cliente_nombre: r.cliente_nombre,
+          total: r.total,
+          metodo_pago: r.metodo_pago,
+          participantes: []
+        });
+      }
+      const venta = map.get(r.folio_venta)!;
+      if (r.empleado_nombre && r.empleado_nombre !== '—') {
+        venta.participantes.push({ empleado_nombre: r.empleado_nombre, comentario: r.comentario || '' });
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  abrirModalParticipantes(venta: any): void {
+    this.equipoModalVenta = venta;
+    this.mostrarModalEquipo = true;
   }
 
   formatOrigenArqueo(origen: string): string {

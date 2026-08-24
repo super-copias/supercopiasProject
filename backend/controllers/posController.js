@@ -650,7 +650,7 @@ async function listVentas(req, res) {
     const sql = `
       SELECT
         v.id, v.folio, v.fecha_venta, v.cliente_id, v.cliente_nombre,
-        v.vendedor_usuario_id, v.vendedor_nombre,
+        v.vendedor_usuario_id, v.vendedor_nombre, v.es_trabajo_equipo,
         v.subtotal, v.descuento_pct, v.descuento_monto,
         v.total, v.iva_monto, v.isr_monto, v.requiere_factura,
         v.metodo_pago_codigo, v.metodo_pago_descripcion,

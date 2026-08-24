@@ -61,6 +61,18 @@ async function crearFacturaEnTransaccion(client, {
   cliente_id, subtotal, tipo_persona = 'pm',
   usuario_id = null, usuario_nombre = null, notas = null,
 }) {
+  // Guardia de duplicados: evita dos facturas activas para el mismo documento origen
+  const dupCol = venta_id ? 'venta_id' : pedido_id ? 'pedido_id' : cotizacion_id ? 'cotizacion_id' : null;
+  const dupVal = venta_id ?? pedido_id ?? cotizacion_id ?? null;
+  if (dupCol && dupVal) {
+    const dupCheck = await client.query(
+      `SELECT id FROM facturas WHERE ${dupCol} = $1 AND estatus != 'cancelada' LIMIT 1`,
+      [dupVal]
+    );
+    if (dupCheck.rows.length > 0) {
+      throw new Error(`Ya existe una factura activa para este documento (${dupCol}=${dupVal})`);
+    }
+  }
   const cliRes = await client.query(
     `SELECT id, razon_social, rfc, regimen_fiscal, uso_cfdi,
             direccion_codigo_postal, nombre_comercial

@@ -1130,7 +1130,7 @@ async function getReporteVendedores(req, res) {
     const [d, h] = buildDateRange(desde, hasta);
     const nombreArchivo = `Ventas-por-Vendedor-${buildFileDateSuffix(desde, hasta)}`;
 
-    // Resumen por vendedor
+    // Resumen por vendedor (excluye ventas de Trabajo en equipo)
     const { rows } = await query(`
       SELECT
         v.vendedor_usuario_id                                              AS usuario_id,
@@ -1145,19 +1145,18 @@ async function getReporteVendedores(req, res) {
         MAX(v.fecha_venta) FILTER (WHERE v.estatus = 'completada')         AS ultima_venta,
         COUNT(DISTINCT DATE(v.fecha_venta AT TIME ZONE 'America/Mexico_City'))
           FILTER (WHERE v.estatus = 'completada')::int                     AS dias_activos,
-        -- Método de pago más usado
         MODE() WITHIN GROUP (ORDER BY v.metodo_pago_descripcion)
           FILTER (WHERE v.estatus = 'completada')                          AS metodo_pago_favorito,
-        -- Clientes únicos atendidos
         COUNT(DISTINCT v.cliente_id) FILTER (WHERE v.estatus = 'completada')::int AS clientes_unicos
       FROM pos_ventas v
       WHERE v.fecha_venta BETWEEN $1 AND $2
         AND v.vendedor_nombre IS NOT NULL
+        AND v.es_trabajo_equipo = false
       GROUP BY v.vendedor_usuario_id, v.vendedor_nombre
       ORDER BY total_ingresos DESC
     `, [d, h]);
 
-    // Producto más vendido por vendedor
+    // Producto más vendido por vendedor (excluye trabajo en equipo)
     const { rows: topProductos } = await query(`
       SELECT
         v.vendedor_nombre,
@@ -1168,6 +1167,7 @@ async function getReporteVendedores(req, res) {
       WHERE v.fecha_venta BETWEEN $1 AND $2
         AND v.estatus = 'completada'
         AND v.vendedor_nombre IS NOT NULL
+        AND v.es_trabajo_equipo = false
       GROUP BY v.vendedor_nombre, d.nombre_producto
       HAVING SUM(d.cantidad) = (
         SELECT MAX(s.q) FROM (
@@ -1177,11 +1177,30 @@ async function getReporteVendedores(req, res) {
           WHERE v2.vendedor_nombre = v.vendedor_nombre
             AND v2.fecha_venta BETWEEN $1 AND $2
             AND v2.estatus = 'completada'
+            AND v2.es_trabajo_equipo = false
           GROUP BY d2.nombre_producto
         ) s
       )
       ORDER BY v.vendedor_nombre
       LIMIT 50
+    `, [d, h]);
+
+    // Detalle de ventas de Trabajo en equipo — una fila por participante
+    const { rows: equipoRows } = await query(`
+      SELECT
+        v.folio                   AS folio_venta,
+        v.fecha_venta,
+        v.cliente_nombre,
+        v.total,
+        v.metodo_pago_descripcion AS metodo_pago,
+        COALESCE(pte.empleado_nombre, '\u2014') AS empleado_nombre,
+        COALESCE(pte.comentario, '')            AS comentario
+      FROM pos_ventas v
+      LEFT JOIN pos_pedidos_trabajo_equipo pte ON pte.venta_id = v.id
+      WHERE v.fecha_venta BETWEEN $1 AND $2
+        AND v.es_trabajo_equipo = true
+        AND v.estatus = 'completada'
+      ORDER BY v.fecha_venta DESC, v.id, pte.id
     `, [d, h]);
 
     // Mapear top producto a cada vendedor
@@ -1193,11 +1212,19 @@ async function getReporteVendedores(req, res) {
     }));
 
     // Resumen global
+    // Calcular ingresos únicos por venta (evitar contar N veces por participante)
+    const equipoIngresosMap = {};
+    equipoRows.forEach(r => { equipoIngresosMap[r.folio_venta] = parseFloat(r.total); });
+    const equipoVentasUnicas = Object.keys(equipoIngresosMap).length;
+    const equipoIngresosTotal = Object.values(equipoIngresosMap).reduce((s, v) => s + v, 0);
+
     const resumen = {
       total_vendedores: rows.length,
       total_ingresos_global: rows.reduce((s, r) => s + parseFloat(r.total_ingresos || 0), 0),
       total_ventas_global: rows.reduce((s, r) => s + parseInt(r.total_ventas || 0), 0),
       top_vendedor: rows[0] ? { nombre: rows[0].vendedor, total: parseFloat(rows[0].total_ingresos) } : null,
+      equipo_ventas: equipoVentasUnicas,
+      equipo_ingresos: equipoIngresosTotal,
       periodo: { desde: d, hasta: h }
     };
 
@@ -1208,7 +1235,7 @@ async function getReporteVendedores(req, res) {
         'Días Activos', 'Clientes Únicos', 'M.Pago Favorito',
         'Producto Más Vendido', 'Primera Venta', 'Última Venta'
       ];
-      const dataRows = rowsEnriquecidos.map((r, i) => [
+      const dataRows = rowsEnriquecidos.map((r) => [
         r.vendedor,
         r.total_ventas,
         r.ventas_canceladas,
@@ -1227,10 +1254,31 @@ async function getReporteVendedores(req, res) {
         'TOTAL', resumen.total_ventas_global, '', parseFloat(resumen.total_ingresos_global.toFixed(2)),
         '', '', '', '', '', '', '', '', ''
       ]);
+
+      // Hoja extra: Trabajo en equipo — una fila por participante
+      const extraSheets = [];
+      if (equipoRows.length > 0) {
+        const equipoDataRows = equipoRows.map(r => [
+          r.folio_venta,
+          r.fecha_venta ? fmtDate(r.fecha_venta) : '—',
+          r.cliente_nombre || '—',
+          parseFloat(parseFloat(r.total).toFixed(2)),
+          r.metodo_pago || '—',
+          r.empleado_nombre || '—',
+          r.comentario || '',
+        ]);
+        extraSheets.push({
+          name: 'Trabajo en Equipo',
+          headers: ['Folio Venta', 'Fecha', 'Cliente', 'Total', 'Método Pago', 'Empleado', 'Comentario'],
+          rows: equipoDataRows,
+          colWidths: [14, 14, 30, 12, 18, 22, 40],
+        });
+      }
+
       return sendExcel(res,
         'Ventas por Vendedor', 'Vendedores',
         headers, dataRows,
-        [24, 11, 12, 16, 16, 12, 14, 12, 14, 18, 28, 14, 14], [], nombreArchivo
+        [24, 11, 12, 16, 16, 12, 14, 12, 14, 18, 28, 14, 14], extraSheets, nombreArchivo
       );
     }
 
@@ -1252,11 +1300,47 @@ async function getReporteVendedores(req, res) {
         ['', 'TOTAL', resumen.total_ventas_global, '', fmtCurrency(resumen.total_ingresos_global), '', '', '', '', ''],
         colW
       );
+
+      // Sección Trabajo en equipo — agrupar por venta para el PDF
+      if (equipoRows.length > 0) {
+        const equipoPorVenta = new Map();
+        equipoRows.forEach(r => {
+          if (!equipoPorVenta.has(r.folio_venta)) {
+            equipoPorVenta.set(r.folio_venta, { ...r, partes: [] });
+          }
+          const v = equipoPorVenta.get(r.folio_venta);
+          if (r.empleado_nombre && r.empleado_nombre !== '—') {
+            v.partes.push(r.empleado_nombre + (r.comentario ? ': ' + r.comentario : ''));
+          }
+        });
+        const equipoVentas = Array.from(equipoPorVenta.values());
+
+        doc.moveDown(1.5);
+        doc.fillColor('#1565C0').fontSize(11).font('Helvetica-Bold')
+          .text(`Trabajo en Equipo  (${equipoVentas.length} venta${equipoVentas.length !== 1 ? 's' : ''}  |  Total: ${fmtCurrency(resumen.equipo_ingresos)})`);
+        doc.moveDown(0.4);
+        const equipoHeaders = ['Folio', 'Fecha', 'Cliente', 'Total', 'M.Pago', 'Participantes'];
+        const equipoColW    = [55, 55, 90, 55, 60, 178];
+        const equipoDataRows = equipoVentas.map(r => [
+          r.folio_venta,
+          fmtDate(r.fecha_venta),
+          r.cliente_nombre || '—',
+          fmtCurrency(r.total),
+          r.metodo_pago || '—',
+          r.partes.join(' | ') || '—',
+        ]);
+        drawTable(doc, equipoHeaders, equipoDataRows, equipoColW, { fontSize: 8 });
+        drawTotalsRow(doc,
+          ['', 'TOTAL', '', fmtCurrency(resumen.equipo_ingresos), '', ''],
+          equipoColW
+        );
+      }
+
       doc.end();
       return;
     }
 
-    return res.json({ ok: true, data: { rows: rowsEnriquecidos, resumen } });
+    return res.json({ ok: true, data: { rows: rowsEnriquecidos, equipo_rows: equipoRows, resumen } });
   } catch (err) {
     console.error('reportes/vendedores error:', err);
     return res.status(500).json(createErrorResponse('Error al generar reporte de vendedores', err.message));
