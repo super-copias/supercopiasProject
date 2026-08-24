@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { InventariosService, Articulo, Departamento, TabuladorFila } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { ProveedoresService } from '../../../../services/proveedores.service';
@@ -67,6 +68,7 @@ export class InventarioFormComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private location: Location,
     public inventariosService: InventariosService,
     private notif: NotificationService,
     private proveedoresService: ProveedoresService
@@ -224,38 +226,12 @@ export class InventarioFormComponent implements OnInit {
           next: () => {
             this.loading = false;
             this.notif.success(this.isEditMode ? 'Artículo actualizado' : 'Artículo creado correctamente');
-            if (this.isEditMode && this.returnTo === 'detalle') {
-              this.router.navigate(['/admin/inventarios/detalle', articuloId]);
-              return;
-            }
-            if (this.isEditMode && this.returnTo === 'lista') {
-              this.router.navigate(['/admin/inventarios'], {
-                queryParams: {
-                  openDept: this.returnDeptId || undefined,
-                  focusArt: this.returnArticuloId || articuloId
-                }
-              });
-              return;
-            }
-            this.router.navigate(['/admin/inventarios']);
+            this.volverTrasGuardar(articuloId);
           },
           error: () => {
             this.loading = false;
             this.notif.warning('Artículo guardado, pero ocurrió un error al guardar el tabulador');
-            if (this.isEditMode && this.returnTo === 'detalle') {
-              this.router.navigate(['/admin/inventarios/detalle', articuloId]);
-              return;
-            }
-            if (this.isEditMode && this.returnTo === 'lista') {
-              this.router.navigate(['/admin/inventarios'], {
-                queryParams: {
-                  openDept: this.returnDeptId || undefined,
-                  focusArt: this.returnArticuloId || articuloId
-                }
-              });
-              return;
-            }
-            this.router.navigate(['/admin/inventarios']);
+            this.volverTrasGuardar(articuloId);
           }
         });
       },
@@ -289,7 +265,27 @@ export class InventarioFormComponent implements OnInit {
     this.form[campo] = (isNaN(num) ? null : num) as any;
   }
 
-  cancelar() { this.router.navigate(['/admin/inventarios']); }
+  /** Tras guardar, vuelve a donde el usuario estaba antes en vez de reiniciar el módulo. */
+  private volverTrasGuardar(articuloId: number) {
+    if (this.isEditMode && this.returnTo === 'detalle') {
+      this.router.navigate(['/admin/inventarios/detalle', articuloId]);
+      return;
+    }
+    if (this.isEditMode && this.returnTo === 'lista') {
+      this.router.navigate(['/admin/inventarios'], {
+        queryParams: {
+          vista: 'acordeon',
+          open: this.returnDeptId || undefined,
+          focus: this.returnArticuloId || articuloId
+        }
+      });
+      return;
+    }
+    // Alta nueva: vuelve exactamente a donde estaba la lista (filtros, página y scroll intactos).
+    this.location.back();
+  }
+
+  cancelar() { this.location.back(); }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 

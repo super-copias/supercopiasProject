@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { InventariosService, Inventario, Movimiento } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
+import { ScrollMemoryService } from '../../../../services/scroll-memory.service';
 
 @Component({
   selector: 'app-inventario-detalle',
@@ -63,17 +65,27 @@ export class InventarioDetalleComponent implements OnInit {
     ]
   };
 
+  private scrollKey = '';
+  private readonly isBackNav: boolean;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private location: Location,
     private inventariosService: InventariosService,
-    private notificationService: NotificationService
-  ) {}
+    private notificationService: NotificationService,
+    private scrollMemory: ScrollMemoryService
+  ) {
+    // Se captura aquí (no en ngOnInit): en ngOnInit, router.getCurrentNavigation()
+    // suele devolver null; el constructor corre justo tras NavigationStart.
+    this.isBackNav = this.scrollMemory.isBackNavigation();
+  }
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.inventarioId = +params['id'];
+        this.scrollKey = `inventarios-detalle-${this.inventarioId}`;
         this.loadInventario();
         this.loadMovimientos();
       }
@@ -100,6 +112,7 @@ export class InventarioDetalleComponent implements OnInit {
             }
           }
         }
+        this.scrollMemory.restore(this.scrollKey, this.isBackNav);
       },
       error: (error) => {
         this.loading = false;
@@ -140,6 +153,7 @@ export class InventarioDetalleComponent implements OnInit {
 
   onEditar(): void {
     if (this.inventarioId) {
+      this.scrollMemory.save(this.scrollKey);
       this.router.navigate(['/admin/inventarios/editar', this.inventarioId], {
         queryParams: { returnTo: 'detalle' }
       });
@@ -147,7 +161,7 @@ export class InventarioDetalleComponent implements OnInit {
   }
 
   onVolver(): void {
-    this.router.navigate(['/admin/inventarios']);
+    this.location.back();
   }
 
   // =====================================================

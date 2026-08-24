@@ -195,7 +195,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let art of depto.articulos" [attr.id]="'articulo-' + art.id">
+              <tr *ngFor="let art of depto.articulos" [attr.id]="'articulo-' + art.id" [attr.data-scroll-id]="'articulo-' + art.id">
                 <td>
                   <div class="fw-semibold">{{art.nombre}}</div>
                   <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>
@@ -271,7 +271,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let art of resultadosBusqueda" [attr.id]="'articulo-' + art.id">
+            <tr *ngFor="let art of resultadosBusqueda" [attr.id]="'articulo-' + art.id" [attr.data-scroll-id]="'articulo-' + art.id">
               <td>
                 <div class="fw-semibold">{{art.nombre}}</div>
                 <div class="text-muted small" *ngIf="art.codigo_sku">{{art.codigo_sku}}</div>

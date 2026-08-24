@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { InventariosService, Articulo, Departamento, DepartamentoConArticulos, EstadisticasInventario } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
+import { ScrollMemoryService } from '../../../../services/scroll-memory.service';
 
 @Component({
   selector: 'app-inventarios-list',
@@ -26,8 +28,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
 
   // ── Acordeón ───────────────────────────────────────────────────────────────
   seccionesAbiertas = new Set<number>();
-  private pendingOpenDeptId: number | null = null;
-  private pendingFocusArtId: number | null = null;
+  private focusArtId: number | null = null;
 
   // ── Filtros ────────────────────────────────────────────────────────────────
   filtroBusqueda = '';
@@ -55,28 +56,45 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private busqueda$ = new Subject<void>();
 
+  // Clave de memoria de scroll para esta lista, y si la carga actual del
+  // componente vino de un "Atrás" (para decidir si corresponde restaurar).
+  private readonly scrollKey = 'inventarios-list';
+  private readonly isBackNav: boolean;
+
   constructor(
     private inventariosService: InventariosService,
     private route: ActivatedRoute,
     private router: Router,
-    private notif: NotificationService
-  ) {}
+    private location: Location,
+    private notif: NotificationService,
+    private scrollMemory: ScrollMemoryService
+  ) {
+    // Se captura aquí (no en ngOnInit): en ngOnInit, router.getCurrentNavigation()
+    // suele devolver null; el constructor corre justo tras NavigationStart.
+    this.isBackNav = this.scrollMemory.isBackNavigation();
+  }
 
   ngOnInit() {
-    this.pendingOpenDeptId = Number(this.route.snapshot.queryParamMap.get('openDept')) || null;
-    this.pendingFocusArtId = Number(this.route.snapshot.queryParamMap.get('focusArt')) || null;
-
     this.cargarDepartamentos();
     this.cargarEstadisticas();
     this.cargarAlertas();
 
-    if (this.pendingOpenDeptId || this.pendingFocusArtId) {
-      this.verTodos();
-    }
+    // La URL (query params) es la fuente de verdad del estado de la lista:
+    // filtros, página, vista activa, secciones abiertas del acordeón y el
+    // artículo a enfocar. Cualquier cambio (clicks del usuario, botón "Atrás"
+    // del navegador, o volver desde detalle/editar) pasa por aquí.
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$))
+      .subscribe(params => this.leerParamsYCargar(params));
 
-    // Debounce para búsqueda por texto — siempre escucha
+    // Debounce para búsqueda por texto
     this.busqueda$.pipe(debounceTime(350), takeUntil(this.destroy$))
-      .subscribe(() => this.ejecutarBusquedaOFiltro());
+      .subscribe(() => {
+        const q = this.filtroBusqueda.trim();
+        this.updateQueryParams({
+          q: q || null, depto: null, tipo: null, page: null,
+          vista: q ? 'busqueda' : null, open: null, focus: null
+        });
+      });
   }
 
   ngOnDestroy() {
@@ -84,7 +102,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ── Carga inicial ──────────────────────────────────────────────────────────
+  // ── Carga inicial (independiente de la vista/filtros) ──────────────────────
 
   private cargarDepartamentos() {
     this.inventariosService.getDepartamentos().subscribe({
@@ -109,6 +127,54 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Lectura de query params → estado + carga de la vista correspondiente ───
+
+  private leerParamsYCargar(params: ParamMap) {
+    this.filtroBusqueda = params.get('q') || '';
+    this.filtroDepartamento = Number(params.get('depto')) || '';
+    this.filtroTipo = params.get('tipo') || '';
+    this.page = Number(params.get('page')) || 1;
+    this.pageArchivados = Number(params.get('pageArch')) || 1;
+
+    const openCsv = params.get('open');
+    this.seccionesAbiertas = new Set(openCsv ? openCsv.split(',').map(Number) : []);
+    this.focusArtId = Number(params.get('focus')) || null;
+
+    switch (params.get('vista')) {
+      case 'archivados': this.cargarArchivadosFetch(); break;
+      case 'acordeon':   this.cargarAcordeonFetch(); break;
+      case 'busqueda':   this.cargarBusquedaFetch(); break;
+      default:           this.vistaActiva = 'vacia';
+    }
+  }
+
+  // ── Navegación dirigida por query params ────────────────────────────────────
+  // Actualiza la URL sobre el mismo componente (sin destruirlo/recrearlo);
+  // la suscripción a queryParamMap se encarga de recargar los datos.
+  private updateQueryParams(params: Record<string, any>, opts: { replaceUrl?: boolean } = {}) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: 'merge',
+      replaceUrl: !!opts.replaceUrl
+    });
+  }
+
+  /**
+   * Igual que updateQueryParams pero sin pasar por el router: solo reescribe
+   * la URL/historial. Con scrollPositionRestoration:'enabled' cualquier
+   * router.navigate() manda la página al top; para ajustes puramente
+   * cosméticos (qué acordeón quedó abierto) eso es justo lo que NO queremos.
+   */
+  private silentQueryParams(params: Record<string, any>) {
+    const tree = this.router.createUrlTree([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: 'merge'
+    });
+    this.location.replaceState(this.router.serializeUrl(tree));
+  }
+
   // ── Vista acordeón (Ver todos) ─────────────────────────────────────────────
 
   // Traduce filtroTipo al parámetro correcto para la API
@@ -123,7 +189,12 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     return p;
   }
 
+  /** Botón "Ver todos": conserva los filtros actuales, solo cambia la vista. */
   verTodos() {
+    this.updateQueryParams({ vista: 'acordeon' });
+  }
+
+  private cargarAcordeonFetch() {
     const params: any = {};
     if (this.filtroDepartamento) params.departamento_id = this.filtroDepartamento;
     Object.assign(params, this.getTipoParams());
@@ -134,39 +205,48 @@ export class InventariosListComponent implements OnInit, OnDestroy {
         this.loading = false;
         if (r.success) {
           this.departamentosConArticulos = r.data || [];
-          // Iniciar todos los departamentos contraídos
-          this.seccionesAbiertas.clear();
-          this.restaurarContextoRetorno();
           this.vistaActiva = 'acordeon';
+          this.enfocarArticuloPendiente();
         }
+        this.scrollMemory.restore(this.scrollKey, this.isBackNav);
       },
       error: () => { this.loading = false; this.notif.error('Error al cargar inventario'); }
     });
   }
 
-  private restaurarContextoRetorno() {
-    const focusId = this.pendingFocusArtId;
+  private enfocarArticuloPendiente() {
+    const focusId = this.focusArtId;
     if (!focusId) return;
 
-    let deptoId = this.pendingOpenDeptId;
-    if (!deptoId) {
+    if (!this.seccionesAbiertas.size || ![...this.seccionesAbiertas].some(id =>
+      this.departamentosConArticulos.find(d => d.id === id)?.articulos?.some(a => a.id === focusId))) {
       const depto = this.departamentosConArticulos.find(d => d.articulos?.some(a => a.id === focusId));
-      deptoId = depto?.id || null;
+      if (depto?.id) this.seccionesAbiertas.add(depto.id);
     }
-
-    if (deptoId) this.seccionesAbiertas.add(deptoId);
 
     setTimeout(() => {
       const el = document.getElementById(`articulo-${focusId}`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      this.pendingOpenDeptId = null;
-      this.pendingFocusArtId = null;
     }, 120);
+
+    // Ya se usó: se limpia de la URL para no volver a enfocar en futuras
+    // navegaciones dentro de la misma vista (p. ej. al alternar filtros).
+    // Silencioso: si esto pasara por el router, revertiría el scrollIntoView
+    // de arriba mandando la página de vuelta al top.
+    this.focusArtId = null;
+    this.silentQueryParams({ focus: null });
   }
 
   toggleSeccion(id: number) {
     if (this.seccionesAbiertas.has(id)) this.seccionesAbiertas.delete(id);
     else this.seccionesAbiertas.add(id);
+
+    // Persiste qué departamentos están expandidos en la URL para que
+    // sobrevivan a un viaje a detalle/editar y al botón "Atrás". Silencioso
+    // para no saltar al top de la página cada vez que se abre un acordeón.
+    this.silentQueryParams({
+      open: this.seccionesAbiertas.size ? [...this.seccionesAbiertas].join(',') : null
+    });
   }
 
   estaAbierto(id: number): boolean { return this.seccionesAbiertas.has(id); }
@@ -174,56 +254,36 @@ export class InventariosListComponent implements OnInit, OnDestroy {
   // ── Búsqueda y filtros ─────────────────────────────────────────────────────
 
   onFiltroChange() {
-    // Búsqueda por texto: limpia los demás filtros
-    this.filtroDepartamento = '';
-    this.filtroTipo = '';
+    // Búsqueda por texto: limpia los demás filtros (debounced)
     this.busqueda$.next();
   }
 
   onDepartamentoChange() {
-    // Filtro por departamento: limpia texto y tipo
-    this.filtroBusqueda = '';
-    this.filtroTipo = '';
-    this.ejecutarBusquedaOFiltro();
+    this.updateQueryParams({
+      depto: this.filtroDepartamento || null, q: null, tipo: null, page: null,
+      vista: this.filtroDepartamento ? 'acordeon' : null, open: null, focus: null
+    });
   }
 
   onTipoChange() {
-    // Filtro por tipo: limpia texto y departamento
-    this.filtroBusqueda = '';
-    this.filtroDepartamento = '';
-    this.ejecutarBusquedaOFiltro();
-  }
-
-  ejecutarBusquedaOFiltro() {
-    const hayTexto = this.filtroBusqueda.trim().length > 0;
-    const hayDepto = !!this.filtroDepartamento;
-    const hayTipo = !!this.filtroTipo;
-
-    // Sin ningún filtro → vista vacía
-    if (!hayTexto && !hayDepto && !hayTipo) {
-      this.vistaActiva = 'vacia';
-      return;
-    }
-    // Solo departamento (sin texto) → acordeón filtrado
-    if (!hayTexto && hayDepto && !hayTipo) {
-      this.verTodos();
-      return;
-    }
-    // Cualquier texto o combinación → lista paginada
-    this.cargarListaBusqueda(1);
+    this.updateQueryParams({
+      tipo: this.filtroTipo || null, q: null, depto: null, page: null,
+      vista: this.filtroTipo ? 'busqueda' : null, open: null, focus: null
+    });
   }
 
   cargarListaBusqueda(p: number) {
     if (p < 1 || p > this.pages) return;
-    this.page = p;
+    this.updateQueryParams({ page: p });
+  }
+
+  private cargarBusquedaFetch() {
     this.loading = true;
 
-    const params: any = { page: p, limit: this.limit };
+    const params: any = { page: this.page, limit: this.limit };
     if (this.filtroBusqueda.trim()) {
-      // Búsqueda por texto: independiente de los demás filtros
       params.q = this.filtroBusqueda.trim();
     } else {
-      // Sin texto: aplica departamento y/o tipo (exclusivos entre sí)
       if (this.filtroDepartamento) params.departamento_id = this.filtroDepartamento;
       Object.assign(params, this.getTipoParams());
     }
@@ -237,31 +297,33 @@ export class InventariosListComponent implements OnInit, OnDestroy {
           this.pages = r.pagination?.pages || 1;
           this.vistaActiva = 'busqueda';
         }
+        this.scrollMemory.restore(this.scrollKey, this.isBackNav);
       },
       error: () => { this.loading = false; this.notif.error('Error al buscar'); }
     });
   }
 
   limpiarFiltros() {
-    this.filtroBusqueda = '';
-    this.filtroDepartamento = '';
-    this.filtroTipo = '';
-    this.vistaActiva = 'vacia';
-    this.resultadosBusqueda = [];
-    this.departamentosConArticulos = [];
-    this.articulosArchivados = [];
+    // Reemplaza la URL sin query params: vuelve a la vista vacía inicial.
+    this.router.navigate([], { relativeTo: this.route, queryParams: {} });
   }
 
   limpiarBusqueda() {
-    this.filtroBusqueda = '';
-    this.onFiltroChange();
+    this.limpiarFiltros();
   }
 
   // ── Navegación ─────────────────────────────────────────────────────────────
 
-  nuevo() { this.router.navigate(['/admin/inventarios/nuevo']); }
-  verDetalle(id: number) { this.router.navigate(['/admin/inventarios/detalle', id]); }
+  nuevo() {
+    this.scrollMemory.save(this.scrollKey);
+    this.router.navigate(['/admin/inventarios/nuevo']);
+  }
+  verDetalle(id: number) {
+    this.scrollMemory.save(this.scrollKey, 'articulo-' + id);
+    this.router.navigate(['/admin/inventarios/detalle', id]);
+  }
   editar(id: number, deptoId?: number | null) {
+    this.scrollMemory.save(this.scrollKey, 'articulo-' + id);
     this.router.navigate(['/admin/inventarios/editar', id], {
       queryParams: {
         returnTo: 'lista',
@@ -270,18 +332,26 @@ export class InventariosListComponent implements OnInit, OnDestroy {
       }
     });
   }
-  verHistorial() { this.router.navigate(['/admin/inventarios/movimientos']); }
-  verDepartamentos() { this.router.navigate(['/admin/inventarios/departamentos']); }
+  verHistorial() {
+    this.scrollMemory.save(this.scrollKey);
+    this.router.navigate(['/admin/inventarios/movimientos']);
+  }
+  verDepartamentos() {
+    this.scrollMemory.save(this.scrollKey);
+    this.router.navigate(['/admin/inventarios/departamentos']);
+  }
   ocultarAlertas() { this.mostrarAlertas = false; }
 
   verArchivados(p: number = 1) {
     if (p < 1) return;
-    this.pageArchivados = p;
+    this.updateQueryParams({
+      vista: 'archivados', pageArch: p, q: null, depto: null, tipo: null, page: null, open: null, focus: null
+    });
+  }
+
+  private cargarArchivadosFetch() {
     this.loading = true;
-    this.filtroBusqueda = '';
-    this.filtroDepartamento = '';
-    this.filtroTipo = '';
-    this.inventariosService.getInventarios({ incluirArchivados: 'true', page: p, limit: this.limit }).subscribe({
+    this.inventariosService.getInventarios({ incluirArchivados: 'true', page: this.pageArchivados, limit: this.limit }).subscribe({
       next: r => {
         this.loading = false;
         if (r.success) {
@@ -290,6 +360,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
           this.pagesArchivados = r.pagination?.pages || 1;
           this.vistaActiva = 'archivados';
         }
+        this.scrollMemory.restore(this.scrollKey, this.isBackNav);
       },
       error: () => { this.loading = false; this.notif.error('Error al cargar archivados'); }
     });
@@ -314,7 +385,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     this.inventariosService.archivarInventario(art.id!, false).subscribe({
       next: r => {
         this.notif.success(r.message || 'Artículo restaurado');
-        this.verArchivados(this.pageArchivados);
+        this.cargarArchivadosFetch();
         this.cargarEstadisticas();
       },
       error: e => this.notif.error(e.error?.message || 'Error al restaurar')
@@ -334,10 +405,11 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Refresca en el sitio la vista actual tras una acción (crear/editar/archivar/eliminar). */
   private refrescarVista() {
-    if (this.vistaActiva === 'acordeon') this.verTodos();
-    else if (this.vistaActiva === 'busqueda') this.cargarListaBusqueda(this.page);
-    else if (this.vistaActiva === 'archivados') this.verArchivados(this.pageArchivados);
+    if (this.vistaActiva === 'acordeon') this.cargarAcordeonFetch();
+    else if (this.vistaActiva === 'busqueda') this.cargarBusquedaFetch();
+    else if (this.vistaActiva === 'archivados') this.cargarArchivadosFetch();
   }
 
   // ── Helpers de presentación ────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Location } from '@angular/common';
 import { InventariosService, Departamento } from '../../../../services/inventarios.service';
 import { NotificationService } from '../../../../services/notification.service';
 
@@ -22,10 +23,13 @@ export class DepartamentosComponent implements OnInit {
 
   constructor(
     private inventariosService: InventariosService,
-    private notif: NotificationService
+    private notif: NotificationService,
+    private location: Location
   ) {}
 
   ngOnInit() { this.cargar(); }
+
+  volver() { this.location.back(); }
 
   cargar() {
     this.loading = true;

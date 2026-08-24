@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { EquiposService } from '../../../../services/equipos.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { SocketService } from '../../../../services/socket.service';
+import { ScrollMemoryService } from '../../../../services/scroll-memory.service';
 
 @Component({
   selector: 'app-equipo-detalle',
@@ -30,6 +32,8 @@ export class EquipoDetalleComponent implements OnInit, OnDestroy {
   showFormConsumible = false;
 
   private destroy$ = new Subject<void>();
+  private scrollKey = '';
+  private isBackNav = false;
 
   formContador = { contador_actual: null, tecnico_nombre: '', observaciones: '' };
   formMantenimiento = { descripcion: '', contador_servicio: null, costo: null, tecnico_nombre: '', proveedor_nombre: '', observaciones: '' };
@@ -54,15 +58,22 @@ export class EquipoDetalleComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private location: Location,
     private equiposService: EquiposService,
     private notificationService: NotificationService,
     private socketService: SocketService,
-  ) {}
+    private scrollMemory: ScrollMemoryService,
+  ) {
+    // Se captura aquí (no en ngOnInit): en ngOnInit, router.getCurrentNavigation()
+    // suele devolver null; el constructor corre justo tras NavigationStart.
+    this.isBackNav = this.scrollMemory.isBackNavigation();
+  }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.equipoId = parseInt(id);
+      this.scrollKey = `equipos-detalle-${this.equipoId}`;
       this.loadEquipo();
       this.loadHistoriales();
 
@@ -91,6 +102,7 @@ export class EquipoDetalleComponent implements OnInit, OnDestroy {
           };
         }
         this.loading = false;
+        this.scrollMemory.restore(this.scrollKey, this.isBackNav);
       },
       error: (err) => {
         console.error('Error al cargar equipo:', err);
@@ -137,11 +149,12 @@ export class EquipoDetalleComponent implements OnInit, OnDestroy {
   }
 
   onEditar() {
+    this.scrollMemory.save(this.scrollKey);
     this.router.navigate(['/admin/equipos/editar', this.equipoId]);
   }
 
   onVolver() {
-    this.router.navigate(['/admin/equipos']);
+    this.location.back();
   }
 
   // Contador
