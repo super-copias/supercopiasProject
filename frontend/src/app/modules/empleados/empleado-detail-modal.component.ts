@@ -206,7 +206,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
               <i class="fas fa-times me-1"></i>
               Cerrar
             </button>
-            <button type="button" class="btn btn-primary" (click)="imprimir()" *ngIf="empleado">
+            <button type="button" class="btn btn-primary" (click)="imprimir()" *ngIf="empleado && tabActivo === 'informacion'">
               <i class="fas fa-print me-1"></i>
               Imprimir
             </button>
