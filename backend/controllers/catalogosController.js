@@ -349,16 +349,26 @@ async function createHorario(req, res) {
       ));
     }
 
-    const result = await query(
-      `INSERT INTO horarios_acceso (nombre, hora_inicio, hora_fin, activo, fecha_creacion)
-       VALUES ($1, $2, $3, $4, NOW())
-       RETURNING *`,
-      [nombre, hora_inicio, hora_fin, activo]
-    );
+    const entraActivo = activo === true || activo === 'true';
+
+    const nuevo = await transaction(async (q) => {
+      // Regla: como máximo un horario activo a la vez. Si este entra activo,
+      // se desactiva cualquier otro que lo estuviera.
+      if (entraActivo) {
+        await q('UPDATE horarios_acceso SET activo = false WHERE activo = true');
+      }
+      const r = await q(
+        `INSERT INTO horarios_acceso (nombre, hora_inicio, hora_fin, activo, fecha_creacion)
+         VALUES ($1, $2, $3, $4, NOW())
+         RETURNING *`,
+        [nombre, hora_inicio, hora_fin, activo]
+      );
+      return r.rows[0];
+    });
 
     res.status(201).json({
       success: true,
-      data: result.rows[0],
+      data: nuevo,
       message: 'Horario creado exitosamente'
     });
     // Reprogramar timers con el nuevo horario
@@ -382,20 +392,30 @@ async function updateHorario(req, res) {
       return res.status(404).json(createErrorResponse(CODIGOS_ERROR.NOT_FOUND, 'Horario no encontrado'));
     }
 
-    const result = await query(
-      `UPDATE horarios_acceso
-       SET nombre = COALESCE($1, nombre),
-           hora_inicio = COALESCE($2, hora_inicio),
-           hora_fin = COALESCE($3, hora_fin),
-           activo = COALESCE($4, activo)
-       WHERE id = $5
-       RETURNING *`,
-      [nombre, hora_inicio, hora_fin, activo, id]
-    );
+    const entraActivo = activo === true || activo === 'true';
+
+    const actualizado = await transaction(async (q) => {
+      // Regla: como máximo un horario activo a la vez. Si este pasa a activo,
+      // se desactiva cualquier otro que lo estuviera.
+      if (entraActivo) {
+        await q('UPDATE horarios_acceso SET activo = false WHERE id <> $1 AND activo = true', [id]);
+      }
+      const r = await q(
+        `UPDATE horarios_acceso
+         SET nombre = COALESCE($1, nombre),
+             hora_inicio = COALESCE($2, hora_inicio),
+             hora_fin = COALESCE($3, hora_fin),
+             activo = COALESCE($4, activo)
+         WHERE id = $5
+         RETURNING *`,
+        [nombre, hora_inicio, hora_fin, activo, id]
+      );
+      return r.rows[0];
+    });
 
     res.status(200).json({
       success: true,
-      data: result.rows[0],
+      data: actualizado,
       message: 'Horario actualizado exitosamente'
     });
     // Reprogramar timers con los tiempos actualizados

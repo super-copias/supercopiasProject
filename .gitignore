@@ -34,6 +34,10 @@ backend/db.backup.json
 *.sqlite
 *.db
 
+# Backups de base de datos (dumps de Railway / locales)
+backend/backups/
+backup_*.sql
+
 # Archivos de prueba y temporales
 test-*.js
 temp-*.js

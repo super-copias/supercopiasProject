@@ -20,7 +20,7 @@ import { NotificationService } from '../../services/notification.service';
               <label class="form-label small">{{ dia.label }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="dia.turnoId">
                 <option [ngValue]="null">Sin turno (descanso)</option>
-                <option *ngFor="let turno of turnos" [ngValue]="turno.id">{{ turno.nombre }} ({{ turno.hora_entrada }}-{{ turno.hora_salida }})</option>
+                <option *ngFor="let turno of turnos" [ngValue]="turno.id">{{ turno.nombre }} ({{ turno.hora_entrada | hora12 }} - {{ turno.hora_salida | hora12 }})</option>
               </select>
             </div>
           </div>
@@ -96,7 +96,7 @@ import { NotificationService } from '../../services/notification.service';
                   <td colspan="4" class="text-center text-muted py-3">Sin historial de turnos</td>
                 </tr>
                 <tr *ngFor="let h of historial">
-                  <td><small>{{ h.fecha_cambio | date:'dd/MM/yyyy HH:mm' }}</small></td>
+                  <td><small>{{ h.fecha_cambio | date:'dd/MM/yyyy hh:mm a' }}</small></td>
                   <td><small>{{ diasSemanaLabels[h.dia_semana] }}</small></td>
                   <td><small>{{ h.turno_nombre || 'Sin turno' }}</small></td>
                   <td><span class="badge bg-light text-dark border">{{ h.accion }}</span></td>

@@ -9,12 +9,21 @@
  * Cuando se crea, edita o elimina un horario desde la API, se llama a
  * reiniciarScheduler() para que los nuevos tiempos queden registrados
  * sin necesidad de reiniciar el servidor.
+ *
+ * Además de los timeouts exactos, hay una reconciliación periódica
+ * (RECONCILE_MS) como red de seguridad por si un setTimeout no llega a
+ * dispararse (reinicio del proceso en el minuto exacto, excepción, drift
+ * de reloj, etc.).
  */
 
 const { query } = require('../config/database');
 
 /** Conjunto de timeouts activos para poder cancelarlos todos */
 const activeTimeouts = new Set();
+
+/** Intervalo de reconciliación de seguridad (null si no hay horarios activos) */
+let reconcileInterval = null;
+const RECONCILE_MS = 15 * 60 * 1000; // 15 min
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -64,9 +73,50 @@ function timeAMinutos(timeStr) {
   return h * 60 + m;
 }
 
+/**
+ * ¿El minuto `ahora` (desde medianoche) cae dentro del rango [inicio, fin]?
+ * Soporta rangos que cruzan la medianoche (inicio > fin), p. ej. 22:00–06:00.
+ */
+function dentroDeRango(ahora, inicio, fin) {
+  if (inicio === fin) return true;                          // rango de 24 h
+  if (inicio < fin)   return ahora >= inicio && ahora <= fin;
+  return ahora >= inicio || ahora <= fin;                   // cruza medianoche
+}
+
 // ─────────────────────────────────────────────
 // Lógica de acceso
 // ─────────────────────────────────────────────
+
+/**
+ * Reactiva a los usuarios no-admin cuyo empleado vinculado sigue activo.
+ * Un empleado dado de baja manualmente (empleados.activo = false) NO se reactiva:
+ * ese es el mecanismo que distingue "desactivado por horario" de "baja manual".
+ */
+async function activarUsuarios() {
+  const { rowCount } = await query(`
+    UPDATE usuarios
+    SET activo = true, fecha_modificacion = NOW()
+    WHERE role != 'admin'
+      AND activo = false
+      AND empleado_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM empleados e
+        WHERE e.id = usuarios.empleado_id AND e.activo = true
+      )
+  `);
+  return rowCount;
+}
+
+/** Desactiva a todos los usuarios no-admin actualmente activos. */
+async function desactivarUsuarios() {
+  const { rowCount } = await query(`
+    UPDATE usuarios
+    SET activo = false, fecha_modificacion = NOW()
+    WHERE role != 'admin'
+      AND activo = true
+  `);
+  return rowCount;
+}
 
 /**
  * Consulta los horarios activos, determina si ahora mismo se permite el acceso
@@ -78,36 +128,27 @@ async function aplicarEstadoActual() {
       'SELECT * FROM horarios_acceso WHERE activo = true'
     );
 
-    if (horarios.length === 0) return; // sin horarios → no tocar nada
+    // Sin horarios activos → no hay restricción vigente: se restablece el acceso
+    // de todos los empleados activos. (Antes se hacía "return" y los usuarios que
+    // el scheduler había desactivado quedaban bloqueados indefinidamente aunque
+    // se quitara la restricción de horario.)
+    if (horarios.length === 0) {
+      const n = await activarUsuarios();
+      console.log(`[Horarios Scheduler] Sin horarios activos → acceso restablecido (${n} usuario/s reactivado/s).`);
+      return;
+    }
 
     const ahora = ahoraEnMinutos();
-    const dentroDeHorario = horarios.some(h => {
-      const inicio = timeAMinutos(h.hora_inicio);
-      const fin    = timeAMinutos(h.hora_fin);
-      return ahora >= inicio && ahora <= fin;
-    });
+    const dentroDeHorario = horarios.some(h =>
+      dentroDeRango(ahora, timeAMinutos(h.hora_inicio), timeAMinutos(h.hora_fin))
+    );
 
     if (dentroDeHorario) {
-      await query(`
-        UPDATE usuarios
-        SET activo = true, fecha_modificacion = NOW()
-        WHERE role != 'admin'
-          AND activo = false
-          AND empleado_id IS NOT NULL
-          AND EXISTS (
-            SELECT 1 FROM empleados e
-            WHERE e.id = usuarios.empleado_id AND e.activo = true
-          )
-      `);
-      console.log('[Horarios Scheduler] Dentro de horario → usuarios activados.');
+      const n = await activarUsuarios();
+      console.log(`[Horarios Scheduler] Dentro de horario → ${n} usuario/s activado/s.`);
     } else {
-      await query(`
-        UPDATE usuarios
-        SET activo = false, fecha_modificacion = NOW()
-        WHERE role != 'admin'
-          AND activo = true
-      `);
-      console.log('[Horarios Scheduler] Fuera de horario → usuarios desactivados.');
+      const n = await desactivarUsuarios();
+      console.log(`[Horarios Scheduler] Fuera de horario → ${n} usuario/s desactivado/s.`);
     }
   } catch (error) {
     console.error('[Horarios Scheduler] Error al aplicar estado:', error.message);
@@ -148,6 +189,10 @@ function programarTransicion(timeStr, etiqueta) {
 function cancelarTodos() {
   activeTimeouts.forEach(t => clearTimeout(t));
   activeTimeouts.clear();
+  if (reconcileInterval) {
+    clearInterval(reconcileInterval);
+    reconcileInterval = null;
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -180,7 +225,13 @@ async function iniciarScheduler() {
       programarTransicion(h.hora_fin,    `desactivar · ${h.nombre}`);
     }
 
-    console.log(`[Horarios Scheduler] ${horarios.length * 2} transición(es) programada(s).`);
+    // Red de seguridad: reconciliación periódica por si un timeout no dispara.
+    reconcileInterval = setInterval(() => {
+      aplicarEstadoActual().catch(() => {});
+    }, RECONCILE_MS);
+    if (reconcileInterval.unref) reconcileInterval.unref(); // no impedir que el proceso termine
+
+    console.log(`[Horarios Scheduler] ${horarios.length * 2} transición(es) programada(s) + reconciliación cada ${RECONCILE_MS / 60000} min.`);
   } catch (error) {
     console.error('[Horarios Scheduler] Error al iniciar:', error.message);
   }

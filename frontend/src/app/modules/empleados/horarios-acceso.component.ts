@@ -10,9 +10,15 @@ import { NotificationService } from '../../services/notification.service';
   template: `
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-          <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Horarios de Acceso</h5>
-          <small class="text-muted">Define los rangos horarios en que los empleados pueden ingresar al sistema.</small>
+        <div class="d-flex align-items-center gap-2">
+          <a class="btn btn-outline-secondary btn-sm d-flex align-items-center"
+             [routerLink]="['/admin/empleados']" title="Volver a empleados">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <div>
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Horarios de Acceso</h5>
+            <small class="text-muted">Define los rangos horarios en que los empleados pueden ingresar al sistema.</small>
+          </div>
         </div>
         <button class="btn btn-primary btn-sm" (click)="abrirFormulario()" [disabled]="loading">
           <i class="fas fa-plus me-1"></i>Nuevo horario
@@ -25,9 +31,12 @@ import { NotificationService } from '../../services/notification.service';
           <i class="fas fa-info-circle mt-1"></i>
           <div>
             <strong>Funcionamiento automático:</strong> El sistema activa/desactiva a todos los usuarios
-            no-administradores automáticamente según los horarios <em>activos</em> aquí configurados.
-            Si ningún horario está activo, no se realizan cambios automáticos.
-            Puedes anular el estado de cualquier empleado en cualquier momento desde la tabla de empleados.
+            no-administradores automáticamente según el horario <em>activo</em> aquí configurado.
+            Solo puede haber <strong>un horario activo</strong> a la vez (o ninguno): al activar uno,
+            el que estuviera activo se desactiva. Si ningún horario está activo, se restablece el acceso
+            a todos los empleados activos (se quita la restricción). Se admiten rangos que cruzan la
+            medianoche (p. ej. 22:00–06:00). Los empleados dados de baja desde la tabla de empleados no se
+            ven afectados. Puedes anular el estado de cualquier empleado en cualquier momento desde la tabla de empleados.
           </div>
         </div>
 
@@ -122,6 +131,15 @@ import { NotificationService } from '../../services/notification.service';
                   <div *ngIf="form.get('hora_fin')?.invalid && form.get('hora_fin')?.touched"
                        class="text-danger small mt-1">Requerido.</div>
                 </div>
+                <div class="col-12">
+                  <small class="text-muted">
+                    Si la <strong>hora fin</strong> es menor que la <strong>hora inicio</strong>, la franja
+                    cruza la medianoche (p. ej. 22:00 → 06:00). Las dos horas no pueden ser iguales.
+                  </small>
+                  <div *ngIf="form.errors?.['horasIguales']" class="text-danger small mt-1">
+                    La hora de inicio y la de fin no pueden ser iguales.
+                  </div>
+                </div>
               </div>
               <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" role="switch" id="activoSwitch"
@@ -173,7 +191,14 @@ export class HorariosAccesoComponent implements OnInit, OnDestroy {
       hora_inicio: [data?.hora_inicio ? data.hora_inicio.slice(0, 5) : '06:40', Validators.required],
       hora_fin: [data?.hora_fin ? data.hora_fin.slice(0, 5) : '21:30', Validators.required],
       activo: [data?.activo !== undefined ? data.activo : true]
-    });
+    }, { validators: [this.horasDistintasValidator] });
+  }
+
+  /** hora_inicio y hora_fin no pueden ser iguales (inicio > fin = cruza medianoche, permitido). */
+  private horasDistintasValidator(group: FormGroup) {
+    const ini = group.get('hora_inicio')?.value;
+    const fin = group.get('hora_fin')?.value;
+    return ini && fin && ini === fin ? { horasIguales: true } : null;
   }
 
   cargarHorarios(): void {
@@ -211,8 +236,13 @@ export class HorariosAccesoComponent implements OnInit, OnDestroy {
 
   guardar(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    this.guardando = true;
     const data = this.form.value;
+
+    if (data.activo && !this.confirmarActivacion(data.hora_inicio, data.hora_fin, this.editando?.id)) {
+      return;
+    }
+
+    this.guardando = true;
     const op = this.editando
       ? this.catalogosService.updateHorario(this.editando.id, data)
       : this.catalogosService.createHorario(data);
@@ -236,16 +266,64 @@ export class HorariosAccesoComponent implements OnInit, OnDestroy {
   }
 
   toggleActivo(horario: any): void {
-    this.catalogosService.updateHorario(horario.id, { activo: !horario.activo })
+    const activando = !horario.activo;
+
+    if (activando && !this.confirmarActivacion(horario.hora_inicio, horario.hora_fin, horario.id)) {
+      // El usuario canceló: recrear las filas para que el checkbox vuelva a su valor real.
+      this.horarios = this.horarios.map(h => ({ ...h }));
+      return;
+    }
+
+    this.catalogosService.updateHorario(horario.id, { activo: activando })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          horario.activo = !horario.activo;
-          const estado = horario.activo ? 'activado' : 'desactivado';
-          this.notificationService.success(`Horario ${estado}.`, 'Horario');
+          this.notificationService.success(`Horario ${activando ? 'activado' : 'desactivado'}.`, 'Horario');
+          // Recargar: al activar uno, el backend pudo desactivar otro.
+          this.cargarHorarios();
         },
-        error: () => this.notificationService.error('No se pudo cambiar el estado.', 'Error')
+        error: () => {
+          this.notificationService.error('No se pudo cambiar el estado.', 'Error');
+          this.cargarHorarios();
+        }
       });
+  }
+
+  /**
+   * Confirma la activación de un horario avisando de sus efectos.
+   * Devuelve true si se puede proceder (sin avisos o el usuario aceptó).
+   */
+  private confirmarActivacion(horaInicio: string, horaFin: string, idActual?: number): boolean {
+    const avisos: string[] = [];
+
+    const otroActivo = this.horarios.find(h => h.id !== idActual && h.activo);
+    if (otroActivo) {
+      avisos.push(`Se desactivará el horario activo actual ("${otroActivo.nombre}"). Solo puede haber uno activo.`);
+    }
+
+    if (!this.dentroDeRango(horaInicio, horaFin)) {
+      avisos.push(
+        `La hora actual está FUERA del rango ${this.to12h(horaInicio)}–${this.to12h(horaFin)}: ` +
+        `se desactivará el acceso de los empleados no-administradores hasta el próximo inicio de ventana.`
+      );
+    }
+
+    if (avisos.length === 0) return true;
+    return confirm(`Al activar este horario:\n\n• ${avisos.join('\n\n• ')}\n\n¿Continuar?`);
+  }
+
+  /** ¿La hora actual del navegador cae dentro del rango? Soporta rangos que cruzan medianoche. */
+  private dentroDeRango(horaInicio: string, horaFin: string): boolean {
+    const toMin = (t: string) => {
+      const [h, m] = t.slice(0, 5).split(':').map(Number);
+      return h * 60 + m;
+    };
+    const i = toMin(horaInicio);
+    const f = toMin(horaFin);
+    const now = new Date();
+    const a = now.getHours() * 60 + now.getMinutes();
+    if (i === f) return true;
+    return i < f ? (a >= i && a <= f) : (a >= i || a <= f);
   }
 
   eliminarHorario(horario: any): void {
