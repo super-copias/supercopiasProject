@@ -193,6 +193,29 @@ export class EquiposListComponent implements OnInit, OnDestroy {
     }, true);
   }
 
+  /**
+   * Limpia búsqueda, filtros y paginación y vuelve a consultar todo desde el
+   * inicio. También recarga catálogos y alertas.
+   */
+  refrescar() {
+    const yaEnInicio = !this.q && !this.filtroTipo && !this.filtroEstatus && this.page === 1;
+
+    this.searchTerm = '';
+    this.filtroTipo = '';
+    this.filtroEstatus = '';
+    this.page = 1;
+
+    // Forzar recarga de catálogos (por si se agregaron/ocultaron tipos o marcas)
+    this.catalogosCargados = false;
+    this.loadCatalogos();
+    this.loadAlertas();
+
+    // Deja la URL sin query params; la suscripción a queryParamMap dispara la
+    // recarga si algo cambió. Si ya estábamos en el estado inicial, forzamos.
+    this.router.navigate([], { relativeTo: this.route, queryParams: {} });
+    if (yaEnInicio) this.fetch();
+  }
+
   go(p: number) {
     if (p >= 1 && p <= this.pages) {
       this.updateQueryParams({ page: p });
@@ -202,6 +225,11 @@ export class EquiposListComponent implements OnInit, OnDestroy {
   onNuevo() {
     this.scrollMemory.save(this.scrollKey);
     this.router.navigate(['/admin/equipos/nuevo']);
+  }
+
+  onCatalogos() {
+    this.scrollMemory.save(this.scrollKey);
+    this.router.navigate(['/admin/equipos/catalogos']);
   }
 
   onVer(equipo: any) {

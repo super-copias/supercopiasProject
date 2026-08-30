@@ -47,9 +47,11 @@
                   <input type="text" class="form-control" formControlName="numero_serie">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Nombre del Equipo</label>
-                  <input type="text" class="form-control" formControlName="nombre_equipo" 
+                  <label class="form-label">Nombre del Equipo <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" formControlName="nombre_equipo"
+                         [class.is-invalid]="form.get('nombre_equipo')?.invalid && form.get('nombre_equipo')?.touched"
                          placeholder="Ej: Copiadora Planta Baja">
+                  <div class="invalid-feedback">El nombre del equipo es obligatorio</div>
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">Área/Ubicación</label>

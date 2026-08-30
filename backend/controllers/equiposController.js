@@ -104,11 +104,14 @@ async function getEquipoById(req, res) {
     const equipoQuery = `
       SELECT
         e.*,
+        ct.nombre AS tipo_nombre,
+        COALESCE(ct.requiere_contador, false) AS tipo_requiere_contador,
         (SELECT contador_actual FROM equipos_historial_contador
          WHERE equipo_id = e.id ORDER BY fecha_lectura DESC LIMIT 1) AS ultimo_contador,
         (SELECT fecha_servicio FROM equipos_mantenimiento
          WHERE equipo_id = e.id ORDER BY fecha_servicio DESC LIMIT 1) AS ultimo_mantenimiento
       FROM equipos e
+      LEFT JOIN cat_tipos_equipo ct ON ct.codigo = e.tipo_equipo
       WHERE e.id = $1
     `;
     
@@ -169,7 +172,13 @@ async function createEquipo(req, res) {
         createErrorResponse('El tipo de equipo es obligatorio', CODIGOS_ERROR.DATOS_INVALIDOS)
       );
     }
-    
+
+    if (!nombre_equipo || nombre_equipo.trim() === '') {
+      return res.status(400).json(
+        createErrorResponse('El nombre del equipo es obligatorio', CODIGOS_ERROR.DATOS_INVALIDOS)
+      );
+    }
+
     // Insertar equipo
     const insertQuery = `
       INSERT INTO equipos (
@@ -185,7 +194,7 @@ async function createEquipo(req, res) {
       marca || null,
       modelo || null,
       numero_serie || null,
-      nombre_equipo || null,
+      nombre_equipo.trim(),
       area_ubicacion || null,
       cliente_nombre || null,
       estatus || 'activo',
@@ -243,7 +252,14 @@ async function updateEquipo(req, res) {
         createErrorResponse('Equipo no encontrado', CODIGOS_ERROR.NO_ENCONTRADO)
       );
     }
-    
+
+    // El nombre del equipo es obligatorio: si viene en el payload, no puede quedar vacío
+    if (nombre_equipo !== undefined && (nombre_equipo === null || nombre_equipo.trim() === '')) {
+      return res.status(400).json(
+        createErrorResponse('El nombre del equipo es obligatorio', CODIGOS_ERROR.DATOS_INVALIDOS)
+      );
+    }
+
     // Actualizar equipo
     const updateQuery = `
       UPDATE equipos SET
