@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Location } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { TurnosService } from '../../services/turnos.service';
@@ -10,6 +11,9 @@ import { NotificationService } from '../../services/notification.service';
   selector: 'app-configuracion-personal',
   template: `
     <div class="container-fluid p-4">
+      <button class="btn btn-outline-secondary btn-sm mb-3" (click)="volver()">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+      </button>
       <h3 class="mb-4"><i class="fas fa-sliders-h me-2"></i>Configuración de Personal</h3>
 
       <!-- Límite diario de permisos -->
@@ -138,8 +142,13 @@ export class ConfiguracionPersonalComponent implements OnInit, OnDestroy {
   constructor(
     private turnosService: TurnosService,
     private permisosConfigService: PermisosConfigService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private location: Location
   ) {}
+
+  volver() {
+    this.location.back();
+  }
 
   ngOnInit() {
     this.cargarTurnos();

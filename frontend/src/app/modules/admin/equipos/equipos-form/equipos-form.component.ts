@@ -70,7 +70,7 @@ export class EquiposFormComponent implements OnInit {
       marca: [''],
       modelo: [''],
       numero_serie: [''],
-      nombre_equipo: [''],
+      nombre_equipo: ['', [Validators.required, Validators.maxLength(150)]],
       area_ubicacion: [''],
       cliente_nombre: [''],
       estatus: ['activo'],
@@ -138,6 +138,7 @@ export class EquiposFormComponent implements OnInit {
 
   onSubmit() {
     if (this.form.invalid) {
+      this.form.markAllAsTouched();
       this.notificationService.warning('Por favor complete los campos requeridos');
       return;
     }
@@ -177,9 +178,17 @@ export class EquiposFormComponent implements OnInit {
     return this.form.get('tipo_equipo')?.value || '';
   }
 
+  /** Registro del catálogo correspondiente al tipo seleccionado (si existe). */
+  get tipoActual(): any {
+    return this.tiposEquipo.find(t => t.codigo === this.tipoSeleccionado) || null;
+  }
+
   get esImpresora(): boolean {
     const tipo = this.tipoSeleccionado;
-    return tipo === 'fotocopiadora' || tipo === 'impresora';
+    if (tipo === 'fotocopiadora' || tipo === 'impresora') return true;
+    // Tipos creados por el usuario: se rigen por el flag "requiere_contador"
+    // del catálogo (cat_tipos_equipo.requiere_contador).
+    return !!this.tipoActual?.requiere_contador;
   }
 
   get esComputadora(): boolean {

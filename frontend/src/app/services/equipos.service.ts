@@ -185,23 +185,47 @@ export class EquiposService {
   // Catálogos
   // =====================================================
 
-  getTiposEquipo(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogos-equipos/tipos`);
+  getTiposEquipo(incluirInactivos = false): Observable<ApiResponse<any[]>> {
+    const qs = incluirInactivos ? '?incluir_inactivos=true' : '';
+    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogos-equipos/tipos${qs}`);
   }
 
   getEstatusEquipo(): Observable<ApiResponse<any[]>> {
     return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogos-equipos/estatus`);
   }
 
-  getMarcasEquipo(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogos-equipos/marcas`);
+  getMarcasEquipo(incluirInactivos = false): Observable<ApiResponse<any[]>> {
+    const qs = incluirInactivos ? '?incluir_inactivos=true' : '';
+    return this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/catalogos-equipos/marcas${qs}`);
   }
 
   getCatalogosCompletos(): Observable<ApiResponse<{ tipos: any[], estatus: any[], marcas: any[] }>> {
     return this.http.get<ApiResponse<{ tipos: any[], estatus: any[], marcas: any[] }>>(`${this.baseUrl}/catalogos-equipos/completos`);
   }
 
+  // ----- Catálogo de marcas (administración) -----
   createMarca(nombre: string, descripcion?: string): Observable<ApiResponse<any>> {
     return this.http.post<ApiResponse<any>>(`${this.baseUrl}/catalogos-equipos/marcas`, { nombre, descripcion });
+  }
+
+  updateMarca(id: number, data: { nombre?: string; descripcion?: string; activo?: boolean; orden?: number }): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.baseUrl}/catalogos-equipos/marcas/${id}`, data);
+  }
+
+  deleteMarca(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${this.baseUrl}/catalogos-equipos/marcas/${id}`);
+  }
+
+  // ----- Catálogo de tipos de equipo (administración) -----
+  createTipo(nombre: string, descripcion?: string, requiere_contador?: boolean): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/catalogos-equipos/tipos`, { nombre, descripcion, requiere_contador });
+  }
+
+  updateTipo(id: number, data: { nombre?: string; descripcion?: string; requiere_contador?: boolean; activo?: boolean; orden?: number }): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.baseUrl}/catalogos-equipos/tipos/${id}`, data);
+  }
+
+  deleteTipo(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${this.baseUrl}/catalogos-equipos/tipos/${id}`);
   }
 }

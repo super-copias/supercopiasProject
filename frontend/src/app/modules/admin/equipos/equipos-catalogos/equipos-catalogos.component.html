@@ -1,0 +1,156 @@
+<div class="container-fluid py-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+      <h5 class="mb-0">
+        <i class="fas fa-tags me-2"></i>Catálogos de Equipos
+      </h5>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="volver()">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+      </button>
+    </div>
+
+    <div class="card-body">
+      <!-- Pestañas -->
+      <ul class="nav nav-pills mb-3">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="tab === 'tipos'" (click)="cambiarTab('tipos')" style="cursor: pointer;">
+            <i class="fas fa-laptop me-1"></i>Tipos de Equipo
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="tab === 'marcas'" (click)="cambiarTab('marcas')" style="cursor: pointer;">
+            <i class="fas fa-copyright me-1"></i>Marcas
+          </a>
+        </li>
+      </ul>
+
+      <!-- Barra de acciones -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="chkInactivos"
+                 [(ngModel)]="mostrarInactivos">
+          <label class="form-check-label" for="chkInactivos">Mostrar inactivos</label>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" (click)="onNuevo()" *ngIf="!showForm">
+          <i class="fas fa-plus me-1"></i>
+          {{ tab === 'tipos' ? 'Nuevo tipo' : 'Nueva marca' }}
+        </button>
+      </div>
+
+      <!-- Formulario alta / edición -->
+      <div class="card border-primary mb-3" *ngIf="showForm">
+        <div class="card-header bg-light">
+          <i class="fas fa-edit me-2"></i>
+          {{ isEdit ? 'Editar registro' : (tab === 'tipos' ? 'Nuevo tipo de equipo' : 'Nueva marca') }}
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Nombre <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="form.nombre"
+                     (keyup.enter)="guardar()"
+                     [placeholder]="tab === 'tipos' ? 'Ej: Plotter' : 'Ej: Konica Minolta'">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Descripción</label>
+              <input type="text" class="form-control" [(ngModel)]="form.descripcion"
+                     placeholder="Opcional">
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-md-6" *ngIf="tab === 'tipos'">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="chkContador"
+                       [(ngModel)]="form.requiere_contador">
+                <label class="form-check-label" for="chkContador">
+                  Requiere contador (fotocopiadoras / impresoras)
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6" *ngIf="isEdit">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="chkActivo"
+                       [(ngModel)]="form.activo">
+                <label class="form-check-label" for="chkActivo">Activo (visible en el catálogo)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 justify-content-end mt-3">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="cancelarForm()" [disabled]="loading">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="guardar()" [disabled]="loading">
+              <i class="fas fa-save me-1"></i>{{ isEdit ? 'Actualizar' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th *ngIf="tab === 'tipos'">Código</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th *ngIf="tab === 'tipos'" class="text-center">Contador</th>
+              <th class="text-center">Estado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading">
+              <td [attr.colspan]="tab === 'tipos' ? 6 : 4" class="text-center text-muted py-4">
+                <i class="fas fa-spinner fa-spin me-2"></i>Cargando...
+              </td>
+            </tr>
+
+            <tr *ngIf="!loading && registrosVisibles().length === 0">
+              <td [attr.colspan]="tab === 'tipos' ? 6 : 4" class="text-center text-muted py-4">
+                Sin registros para mostrar
+              </td>
+            </tr>
+
+            <tr *ngFor="let r of registrosVisibles()" [class.table-secondary]="r.activo === false">
+              <td *ngIf="tab === 'tipos'">
+                <code class="text-muted">{{ r.codigo }}</code>
+              </td>
+              <td class="fw-medium">{{ r.nombre }}</td>
+              <td class="text-muted">{{ r.descripcion || '—' }}</td>
+              <td *ngIf="tab === 'tipos'" class="text-center">
+                <i class="fas" [class.fa-check]="r.requiere_contador" [class.text-success]="r.requiere_contador"
+                   [class.fa-minus]="!r.requiere_contador" [class.text-muted]="!r.requiere_contador"></i>
+              </td>
+              <td class="text-center">
+                <span class="badge" [class.bg-success]="r.activo !== false" [class.bg-secondary]="r.activo === false">
+                  {{ r.activo === false ? 'Inactivo' : 'Activo' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm me-1" (click)="onEditar(r)"
+                        title="Editar" [disabled]="loading">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" class="btn btn-sm" (click)="toggleActivo(r)" [disabled]="loading"
+                        [class.btn-outline-danger]="r.activo !== false"
+                        [class.btn-outline-success]="r.activo === false"
+                        [title]="r.activo === false ? 'Reactivar' : 'Ocultar del catálogo'">
+                  <i class="fas" [class.fa-eye-slash]="r.activo !== false" [class.fa-eye]="r.activo === false"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-muted small mb-0">
+        <i class="fas fa-info-circle me-1"></i>
+        "Ocultar" no elimina el registro: solo lo marca como inactivo para que no aparezca al dar de alta un equipo.
+        Los equipos ya registrados con ese valor no se modifican.
+      </p>
+    </div>
+  </div>
+</div>

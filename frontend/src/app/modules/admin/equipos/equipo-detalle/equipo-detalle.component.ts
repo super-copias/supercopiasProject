@@ -419,7 +419,10 @@ export class EquipoDetalleComponent implements OnInit, OnDestroy {
 
   get esImpresora(): boolean {
     if (!this.equipo) return false;
-    return this.equipo.tipo_equipo === 'fotocopiadora' || this.equipo.tipo_equipo === 'impresora';
+    if (this.equipo.tipo_equipo === 'fotocopiadora' || this.equipo.tipo_equipo === 'impresora') return true;
+    // Tipos creados por el usuario: se rigen por el flag "requiere_contador"
+    // del catálogo (viene resuelto desde el backend como tipo_requiere_contador).
+    return !!this.equipo.tipo_requiere_contador;
   }
 
   // Características

@@ -242,9 +242,12 @@ async function setTurnosDias(req, res) {
       for (const d of dias) {
         const diaSemana = parseInt(d.diaSemana);
         const turnoId = d.turnoId !== undefined && d.turnoId !== null ? parseInt(d.turnoId) : null;
-        const anterior = actualPorDia.has(diaSemana) ? actualPorDia.get(diaSemana) : undefined;
+        const existePrevio = actualPorDia.has(diaSemana);
+        // Un día sin registro equivale a "descanso" (turno_id null); así evitamos
+        // generar historial cuando un día en descanso se "reasigna" a descanso.
+        const anterior = existePrevio ? actualPorDia.get(diaSemana) : null;
 
-        if (anterior === turnoId) continue; // sin cambios
+        if (anterior === turnoId) continue; // sin cambios reales
 
         if (turnoId === null) {
           await txQuery('DELETE FROM empleados_turnos_dias WHERE empleado_id = $1 AND dia_semana = $2', [empleadoId, diaSemana]);
@@ -264,7 +267,7 @@ async function setTurnosDias(req, res) {
           await txQuery(
             `INSERT INTO empleados_turnos_historial (empleado_id, dia_semana, turno_id, turno_nombre, accion, usuario_id, usuario_nombre)
              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [empleadoId, diaSemana, turnoId, turnosValidos.get(turnoId), anterior === undefined ? 'asignado' : 'modificado', usuarioId, usuarioNombre]
+            [empleadoId, diaSemana, turnoId, turnosValidos.get(turnoId), existePrevio ? 'modificado' : 'asignado', usuarioId, usuarioNombre]
           );
         }
       }

@@ -6,13 +6,15 @@ import { EquiposComponent } from './equipos.component';
 import { EquiposListComponent } from './equipos-list/equipos-list.component';
 import { EquiposFormComponent } from './equipos-form/equipos-form.component';
 import { EquipoDetalleComponent } from './equipo-detalle/equipo-detalle.component';
+import { EquiposCatalogosComponent } from './equipos-catalogos/equipos-catalogos.component';
 
 @NgModule({
   declarations: [
     EquiposComponent,
     EquiposListComponent,
     EquiposFormComponent,
-    EquipoDetalleComponent
+    EquipoDetalleComponent,
+    EquiposCatalogosComponent
   ],
   imports: [
     CommonModule,
@@ -24,6 +26,7 @@ import { EquipoDetalleComponent } from './equipo-detalle/equipo-detalle.componen
         component: EquiposComponent,
         children: [
           { path: '', component: EquiposListComponent },
+          { path: 'catalogos', component: EquiposCatalogosComponent },
           { path: 'nuevo', component: EquiposFormComponent },
           { path: 'editar/:id', component: EquiposFormComponent },
           { path: 'detalle/:id', component: EquipoDetalleComponent }
