@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS public.horarios_acceso (
     hora_fin    TIME         NOT NULL,
     activo      BOOLEAN      DEFAULT true,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_horarios_rango CHECK (hora_fin > hora_inicio)
+    -- hora_inicio > hora_fin => la franja cruza la medianoche (p. ej. 22:00–06:00)
+    CONSTRAINT chk_horarios_distintos CHECK (hora_fin <> hora_inicio)
 );
 
 COMMENT ON TABLE public.horarios_acceso IS

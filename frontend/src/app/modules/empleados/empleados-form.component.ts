@@ -206,7 +206,7 @@ import { NotificationService } from '../../services/notification.service';
                     <label class="form-label small">{{dia.label}}</label>
                     <select class="form-select form-select-sm" [(ngModel)]="dia.turnoId" [ngModelOptions]="{standalone: true}">
                       <option [ngValue]="null">Sin turno (descanso)</option>
-                      <option *ngFor="let turno of turnos" [ngValue]="turno.id">{{turno.nombre}} ({{turno.hora_entrada}}-{{turno.hora_salida}})</option>
+                      <option *ngFor="let turno of turnos" [ngValue]="turno.id">{{turno.nombre}} ({{turno.hora_entrada | hora12}} - {{turno.hora_salida | hora12}})</option>
                     </select>
                   </div>
                 </div>

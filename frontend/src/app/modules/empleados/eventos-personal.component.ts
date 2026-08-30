@@ -131,7 +131,7 @@ import { NotificationService } from '../../services/notification.service';
                         - {{evento.fecha_fin | date:'dd/MM/yyyy'}}
                       </span>
                       <span *ngIf="evento.hora_inicio">
-                        <br>{{evento.hora_inicio}} - {{evento.hora_fin}}
+                        <br>{{evento.hora_inicio | hora12}} - {{evento.hora_fin | hora12}}
                       </span>
                     </small>
                   </td>

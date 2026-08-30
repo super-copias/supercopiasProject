@@ -66,8 +66,8 @@ import { NotificationService } from '../../services/notification.service';
                 </tr>
                 <tr *ngFor="let t of turnos">
                   <td class="fw-medium">{{ t.nombre }}</td>
-                  <td>{{ t.hora_entrada }}</td>
-                  <td>{{ t.hora_salida }}</td>
+                  <td>{{ t.hora_entrada | hora12 }}</td>
+                  <td>{{ t.hora_salida | hora12 }}</td>
                   <td>
                     <span class="badge" [class.bg-success]="t.activo" [class.bg-secondary]="!t.activo">
                       {{ t.activo ? 'Activo' : 'Inactivo' }}
