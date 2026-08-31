@@ -175,7 +175,11 @@ export class HistorialVentasComponent implements OnInit, OnDestroy {
 
   cancelarVenta(): void {
     if (!this.ventaDetalle?.id) return;
-    if (!confirm(`¿Cancelar la venta ${this.ventaDetalle.folio}? Esta acción revertirá el inventario y los puntos.`)) return;
+    const esPedido = this.ventaDetalle?.origen_venta === 'pedido';
+    const msg = esPedido
+      ? `¿Cancelar la venta ${this.ventaDetalle.folio}? Se revertirán los puntos, se liberará el stock del pedido y el pedido asociado quedará cancelado. Los cobros dejarán de contar en el corte de caja (se conserva el historial).`
+      : `¿Cancelar la venta ${this.ventaDetalle.folio}? Esta acción revertirá el inventario y los puntos.`;
+    if (!confirm(msg)) return;
     this.cancelando = true;
     this.errorCancelar = '';
     this.posService.cancelarVenta(this.ventaDetalle.id, 'Cancelación solicitada desde historial').pipe(takeUntil(this.destroy$)).subscribe({

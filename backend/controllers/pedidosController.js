@@ -1055,6 +1055,18 @@ async function cancelarPedido(req, res) {
 
     await registrarHistorial(client, pedidoId, estatusAnterior, 'cancelado', usuarioId, usuarioNombre, motivo || null);
 
+    // Anular los pagos del pedido (anticipo/saldo) para que dejen de contar
+    // en el arqueo del corte de caja; se conservan como histórico.
+    await client.query(`
+      UPDATE pos_pedidos_pagos
+      SET anulado = true,
+          fecha_anulacion = NOW(),
+          anulado_por_id = $1,
+          anulado_por_nombre = $2,
+          motivo_anulacion = $3
+      WHERE pedido_id = $4 AND anulado = false
+    `, [usuarioId, usuarioNombre, `Pedido cancelado${motivo ? `: ${motivo}` : ''}`, pedidoId]);
+
     // ── Liberar stock reservado al cancelar ───────────────────────────
     const detCancelR = await client.query(
       `SELECT inventario_id, cantidad, nombre_producto
