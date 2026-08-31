@@ -249,6 +249,10 @@
         <div class="stat-label">Total Ingresos</div>
         <div class="stat-value green">${{ (previewResumen.total_ingresos || 0) | number:'1.2-2' }}</div>
       </div>
+      <div class="stat-card" *ngIf="(previewResumen.total_cancelado || 0) > 0">
+        <div class="stat-label">Monto cancelado <small>(no cuenta)</small></div>
+        <div class="stat-value red">${{ (previewResumen.total_cancelado || 0) | number:'1.2-2' }}</div>
+      </div>
       <div class="stat-card">
         <div class="stat-label">Total Descuentos</div>
         <div class="stat-value orange">${{ (previewResumen.total_descuentos || 0) | number:'1.2-2' }}</div>

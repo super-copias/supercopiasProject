@@ -715,51 +715,77 @@ async function cancelarVenta(req, res) {
       'SELECT * FROM pos_ventas WHERE id=$1 FOR UPDATE',
       [ventaId]
     );
-    if (ventaQ.rows.length === 0)
+    if (ventaQ.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json(createErrorResponse('Venta no encontrada', CODIGOS_ERROR.NO_ENCONTRADO));
+    }
 
     const venta = ventaQ.rows[0];
-    if (venta.estatus === 'cancelada')
+    if (venta.estatus === 'cancelada') {
+      await client.query('ROLLBACK');
       return res.status(400).json(createErrorResponse('La venta ya está cancelada', CODIGOS_ERROR.DATOS_INVALIDOS));
+    }
+
+    // ── No permitir cancelar si tiene una factura vigente ──────────
+    // La factura es un documento fiscal: primero debe cancelarse desde
+    // el módulo de facturación y luego la venta.
+    if (venta.factura_id) {
+      const facQ = await client.query('SELECT folio, estatus FROM facturas WHERE id=$1', [venta.factura_id]);
+      const fac = facQ.rows[0];
+      if (fac && fac.estatus !== 'cancelada') {
+        await client.query('ROLLBACK');
+        return res.status(409).json(createErrorResponse(
+          `No se puede cancelar la venta: tiene la factura ${fac.folio} vigente. Cancela primero la factura.`,
+          CODIGOS_ERROR.DATOS_INVALIDOS
+        ));
+      }
+    }
+
+    const esOrigenPedido = venta.origen_venta === 'pedido';
 
     await client.query(
       `UPDATE pos_ventas SET estatus='cancelada', motivo_cancelacion=$1, fecha_modificacion=NOW() WHERE id=$2`,
       [motivo || null, ventaId]
     );
 
-    // Revertir movimientos de inventario
-    const detalleQ = await client.query(
-      'SELECT * FROM pos_ventas_detalle WHERE venta_id=$1',
-      [ventaId]
-    );
+    // Revertir movimientos de inventario.
+    // Solo aplica a ventas directas / cotización: en los pedidos el stock se
+    // descuenta al CREAR el pedido (no al entregar), por lo que su reversión
+    // se hace más abajo, junto con el resto del desmontaje del pedido.
+    if (!esOrigenPedido) {
+      const detalleQ = await client.query(
+        'SELECT * FROM pos_ventas_detalle WHERE venta_id=$1',
+        [ventaId]
+      );
 
-    for (const linea of detalleQ.rows) {
-      if (linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
-        const stockQ = await client.query(
-          'SELECT existencia_actual FROM inventarios WHERE id=$1 FOR UPDATE',
-          [linea.inventario_id]
-        );
-        const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
-        const cantidad      = parseFloat(linea.cantidad);
-        const saldoNuevo    = parseFloat((saldoAnterior + cantidad).toFixed(2));
+      for (const linea of detalleQ.rows) {
+        if (linea.inventario_id && !linea.es_servicio && !linea.es_item_libre) {
+          const stockQ = await client.query(
+            'SELECT existencia_actual FROM inventarios WHERE id=$1 FOR UPDATE',
+            [linea.inventario_id]
+          );
+          const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
+          const cantidad      = parseFloat(linea.cantidad);
+          const saldoNuevo    = parseFloat((saldoAnterior + cantidad).toFixed(2));
 
-        await client.query(
-          'UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=NOW() WHERE id=$2',
-          [saldoNuevo, linea.inventario_id]
-        );
+          await client.query(
+            'UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=NOW() WHERE id=$2',
+            [saldoNuevo, linea.inventario_id]
+          );
 
-        await client.query(`
-          INSERT INTO inventarios_movimientos (
-            inventario_id, tipo_movimiento, concepto,
-            cantidad, saldo_anterior, saldo_nuevo,
-            usuario_nombre, area_servicio, notas, venta_id
-          ) VALUES ($1,'entrada','devolucion',$2,$3,$4,$5,'Punto de Venta',$6,$7)
-        `, [
-          linea.inventario_id, cantidad, saldoAnterior, saldoNuevo,
-          req.user?.username || 'Sistema',
-          `Cancelación folio ${venta.folio}: ${motivo || 'Sin motivo'}`,
-          ventaId,
-        ]);
+          await client.query(`
+            INSERT INTO inventarios_movimientos (
+              inventario_id, tipo_movimiento, concepto,
+              cantidad, saldo_anterior, saldo_nuevo,
+              usuario_nombre, area_servicio, notas, venta_id
+            ) VALUES ($1,'entrada','devolucion',$2,$3,$4,$5,'Punto de Venta',$6,$7)
+          `, [
+            linea.inventario_id, cantidad, saldoAnterior, saldoNuevo,
+            req.user?.username || 'Sistema',
+            `Cancelación folio ${venta.folio}: ${motivo || 'Sin motivo'}`,
+            ventaId,
+          ]);
+        }
       }
     }
 
@@ -788,6 +814,95 @@ async function cancelarVenta(req, res) {
       }
     }
 
+    // ── Desmontar el pedido de origen ─────────────────────────────
+    // Al cancelar la venta generada por un pedido se revierte por completo:
+    //   1. Se anulan los pagos del pedido (anticipo + saldo) para que dejen
+    //      de contar en el arqueo del corte de caja, conservando el histórico.
+    //   2. Se libera el stock que se descontó al crear el pedido.
+    //   3. El pedido queda 'cancelado' (mantiene el vínculo venta_id y su
+    //      historial completo de movimientos).
+    let pedidoCancelado = null;
+    if (esOrigenPedido) {
+      const _uId   = req.user?.id && req.user.id !== 'dev' ? req.user.id : null;
+      const _uName = req.user?.nombre || req.user?.username || 'Sistema';
+
+      const pedQ = await client.query(
+        'SELECT * FROM pos_pedidos WHERE venta_id=$1 FOR UPDATE',
+        [ventaId]
+      );
+      const pedido = pedQ.rows[0];
+
+      if (pedido && pedido.estatus !== 'cancelado') {
+        const motivoPed = `Cancelación de venta ${venta.folio}${motivo ? `: ${motivo}` : ''}`;
+        const estatusAnteriorPed = pedido.estatus;
+
+        // 1. Anular pagos del pedido (anticipo + saldo)
+        await client.query(`
+          UPDATE pos_pedidos_pagos
+          SET anulado = true,
+              fecha_anulacion = NOW(),
+              anulado_por_id = $1,
+              anulado_por_nombre = $2,
+              motivo_anulacion = $3
+          WHERE pedido_id = $4 AND anulado = false
+        `, [_uId, _uName, motivoPed, pedido.id]);
+
+        // 2. Liberar el stock reservado (descontado al crear el pedido)
+        const detPedQ = await client.query(`
+          SELECT inventario_id, cantidad
+          FROM pos_pedidos_detalle
+          WHERE pedido_id = $1
+            AND es_servicio = false
+            AND es_item_libre = false
+            AND inventario_id IS NOT NULL
+        `, [pedido.id]);
+
+        for (const linea of detPedQ.rows) {
+          const stockQ = await client.query(
+            'SELECT existencia_actual FROM inventarios WHERE id=$1 FOR UPDATE',
+            [linea.inventario_id]
+          );
+          if (stockQ.rows.length === 0) continue;
+          const saldoAnterior = parseFloat(stockQ.rows[0].existencia_actual);
+          const cantidad      = parseFloat(linea.cantidad);
+          const saldoNuevo    = parseFloat((saldoAnterior + cantidad).toFixed(2));
+
+          await client.query(
+            'UPDATE inventarios SET existencia_actual=$1, fecha_modificacion=NOW() WHERE id=$2',
+            [saldoNuevo, linea.inventario_id]
+          );
+
+          await client.query(`
+            INSERT INTO inventarios_movimientos (
+              inventario_id, tipo_movimiento, concepto,
+              cantidad, saldo_anterior, saldo_nuevo,
+              usuario_nombre, area_servicio, notas, venta_id, pedido_id
+            ) VALUES ($1,'entrada','liberacion_apartado',$2,$3,$4,$5,'Punto de Venta (Pedido)',$6,$7,$8)
+          `, [
+            linea.inventario_id, cantidad, saldoAnterior, saldoNuevo,
+            req.user?.username || 'Sistema',
+            `Cancelación venta ${venta.folio} / pedido ${pedido.folio}`,
+            ventaId, pedido.id,
+          ]);
+        }
+
+        // 3. Marcar el pedido como cancelado + historial
+        await client.query(`
+          UPDATE pos_pedidos
+          SET estatus = 'cancelado', motivo_cancelacion = $1, fecha_modificacion = NOW()
+          WHERE id = $2
+        `, [motivoPed, pedido.id]);
+
+        await client.query(`
+          INSERT INTO pos_pedidos_historial
+            (pedido_id, estatus_anterior, estatus_nuevo, usuario_id, usuario_nombre, notas)
+          VALUES ($1,$2,'cancelado',$3,$4,$5)
+        `, [pedido.id, estatusAnteriorPed, _uId, _uName, motivoPed]);
+
+        pedidoCancelado = { id: pedido.id, folio: pedido.folio, estatus_anterior: estatusAnteriorPed };
+      }
+    }
+
     await client.query('COMMIT');
 
     registrarBitacora({
@@ -795,10 +910,20 @@ async function cancelarVenta(req, res) {
       entidad: 'pos_ventas', entidadId: venta.folio,
       usuarioId: req.user?.id || null, usuarioNombre: req.user?.nombre || req.user?.username || null,
       ip: getIp(req),
-      detalle: { folio: venta.folio, total: parseFloat(venta.total), motivo: motivo || null },
+      detalle: {
+        folio: venta.folio, total: parseFloat(venta.total), motivo: motivo || null,
+        origen_venta: venta.origen_venta,
+        pedido_cancelado: pedidoCancelado,
+      },
     });
 
-    return res.json(createResponse(true, { id: ventaId, folio: venta.folio }, 'Venta cancelada y stock revertido'));
+    return res.json(createResponse(
+      true,
+      { id: ventaId, folio: venta.folio, pedido_cancelado: pedidoCancelado },
+      pedidoCancelado
+        ? `Venta cancelada. Pedido ${pedidoCancelado.folio} revertido y stock liberado.`
+        : 'Venta cancelada y stock revertido'
+    ));
 
   } catch (err) {
     await client.query('ROLLBACK');

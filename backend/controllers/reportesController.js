@@ -388,7 +388,8 @@ async function getReporteCorteCaja(req, res) {
         COUNT(*) FILTER (WHERE estatus='cancelada')  AS ventas_canceladas,
         COALESCE(SUM(total)         FILTER (WHERE estatus='completada'), 0) AS total_ingresos,
         COALESCE(SUM(descuento_monto) FILTER (WHERE estatus='completada'), 0) AS total_descuentos,
-        COALESCE(SUM(iva_monto)      FILTER (WHERE estatus='completada'), 0) AS total_iva
+        COALESCE(SUM(iva_monto)      FILTER (WHERE estatus='completada'), 0) AS total_iva,
+        COALESCE(SUM(total)         FILTER (WHERE estatus='cancelada'), 0) AS total_cancelado
       FROM pos_ventas v
       WHERE v.fecha_venta BETWEEN $1 AND $2 ${vendedorCond}
     `, params);
@@ -455,6 +456,7 @@ async function getReporteCorteCaja(req, res) {
         FROM pos_pedidos_pagos pp
         JOIN pos_pedidos ped ON ped.id = pp.pedido_id
         WHERE pp.tipo = 'anticipo'
+          AND pp.anulado = false
           AND pp.fecha_pago BETWEEN $1 AND $2
           ${vendedorCondArqueoAnticipo}
 
@@ -472,6 +474,7 @@ async function getReporteCorteCaja(req, res) {
         FROM pos_pedidos_pagos pp
         JOIN pos_pedidos ped ON ped.id = pp.pedido_id
         WHERE pp.tipo = 'saldo'
+          AND pp.anulado = false
           AND pp.fecha_pago BETWEEN $1 AND $2
           ${vendedorCondArqueoSaldo}
       )
@@ -620,6 +623,7 @@ async function getReporteCorteCaja(req, res) {
         ['Ventas completadas', parseInt(resumen.ventas_completadas)],
         ['Ventas canceladas',  parseInt(resumen.ventas_canceladas)],
         ['Total ingresos',     parseFloat(resumen.total_ingresos)],
+        ['Monto cancelado (no cuenta)', parseFloat(resumen.total_cancelado)],
         ['Total descuentos',   parseFloat(resumen.total_descuentos)],
         ['Total IVA',          parseFloat(resumen.total_iva)],
         ['Total cobrado hoy', arqueoResumen.total_cobrado],
@@ -645,6 +649,7 @@ async function getReporteCorteCaja(req, res) {
         ['Ventas Completadas', resumen.ventas_completadas],
         ['Ventas Canceladas',  resumen.ventas_canceladas],
         ['Total Ingresos',     fmtCurrency(resumen.total_ingresos)],
+        ['Monto Cancelado (no cuenta)', fmtCurrency(resumen.total_cancelado)],
         ['Total Descuentos',   fmtCurrency(resumen.total_descuentos)],
         ['Total IVA',          fmtCurrency(resumen.total_iva)],
       ];
