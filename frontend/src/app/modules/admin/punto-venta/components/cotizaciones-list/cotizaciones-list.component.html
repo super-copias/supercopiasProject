@@ -188,6 +188,10 @@
             <span>Cliente</span>
             <span>{{ cotizacionDetalle.cliente_nombre }}</span>
           </div>
+          <div *ngIf="cotizacionDetalle.cliente_telefono">
+            <span>Teléfono</span>
+            <span>{{ cotizacionDetalle.cliente_telefono }}</span>
+          </div>
           <div *ngIf="cotizacionDetalle.vendedor_nombre">
             <span>Vendedor</span>
             <span>{{ cotizacionDetalle.vendedor_nombre }}</span>
@@ -391,6 +395,8 @@
   [descuentoGlobalPct]="pedidoFormDescPct"
   [clientePreseleccionado]="pedidoFormCliente"
   [clienteNombreLibre]="pedidoFormNombreLibre"
+  [clienteTelefonoLibre]="pedidoFormTelefonoLibre"
+  [notasPrevias]="pedidoFormNotasPrevias"
   [requiereFactura]="pedidoFormRequiereFactura"
   [tipoPersonaFactura]="pedidoFormTipoPersona"
   [cotizacionId]="pedidoFormCotizacionId"

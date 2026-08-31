@@ -218,5 +218,30 @@
   }
 }
 
+// Dropdown de búsqueda de cliente (modal cotización)
+.dropdown-clientes {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .1);
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: 2px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+
+.dropdown-cliente-item {
+  padding: .4rem .65rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  color: #212529;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f4ff; }
+}
+
 // Print: ocultar este panel
 @media print { :host { display: none !important; } }

@@ -310,6 +310,11 @@ async function createPedido(req, res) {
 
     const folio = await generarFolioPedido(client);
 
+    // Normalizar teléfono: solo dígitos
+    const clienteTelefono = cliente_telefono
+      ? String(cliente_telefono).replace(/\D/g, '').substring(0, 20) || null
+      : null;
+
     const pedidoQ = await client.query(`
       INSERT INTO pos_pedidos (
         folio, estatus,
@@ -330,7 +335,7 @@ async function createPedido(req, res) {
       ) RETURNING id
     `, [
       folio,
-      cliente_id || null, clienteNombre, cliente_telefono || null,
+      cliente_id || null, clienteNombre, clienteTelefono,
       !!via_whatsapp, !!requiere_factura, tipo_persona_factura || 'pm',
       subtotal, descPct, descMonto, total, anticipoVal,
       descuento_config_id || null, descuento_autorizado_por || null,

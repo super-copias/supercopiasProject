@@ -1077,6 +1077,25 @@ async function marcarTicketGenerado(req, res) {
 // COTIZACIONES
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Marca como 'vencida' toda cotización 'pendiente' cuya fecha_vencimiento ya pasó.
+ * Se ejecuta de forma perezosa al listar / abrir cotizaciones (sin scheduler).
+ * Los errores se registran pero no interrumpen la respuesta principal.
+ */
+async function expirarCotizacionesVencidas(runner = { query }) {
+  try {
+    await runner.query(`
+      UPDATE pos_cotizaciones
+         SET estatus = 'vencida', fecha_modificacion = NOW()
+       WHERE estatus = 'pendiente'
+         AND fecha_vencimiento IS NOT NULL
+         AND fecha_vencimiento < (now() AT TIME ZONE 'America/Mexico_City')::date
+    `);
+  } catch (err) {
+    console.error('expirarCotizacionesVencidas:', err.message);
+  }
+}
+
 async function generarFolioCotizacion(client) {
   const anio = new Date().getFullYear();
   const r = await client.query(
@@ -1093,7 +1112,7 @@ async function getCotizacionDetalle(id) {
            cl.nombre_comercial AS cliente_nombre_comercial,
            cl.rfc AS cliente_rfc,
            cl.email AS cliente_email,
-           cl.telefono AS cliente_telefono
+           COALESCE(c.cliente_telefono, cl.telefono) AS cliente_telefono
     FROM pos_cotizaciones c
     LEFT JOIN clientes cl ON cl.id = c.cliente_id
     WHERE c.id = $1
@@ -1122,6 +1141,7 @@ async function createCotizacion(req, res) {
 
     const {
       cliente_id, items, descuento_pct = 0, notas, fecha_vencimiento,
+      cliente_nombre: clienteNombreLibre, cliente_telefono,
       requiere_factura = false,
       tipo_persona_factura = 'pm',
     } = req.body;
@@ -1166,19 +1186,24 @@ async function createCotizacion(req, res) {
         [cliente_id]
       );
       if (cliQ.rows.length > 0) clienteNombre = cliQ.rows[0].nombre;
+    } else if (clienteNombreLibre && String(clienteNombreLibre).trim()) {
+      clienteNombre = String(clienteNombreLibre).trim().substring(0, 200);
     }
+    const clienteTelefono = cliente_telefono
+      ? String(cliente_telefono).replace(/\D/g, '').substring(0, 20) || null
+      : null;
 
     const folio = await generarFolioCotizacion(client);
 
     const cotizQ = await client.query(`
       INSERT INTO pos_cotizaciones
-        (folio, estatus, cliente_id, cliente_nombre, vendedor_usuario_id, vendedor_nombre,
+        (folio, estatus, cliente_id, cliente_nombre, cliente_telefono, vendedor_usuario_id, vendedor_nombre,
          subtotal, descuento_pct, descuento_monto, total,
          iva_monto, isr_monto, tipo_persona_factura,
          notas, fecha_vencimiento, requiere_factura)
-      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      VALUES ($1,'pendiente',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *
-    `, [folio, cliente_id || null, clienteNombre, vendedorId, vendedorNombre,
+    `, [folio, cliente_id || null, clienteNombre, clienteTelefono, vendedorId, vendedorNombre,
         subtotal, descPct, descMonto, total,
         ivaMonto, isrMonto, tipo_persona_factura || 'pm',
         notas || null, fecha_vencimiento || null, !!requiere_factura]);
@@ -1211,6 +1236,7 @@ async function createCotizacion(req, res) {
 // GET /api/pos/cotizaciones
 async function listCotizaciones(req, res) {
   try {
+    await expirarCotizacionesVencidas();
     const { folio, cliente_id, estatus, fecha_inicio, fecha_fin, page = 1, limit = 20 } = req.query;
     const params = [];
     const where  = [];
@@ -1251,6 +1277,7 @@ async function listCotizaciones(req, res) {
 // GET /api/pos/cotizaciones/:id
 async function getCotizacionById(req, res) {
   try {
+    await expirarCotizacionesVencidas();
     const cotiz = await getCotizacionDetalle(parseInt(req.params.id));
     if (!cotiz) return res.status(404).json(createErrorResponse('Cotización no encontrada', CODIGOS_ERROR.NOT_FOUND));
     return res.json(createResponse(true, cotiz, 'Cotización obtenida'));

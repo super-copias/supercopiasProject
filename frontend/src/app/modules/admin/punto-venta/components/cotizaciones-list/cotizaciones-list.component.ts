@@ -79,6 +79,8 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
   pedidoFormDescPct          = 0;
   pedidoFormCliente:         any = null;
   pedidoFormNombreLibre      = '';
+  pedidoFormTelefonoLibre    = '';
+  pedidoFormNotasPrevias     = '';
   pedidoFormRequiereFactura  = false;
   pedidoFormTipoPersona:    'pf' | 'pm' = 'pm';
   pedidoFormCotizacionId:    number | null = null;
@@ -123,6 +125,8 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
           : null;
         this.pedidoFormNombreLibre     = (!cotiz.cliente_id && cotiz.cliente_nombre && cotiz.cliente_nombre !== 'Público General')
           ? cotiz.cliente_nombre : '';
+        this.pedidoFormTelefonoLibre   = (!cotiz.cliente_id && cotiz.cliente_telefono) ? cotiz.cliente_telefono : '';
+        this.pedidoFormNotasPrevias    = cotiz.notas || '';
         this.pedidoFormRequiereFactura = !!cotiz.requiere_factura;
         this.pedidoFormTipoPersona     = cotiz.tipo_persona_factura || 'pm';
         this.pedidoFormCotizacionId    = cotiz.id;
@@ -253,7 +257,7 @@ export class CotizacionesListComponent implements OnInit, OnDestroy {
     this.pagosConvertirValidos        = false;
     this.metodoPagoConvertir          = 'efectivo';
     this.montoRecibidoConvertir       = null;
-    this.notasConvertir               = '';
+    this.notasConvertir               = cot.notas || '';
     this.errorConvertir               = '';
     this.requiereFacturaConvertir     = !!(cot.requiere_factura);
     this.tipoPersonaConvertir         = cot.tipo_persona_factura || 'pm';

@@ -160,7 +160,19 @@ export class EquiposListComponent implements OnInit, OnDestroy {
     this.mostrarAlertas = false;
   }
 
+  // ── Modal "ver todas las alertas" ───────────────────────────────────────────
+  mostrarModalAlertas = false;
+
+  verTodasLasAlertas() {
+    this.mostrarModalAlertas = true;
+  }
+
+  cerrarModalAlertas() {
+    this.mostrarModalAlertas = false;
+  }
+
   onVerAlerta(alerta: any) {
+    this.mostrarModalAlertas = false;
     this.scrollMemory.save(this.scrollKey, 'equipo-' + alerta.id);
     this.router.navigate(['/admin/equipos/detalle', alerta.id]);
   }

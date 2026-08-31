@@ -182,6 +182,8 @@ export interface StatsHoy {
 
 export interface CotizacionPayload {
   cliente_id?: number | null;
+  cliente_nombre?: string;
+  cliente_telefono?: string;
   items: Omit<LineaCarrito, '_foto_url' | '_nivel_stock' | '_existencia_actual' | '_id_ui'>[];
   descuento_pct?: number;
   notas?: string;

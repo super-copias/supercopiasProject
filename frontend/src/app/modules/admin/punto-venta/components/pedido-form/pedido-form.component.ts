@@ -24,6 +24,8 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
   @Input() tipoPersonaFactura: 'pf' | 'pm' = 'pm';
   @Input() cotizacionId: number | null     = null;
   @Input() clienteNombreLibre: string      = '';
+  @Input() clienteTelefonoLibre: string    = '';
+  @Input() notasPrevias: string            = '';
 
   @Output() cerrado    = new EventEmitter<void>();
   @Output() generado   = new EventEmitter<any>();
@@ -77,6 +79,12 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
     this.form.tipo_persona_factura = this.tipoPersonaFactura;
     if (!this.clientePreseleccionado && this.clienteNombreLibre) {
       this.form.cliente_nombre = this.clienteNombreLibre;
+    }
+    if (!this.clientePreseleccionado && this.clienteTelefonoLibre) {
+      this.form.cliente_telefono = this.clienteTelefonoLibre;
+    }
+    if (this.notasPrevias) {
+      this.form.notas = this.notasPrevias;
     }
 
     this.busquedaCliente.valueChanges.pipe(
@@ -305,5 +313,17 @@ export class PedidoFormComponent implements OnInit, OnDestroy {
 
   onCerrarTicket(): void {
     this.generado.emit(this.pedidoCreado);
+  }
+
+  /** Deja solo dígitos (para el campo teléfono). */
+  soloDigitos(valor: string, maxLen = 15): string {
+    return (valor || '').replace(/\D/g, '').slice(0, maxLen);
+  }
+
+  /** Bloquea teclas no numéricas al escribir en un campo telefónico. */
+  bloquearNoNumerico(ev: KeyboardEvent): void {
+    const permitidas = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (permitidas.includes(ev.key) || ev.ctrlKey || ev.metaKey) return;
+    if (!/^\d$/.test(ev.key)) ev.preventDefault();
   }
 }

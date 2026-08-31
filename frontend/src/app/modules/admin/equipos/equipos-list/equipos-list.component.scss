@@ -1,3 +1,51 @@
+/* Recorta un poco el espacio en blanco superior fijo del layout, solo en
+   esta vista, para ganar altura visible sin tocar el layout global. */
+:host {
+    display: block;
+    margin-top: -0.5rem;
+}
+
+/* Modal "ver todas las alertas" */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, .45);
+    z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem;
+}
+
+.modal-card {
+    background: #fff;
+    border-radius: 12px;
+    width: 900px;
+    max-width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .25);
+}
+
+.modal-header-custom {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--color-deep-blue, #003d80);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    flex-shrink: 0;
+}
+
+.modal-body-scroll {
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.modal-footer-custom {
+    display: flex; justify-content: flex-end; gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
 /* Tabla corporativa SuperCopias */
 :host ::ng-deep .table {
     border-radius: 8px;
@@ -5,8 +53,8 @@
     box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
     table-layout: fixed;
     width: 100%;
-    font-size: 0.95rem;
-    
+    font-size: 0.9rem;
+
     th {
         background: linear-gradient(90deg, #003d80 0%, #1a2a66 100%) !important;
         color: white !important;
@@ -14,20 +62,20 @@
         border-bottom: none !important;
         font-weight: 600;
         text-transform: uppercase;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         letter-spacing: 0.5px;
-        padding: 0.75rem 0.5rem;
+        padding: 0.4rem 0.5rem;
         position: sticky;
         top: 0;
         z-index: 1;
         white-space: nowrap;
     }
-    
+
     td {
-        padding: 0.75rem 0.5rem;
+        padding: 0.4rem 0.5rem;
         vertical-align: middle;
         border-bottom: 1px solid #e9ecef;
-        
+
         &.text-truncate {
             overflow: hidden;
             text-overflow: ellipsis;

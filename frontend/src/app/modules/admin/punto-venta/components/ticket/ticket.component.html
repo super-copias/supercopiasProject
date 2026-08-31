@@ -321,7 +321,7 @@
       <div *ngIf="cotizacion.vendedor_nombre"><b>Atendió:</b> {{ cotizacion.vendedor_nombre }}</div>
     </div>
 
-    <ng-container *ngIf="cotizacion.cliente_id">
+    <ng-container *ngIf="cotizacion.cliente_id || (cotizacion.cliente_nombre && cotizacion.cliente_nombre !== 'Público General')">
       <div class="t-sep"></div>
       <div class="t-cliente">
         <div class="t-cliente-titulo">Cliente</div>
