@@ -1,56 +1,56 @@
 <div class="container-fluid">
 
   <!-- Stats -->
-  <div class="row mb-3" *ngIf="estadisticas">
-    <div class="col-6 col-md-3 mb-2">
+  <div class="row mb-2" *ngIf="estadisticas">
+    <div class="col-6 col-md-3">
       <div class="card border-primary h-100">
-        <div class="card-body p-2 p-md-3 d-flex justify-content-between align-items-center">
+        <div class="card-body p-2 d-flex justify-content-between align-items-center">
           <div>
             <div class="text-muted small">Total artículos</div>
-            <div class="fs-4 fw-bold">{{estadisticas.total_articulos || 0}}</div>
+            <div class="fs-5 fw-bold">{{estadisticas.total_articulos || 0}}</div>
           </div>
-          <i class="fas fa-boxes fa-2x text-primary opacity-50 d-none d-md-block"></i>
+          <i class="fas fa-boxes text-primary opacity-50 d-none d-md-block"></i>
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3 mb-2">
+    <div class="col-6 col-md-3">
       <div class="card border-danger h-100">
-        <div class="card-body p-2 p-md-3 d-flex justify-content-between align-items-center">
+        <div class="card-body p-2 d-flex justify-content-between align-items-center">
           <div>
             <div class="text-muted small">Alertas críticas</div>
-            <div class="fs-4 fw-bold text-danger">{{estadisticas.alertas_criticas || 0}}</div>
+            <div class="fs-5 fw-bold text-danger">{{estadisticas.alertas_criticas || 0}}</div>
           </div>
-          <i class="fas fa-exclamation-triangle fa-2x text-danger opacity-50 d-none d-md-block"></i>
+          <i class="fas fa-exclamation-triangle text-danger opacity-50 d-none d-md-block"></i>
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3 mb-2">
+    <div class="col-6 col-md-3">
       <div class="card border-warning h-100">
-        <div class="card-body p-2 p-md-3 d-flex justify-content-between align-items-center">
+        <div class="card-body p-2 d-flex justify-content-between align-items-center">
           <div>
             <div class="text-muted small">Stock bajo</div>
-            <div class="fs-4 fw-bold text-warning">{{estadisticas.alertas_bajas || 0}}</div>
+            <div class="fs-5 fw-bold text-warning">{{estadisticas.alertas_bajas || 0}}</div>
           </div>
-          <i class="fas fa-exclamation-circle fa-2x text-warning opacity-50 d-none d-md-block"></i>
+          <i class="fas fa-exclamation-circle text-warning opacity-50 d-none d-md-block"></i>
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3 mb-2">
+    <div class="col-6 col-md-3">
       <div class="card border-success h-100">
-        <div class="card-body p-2 p-md-3 d-flex justify-content-between align-items-center">
+        <div class="card-body p-2 d-flex justify-content-between align-items-center">
           <div>
             <div class="text-muted small">Valor inventario</div>
-            <div class="fs-5 fw-bold text-success">{{formatCurrency(estadisticas.valor_total_inventario || 0)}}</div>
+            <div class="fs-6 fw-bold text-success">{{formatCurrency(estadisticas.valor_total_inventario || 0)}}</div>
           </div>
-          <i class="fas fa-dollar-sign fa-2x text-success opacity-50 d-none d-md-block"></i>
+          <i class="fas fa-dollar-sign text-success opacity-50 d-none d-md-block"></i>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Alertas de stock -->
-  <div class="alert alert-warning alert-dismissible mb-3" *ngIf="mostrarAlertas && alertas.length > 0">
-    <h6 class="alert-heading mb-2">
+  <div class="alert alert-warning alert-dismissible py-2 mb-2" *ngIf="mostrarAlertas && alertas.length > 0">
+    <h6 class="alert-heading mb-1">
       <i class="fas fa-exclamation-triangle me-2"></i>Alertas de Stock ({{alertas.length}})
     </h6>
     <div class="table-responsive">
@@ -59,7 +59,7 @@
           <th>Artículo</th><th>Departamento</th><th>Existencia</th><th>Mín.</th><th></th>
         </tr></thead>
         <tbody>
-          <tr *ngFor="let a of alertas | slice:0:5">
+          <tr *ngFor="let a of alertas | slice:0:3">
             <td><strong>{{a.nombre}}</strong></td>
             <td><span class="badge" [style.background-color]="a.departamento_color || '#6c757d'">{{a.departamento_nombre || 'Sin depto.'}}</span></td>
             <td><span [class]="getBadgeStock(a)">{{a.existencia_actual}} {{a.unidad_medida}}</span></td>
@@ -68,12 +68,45 @@
           </tr>
         </tbody>
       </table>
-      <div class="text-muted small text-center mt-1" *ngIf="alertas.length > 5">+{{alertas.length - 5}} más</div>
+      <div class="text-center" *ngIf="alertas.length > 3">
+        <button type="button" class="btn btn-link btn-sm p-0 mt-1" (click)="verTodasLasAlertas()">
+          +{{alertas.length - 3}} más
+        </button>
+      </div>
     </div>
     <button type="button" class="btn-close" (click)="ocultarAlertas()"></button>
   </div>
 
-  <!-- Barra 1: Búsqueda y filtros -->
+  <!-- Modal: todas las alertas de stock -->
+  <div class="modal-overlay" *ngIf="mostrarModalAlertas" (click)="cerrarModalAlertas()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header-custom">
+        <span><i class="fas fa-exclamation-triangle me-2"></i>Alertas de Stock ({{alertas.length}})</span>
+        <button type="button" class="btn-close btn-close-white" (click)="cerrarModalAlertas()" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body-scroll">
+        <table class="table table-sm mb-0">
+          <thead><tr>
+            <th>Artículo</th><th>Departamento</th><th>Existencia</th><th>Mín.</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr *ngFor="let a of alertas">
+              <td><strong>{{a.nombre}}</strong></td>
+              <td><span class="badge" [style.background-color]="a.departamento_color || '#6c757d'">{{a.departamento_nombre || 'Sin depto.'}}</span></td>
+              <td><span [class]="getBadgeStock(a)">{{a.existencia_actual}} {{a.unidad_medida}}</span></td>
+              <td>{{a.stock_minimo}}</td>
+              <td><button class="btn btn-sm btn-outline-primary" (click)="verDetalle(a.id)"><i class="fas fa-eye"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer-custom">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalAlertas()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de herramientas: búsqueda, filtros y acciones en una sola fila -->
   <div class="card mb-2">
     <div class="card-body py-2 px-3">
       <div class="d-flex flex-wrap align-items-center gap-2">
@@ -94,7 +127,6 @@
         <div class="toolbar-divider d-none d-sm-block"></div>
 
         <!-- Filtros -->
-        <span class="text-muted small fw-semibold text-uppercase filter-label">Filtros:</span>
         <select class="form-select form-select-sm filter-select" [(ngModel)]="filtroDepartamento" (change)="onDepartamentoChange()">
           <option value="">Todos los departamentos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{d.nombre}}</option>
@@ -110,14 +142,10 @@
           <i class="fas fa-eraser me-1"></i>Limpiar
         </button>
 
-      </div>
-    </div>
-  </div>
+        <!-- Separador visual -->
+        <div class="toolbar-divider d-none d-sm-block"></div>
 
-  <!-- Barra 2: Acciones -->
-  <div class="card mb-3">
-    <div class="card-body py-2 px-3">
-      <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Acciones -->
         <button class="btn btn-outline-secondary btn-sm toolbar-btn" (click)="verTodos()" title="Ver todos">
           <i class="fas fa-th-list me-1"></i>Ver todos
         </button>
@@ -133,6 +161,7 @@
                 (click)="verArchivados()" title="Ver productos archivados">
           <i class="fas fa-archive me-1"></i>Archivados
         </button>
+
         <div class="ms-auto">
           <button class="btn btn-primary btn-sm" (click)="nuevo()">
             <i class="fas fa-plus me-1"></i>Nuevo artículo
@@ -143,17 +172,17 @@
   </div>
 
   <!-- ESTADO VACÍO -->
-  <div *ngIf="!loading && vistaActiva === 'vacia'" class="text-center py-5 text-muted">
-    <i class="fas fa-boxes fa-4x mb-3 opacity-25"></i>
-    <h5>Usa los filtros para buscar un artículo</h5>
-    <p class="mb-3">o presiona <strong>"Ver todos"</strong> para explorar por departamento</p>
-    <button class="btn btn-primary" (click)="verTodos()">
+  <div *ngIf="!loading && vistaActiva === 'vacia'" class="text-center py-3 text-muted">
+    <i class="fas fa-boxes fa-2x mb-2 opacity-25"></i>
+    <h6>Usa los filtros para buscar un artículo</h6>
+    <p class="mb-2 small">o presiona <strong>"Ver todos"</strong> para explorar por departamento</p>
+    <button class="btn btn-primary btn-sm" (click)="verTodos()">
       <i class="fas fa-th-list me-2"></i>Ver todos los departamentos
     </button>
   </div>
 
   <!-- CARGANDO -->
-  <div *ngIf="loading" class="text-center py-5">
+  <div *ngIf="loading" class="text-center py-3">
     <div class="spinner-border text-primary"></div>
     <div class="mt-2 text-muted">Cargando...</div>
   </div>

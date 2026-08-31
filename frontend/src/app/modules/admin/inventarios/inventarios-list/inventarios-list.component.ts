@@ -319,6 +319,7 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin/inventarios/nuevo']);
   }
   verDetalle(id: number) {
+    this.mostrarModalAlertas = false;
     this.scrollMemory.save(this.scrollKey, 'articulo-' + id);
     this.router.navigate(['/admin/inventarios/detalle', id]);
   }
@@ -341,6 +342,11 @@ export class InventariosListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin/inventarios/departamentos']);
   }
   ocultarAlertas() { this.mostrarAlertas = false; }
+
+  // ── Modal "ver todas las alertas" ───────────────────────────────────────────
+  mostrarModalAlertas = false;
+  verTodasLasAlertas() { this.mostrarModalAlertas = true; }
+  cerrarModalAlertas() { this.mostrarModalAlertas = false; }
 
   verArchivados(p: number = 1) {
     if (p < 1) return;
