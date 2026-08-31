@@ -209,6 +209,58 @@
         <input type="date" class="form-control form-control-sm" [(ngModel)]="fechaVencimientoCotizacion"
           [min]="('' | date:'yyyy-MM-dd') ?? ''">
       </div>
+
+      <!-- Cliente: buscar registrado u.o. nombre libre -->
+      <div class="mt-2">
+        <ng-container *ngIf="cotizacionClienteRegistrado; else tmplCotizClienteLibre">
+          <label class="form-label mb-1 small fw-semibold">Cliente registrado</label>
+          <div class="d-flex align-items-center gap-2 p-2 border rounded bg-light">
+            <i class="bi bi-person-check text-success"></i>
+            <span class="flex-fill fw-semibold small text-dark">{{ cotizacionClienteRegistrado.nombreComercial || cotizacionClienteRegistrado.nombre }}</span>
+            <button type="button" class="btn btn-xs btn-outline-secondary" (click)="quitarClienteCotizacion()" title="Quitar cliente">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </ng-container>
+        <ng-template #tmplCotizClienteLibre>
+          <label class="form-label mb-1 small fw-semibold">Buscar cliente registrado</label>
+          <div class="position-relative">
+            <input type="text" class="form-control form-control-sm" [formControl]="busquedaClienteCotizacion"
+              placeholder="Nombre, RFC, email..." autocomplete="off">
+            <div *ngIf="buscandoClienteCotizacion" class="position-absolute end-0 top-50 translate-middle-y me-2">
+              <span class="spinner-border spinner-border-sm text-muted"></span>
+            </div>
+            <div class="dropdown-clientes" *ngIf="resultadosClienteCotizacion.length > 0">
+              <div class="dropdown-cliente-item" *ngFor="let c of resultadosClienteCotizacion"
+                (click)="seleccionarClienteCotizacion(c)">
+                <span class="fw-semibold">{{ c.nombreComercial }}</span>
+                <span class="text-muted small ms-1" *ngIf="c.rfc">— {{ c.rfc }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label mb-1 small fw-semibold">O ingresa nombre (cliente libre) <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="cotizacionClienteNombre"
+              placeholder="Nombre del cliente" maxlength="200">
+          </div>
+          <div class="mt-2">
+            <label class="form-label mb-1 small fw-semibold">Teléfono <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-sm"
+              [ngModel]="cotizacionClienteTelefono"
+              (ngModelChange)="cotizacionClienteTelefono = soloDigitos($event)"
+              (keydown)="bloquearNoNumerico($event)"
+              placeholder="10 dígitos" maxlength="20">
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- Comentario / notas internas -->
+      <div class="mt-2">
+        <label class="form-label mb-1 small fw-semibold">Comentario / notas internas <span class="text-muted fw-normal">(opcional)</span></label>
+        <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="notas"
+          placeholder="Indicaciones, referencias..."></textarea>
+      </div>
+
       <span class="d-flex align-items-center gap-1 mt-2" *ngIf="requiereFactura">
         <i class="bi bi-receipt text-primary"></i>
         <span class="text-primary fw-semibold">Se guardará con facturación activa</span>

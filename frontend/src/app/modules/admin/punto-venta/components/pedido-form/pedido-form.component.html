@@ -46,8 +46,10 @@
             <!-- Teléfono editable cuando el cliente registrado no tiene uno guardado -->
             <div class="mt-2" *ngIf="!clienteSeleccionado.telefono">
               <label class="form-label-xs">Teléfono <span class="text-danger">*</span></label>
-              <input type="tel" class="form-control form-control-sm" placeholder="10 dígitos"
-                [(ngModel)]="form.cliente_telefono"
+              <input type="tel" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-sm" placeholder="10 dígitos"
+                [ngModel]="form.cliente_telefono"
+                (ngModelChange)="form.cliente_telefono = soloDigitos($event)"
+                (keydown)="bloquearNoNumerico($event)"
                 [class.is-invalid]="!form.cliente_telefono.trim() && !!error">
             </div>
           </div>
@@ -76,8 +78,10 @@
             </div>
             <div>
               <label class="form-label-xs">Teléfono <span class="text-danger">*</span></label>
-              <input type="tel" class="form-control form-control-sm" placeholder="10 dígitos"
-                [(ngModel)]="form.cliente_telefono"
+              <input type="tel" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-sm" placeholder="10 dígitos"
+                [ngModel]="form.cliente_telefono"
+                (ngModelChange)="form.cliente_telefono = soloDigitos($event)"
+                (keydown)="bloquearNoNumerico($event)"
                 [class.is-invalid]="!form.cliente_telefono.trim() && !!error">
             </div>
           </ng-template>

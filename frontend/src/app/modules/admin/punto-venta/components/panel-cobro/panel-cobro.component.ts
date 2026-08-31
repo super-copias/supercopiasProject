@@ -1,6 +1,9 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../../../../../environments/environment';
 import { LineaCarrito, Descuento, VentaDetalle, CotizacionDetalle, PosService, PagoInput } from '../../../../../services/pos.service';
 import { SelectorPagoComponent } from '../selector-pago/selector-pago.component';
 
@@ -44,6 +47,13 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   cotizacionExitosa: CotizacionDetalle | null = null;
   mostrarTicketCotizacion = false;
   fechaVencimientoCotizacion = '';
+  cotizacionClienteNombre = '';
+  cotizacionClienteTelefono = '';
+  // Búsqueda de cliente registrado para la cotización (independiente del panel izquierdo)
+  cotizacionClienteRegistrado: any = null;
+  busquedaClienteCotizacion = new FormControl('');
+  resultadosClienteCotizacion: any[] = [];
+  buscandoClienteCotizacion = false;
 
   // Descuento manual
   descuentoManualPct = 0;
@@ -77,7 +87,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
 
   readonly LIMITE_CAJERO = 15;
 
-  constructor(private posService: PosService) {}
+  constructor(private posService: PosService, private http: HttpClient) {}
 
   private fechaHoyMasDias(dias: number): string {
     const d = new Date();
@@ -90,6 +100,62 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.posService.getDescuentos().pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.descuentos = r.data || []; }
     });
+    this.busquedaClienteCotizacion.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(q => {
+      if (!q || q.trim().length < 2) { this.resultadosClienteCotizacion = []; return; }
+      this.buscarClientesCotizacion(q.trim());
+    });
+  }
+
+  private buscarClientesCotizacion(q: string): void {
+    this.buscandoClienteCotizacion = true;
+    const params = new HttpParams().set('q', q).set('limit', '8');
+    this.http.get<any>(`${environment.apiUrl}/clientes`, { params }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (r) => {
+        this.resultadosClienteCotizacion = (r.data || r || []).map((c: any) => ({
+          id:              c.id,
+          nombreComercial: c.nombre_comercial || c.nombreComercial || c.razon_social || c.razonSocial,
+          nombre:          c.nombre_comercial || c.nombreComercial || c.razon_social || c.razonSocial,
+          rfc:             c.rfc,
+          telefono:        c.telefono,
+        }));
+        this.buscandoClienteCotizacion = false;
+      },
+      error: () => { this.buscandoClienteCotizacion = false; }
+    });
+  }
+
+  seleccionarClienteCotizacion(c: any): void {
+    this.cotizacionClienteRegistrado = c;
+    this.resultadosClienteCotizacion = [];
+    this.busquedaClienteCotizacion.setValue('', { emitEvent: false });
+  }
+
+  quitarClienteCotizacion(): void {
+    this.cotizacionClienteRegistrado = null;
+  }
+
+  /** Deja solo dígitos (para el campo teléfono). */
+  soloDigitos(valor: string, maxLen = 15): string {
+    return (valor || '').replace(/\D/g, '').slice(0, maxLen);
+  }
+
+  /** Bloquea teclas no numéricas al escribir en un campo telefónico. */
+  bloquearNoNumerico(ev: KeyboardEvent): void {
+    const permitidas = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (permitidas.includes(ev.key) || ev.ctrlKey || ev.metaKey) return;
+    if (!/^\d$/.test(ev.key)) ev.preventDefault();
+  }
+
+  /** Cliente registrado efectivo para la cotización: el elegido en el modal o el del panel izquierdo. */
+  get cotizacionClienteEfectivo(): any {
+    return this.cotizacionClienteRegistrado
+      || (this.clienteSeleccionado?.id ? this.clienteSeleccionado : null);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -232,6 +298,11 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.requiereFactura = false;
     this.tipoPersonaFactura = 'pm';
     this.fechaVencimientoCotizacion = this.fechaHoyMasDias(10);
+    this.cotizacionClienteNombre = '';
+    this.cotizacionClienteTelefono = '';
+    this.cotizacionClienteRegistrado = null;
+    this.resultadosClienteCotizacion = [];
+    this.busquedaClienteCotizacion.setValue('', { emitEvent: false });
   }
 
   // ── Pedido ───────────────────────────────────────────────────
@@ -251,7 +322,7 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   // ── Cotización ────────────────────────────────────────────────
 
   get puedeGuardarCotizacion(): boolean {
-    if (this.requiereFactura && !this.clienteSeleccionado?.id) return false;
+    if (this.requiereFactura && !this.cotizacionClienteEfectivo?.id) return false;
     return this.carrito.length > 0 && !this.procesandoCotizacion;
   }
 
@@ -260,8 +331,15 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
     this.procesandoCotizacion = true;
     this.errorCotizacion = '';
 
+    const clienteReg = this.cotizacionClienteEfectivo;
     const payload = {
-      cliente_id: this.clienteSeleccionado?.id || null,
+      cliente_id: clienteReg?.id || null,
+      cliente_nombre: !clienteReg?.id
+        ? (this.cotizacionClienteNombre.trim() || undefined)
+        : undefined,
+      cliente_telefono: !clienteReg?.id
+        ? (this.cotizacionClienteTelefono.trim() || undefined)
+        : undefined,
       items: this.carrito.map(({ _foto_url, _nivel_stock, _existencia_actual, _id_ui, ...rest }) => rest),
       descuento_pct: this.descuentoGlobalPct,
       notas: this.notas || undefined,
@@ -289,12 +367,21 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   solicitarConfirmacion(accion: 'venta' | 'cotizacion'): void {
     if (accion === 'venta' && !this.puedeAbrirCobro) return;
     if (accion === 'cotizacion' && !this.puedeGuardarCotizacion) return;
+    if (accion === 'cotizacion') {
+      // Precargar el cliente registrado del panel izquierdo (si lo hay) en el buscador del modal
+      this.cotizacionClienteRegistrado = this.clienteSeleccionado?.id ? this.clienteSeleccionado : null;
+      this.resultadosClienteCotizacion = [];
+      this.busquedaClienteCotizacion.setValue('', { emitEvent: false });
+    }
     this.accionPendiente = accion;
     this.mostrarConfirmacion = true;
   }
 
   confirmarAccion(): void {
-    if (this.requiereFactura && !this.clienteSeleccionado?.id) {
+    const clienteFacturaOk = this.accionPendiente === 'cotizacion'
+      ? !!this.cotizacionClienteEfectivo?.id
+      : !!this.clienteSeleccionado?.id;
+    if (this.requiereFactura && !clienteFacturaOk) {
       this.error = 'Para facturar debes seleccionar un cliente registrado en el sistema.';
       this.mostrarConfirmacion = false;
       return;
