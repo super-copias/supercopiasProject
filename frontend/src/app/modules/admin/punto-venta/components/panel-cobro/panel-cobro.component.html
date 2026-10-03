@@ -36,16 +36,15 @@
     <ng-container *ngIf="requiereFactura">
       <div class="totales-row" style="font-size:.75rem;opacity:.85">
         <span>+ IVA 16%</span>
-        <span class="text-success fw-semibold">+${{ totales.total * 0.16 | number:'1.2-2' }}</span>
+        <span class="text-success fw-semibold">+${{ ivaACobrar | number:'1.2-2' }}</span>
       </div>
       <div class="totales-row" style="font-size:.75rem;opacity:.85" *ngIf="tipoPersonaFactura !== 'pf'">
         <span>- ISR Ret. 1.25%</span>
-        <span class="text-danger fw-semibold">-${{ totales.total * 0.0125 | number:'1.2-2' }}</span>
+        <span class="text-danger fw-semibold">-${{ isrACobrar | number:'1.2-2' }}</span>
       </div>
       <div class="totales-row total">
         <span>TOTAL c/FACTURA</span>
-        <span class="total-val" *ngIf="tipoPersonaFactura !== 'pf'">${{ (totales.total + totales.total * 0.16 - totales.total * 0.0125) | number:'1.2-2' }}</span>
-        <span class="total-val" *ngIf="tipoPersonaFactura === 'pf'">${{ (totales.total + totales.total * 0.16) | number:'1.2-2' }}</span>
+        <span class="total-val">${{ totalACobrar | number:'1.2-2' }}</span>
       </div>
     </ng-container>
   </div>
