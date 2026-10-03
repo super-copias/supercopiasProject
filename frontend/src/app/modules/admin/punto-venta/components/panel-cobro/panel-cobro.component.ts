@@ -218,10 +218,17 @@ export class PanelCobroComponent implements OnInit, OnChanges, OnDestroy {
   /** Total real a cobrar: con IVA/ISR si requiere factura, subtotal si no */
   get totalACobrar(): number {
     if (!this.requiereFactura) return this.totales.total;
-    const sub = this.totales.total;
-    const iva = parseFloat((sub * 0.16).toFixed(2));
-    const isr = this.tipoPersonaFactura === 'pf' ? 0 : parseFloat((sub * 0.0125).toFixed(2));
-    return parseFloat((sub + iva - isr).toFixed(2));
+    return parseFloat((this.totales.total + this.ivaACobrar - this.isrACobrar).toFixed(2));
+  }
+
+  /** IVA redondeado a centavos, igual que el backend y el ticket */
+  get ivaACobrar(): number {
+    return parseFloat((this.totales.total * 0.16).toFixed(2));
+  }
+
+  /** ISR retenido redondeado a centavos (PF exento), igual que el backend y el ticket */
+  get isrACobrar(): number {
+    return this.tipoPersonaFactura === 'pf' ? 0 : parseFloat((this.totales.total * 0.0125).toFixed(2));
   }
 
   get cambio(): number {
