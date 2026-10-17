@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { HttpResponse } from '@angular/common/http';
+import { InventariosService } from '../../../services/inventarios.service';
 import {
   ReportesService, FormatoReporte,
   FiltrosVentas, FiltrosCorteCaja, FiltrosProductos,
@@ -20,10 +21,10 @@ export interface ReporteCatalogo {
 
 const REPORTES: ReporteCatalogo[] = [
   { id: 'ventas',      titulo: 'Ventas por Período',          descripcion: 'Lista de ventas con filtros de fecha, vendedor, cliente y método de pago.', categoria: 'Ventas',     icono: 'fas fa-cash-register' },
-  { id: 'corte-caja',  titulo: 'Corte de Caja',               descripcion: 'Resumen diario por método de pago y vendedor con detalle de ventas.', categoria: 'Ventas',     icono: 'fas fa-coins' },
-  { id: 'productos',   titulo: 'Productos Más Vendidos',       descripcion: 'Ranking de productos y servicios por cantidad vendida y monto generado.', categoria: 'Ventas',     icono: 'fas fa-star' },
+  { id: 'corte-caja',  titulo: 'Corte de Caja',               descripcion: 'Dinero cobrado por método de pago para cuadrar caja, por rango de fechas y turno.', categoria: 'Ventas',     icono: 'fas fa-coins' },
+  { id: 'productos',   titulo: 'Productos Más Vendidos',       descripcion: 'Ranking de productos, servicios e ítems libres por cantidad vendida y monto generado, filtrable por departamento.', categoria: 'Ventas',     icono: 'fas fa-star' },
   { id: 'vendedores',  titulo: 'Ventas por Vendedor',          descripcion: 'Ranking de usuarios con total de ventas, ingresos, clientes atendidos y producto top.', categoria: 'Ventas', icono: 'fas fa-user-tie' },
-  { id: 'clientes',    titulo: 'Compras por Cliente',          descripcion: 'Resumen de compras, ticket promedio y monto total por cliente.', categoria: 'Clientes',   icono: 'fas fa-users' },
+  { id: 'clientes',    titulo: 'Compras por Cliente',          descripcion: 'Top de clientes por dinero comprado, número de compras o puntos, con totales del periodo.', categoria: 'Clientes',   icono: 'fas fa-users' },
   { id: 'inventario',  titulo: 'Inventario Actual',            descripcion: 'Stock actual con nivel de riesgo, costos y precios de venta.', categoria: 'Inventario', icono: 'fas fa-boxes' },
   { id: 'movimientos', titulo: 'Movimientos de Inventario',    descripcion: 'Entradas, salidas y ajustes de stock por período.', categoria: 'Inventario', icono: 'fas fa-exchange-alt' },
   { id: 'bitacora',    titulo: 'Bitácora del Sistema',         descripcion: 'Registro de todas las acciones críticas del sistema.', categoria: 'Auditoría', icono: 'fas fa-history' },
@@ -44,6 +45,8 @@ type Filtros = FiltrosVentas & FiltrosCorteCaja & FiltrosProductos
 })
 export class ReportesComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  // Cancela consultas/descargas en curso al limpiar filtros
+  private reset$ = new Subject<void>();
 
   readonly reportes = REPORTES;
   readonly categorias = [...new Set(REPORTES.map(r => r.categoria))];
@@ -65,14 +68,28 @@ export class ReportesComponent implements OnInit, OnDestroy {
   previewResumenArqueo: any = null;
   previewArqueoMetodos: any[] = [];
   previewArqueoMovimientos: any[] = [];
+  previewPeriodo: { etiqueta: string; horario?: string; departamento?: string; criterio?: string; top?: number; historico?: boolean } | null = null;
+  // Productos más vendidos
+  previewPorDepartamento: any[] = [];
+  departamentos: { id: number; nombre: string }[] = [];
+  mostrarDetalleTarjetas = false;
 
   // Filtros del formulario (objeto plano, se usa ngModel)
-  filtros: Filtros = {
-    desde: this.hoy(),
-    hasta: this.hoy(),
-    fecha: this.hoy(),
-    top: 50,
-  };
+  filtros: Filtros = this.filtrosIniciales();
+
+  // Corte de caja: turnos predefinidos (ajustar horas aquí si cambian los turnos del negocio).
+  // El horario se aplica a cada día del rango; la hora final es exclusiva.
+  readonly turnosCorte = [
+    { label: 'Todo el día', desde: '',      hasta: ''      },
+    { label: 'Matutino',    desde: '07:00', hasta: '14:00' },
+    { label: 'Vespertino',  desde: '14:00', hasta: '21:00' },
+  ];
+  readonly rangosRapidos = [
+    { id: 'hoy',    label: 'Hoy' },
+    { id: 'ayer',   label: 'Ayer' },
+    { id: 'semana', label: 'Últimos 7 días' },
+    { id: 'mes',    label: 'Este mes' },
+  ];
 
   // Opciones extras para selects
   readonly nivelesStock = [
@@ -88,6 +105,12 @@ export class ReportesComponent implements OnInit, OnDestroy {
     { value: 'EFECTIVO',     label: 'Efectivo' },
     { value: 'TARJETA',      label: 'Tarjeta' },
     { value: 'TRANSFERENCIA',label: 'Transferencia' },
+  ];
+  readonly criteriosClientes = [
+    { value: 'monto',          label: 'Dinero comprado' },
+    { value: 'compras',        label: 'Número de compras' },
+    { value: 'puntos',         label: 'Puntos disponibles (saldo actual)' },
+    { value: 'puntos_periodo', label: 'Puntos ganados en el periodo' },
   ];
   readonly tiposMovimiento = [
     { value: '', label: 'Todos' },
@@ -109,10 +132,49 @@ export class ReportesComponent implements OnInit, OnDestroy {
     { value: 'error',    label: 'Error' },
   ];
 
-  constructor(private svc: ReportesService) {}
+  constructor(private svc: ReportesService, private inventariosSvc: InventariosService) {}
 
-  ngOnInit(): void {}
-  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+  ngOnInit(): void {
+    this.inventariosSvc.getDepartamentos()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resp: any) => {
+          const lista = Array.isArray(resp) ? resp : (resp?.data ?? []);
+          this.departamentos = lista.map((d: any) => ({ id: d.id, nombre: d.nombre }));
+        },
+        error: () => { this.departamentos = []; }
+      });
+  }
+  ngOnDestroy(): void {
+    this.reset$.next(); this.reset$.complete();
+    this.destroy$.next(); this.destroy$.complete();
+  }
+
+  /** Valores por defecto de los filtros (hoy, día completo). */
+  private filtrosIniciales(): Filtros {
+    return {
+      desde: this.hoy(),
+      hasta: this.hoy(),
+      hora_desde: '',
+      hora_hasta: '',
+      departamento: '',
+      orden: 'monto',
+      historico: false,
+      top: 50,
+    };
+  }
+
+  /** Reinicia el reporte actual: filtros por defecto, sin vista previa ni errores. */
+  limpiarFiltros(): void {
+    this.reset$.next();
+    this.loadingPreview = false;
+    this.loadingPdf = false;
+    this.loadingXlsx = false;
+    this.mostrarModalEquipo = false;
+    this.equipoModalVenta = null;
+    this.filtros = this.filtrosIniciales();
+    this.selectReport(this.selectedId);
+  }
 
   // ── Navegación ───────────────────────────────────────────────────────────────
   get selectedReport(): ReporteCatalogo {
@@ -128,7 +190,75 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.previewResumenArqueo = null;
     this.previewArqueoMetodos = [];
     this.previewArqueoMovimientos = [];
+    this.previewPeriodo = null;
+    this.previewPorDepartamento = [];
+    this.mostrarDetalleTarjetas = false;
     this.errorMsg = '';
+  }
+
+  // ── Corte de caja: rango y turno ────────────────────────────────────────────
+  aplicarRango(id: string): void {
+    const hoy = this.hoy();
+    switch (id) {
+      case 'hoy':    this.filtros.desde = hoy; this.filtros.hasta = hoy; break;
+      case 'ayer':   this.filtros.desde = this.sumarDias(hoy, -1); this.filtros.hasta = this.filtros.desde; break;
+      case 'semana': this.filtros.desde = this.sumarDias(hoy, -6); this.filtros.hasta = hoy; break;
+      case 'mes':    this.filtros.desde = hoy.slice(0, 8) + '01'; this.filtros.hasta = hoy; break;
+    }
+  }
+
+  rangoActivo(id: string): boolean {
+    const hoy = this.hoy();
+    const { desde, hasta } = this.filtros;
+    switch (id) {
+      case 'hoy':    return desde === hoy && hasta === hoy;
+      case 'ayer':   return desde === this.sumarDias(hoy, -1) && hasta === desde;
+      case 'semana': return desde === this.sumarDias(hoy, -6) && hasta === hoy;
+      case 'mes':    return desde === hoy.slice(0, 8) + '01' && hasta === hoy && desde !== hoy;
+      default:       return false;
+    }
+  }
+
+  aplicarTurno(t: { desde: string; hasta: string }): void {
+    this.filtros.hora_desde = t.desde;
+    this.filtros.hora_hasta = t.hasta;
+  }
+
+  turnoActivo(t: { desde: string; hasta: string }): boolean {
+    return (this.filtros.hora_desde || '') === t.desde && (this.filtros.hora_hasta || '') === t.hasta;
+  }
+
+  /** Débito y crédito por separado (montos + número de movimientos) para el desglose de tarjetas. */
+  get detalleTarjetas() {
+    const movs = (codigos: string[]) => this.previewArqueoMetodos
+      .filter(m => codigos.includes(String(m.metodo_pago_codigo || '').toLowerCase()))
+      .reduce((acc, m) => acc + (m.movimientos || 0), 0);
+    const r = this.previewResumenArqueo || {};
+    return {
+      debito:  { total: r.total_tarjeta_debito || 0,  movimientos: movs(['tarjeta_debito']) },
+      credito: { total: r.total_tarjeta_credito || 0, movimientos: movs(['tarjeta', 'tarjeta_credito']) },
+    };
+  }
+
+  get totalArqueoMovimientos(): number {
+    return this.previewArqueoMetodos.reduce((acc, m) => acc + (m.movimientos || 0), 0);
+  }
+
+  private validarCorte(): string | null {
+    const f = this.filtros;
+    if (!f.desde || !f.hasta) return 'Selecciona la fecha inicial y final del corte.';
+    if (f.desde > f.hasta) return 'La fecha inicial no puede ser mayor que la fecha final.';
+    const hd = f.hora_desde || '';
+    const hh = f.hora_hasta || '';
+    if ((hd && !hh) || (!hd && hh)) return 'Indica la hora de inicio y la hora de fin del turno (o elige "Todo el día").';
+    if (hd && hh && hd >= hh) return 'La hora de inicio debe ser menor que la hora de fin.';
+    return null;
+  }
+
+  private sumarDias(ymd: string, dias: number): string {
+    const d = new Date(ymd + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + dias);
+    return d.toISOString().slice(0, 10);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -145,6 +275,10 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   // ── Preview ──────────────────────────────────────────────────────────────────
   onPreview(): void {
+    if (this.selectedId === 'corte-caja') {
+      const err = this.validarCorte();
+      if (err) { this.errorMsg = err; return; }
+    }
     this.loadingPreview = true;
     this.errorMsg = '';
     this.previewRows = [];
@@ -153,9 +287,12 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.previewResumenArqueo = null;
     this.previewArqueoMetodos = [];
     this.previewArqueoMovimientos = [];
+    this.previewPeriodo = null;
+    this.previewPorDepartamento = [];
+    this.mostrarDetalleTarjetas = false;
 
     this.getPreviewObservable()
-      .pipe(takeUntil(this.destroy$), finalize(() => this.loadingPreview = false))
+      .pipe(takeUntil(this.reset$), takeUntil(this.destroy$), finalize(() => this.loadingPreview = false))
       .subscribe({
         next: (resp: any) => {
           const data = resp?.data;
@@ -170,6 +307,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
           this.previewResumenArqueo = data.resumen_arqueo ?? null;
           this.previewArqueoMetodos = data.arqueo_metodos_pago ?? [];
           this.previewArqueoMovimientos = data.arqueo_movimientos ?? [];
+          this.previewPeriodo = data.periodo ?? null;
+          this.previewPorDepartamento = data.por_departamento ?? [];
 
           // Tabla secundaria: Trabajo en Equipo (solo reporte vendedores)
           const equipoRows = data.equipo_rows ?? [];
@@ -183,7 +322,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
           }
         },
         error: (err: any) => {
-          this.errorMsg = err?.error?.message ?? 'Error al cargar la vista previa.';
+          this.errorMsg = err?.error?.message ?? err?.error?.error?.message ?? 'Error al cargar la vista previa.';
         }
       });
   }
@@ -206,12 +345,16 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   // ── Descarga ─────────────────────────────────────────────────────────────────
   onDownload(formato: FormatoReporte): void {
+    if (this.selectedId === 'corte-caja') {
+      const err = this.validarCorte();
+      if (err) { this.errorMsg = err; return; }
+    }
     if (formato === 'pdf')  this.loadingPdf = true;
     if (formato === 'xlsx') this.loadingXlsx = true;
     this.errorMsg = '';
 
     this.getDownloadObservable(formato)
-      .pipe(takeUntil(this.destroy$), finalize(() => {
+      .pipe(takeUntil(this.reset$), takeUntil(this.destroy$), finalize(() => {
         this.loadingPdf = false;
         this.loadingXlsx = false;
       }))
@@ -274,15 +417,17 @@ export class ReportesComponent implements OnInit, OnDestroy {
     const hoy = this.hoy();
     const desde = String(this.filtros.desde || '').trim();
     const hasta = String(this.filtros.hasta || '').trim();
-    const fecha = String(this.filtros.fecha || '').trim();
+    const horario = (this.filtros.hora_desde && this.filtros.hora_hasta)
+      ? `_${this.filtros.hora_desde.replace(':', '-')}_a_${this.filtros.hora_hasta.replace(':', '-')}`
+      : '';
     const rango = (desde && hasta)
       ? (desde === hasta ? desde : `${desde}_a_${hasta}`)
       : (desde || hasta || hoy);
 
     switch (this.selectedId) {
-      case 'corte-caja':  return `Corte-de-Caja-${fecha || hoy}${ext}`;
+      case 'corte-caja':  return `Corte-de-Caja-${rango}${horario}${ext}`;
       case 'ventas':      return `Reporte-Ventas-${rango}${ext}`;
-      case 'productos':   return `Productos-mas-vendidos-${rango}${ext}`;
+      case 'productos':   return `Productos-mas-vendidos-${rango}${ext}`;  // el backend añade el departamento
       case 'clientes':    return `Compras-por-Cliente-${rango}${ext}`;
       case 'inventario':  return `Inventario-Actual-${hoy}${ext}`;
       case 'movimientos': return `Movimientos-Inventario-${rango}${ext}`;

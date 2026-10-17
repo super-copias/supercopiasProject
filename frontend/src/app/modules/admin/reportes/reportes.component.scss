@@ -160,6 +160,12 @@ $white:  #FFFFFF;
     color: $blue;
     &:hover:not(:disabled) { background: $blue-l; }
   }
+  &.btn-clear {
+    border: 1.5px solid $border;
+    background: $white;
+    color: #555;
+    &:hover:not(:disabled) { border-color: $gray; background: #F5F5F5; }
+  }
   &.btn-excel  { background: #1B5E20; color: $white; }
   &.btn-pdf    { background: #B71C1C; color: $white; }
 }
@@ -171,6 +177,20 @@ $white:  #FFFFFF;
   border-radius: 10px;
   padding: 16px 20px;
   box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.filters-body {
+  flex: 1;
+  min-width: 0;
+}
+
+// Botón "Limpiar filtros": alineado con los campos (debajo de la altura de las etiquetas)
+.filters-actions {
+  flex-shrink: 0;
+  padding-top: 22px;
 }
 
 .filter-row {
@@ -205,8 +225,71 @@ $white:  #FFFFFF;
   transition: border-color 0.2s;
 
   &:focus { border-color: $blue; }
+  &:disabled { background: #F5F5F5; color: #9E9E9E; cursor: not-allowed; }
 
   &[type="number"] { width: 100px; }
+}
+
+// ── Corte de caja: atajos de periodo/turno ───────────────────────────────────
+.quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 12px;
+}
+
+.quick-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  i { margin-right: 3px; }
+}
+
+.quick-chip {
+  border: 1px solid $border;
+  background: $white;
+  color: #444;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+
+  small { color: $gray; }
+  &:hover { border-color: $blue; color: $blue; }
+  &.active {
+    background: $blue;
+    border-color: $blue;
+    color: $white;
+    small { color: rgba(255,255,255,.8); }
+  }
+}
+
+.filter-hint {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: $gray;
+  i { color: $blue; margin-right: 4px; }
+}
+
+.periodo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #EFF6FF;
+  border: 1px solid #BBDEFB;
+  color: #1E3A5F;
+  font-size: 13px;
+  i { color: $blue; margin-right: 4px; }
 }
 
 // ── Separadores de sección ───────────────────────────────────────────────────
@@ -239,6 +322,7 @@ $white:  #FFFFFF;
 }
 
 .stat-card {
+  position: relative; // ancla de los tooltips .info-tip-text
   flex: 1;
   min-width: 140px;
   background: $white;
@@ -268,12 +352,50 @@ $white:  #FFFFFF;
     &.orange { color: $orange; }
     &.gold   { color: #D97706; font-size: 17px; }
   }
+  .stat-desc {
+    margin-top: 6px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: $gray;
+  }
+  .stat-link {
+    color: $blue;
+    font-weight: 600;
+    white-space: nowrap;
+  }
   .stat-sub {
     font-size: 13px;
     font-weight: 600;
     color: #92400E;
     margin-top: 2px;
   }
+}
+
+// Tarjeta débito + crédito con desglose desplegable
+.stat-card-toggle {
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+
+  &:hover, &.open { border-color: $blue; box-shadow: 0 2px 6px rgba(21,101,192,.15); }
+  .toggle-icon { float: right; font-size: 11px; color: $blue; margin-top: 2px; }
+}
+
+.tarjeta-detalle {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed $border;
+  cursor: default;
+}
+
+.tarjeta-detalle-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  color: #333;
+  small { color: $gray; }
+  strong { color: $blue; }
 }
 
 /* Mantiene Anticipos/Saldos al final del bloque para cuadrar caja. */
@@ -291,6 +413,7 @@ $white:  #FFFFFF;
 }
 
 .preview-header {
+  position: relative; // ancla de los tooltips .info-tip-text
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -337,6 +460,22 @@ $white:  #FFFFFF;
       border-right: 1px solid darken($blue, 10%);
       &:last-child { border-right: none; }
     }
+  }
+
+  th.num, td.num { text-align: right; white-space: nowrap; }
+
+  tfoot tr.tfoot-periodo td {
+    background: #E8F5E9;
+    border-top: 1px solid #A5D6A7;
+    color: #1B5E20;
+  }
+
+    tfoot td {
+    padding: 8px 12px;
+    background: #FFFBEB;
+    border-top: 2px solid #F59E0B;
+    font-weight: 700;
+    color: #333;
   }
 
   tbody {
@@ -438,6 +577,8 @@ $white:  #FFFFFF;
   .reportes-main   { padding: 14px; gap: 12px; }
 
   .report-header   { flex-direction: column; }
+  .filters-panel   { flex-direction: column; gap: 12px; }
+  .filters-actions { padding-top: 0; align-self: flex-end; }
   .report-actions  { width: 100%; justify-content: flex-start; }
 
   .preview-header  { flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -569,4 +710,81 @@ $white:  #FFFFFF;
     color: #333;
     &:first-child { text-align: center; color: #888; font-size: 12px; }
   }
+}
+
+// Productos más vendidos: tipo de línea
+.tipo-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: $blue-l;
+  color: $blue;
+
+  &.libre { background: #FFF3E0; color: $orange; }
+  &.vip   { background: #FEF3C7; color: #92400E; font-weight: 600; }
+}
+
+// ── Tooltips de ayuda (icono ⓘ, visible al pasar el cursor o al enfocar/tocar) ──
+.info-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  color: #9E9E9E;
+  cursor: help;
+  outline: none;
+  vertical-align: middle;
+
+  > i { font-size: 12px; transition: color .15s; }
+
+  &:hover > i, &:focus > i { color: $blue; }
+
+  // El texto se posiciona contra el contenedor relativo más cercano (tarjeta, encabezado o panel de filtros)
+  .info-tip-text {
+    display: none;
+    position: absolute;
+    z-index: 30;
+    top: calc(100% - 6px);
+    left: 12px;
+    right: 12px;
+    max-width: 420px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #263238;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    pointer-events: none;
+
+    strong { color: #FFE082; }
+  }
+
+  &:hover .info-tip-text,
+  &:focus .info-tip-text { display: block; }
+}
+
+.stat-card .info-tip .info-tip-text { top: 34px; }
+
+.preview-header .info-tip .info-tip-text { top: 100%; left: 16px; right: auto; width: min(420px, 80vw); }
+
+.filter-help {
+  position: relative;
+  margin-top: 10px;
+
+  .info-tip { margin-left: 0; color: $gray; }
+  .info-tip-label { font-size: 12px; text-decoration: underline dotted; }
+  .info-tip:hover .info-tip-label, .info-tip:focus .info-tip-label { color: $blue; }
+  .info-tip .info-tip-text { top: calc(100% + 6px); left: 0; right: auto; width: min(520px, 85vw); max-width: none; }
+}
+
+.stat-card .stat-action {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: $blue;
+  font-weight: 600;
 }

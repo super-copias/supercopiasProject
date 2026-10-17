@@ -26,7 +26,12 @@ export interface FiltrosVentas {
 }
 
 export interface FiltrosCorteCaja {
-  fecha?: string;
+  desde?: string;
+  hasta?: string;
+  /** Hora inicial del turno (HH:MM). Se aplica a cada día del rango. */
+  hora_desde?: string;
+  /** Hora final del turno (HH:MM, exclusiva). */
+  hora_hasta?: string;
   vendedor_id?: number | null;
 }
 
@@ -34,12 +39,19 @@ export interface FiltrosProductos {
   desde?: string;
   hasta?: string;
   top?: number;
+  /** id de departamento, 'libres' (ítems no registrados en inventario) o 'sin_departamento'. Vacío = todos. */
+  departamento?: string;
 }
 
 export interface FiltrosClientes {
   desde?: string;
   hasta?: string;
   cliente_id?: number | null;
+  /** Criterio del ranking: 'monto' | 'compras' | 'puntos' | 'puntos_periodo'. */
+  orden?: string;
+  top?: number;
+  /** true = ranking de todo el historial (ignora desde/hasta). */
+  historico?: boolean;
 }
 
 export interface FiltrosInventario {

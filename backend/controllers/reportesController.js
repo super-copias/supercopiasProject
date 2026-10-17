@@ -8,8 +8,8 @@
  *
  * Reportes disponibles:
  *   GET /ventas           – Lista de ventas filtrada por período, vendedor, etc.
- *   GET /corte-caja       – Resumen + detalle de ventas para corte de caja
- *   GET /productos        – Productos / servicios más vendidos
+ *   GET /corte-caja       – Resumen + detalle de cobros (rango de fechas y horario/turno opcional)
+ *   GET /productos        – Productos / servicios más vendidos (filtro por departamento, incluye ítems libres)
  *   GET /clientes         – Resumen de compras por cliente
  *   GET /inventario       – Stock actual con nivel de riesgo
  *   GET /movimientos      – Movimientos de inventario por período
@@ -76,6 +76,12 @@ function dateMx(d = new Date()) {
     month: '2-digit',
     day: '2-digit',
   }).format(d);
+}
+
+/** Valida una hora 'HH:MM' (24 h). Devuelve null si no es válida. */
+function parseHora(h) {
+  const v = String(h || '').trim().slice(0, 5);
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null;
 }
 
 function buildFileDateSuffix(desde, hasta) {
@@ -369,12 +375,41 @@ async function getReporteVentas(req, res) {
 async function getReporteCorteCaja(req, res) {
   try {
     const { fecha, vendedor_id, formato } = req.query;
-    const [d, h] = buildDateRange(fecha, fecha);
-    const fechaArchivo = String(fecha || dateMx(d));
-    const nombreArchivoCorte = `Corte-de-Caja-${fechaArchivo}`;
+    // Rango de fechas (desde/hasta). `fecha` se conserva por compatibilidad (un solo día).
+    let desde = req.query.desde || fecha || dateMx();
+    let hasta = req.query.hasta || fecha || desde;
+    if (desde > hasta) [desde, hasta] = [hasta, desde];
+
+    // Horario / turno opcional: se aplica a cada día del rango (ej. 07:00–14:00 de cada día).
+    const horaDesde = parseHora(req.query.hora_desde) || '00:00';
+    const horaHasta = parseHora(req.query.hora_hasta) || '23:59';
+    const usaHorario = !(horaDesde === '00:00' && horaHasta === '23:59');
+    if (usaHorario && horaDesde >= horaHasta) {
+      return res.status(400).json(createErrorResponse('La hora inicial debe ser menor que la hora final'));
+    }
+
+    const [d, h] = buildDateRange(desde, hasta);
+    const horarioArchivo = usaHorario ? `_${horaDesde.replace(':', '-')}_a_${horaHasta.replace(':', '-')}` : '';
+    const nombreArchivoCorte = `Corte-de-Caja-${buildFileDateSuffix(desde, hasta)}${horarioArchivo}`;
+    const periodoLabel = desde === hasta ? fmtDate(d) : `${fmtDate(d)} al ${fmtDate(h)}`;
+    const horarioLabel = usaHorario ? `${horaDesde} a ${horaHasta} hrs` : 'Todo el día';
 
     const params = [d, h];
     let pidx = 3;
+
+    // Condición de horario sobre la hora local (México). Fin exclusivo, salvo 23:59 que cubre hasta el final del día.
+    let horaCond = () => '';
+    if (usaHorario) {
+      const iDesde = pidx, iHasta = pidx + 1;
+      params.push(horaDesde, horaHasta === '23:59' ? '23:59:59.999999' : horaHasta);
+      pidx += 2;
+      const opFin = horaHasta === '23:59' ? '<=' : '<';
+      horaCond = (col) => `AND (${col} AT TIME ZONE 'America/Mexico_City')::time >= $${iDesde}::time
+          AND (${col} AT TIME ZONE 'America/Mexico_City')::time ${opFin} $${iHasta}::time`;
+    }
+    const horaVenta = horaCond('v.fecha_venta');
+    const horaPago = horaCond('pp.fecha_pago');
+
     const vendedorCond = vendedor_id ? `AND v.vendedor_usuario_id = $${pidx}` : '';
     if (vendedor_id) params.push(vendedor_id);
     const vendedorCondArqueoVentas = vendedor_id ? `AND v.vendedor_usuario_id = $${pidx}` : '';
@@ -391,7 +426,7 @@ async function getReporteCorteCaja(req, res) {
         COALESCE(SUM(iva_monto)      FILTER (WHERE estatus='completada'), 0) AS total_iva,
         COALESCE(SUM(total)         FILTER (WHERE estatus='cancelada'), 0) AS total_cancelado
       FROM pos_ventas v
-      WHERE v.fecha_venta BETWEEN $1 AND $2 ${vendedorCond}
+      WHERE v.fecha_venta BETWEEN $1 AND $2 ${horaVenta} ${vendedorCond}
     `, params);
 
     // Por método de pago
@@ -399,7 +434,7 @@ async function getReporteCorteCaja(req, res) {
       SELECT metodo_pago_descripcion AS metodo, COUNT(*) AS cantidad,
              SUM(total) AS total
       FROM pos_ventas v
-      WHERE v.fecha_venta BETWEEN $1 AND $2 AND v.estatus='completada' ${vendedorCond}
+      WHERE v.fecha_venta BETWEEN $1 AND $2 AND v.estatus='completada' ${horaVenta} ${vendedorCond}
       GROUP BY metodo_pago_descripcion ORDER BY total DESC
     `, params);
 
@@ -408,7 +443,7 @@ async function getReporteCorteCaja(req, res) {
       SELECT vendedor_nombre AS vendedor, COUNT(*) AS ventas,
              SUM(total) AS total
       FROM pos_ventas v
-      WHERE v.fecha_venta BETWEEN $1 AND $2 AND v.estatus='completada' ${vendedorCond}
+      WHERE v.fecha_venta BETWEEN $1 AND $2 AND v.estatus='completada' ${horaVenta} ${vendedorCond}
       GROUP BY vendedor_nombre ORDER BY total DESC
     `, params);
 
@@ -417,7 +452,7 @@ async function getReporteCorteCaja(req, res) {
       SELECT v.folio, v.fecha_venta, v.cliente_nombre, v.vendedor_nombre,
              v.metodo_pago_descripcion, v.total, v.estatus
       FROM pos_ventas v
-      WHERE v.fecha_venta BETWEEN $1 AND $2 ${vendedorCond}
+      WHERE v.fecha_venta BETWEEN $1 AND $2 ${horaVenta} ${vendedorCond}
       ORDER BY v.fecha_venta
       LIMIT ${MAX_ROWS}
     `, params);
@@ -439,6 +474,7 @@ async function getReporteCorteCaja(req, res) {
         WHERE v.estatus = 'completada'
           AND v.origen_venta IN ('directa', 'cotizacion')
           AND v.fecha_venta BETWEEN $1 AND $2
+          ${horaVenta}
           ${vendedorCondArqueoVentas}
 
         UNION ALL
@@ -458,6 +494,7 @@ async function getReporteCorteCaja(req, res) {
         WHERE pp.tipo = 'anticipo'
           AND pp.anulado = false
           AND pp.fecha_pago BETWEEN $1 AND $2
+          ${horaPago}
           ${vendedorCondArqueoAnticipo}
 
         UNION ALL
@@ -476,6 +513,7 @@ async function getReporteCorteCaja(req, res) {
         WHERE pp.tipo = 'saldo'
           AND pp.anulado = false
           AND pp.fecha_pago BETWEEN $1 AND $2
+          ${horaPago}
           ${vendedorCondArqueoSaldo}
       )
     `;
@@ -562,7 +600,7 @@ async function getReporteCorteCaja(req, res) {
     arqueoResumen.total_tarjeta = parseFloat(arqueoResumen.total_tarjeta.toFixed(2));
     arqueoResumen.total_transferencia = parseFloat(arqueoResumen.total_transferencia.toFixed(2));
 
-    const subtitulo = `Fecha: ${fmtDate(d)}  |  Ventas: ${resumen.ventas_completadas}  |  Total: ${fmtCurrency(resumen.total_ingresos)}`;
+    const subtitulo = `Periodo: ${periodoLabel}  |  Horario: ${horarioLabel}  |  Ventas: ${resumen.ventas_completadas}  |  Total cobrado: ${fmtCurrency(arqueoResumen.total_cobrado)}`;
 
     if (formato === 'xlsx') {
       const origenLabel = (origen) => ({
@@ -604,7 +642,7 @@ async function getReporteCorteCaja(req, res) {
           colWidths: [20, 26, 14, 16]
         },
         {
-          name: 'Detalle Cobros del Día',
+          name: 'Detalle Cobros',
           headers: ['Fecha/Hora', 'Origen', 'Referencia', 'Vendedor', 'Código', 'Método', 'Monto'],
           rows: arqueoMovimientos.map(r => [
             fmtDatetime(r.fecha_evento),
@@ -620,17 +658,19 @@ async function getReporteCorteCaja(req, res) {
       ];
       const resHeaders = ['Concepto', 'Valor'];
       const resRows = [
+        ['Periodo', periodoLabel],
+        ['Horario', horarioLabel],
         ['Ventas completadas', parseInt(resumen.ventas_completadas)],
         ['Ventas canceladas',  parseInt(resumen.ventas_canceladas)],
         ['Total ingresos',     parseFloat(resumen.total_ingresos)],
         ['Monto cancelado (no cuenta)', parseFloat(resumen.total_cancelado)],
         ['Total descuentos',   parseFloat(resumen.total_descuentos)],
         ['Total IVA',          parseFloat(resumen.total_iva)],
-        ['Total cobrado hoy', arqueoResumen.total_cobrado],
+        ['Total cobrado en el periodo', arqueoResumen.total_cobrado],
         ['Cobrado en efectivo', arqueoResumen.total_efectivo],
-        ['Cobrado con T. débito', arqueoResumen.total_tarjeta_debito],
-        ['Cobrado con T. crédito', arqueoResumen.total_tarjeta_credito],
-        ['Cobrado con tarjeta', arqueoResumen.total_tarjeta],
+        ['Cobrado con tarjeta (débito + crédito)', arqueoResumen.total_tarjeta],
+        ['   - Tarjeta débito', arqueoResumen.total_tarjeta_debito],
+        ['   - Tarjeta crédito', arqueoResumen.total_tarjeta_credito],
         ['Cobrado por transferencia', arqueoResumen.total_transferencia],
         ['Anticipos cobrados', arqueoResumen.total_anticipos_pedidos],
         ['Saldos cobrados', arqueoResumen.total_saldos_pedidos],
@@ -676,14 +716,14 @@ async function getReporteCorteCaja(req, res) {
       }[origen] || origen);
 
       doc.moveDown(0.5);
-      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Dinero Recibido Hoy');
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Dinero Recibido en el Periodo');
       doc.moveDown(0.3);
       drawTable(doc, ['Concepto', 'Monto'], [
-        ['Total cobrado hoy', fmtCurrency(arqueoResumen.total_cobrado)],
+        ['Total cobrado en el periodo', fmtCurrency(arqueoResumen.total_cobrado)],
         ['Cobrado en efectivo', fmtCurrency(arqueoResumen.total_efectivo)],
-        ['Cobrado con T. débito', fmtCurrency(arqueoResumen.total_tarjeta_debito)],
-        ['Cobrado con T. crédito', fmtCurrency(arqueoResumen.total_tarjeta_credito)],
-        ['Cobrado con tarjeta', fmtCurrency(arqueoResumen.total_tarjeta)],
+        ['Cobrado con tarjeta (débito + crédito)', fmtCurrency(arqueoResumen.total_tarjeta)],
+        ['   - Tarjeta débito', fmtCurrency(arqueoResumen.total_tarjeta_debito)],
+        ['   - Tarjeta crédito', fmtCurrency(arqueoResumen.total_tarjeta_credito)],
         ['Cobrado por transferencia', fmtCurrency(arqueoResumen.total_transferencia)],
         ['Anticipos cobrados', fmtCurrency(arqueoResumen.total_anticipos_pedidos)],
         ['Saldos cobrados', fmtCurrency(arqueoResumen.total_saldos_pedidos)],
@@ -697,7 +737,7 @@ async function getReporteCorteCaja(req, res) {
         [180, 80, 130], { rowHeight: 16 });
 
       doc.moveDown(0.5);
-      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Detalle de Cobros del Día');
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Detalle de Cobros del Periodo');
       doc.moveDown(0.3);
       drawTable(doc,
         ['Fecha/Hora', 'Origen', 'Referencia', 'Vendedor', 'Código', 'Método', 'Monto'],
@@ -729,6 +769,14 @@ async function getReporteCorteCaja(req, res) {
     return res.json({
       ok: true,
       data: {
+        periodo: {
+          desde,
+          hasta,
+          hora_desde: usaHorario ? horaDesde : null,
+          hora_hasta: usaHorario ? horaHasta : null,
+          etiqueta: periodoLabel,
+          horario: horarioLabel,
+        },
         resumen,
         metodos_pago: metodosPago,
         vendedores,
@@ -770,53 +818,230 @@ async function getReporteProductos(req, res) {
     const { desde, hasta, top = 50, formato } = req.query;
     const [d, h] = buildDateRange(desde, hasta);
     const topN = Math.min(parseInt(top) || 50, 500);
-    const nombreArchivo = `Productos-mas-vendidos-${buildFileDateSuffix(desde, hasta)}`;
+
+    // Departamento: id numérico, 'libres' (ítems no registrados en inventario) o 'sin_departamento'.
+    const depRaw = String(req.query.departamento || req.query.departamento_id || '').trim();
+    const departamento = /^\d+$/.test(depRaw) || ['libres', 'sin_departamento'].includes(depRaw) ? depRaw : '';
+
+    const params = [d, h];
+    let depCond = '';
+    let departamentoLabel = 'Todos';
+    if (departamento === 'libres') {
+      depCond = 'AND d.es_item_libre = true';
+      departamentoLabel = 'Ítems libres (sin inventario)';
+    } else if (departamento === 'sin_departamento') {
+      depCond = 'AND d.es_item_libre = false AND i.departamento_id IS NULL';
+      departamentoLabel = 'Sin departamento';
+    } else if (departamento) {
+      params.push(parseInt(departamento));
+      depCond = `AND d.es_item_libre = false AND i.departamento_id = $${params.length}`;
+      const { rows: [dep] } = await query('SELECT nombre FROM inv_departamentos WHERE id = $1', [parseInt(departamento)]);
+      departamentoLabel = dep?.nombre || `#${departamento}`;
+    }
+
+    const depArchivo = departamento ? `-${departamentoLabel.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '')}` : '';
+    const nombreArchivo = `Productos-mas-vendidos-${buildFileDateSuffix(desde, hasta)}${depArchivo}`;
+
+    // Líneas de venta del periodo. Los ítems libres (es_item_libre) no tienen inventario_id:
+    // se agrupan por nombre normalizado (minúsculas, sin espacios extremos) para unir "Clip" y "clip ".
+    // El departamento es el actual del producto en inventario.
+    const lineasSQL = `
+      WITH lineas AS (
+        SELECT
+          v.id AS venta_id,
+          d.cantidad,
+          d.subtotal_linea,
+          CASE WHEN d.es_item_libre THEN 'libre'
+               WHEN d.es_servicio  THEN 'servicio'
+               ELSE 'producto' END AS tipo,
+          CASE WHEN d.es_item_libre THEN 'Ítems libres (sin inventario)'
+               ELSE COALESCE(dep.nombre, 'Sin departamento') END AS departamento,
+          CASE WHEN d.inventario_id IS NOT NULL AND NOT d.es_item_libre
+               THEN 'inv-' || d.inventario_id
+               ELSE 'txt-' || LOWER(TRIM(d.nombre_producto)) END AS clave,
+          COALESCE(i.nombre, TRIM(d.nombre_producto)) AS nombre_producto,
+          COALESCE(i.codigo_sku, d.sku) AS sku
+        FROM pos_ventas_detalle d
+        JOIN pos_ventas v ON d.venta_id = v.id
+        LEFT JOIN inventarios i ON i.id = d.inventario_id
+        LEFT JOIN inv_departamentos dep ON dep.id = i.departamento_id
+        WHERE v.fecha_venta BETWEEN $1 AND $2
+          AND v.estatus = 'completada'
+          ${depCond}
+      )
+    `;
 
     const { rows } = await query(`
-      SELECT d.nombre_producto, d.sku,
-             SUM(d.cantidad)::numeric        AS cantidad_vendida,
-             SUM(d.subtotal_linea)::numeric  AS total_generado,
-             COUNT(DISTINCT v.id)            AS num_ventas,
-             AVG(d.precio_unitario)::numeric AS precio_promedio
-      FROM pos_ventas_detalle d
-      JOIN pos_ventas v ON d.venta_id = v.id
-      WHERE v.fecha_venta BETWEEN $1 AND $2 AND v.estatus = 'completada'
-      GROUP BY d.nombre_producto, d.sku
-      ORDER BY cantidad_vendida DESC
-      LIMIT $3
-    `, [d, h, topN]);
+      ${lineasSQL}
+      SELECT MAX(nombre_producto)            AS nombre_producto,
+             MAX(sku)                        AS sku,
+             MAX(departamento)               AS departamento,
+             MAX(tipo)                       AS tipo,
+             SUM(cantidad)::numeric          AS cantidad_vendida,
+             COUNT(DISTINCT venta_id)::int   AS num_ventas,
+             (SUM(subtotal_linea) / NULLIF(SUM(cantidad), 0))::numeric(12,2) AS precio_promedio,
+             SUM(subtotal_linea)::numeric    AS total_generado
+      FROM lineas
+      GROUP BY clave
+      ORDER BY cantidad_vendida DESC, total_generado DESC
+      LIMIT ${topN}
+    `, params);
+
+    const { rows: [resumenDB] } = await query(`
+      ${lineasSQL}
+      SELECT COUNT(DISTINCT clave)::int                       AS productos_distintos,
+             COUNT(*)::int                                    AS lineas,
+             COUNT(DISTINCT venta_id)::int                    AS ventas,
+             COALESCE(SUM(cantidad), 0)::numeric              AS cantidad_total,
+             COALESCE(SUM(subtotal_linea), 0)::numeric        AS total_generado,
+             COUNT(DISTINCT clave) FILTER (WHERE tipo = 'libre')::int             AS libres_distintos,
+             COALESCE(SUM(cantidad) FILTER (WHERE tipo = 'libre'), 0)::numeric    AS libres_cantidad,
+             COALESCE(SUM(subtotal_linea) FILTER (WHERE tipo = 'libre'), 0)::numeric AS libres_total
+      FROM lineas
+    `, params);
+
+    const { rows: porDepartamentoDB } = await query(`
+      ${lineasSQL}
+      SELECT departamento,
+             COUNT(DISTINCT clave)::int        AS productos,
+             SUM(cantidad)::numeric            AS cantidad,
+             COUNT(DISTINCT venta_id)::int     AS ventas,
+             SUM(subtotal_linea)::numeric      AS total
+      FROM lineas
+      GROUP BY departamento
+      ORDER BY total DESC
+    `, params);
+
+    const num = (v) => parseFloat(v || 0);
+    const round2 = (n) => parseFloat(n.toFixed(2));
+    const tipoLabel = (t) => ({ producto: 'Producto', servicio: 'Servicio', libre: 'Ítem libre' }[t] || t);
+    const fmtCant = (n) => { const x = num(n); return Number.isInteger(x) ? String(x) : x.toFixed(2); };
+
+    const productos = rows.map((r, i) => ({
+      posicion: i + 1,
+      nombre_producto: r.nombre_producto,
+      sku: r.sku || null,
+      departamento: r.departamento,
+      tipo: tipoLabel(r.tipo),
+      cantidad_vendida: num(r.cantidad_vendida),
+      num_ventas: r.num_ventas,
+      precio_promedio: num(r.precio_promedio),
+      total_generado: num(r.total_generado),
+    }));
+
+    const resumen = {
+      productos_distintos: resumenDB.productos_distintos,
+      productos_listados: productos.length,
+      lineas: resumenDB.lineas,
+      ventas: resumenDB.ventas,
+      cantidad_total: num(resumenDB.cantidad_total),
+      total_generado: num(resumenDB.total_generado),
+      cantidad_listados: round2(productos.reduce((a, r) => a + r.cantidad_vendida, 0)),
+      total_listados: round2(productos.reduce((a, r) => a + r.total_generado, 0)),
+      libres_distintos: resumenDB.libres_distintos,
+      libres_cantidad: num(resumenDB.libres_cantidad),
+      libres_total: num(resumenDB.libres_total),
+    };
+    const porDepartamento = porDepartamentoDB.map(r => ({
+      departamento: r.departamento,
+      productos: r.productos,
+      cantidad: num(r.cantidad),
+      ventas: r.ventas,
+      total: num(r.total),
+      porcentaje: resumen.total_generado > 0 ? round2(num(r.total) * 100 / resumen.total_generado) : 0,
+    }));
+
+    const periodoLabel = `${fmtDate(d)} al ${fmtDate(h)}`;
+    const resumenRows = [
+      ['Periodo', periodoLabel],
+      ['Departamento', departamentoLabel],
+      ['Productos/servicios distintos vendidos', resumen.productos_distintos],
+      ['Productos listados en el top', resumen.productos_listados],
+      ['Ventas (tickets) con estos productos', resumen.ventas],
+      ['Unidades vendidas (todas)', resumen.cantidad_total],
+      ['Total generado (todas)', resumen.total_generado],
+      [`Unidades vendidas (top ${topN})`, resumen.cantidad_listados],
+      [`Total generado (top ${topN})`, resumen.total_listados],
+      ['Ítems libres distintos', resumen.libres_distintos],
+      ['Unidades de ítems libres', resumen.libres_cantidad],
+      ['Total de ítems libres', resumen.libres_total],
+    ];
 
     if (formato === 'xlsx') {
-      const headers = ['Producto/Servicio', 'SKU', 'Cant. Vendida', 'Num. Ventas', 'Precio Prom.', 'Total Generado'];
-      const dataRows = rows.map((r, i) => [
-        r.nombre_producto, r.sku || '—',
-        parseFloat(r.cantidad_vendida), parseInt(r.num_ventas),
-        parseFloat(parseFloat(r.precio_promedio).toFixed(2)),
-        parseFloat(parseFloat(r.total_generado).toFixed(2))
+      const headers = ['#', 'Producto/Servicio', 'SKU', 'Departamento', 'Tipo', 'Cant. Vendida', 'Num. Ventas', 'Precio Prom.', 'Total Generado'];
+      const dataRows = productos.map(r => [
+        r.posicion, r.nombre_producto, r.sku || '—', r.departamento, r.tipo,
+        r.cantidad_vendida, r.num_ventas, r.precio_promedio, r.total_generado,
       ]);
+      dataRows.push(['', `TOTAL (top ${topN})`, '', '', '', resumen.cantidad_listados, '', '', resumen.total_listados]);
+      dataRows.push(['', 'TOTAL DEL PERIODO (todos los productos)', '', '', '', resumen.cantidad_total, resumen.ventas, '', resumen.total_generado]);
+
+      const extraSheets = [
+        {
+          name: 'Por Departamento',
+          headers: ['Departamento', 'Productos', 'Cant. Vendida', 'Num. Ventas', 'Total', '% del Total'],
+          rows: [
+            ...porDepartamento.map(r => [r.departamento, r.productos, r.cantidad, r.ventas, r.total, r.porcentaje]),
+            ['TOTAL', resumen.productos_distintos, resumen.cantidad_total, resumen.ventas, resumen.total_generado, porDepartamento.length ? 100 : 0],
+          ],
+          colWidths: [32, 12, 15, 13, 16, 12],
+        },
+        {
+          name: 'Resumen',
+          headers: ['Concepto', 'Valor'],
+          rows: resumenRows,
+          colWidths: [40, 26],
+        },
+      ];
       return sendExcel(res, 'Productos Más Vendidos', 'Productos',
-        headers, dataRows, [32, 14, 14, 13, 14, 16], [], nombreArchivo);
+        headers, dataRows, [6, 34, 14, 24, 12, 14, 13, 14, 16], extraSheets, nombreArchivo);
     }
 
     if (formato === 'pdf') {
-      const totalGenerado = rows.reduce((s, r) => s + parseFloat(r.total_generado || 0), 0);
       const doc = initPDF(res, `Top ${topN} Productos / Servicios Más Vendidos`,
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  Total generado: ${fmtCurrency(totalGenerado)}`,
+        `Período: ${periodoLabel}  |  Departamento: ${departamentoLabel}  |  Total generado: ${fmtCurrency(resumen.total_generado)}`,
         nombreArchivo);
-      const headers = ['#', 'Producto/Servicio', 'SKU', 'Cant.', '# Ventas', 'P.Prom.', 'Total'];
-      const colW = [25, 160, 65, 40, 45, 55, 65];
-      const dataRows = rows.map((r, i) => [
-        i + 1, r.nombre_producto, r.sku || '—',
-        fmtNum(r.cantidad_vendida, 1), r.num_ventas,
-        fmtCurrency(r.precio_promedio), fmtCurrency(r.total_generado)
-      ]);
-      drawTable(doc, headers, dataRows, colW);
-      drawTotalsRow(doc, ['', 'TOTAL', '', '', '', '', fmtCurrency(totalGenerado)], colW);
+
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Resumen');
+      doc.moveDown(0.3);
+      drawTable(doc, ['Concepto', 'Valor'], resumenRows.map(([k, v]) => [
+        k,
+        /total/i.test(k) ? fmtCurrency(v) : (typeof v === 'number' ? fmtCant(v) : v),
+      ]), [260, 140], { rowHeight: 15, fontSize: 8 });
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text(`Top ${topN} productos / servicios`);
+      doc.moveDown(0.3);
+      const headers = ['#', 'Producto/Servicio', 'SKU', 'Departamento', 'Tipo', 'Cant.', '# Ventas', 'P.Prom.', 'Total'];
+      const colW = [20, 140, 55, 80, 48, 40, 40, 52, 57];
+      drawTable(doc, headers, productos.map(r => [
+        r.posicion, r.nombre_producto, r.sku || '—', r.departamento, r.tipo,
+        fmtCant(r.cantidad_vendida), r.num_ventas, fmtCurrency(r.precio_promedio), fmtCurrency(r.total_generado),
+      ]), colW);
+      drawTotalsRow(doc, ['', `TOTAL (top ${topN})`, '', '', '', fmtCant(resumen.cantidad_listados), '', '', fmtCurrency(resumen.total_listados)], colW);
+      drawTotalsRow(doc, ['', 'TOTAL DEL PERIODO', '', '', '', fmtCant(resumen.cantidad_total), resumen.ventas, '', fmtCurrency(resumen.total_generado)], colW, { bg: '#1B5E20' });
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Ventas por departamento');
+      doc.moveDown(0.3);
+      const colWD = [170, 60, 70, 60, 90, 60];
+      drawTable(doc, ['Departamento', 'Productos', 'Cant. Vendida', '# Ventas', 'Total', '% Total'],
+        porDepartamento.map(r => [r.departamento, r.productos, fmtCant(r.cantidad), r.ventas, fmtCurrency(r.total), `${r.porcentaje.toFixed(2)}%`]),
+        colWD);
+      drawTotalsRow(doc, ['TOTAL', resumen.productos_distintos, fmtCant(resumen.cantidad_total), resumen.ventas, fmtCurrency(resumen.total_generado), '100%'], colWD);
       doc.end();
       return;
     }
 
-    return res.json({ ok: true, data: { rows, periodo: { desde: d, hasta: h } } });
+    return res.json({
+      ok: true,
+      data: {
+        rows: productos,
+        resumen,
+        por_departamento: porDepartamento,
+        periodo: { desde: d, hasta: h, etiqueta: periodoLabel, departamento: departamentoLabel, top: topN },
+      }
+    });
   } catch (err) {
     console.error('reportes/productos error:', err);
     return res.status(500).json(createErrorResponse('Error al generar reporte de productos', err.message));
@@ -829,74 +1054,230 @@ async function getReporteProductos(req, res) {
 async function getReporteClientes(req, res) {
   try {
     const { desde, hasta, cliente_id, formato } = req.query;
-    const [d, h] = buildDateRange(desde, hasta);
-    const nombreArchivo = `Compras-por-Cliente-${buildFileDateSuffix(desde, hasta)}`;
+    // historico=true: ranking desde la primera venta registrada hasta hoy (ignora desde/hasta).
+    const historico = ['1', 'true'].includes(String(req.query.historico || '').toLowerCase());
+    let [d, h] = buildDateRange(desde, hasta);
+    if (historico) {
+      const { rows: [ini] } = await query(`
+        SELECT LEAST(
+          (SELECT MIN(fecha_venta) FROM pos_ventas),
+          (SELECT MIN(fecha) FROM pos_clientes_puntos_movimientos)
+        ) AS inicio
+      `);
+      d = ini?.inicio ? new Date(ini.inicio) : new Date('2000-01-01T00:00:00-06:00');
+      h = buildDateRange(null, null)[1];
+    }
+    const topN = Math.min(Math.max(parseInt(req.query.top) || 50, 1), MAX_ROWS);
+
+    // Criterio del ranking (columna whitelisteada, nunca interpolar el valor del usuario).
+    const CRITERIOS = {
+      monto:             { col: 'monto_total',             label: 'Dinero comprado' },
+      compras:           { col: 'total_compras',           label: 'Número de compras' },
+      puntos:            { col: 'puntos_disponibles',      label: 'Puntos disponibles (saldo actual)' },
+      puntos_periodo:    { col: 'puntos_ganados_periodo',  label: 'Puntos ganados en el periodo' },
+    };
+    const ordenKey = CRITERIOS[req.query.orden] ? req.query.orden : 'monto';
+    const criterio = CRITERIOS[ordenKey];
+    const nombreArchivo = `Top-Clientes-por-${ordenKey}-${historico ? 'historico' : buildFileDateSuffix(desde, hasta)}`;
 
     const params = [d, h];
-    let pidx = 3;
-    const clienteCond = cliente_id ? `AND c.id = $${pidx++}` : '';
-    if (cliente_id) params.push(cliente_id);
+    let clienteCond = '';
+    if (cliente_id) { params.push(cliente_id); clienteCond = `AND c.id = $${params.length}`; }
 
+    const baseSQL = `
+      WITH compras AS (
+        SELECT v.cliente_id,
+               COUNT(*)::int        AS total_compras,
+               SUM(v.total)         AS monto_total,
+               MAX(v.fecha_venta)   AS ultima_compra
+        FROM pos_ventas v
+        WHERE v.estatus = 'completada'
+          AND v.fecha_venta BETWEEN $1 AND $2
+          AND v.cliente_id IS NOT NULL
+        GROUP BY v.cliente_id
+      ),
+      mov AS (
+        SELECT m.cliente_id,
+               SUM(m.puntos)      FILTER (WHERE m.tipo = 'acumulado') AS ganados,
+               SUM(ABS(m.puntos)) FILTER (WHERE m.tipo = 'canjeado')  AS canjeados
+        FROM pos_clientes_puntos_movimientos m
+        WHERE m.fecha BETWEEN $1 AND $2
+        GROUP BY m.cliente_id
+      ),
+      base AS (
+        SELECT c.id AS cliente_id, c.nombre_comercial, c.rfc, c.email, c.telefono,
+               COALESCE(co.total_compras, 0)::int                AS total_compras,
+               COALESCE(co.monto_total, 0)::numeric(14,2)        AS monto_total,
+               CASE WHEN co.total_compras > 0
+                    THEN (co.monto_total / co.total_compras)::numeric(14,2)
+                    ELSE 0 END                                    AS ticket_promedio,
+               co.ultima_compra,
+               COALESCE(mov.ganados, 0)::int                     AS puntos_ganados_periodo,
+               COALESCE(mov.canjeados, 0)::int                   AS puntos_canjeados_periodo,
+               COALESCE(p.puntos_acumulados, 0)::int             AS puntos_acumulados,
+               COALESCE(p.puntos_disponibles, 0)::int            AS puntos_disponibles,
+               COALESCE(p.nivel_cliente, 'estandar')             AS nivel_cliente
+        FROM clientes c
+        LEFT JOIN compras co ON co.cliente_id = c.id
+        LEFT JOIN mov        ON mov.cliente_id = c.id
+        LEFT JOIN pos_clientes_puntos p ON p.cliente_id = c.id
+        WHERE c.activo = true ${clienteCond}
+      )
+    `;
+
+    // Solo clientes con valor en el criterio elegido (ej. top por dinero = clientes que compraron en el periodo).
     const { rows } = await query(`
-      SELECT c.id AS cliente_id, c.nombre_comercial, c.rfc, c.email, c.telefono,
-             COUNT(v.id)::int                        AS total_compras,
-             COALESCE(SUM(v.total), 0)::numeric       AS monto_total,
-             COALESCE(AVG(v.total), 0)::numeric       AS ticket_promedio,
-             MAX(v.fecha_venta)                       AS ultima_compra,
-             COALESCE(p.puntos_acumulados, 0)::int    AS puntos_acumulados,
-             COALESCE(p.puntos_canjeados, 0)::int     AS puntos_canjeados,
-             COALESCE(p.puntos_disponibles, 0)::int   AS puntos_disponibles,
-             COALESCE(p.nivel_cliente, 'estándar')    AS nivel_cliente
-      FROM clientes c
-      LEFT JOIN pos_ventas v ON v.cliente_id = c.id
-        AND v.estatus = 'completada'
-        AND v.fecha_venta BETWEEN $1 AND $2
-      LEFT JOIN pos_clientes_puntos p ON p.cliente_id = c.id
-      WHERE c.activo = true ${clienteCond}
-      GROUP BY c.id, c.nombre_comercial, c.rfc, c.email, c.telefono,
-               p.puntos_acumulados, p.puntos_canjeados, p.puntos_disponibles, p.nivel_cliente
-      ORDER BY monto_total DESC
-      LIMIT ${MAX_ROWS}
+      ${baseSQL}
+      SELECT * FROM base
+      WHERE ${criterio.col} > 0
+      ORDER BY ${criterio.col} DESC, monto_total DESC, nombre_comercial ASC
+      LIMIT ${topN}
     `, params);
 
+    const { rows: [resDB] } = await query(`
+      ${baseSQL}
+      SELECT COUNT(*) FILTER (WHERE total_compras > 0)::int           AS clientes_con_compras,
+             COUNT(*) FILTER (WHERE ${criterio.col} > 0)::int          AS clientes_en_ranking,
+             COALESCE(SUM(total_compras), 0)::int                      AS compras,
+             COALESCE(SUM(monto_total), 0)::numeric                    AS monto_total,
+             COALESCE(SUM(puntos_ganados_periodo), 0)::int             AS puntos_ganados_periodo,
+             COALESCE(SUM(puntos_canjeados_periodo), 0)::int           AS puntos_canjeados_periodo,
+             COALESCE(SUM(puntos_disponibles), 0)::int                 AS puntos_disponibles,
+             COUNT(*) FILTER (WHERE puntos_disponibles > 0)::int       AS clientes_con_puntos
+      FROM base
+    `, params);
+
+    // Ventas sin cliente registrado (Público General): contexto para el total vendido.
+    let publico = { compras: 0, monto: 0 };
+    if (!cliente_id) {
+      const { rows: [p] } = await query(`
+        SELECT COUNT(*)::int AS compras, COALESCE(SUM(total), 0)::numeric AS monto
+        FROM pos_ventas
+        WHERE estatus = 'completada' AND fecha_venta BETWEEN $1 AND $2 AND cliente_id IS NULL
+      `, [d, h]);
+      publico = p;
+    }
+
+    const num = (v) => parseFloat(v || 0);
+    const round2 = (n) => parseFloat(n.toFixed(2));
+    const nivelLabel = (n) => ({ estandar: 'Estándar', 'estándar': 'Estándar', frecuente: 'Frecuente', vip: 'VIP' }[n] || n);
+
+    const montoTotalClientes = num(resDB.monto_total);
+    const clientes = rows.map((r, i) => ({
+      posicion: i + 1,
+      cliente_id: r.cliente_id,
+      nombre_comercial: r.nombre_comercial,
+      rfc: r.rfc,
+      email: r.email,
+      telefono: r.telefono,
+      total_compras: r.total_compras,
+      ticket_promedio: num(r.ticket_promedio),
+      monto_total: num(r.monto_total),
+      porcentaje_monto: montoTotalClientes > 0 ? round2(num(r.monto_total) * 100 / montoTotalClientes) : 0,
+      ultima_compra: r.ultima_compra,
+      puntos_ganados_periodo: r.puntos_ganados_periodo,
+      puntos_canjeados_periodo: r.puntos_canjeados_periodo,
+      puntos_disponibles: r.puntos_disponibles,
+      nivel_cliente: nivelLabel(r.nivel_cliente),
+    }));
+
+    const resumen = {
+      criterio: criterio.label,
+      clientes_listados: clientes.length,
+      clientes_en_ranking: resDB.clientes_en_ranking,
+      clientes_con_compras: resDB.clientes_con_compras,
+      compras: resDB.compras,
+      monto_total: montoTotalClientes,
+      ticket_promedio: resDB.compras > 0 ? round2(montoTotalClientes / resDB.compras) : 0,
+      puntos_ganados_periodo: resDB.puntos_ganados_periodo,
+      puntos_canjeados_periodo: resDB.puntos_canjeados_periodo,
+      puntos_disponibles: resDB.puntos_disponibles,
+      clientes_con_puntos: resDB.clientes_con_puntos,
+      publico_compras: publico.compras,
+      publico_monto: num(publico.monto),
+      // Totales de los clientes listados
+      listados_compras: clientes.reduce((a, r) => a + r.total_compras, 0),
+      listados_monto: round2(clientes.reduce((a, r) => a + r.monto_total, 0)),
+      listados_puntos_ganados: clientes.reduce((a, r) => a + r.puntos_ganados_periodo, 0),
+      listados_puntos_disponibles: clientes.reduce((a, r) => a + r.puntos_disponibles, 0),
+    };
+    resumen.listados_porcentaje = montoTotalClientes > 0 ? round2(resumen.listados_monto * 100 / montoTotalClientes) : 0;
+
+    const periodoLabel = historico
+      ? `Todo el historial (${fmtDate(d)} al ${fmtDate(h)})`
+      : `${fmtDate(d)} al ${fmtDate(h)}`;
+    const resumenRows = [
+      ['Periodo', periodoLabel],
+      ['Ranking por', criterio.label],
+      ['Clientes listados', resumen.clientes_listados],
+      ['Clientes con compras en el periodo', resumen.clientes_con_compras],
+      ['Compras de clientes registrados', resumen.compras],
+      ['Monto comprado por clientes registrados', resumen.monto_total],
+      ['Ticket promedio (clientes registrados)', resumen.ticket_promedio],
+      ['Ventas a Público General (sin cliente)', resumen.publico_compras],
+      ['Monto Público General', resumen.publico_monto],
+      ['Puntos ganados en el periodo', resumen.puntos_ganados_periodo],
+      ['Puntos canjeados en el periodo', resumen.puntos_canjeados_periodo],
+      ['Puntos disponibles (saldo actual)', resumen.puntos_disponibles],
+      ['Clientes con puntos disponibles', resumen.clientes_con_puntos],
+    ];
+    const esMonto = (k) => /monto|ticket/i.test(k);
+
     if (formato === 'xlsx') {
-      const headers = ['Cliente', 'RFC', 'Email', 'Teléfono', 'Compras', 'Ticket Prom.', 'Monto Total', 'Última Compra', 'Pts. Acumulados', 'Pts. Canjeados', 'Pts. Disponibles', 'Nivel'];
-      const dataRows = rows.map(r => [
-        r.nombre_comercial, r.rfc || '—', r.email || '—', r.telefono || '—',
-        r.total_compras,
-        parseFloat(parseFloat(r.ticket_promedio).toFixed(2)),
-        parseFloat(parseFloat(r.monto_total).toFixed(2)),
+      const headers = ['#', 'Cliente', 'RFC', 'Email', 'Teléfono', 'Compras', 'Ticket Prom.', 'Monto Total', '% del Monto',
+        'Última Compra', 'Pts. Ganados (periodo)', 'Pts. Canjeados (periodo)', 'Pts. Disponibles', 'Nivel'];
+      const dataRows = clientes.map(r => [
+        r.posicion, r.nombre_comercial, r.rfc || '—', r.email || '—', r.telefono || '—',
+        r.total_compras, r.ticket_promedio, r.monto_total, r.porcentaje_monto,
         r.ultima_compra ? fmtDate(r.ultima_compra) : '—',
-        r.puntos_acumulados,
-        r.puntos_canjeados,
-        r.puntos_disponibles,
-        r.nivel_cliente
+        r.puntos_ganados_periodo, r.puntos_canjeados_periodo, r.puntos_disponibles, r.nivel_cliente,
       ]);
-      return sendExcel(res, 'Compras por Cliente', 'Clientes',
-        headers, dataRows, [28, 16, 26, 14, 11, 14, 14, 16, 15, 14, 15, 12], [], nombreArchivo);
+      dataRows.push(['', `TOTAL (${clientes.length} listados)`, '', '', '', resumen.listados_compras, '', resumen.listados_monto,
+        resumen.listados_porcentaje, '', resumen.listados_puntos_ganados, '', resumen.listados_puntos_disponibles, '']);
+      dataRows.push(['', 'TOTAL CLIENTES REGISTRADOS', '', '', '', resumen.compras, resumen.ticket_promedio, resumen.monto_total,
+        resumen.monto_total > 0 ? 100 : 0, '', resumen.puntos_ganados_periodo, resumen.puntos_canjeados_periodo, resumen.puntos_disponibles, '']);
+      return sendExcel(res, `Top Clientes — ${criterio.label}`, 'Clientes',
+        headers, dataRows, [6, 30, 16, 26, 14, 10, 13, 14, 11, 14, 14, 15, 14, 11],
+        [{ name: 'Resumen', headers: ['Concepto', 'Valor'], rows: resumenRows, colWidths: [42, 26] }],
+        nombreArchivo);
     }
 
     if (formato === 'pdf') {
-      const totalGeneral = rows.reduce((s, r) => s + parseFloat(r.monto_total || 0), 0);
-      const doc = initPDF(res, 'Compras por Cliente',
-        `Período: ${fmtDate(d)} al ${fmtDate(h)}  |  ${rows.length} clientes  |  Total: ${fmtCurrency(totalGeneral)}`,
+      const doc = initPDF(res, `Top Clientes — ${criterio.label}`,
+        `Período: ${periodoLabel}  |  ${clientes.length} clientes  |  Monto clientes: ${fmtCurrency(resumen.monto_total)}`,
         nombreArchivo);
-      const headers = ['Cliente', 'RFC', 'Compras', 'Ticket Prom.', 'Monto Total', 'Ult. Compra', 'Pts. Disp.', 'Nivel'];
-      const colW = [120, 72, 42, 62, 68, 62, 52, 50];
-      const dataRows = rows.map(r => [
-        r.nombre_comercial, r.rfc || '—', r.total_compras,
-        fmtCurrency(r.ticket_promedio), fmtCurrency(r.monto_total),
-        r.ultima_compra ? fmtDate(r.ultima_compra) : '—',
-        r.puntos_disponibles,
-        r.nivel_cliente
-      ]);
-      drawTable(doc, headers, dataRows, colW);
-      drawTotalsRow(doc, ['TOTAL', '', '', '', fmtCurrency(totalGeneral), '', '', ''], colW);
+
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text('Resumen');
+      doc.moveDown(0.3);
+      drawTable(doc, ['Concepto', 'Valor'], resumenRows.map(([k, v]) => [k, esMonto(k) ? fmtCurrency(v) : String(v)]),
+        [260, 140], { rowHeight: 15, fontSize: 8 });
+
+      doc.moveDown(0.5);
+      doc.fillColor('#1565C0').fontSize(10).font('Helvetica-Bold').text(`Top ${clientes.length} clientes por ${criterio.label.toLowerCase()}`);
+      doc.moveDown(0.3);
+      const headers = ['#', 'Cliente', 'Compras', 'Ticket Prom.', 'Monto', '%', 'Ult. Compra', 'Pts. Gan.', 'Pts. Disp.', 'Nivel'];
+      const colW = [18, 132, 40, 55, 62, 34, 52, 45, 50, 44];
+      drawTable(doc, headers, clientes.map(r => [
+        r.posicion, r.nombre_comercial, r.total_compras, fmtCurrency(r.ticket_promedio), fmtCurrency(r.monto_total),
+        `${r.porcentaje_monto.toFixed(1)}%`, r.ultima_compra ? fmtDate(r.ultima_compra) : '—',
+        r.puntos_ganados_periodo, r.puntos_disponibles, r.nivel_cliente,
+      ]), colW);
+      drawTotalsRow(doc, ['', `TOTAL (${clientes.length} listados)`, resumen.listados_compras, '', fmtCurrency(resumen.listados_monto),
+        `${resumen.listados_porcentaje.toFixed(1)}%`, '', resumen.listados_puntos_ganados, resumen.listados_puntos_disponibles, ''], colW);
+      drawTotalsRow(doc, ['', 'TOTAL CLIENTES REGISTRADOS', resumen.compras, fmtCurrency(resumen.ticket_promedio), fmtCurrency(resumen.monto_total),
+        '100%', '', resumen.puntos_ganados_periodo, resumen.puntos_disponibles, ''], colW, { bg: '#1B5E20' });
       doc.end();
       return;
     }
 
-    return res.json({ ok: true, data: { rows, periodo: { desde: d, hasta: h } } });
+    return res.json({
+      ok: true,
+      data: {
+        rows: clientes,
+        resumen,
+        periodo: { desde: d, hasta: h, etiqueta: periodoLabel, criterio: criterio.label, top: topN, historico },
+      }
+    });
   } catch (err) {
     console.error('reportes/clientes error:', err);
     return res.status(500).json(createErrorResponse('Error al generar reporte de clientes', err.message));
