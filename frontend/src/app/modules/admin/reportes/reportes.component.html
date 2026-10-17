@@ -57,274 +57,372 @@
 
     <!-- ── Formulario de filtros ─────────────────────────────────────────── -->
     <section class="filters-panel">
+      <div class="filters-body">
 
-      <!-- VENTAS -->
-      <ng-container *ngIf="selectedId === 'ventas'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+        <!-- VENTAS -->
+        <ng-container *ngIf="selectedId === 'ventas'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Método de Pago</label>
+              <select [(ngModel)]="filtros.metodo_pago" class="filter-input">
+                <option *ngFor="let m of metodosPago" [value]="m.value">{{ m.label }}</option>
+              </select>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
-          </div>
-          <div class="filter-group">
-            <label>Método de Pago</label>
-            <select [(ngModel)]="filtros.metodo_pago" class="filter-input">
-              <option *ngFor="let m of metodosPago" [value]="m.value">{{ m.label }}</option>
-            </select>
-          </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
-      <!-- CORTE DE CAJA -->
-      <ng-container *ngIf="selectedId === 'corte-caja'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Fecha</label>
-            <input type="date" [(ngModel)]="filtros.fecha" class="filter-input" />
+        <!-- CORTE DE CAJA -->
+        <ng-container *ngIf="selectedId === 'corte-caja'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Fecha inicial</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Fecha final</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hora inicio <small>(cualquier hora)</small></label>
+              <input type="time" [(ngModel)]="filtros.hora_desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hora fin <small>(cualquier hora)</small></label>
+              <input type="time" [(ngModel)]="filtros.hora_hasta" class="filter-input" />
+            </div>
           </div>
-        </div>
-      </ng-container>
 
-      <!-- PRODUCTOS MÁS VENDIDOS -->
-      <ng-container *ngIf="selectedId === 'productos'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+          <div class="quick-filters">
+            <div class="quick-group">
+              <span class="quick-label"><i class="far fa-calendar-alt"></i> Periodo:</span>
+              <button *ngFor="let r of rangosRapidos" type="button" class="quick-chip"
+                      [class.active]="rangoActivo(r.id)" (click)="aplicarRango(r.id)">{{ r.label }}</button>
+            </div>
+            <div class="quick-group">
+              <span class="quick-label"><i class="far fa-clock"></i> Atajos de horario:</span>
+              <button *ngFor="let t of turnosCorte" type="button" class="quick-chip"
+                      [class.active]="turnoActivo(t)" (click)="aplicarTurno(t)">
+                {{ t.label }}<small *ngIf="t.desde"> {{ t.desde }}–{{ t.hasta }}</small>
+              </button>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          <div class="filter-help">
+            <span class="info-tip info-tip-filter" tabindex="0" aria-label="Ayuda de filtros"><i class="fas fa-circle-info"></i> <span class="info-tip-label">¿Cómo funcionan estos filtros?</span><span class="info-tip-text" role="tooltip">Escribe <strong>cualquier hora</strong> de inicio y fin (ej. 06:00 a 13:00); los atajos solo llenan las horas por ti. El horario se aplica a <strong>cada día</strong> del periodo e incluye los cobros desde la hora de inicio hasta <strong>antes</strong> de la hora de fin. Deja las horas vacías (o elige “Todo el día”) para el día completo.</span></span>
           </div>
-          <div class="filter-group">
-            <label>Top N</label>
-            <input type="number" [(ngModel)]="filtros.top" min="5" max="500" class="filter-input" style="width:90px" />
-          </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
-      <!-- COMPRAS POR CLIENTE -->
-      <ng-container *ngIf="selectedId === 'clientes'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+        <!-- PRODUCTOS MÁS VENDIDOS -->
+        <ng-container *ngIf="selectedId === 'productos'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Departamento</label>
+              <select [(ngModel)]="filtros.departamento" class="filter-input">
+                <option value="">Todos (incluye ítems libres)</option>
+                <option value="libres">Ítems libres (no registrados en inventario)</option>
+                <option value="sin_departamento">Productos sin departamento</option>
+                <option disabled>──────────</option>
+                <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Top N</label>
+              <input type="number" [(ngModel)]="filtros.top" min="5" max="500" class="filter-input" style="width:90px" />
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+          <div class="filter-help">
+            <span class="info-tip info-tip-filter" tabindex="0" aria-label="Ayuda de filtros"><i class="fas fa-circle-info"></i> <span class="info-tip-label">¿Cómo funcionan estos filtros?</span><span class="info-tip-text" role="tooltip">Los <strong>ítems libres</strong> son los conceptos que se escriben a mano en el punto de venta y no existen en inventario; no tienen departamento. Top N limita cuántos productos se listan, pero los totales del periodo consideran todos.</span></span>
           </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
-      <!-- INVENTARIO ACTUAL -->
-      <ng-container *ngIf="selectedId === 'inventario'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Nivel de Stock</label>
-            <select [(ngModel)]="filtros.nivel_stock" class="filter-input">
-              <option *ngFor="let n of nivelesStock" [value]="n.value">{{ n.label }}</option>
-            </select>
+        <!-- COMPRAS POR CLIENTE -->
+        <ng-container *ngIf="selectedId === 'clientes'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" [disabled]="!!filtros.historico" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" [disabled]="!!filtros.historico" />
+            </div>
+            <div class="filter-group">
+              <label>Top N</label>
+              <input type="number" [(ngModel)]="filtros.top" min="5" max="5000" class="filter-input" style="width:90px" />
+            </div>
           </div>
-        </div>
-      </ng-container>
+          <div class="quick-filters">
+            <div class="quick-group">
+              <span class="quick-label"><i class="far fa-calendar-alt"></i> Periodo:</span>
+              <button type="button" class="quick-chip" [class.active]="!filtros.historico"
+                      (click)="filtros.historico = false">Fechas seleccionadas</button>
+              <button type="button" class="quick-chip" [class.active]="!!filtros.historico"
+                      (click)="filtros.historico = true"><i class="fas fa-infinity"></i> Todo el historial</button>
+            </div>
+            <div class="quick-group">
+              <span class="quick-label"><i class="fas fa-ranking-star"></i> Ranking por:</span>
+              <button *ngFor="let c of criteriosClientes" type="button" class="quick-chip"
+                      [class.active]="filtros.orden === c.value" (click)="filtros.orden = c.value">{{ c.label }}</button>
+            </div>
+          </div>
+          <div class="filter-help">
+            <span class="info-tip info-tip-filter" tabindex="0" aria-label="Ayuda de filtros"><i class="fas fa-circle-info"></i> <span class="info-tip-label">¿Cómo funcionan estos filtros?</span><span class="info-tip-text" role="tooltip">Dinero, compras y puntos ganados se calculan dentro del periodo; con <strong>Todo el historial</strong> se cuentan desde la primera venta registrada hasta hoy y se ignoran las fechas. <strong>Puntos disponibles</strong> es el saldo actual del cliente, sin importar las fechas. Solo aparecen clientes con valor mayor a cero en el criterio elegido.</span></span>
+          </div>
+        </ng-container>
 
-      <!-- MOVIMIENTOS DE INVENTARIO -->
-      <ng-container *ngIf="selectedId === 'movimientos'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+        <!-- INVENTARIO ACTUAL -->
+        <ng-container *ngIf="selectedId === 'inventario'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Nivel de Stock</label>
+              <select [(ngModel)]="filtros.nivel_stock" class="filter-input">
+                <option *ngFor="let n of nivelesStock" [value]="n.value">{{ n.label }}</option>
+              </select>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
-          </div>
-          <div class="filter-group">
-            <label>Tipo de Movimiento</label>
-            <select [(ngModel)]="filtros.tipo_movimiento" class="filter-input">
-              <option *ngFor="let t of tiposMovimiento" [value]="t.value">{{ t.label }}</option>
-            </select>
-          </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
-      <!-- BITÁCORA -->
-      <ng-container *ngIf="selectedId === 'bitacora'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+        <!-- MOVIMIENTOS DE INVENTARIO -->
+        <ng-container *ngIf="selectedId === 'movimientos'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Tipo de Movimiento</label>
+              <select [(ngModel)]="filtros.tipo_movimiento" class="filter-input">
+                <option *ngFor="let t of tiposMovimiento" [value]="t.value">{{ t.label }}</option>
+              </select>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
-          </div>
-          <div class="filter-group">
-            <label>Módulo</label>
-            <select [(ngModel)]="filtros.modulo" class="filter-input">
-              <option *ngFor="let m of modulosBitacora" [value]="m.value">{{ m.label }}</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>Resultado</label>
-            <select [(ngModel)]="filtros.resultado" class="filter-input">
-              <option *ngFor="let r of resultadosBitacora" [value]="r.value">{{ r.label }}</option>
-            </select>
-          </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
-      <!-- VENTAS POR VENDEDOR -->
-      <ng-container *ngIf="selectedId === 'vendedores'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+        <!-- BITÁCORA -->
+        <ng-container *ngIf="selectedId === 'bitacora'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Módulo</label>
+              <select [(ngModel)]="filtros.modulo" class="filter-input">
+                <option *ngFor="let m of modulosBitacora" [value]="m.value">{{ m.label }}</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Resultado</label>
+              <select [(ngModel)]="filtros.resultado" class="filter-input">
+                <option *ngFor="let r of resultadosBitacora" [value]="r.value">{{ r.label }}</option>
+              </select>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
-          </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
-      <!-- BITÁCORA DE AUDITORÍA -->
-      <ng-container *ngIf="selectedId === 'auditoria'">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Desde</label>
-            <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+        <!-- VENTAS POR VENDEDOR -->
+        <ng-container *ngIf="selectedId === 'vendedores'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Hasta</label>
-            <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
-          </div>
-          <div class="filter-group">
-            <label>Tabla</label>
-            <select [(ngModel)]="filtros.tabla" class="filter-input">
-              <option value="">Todas</option>
-              <option value="clientes">clientes</option>
-              <option value="empleados">empleados</option>
-              <option value="proveedores">proveedores</option>
-              <option value="usuarios">usuarios</option>
-              <option value="facturas">facturas</option>
-              <option value="inventarios">inventarios</option>
-              <option value="equipos">equipos</option>
-              <option value="pos_ventas">pos_ventas</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>Operación</label>
-            <select [(ngModel)]="filtros.operacion" class="filter-input">
-              <option value="">Todas</option>
-              <option value="INSERT">INSERT</option>
-              <option value="UPDATE">UPDATE</option>
-              <option value="DELETE">DELETE</option>
-            </select>
-          </div>
-        </div>
-      </ng-container>
+        </ng-container>
 
+        <!-- BITÁCORA DE AUDITORÍA -->
+        <ng-container *ngIf="selectedId === 'auditoria'">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Desde</label>
+              <input type="date" [(ngModel)]="filtros.desde" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Hasta</label>
+              <input type="date" [(ngModel)]="filtros.hasta" class="filter-input" />
+            </div>
+            <div class="filter-group">
+              <label>Tabla</label>
+              <select [(ngModel)]="filtros.tabla" class="filter-input">
+                <option value="">Todas</option>
+                <option value="clientes">clientes</option>
+                <option value="empleados">empleados</option>
+                <option value="proveedores">proveedores</option>
+                <option value="usuarios">usuarios</option>
+                <option value="facturas">facturas</option>
+                <option value="inventarios">inventarios</option>
+                <option value="equipos">equipos</option>
+                <option value="pos_ventas">pos_ventas</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Operación</label>
+              <select [(ngModel)]="filtros.operacion" class="filter-input">
+                <option value="">Todas</option>
+                <option value="INSERT">INSERT</option>
+                <option value="UPDATE">UPDATE</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+
+      </div>
+
+      <div class="filters-actions">
+        <button class="btn btn-clear" (click)="limpiarFiltros()" type="button"
+                title="Restablece los filtros (hoy, día completo) y borra la vista previa">
+          <i class="fas fa-eraser"></i>
+          <span>Limpiar filtros</span>
+        </button>
+      </div>
     </section>
 
-    <!-- ── Resumen cards (Corte de caja) ─────────────────────────────────── -->
-    <div class="section-chip" *ngIf="previewResumen && selectedId === 'corte-caja'">
-      <i class="fas fa-file-invoice-dollar"></i>
-      <span>Ventas registradas del día</span>
+    <!-- ── Corte de caja ────────────────────────────────────────────────── -->
+    <div class="periodo-banner" *ngIf="previewPeriodo && selectedId === 'corte-caja'">
+      <span><i class="far fa-calendar-alt"></i> <strong>Periodo:</strong> {{ previewPeriodo.etiqueta }}</span>
+      <span><i class="far fa-clock"></i> <strong>Horario:</strong> {{ previewPeriodo.horario }}</span>
     </div>
-    <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'corte-caja'">
-      <div class="stat-card">
-        <div class="stat-label">Ventas completadas</div>
-        <div class="stat-value blue">{{ previewResumen.ventas_completadas || 0 }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ventas canceladas</div>
-        <div class="stat-value red">{{ previewResumen.ventas_canceladas || 0 }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Ingresos</div>
-        <div class="stat-value green">${{ (previewResumen.total_ingresos || 0) | number:'1.2-2' }}</div>
-      </div>
-      <div class="stat-card" *ngIf="(previewResumen.total_cancelado || 0) > 0">
-        <div class="stat-label">Monto cancelado <small>(no cuenta)</small></div>
-        <div class="stat-value red">${{ (previewResumen.total_cancelado || 0) | number:'1.2-2' }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Descuentos</div>
-        <div class="stat-value orange">${{ (previewResumen.total_descuentos || 0) | number:'1.2-2' }}</div>
-      </div>
-    </section>
 
     <div class="section-chip" *ngIf="previewResumenArqueo && selectedId === 'corte-caja'">
       <i class="fas fa-cash-register"></i>
-      <span>Dinero recibido hoy (para cuadrar caja)</span>
+      <span>Dinero recibido en el periodo (para cuadrar caja)</span>
     </div>
     <section class="resumen-cards" *ngIf="previewResumenArqueo && selectedId === 'corte-caja'">
       <div class="stat-card highlight">
-        <div class="stat-label">Total cobrado hoy</div>
+        <div class="stat-label"><i class="fas fa-sack-dollar"></i> Total cobrado <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Todo el dinero que entró: ventas de mostrador/cotizaciones + anticipos + saldos de pedidos. Es la cifra contra la que se cuadra la caja.</span></span></div>
         <div class="stat-value green">${{ (previewResumenArqueo.total_cobrado || 0) | number:'1.2-2' }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">En efectivo</div>
+        <div class="stat-label"><i class="fas fa-money-bill-wave"></i> En efectivo <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Billetes y monedas que deben estar físicamente en la caja (sin contar el fondo inicial).</span></span></div>
         <div class="stat-value blue">${{ (previewResumenArqueo.total_efectivo || 0) | number:'1.2-2' }}</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Con T. débito</div>
-        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta_debito || 0) | number:'1.2-2' }}</div>
+      <div class="stat-card stat-card-toggle" [class.open]="mostrarDetalleTarjetas"
+           (click)="mostrarDetalleTarjetas = !mostrarDetalleTarjetas" role="button" tabindex="0"
+           (keydown.enter)="mostrarDetalleTarjetas = !mostrarDetalleTarjetas"
+           [attr.aria-expanded]="mostrarDetalleTarjetas">
+        <div class="stat-label">
+          <i class="far fa-credit-card"></i> Con tarjeta <small>(débito + crédito)</small> <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Debe coincidir con el cierre de la terminal bancaria. Haz clic en la tarjeta para ver débito y crédito por separado.</span></span>
+          <i class="fas toggle-icon" [class.fa-chevron-down]="!mostrarDetalleTarjetas" [class.fa-chevron-up]="mostrarDetalleTarjetas"></i>
+        </div>
+        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta || 0) | number:'1.2-2' }}</div>
+        <div class="stat-action"><span class="stat-link">{{ mostrarDetalleTarjetas ? 'Ocultar detalle' : 'Ver débito y crédito por separado' }}</span></div>
+        <div class="tarjeta-detalle" *ngIf="mostrarDetalleTarjetas" (click)="$event.stopPropagation()">
+          <div class="tarjeta-detalle-row">
+            <span>Tarjeta débito <small>({{ detalleTarjetas.debito.movimientos }} cobro{{ detalleTarjetas.debito.movimientos !== 1 ? 's' : '' }})</small></span>
+            <strong>${{ detalleTarjetas.debito.total | number:'1.2-2' }}</strong>
+          </div>
+          <div class="tarjeta-detalle-row">
+            <span>Tarjeta crédito <small>({{ detalleTarjetas.credito.movimientos }} cobro{{ detalleTarjetas.credito.movimientos !== 1 ? 's' : '' }})</small></span>
+            <strong>${{ detalleTarjetas.credito.total | number:'1.2-2' }}</strong>
+          </div>
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Con T. crédito</div>
-        <div class="stat-value blue">${{ (previewResumenArqueo.total_tarjeta_credito || 0) | number:'1.2-2' }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Por transferencia</div>
+        <div class="stat-label"><i class="fas fa-building-columns"></i> Por transferencia <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Pagos depositados a la cuenta bancaria; verifícalos en la banca en línea.</span></span></div>
         <div class="stat-value blue">${{ (previewResumenArqueo.total_transferencia || 0) | number:'1.2-2' }}</div>
       </div>
       <div class="resumen-cards-break" aria-hidden="true"></div>
-      <div class="stat-card stat-card-cierre-caja" title="Suma de anticipos (pagos parciales) cobrados al momento de registrar pedidos en este día.">
-        <div class="stat-label">Anticipos cobrados - pedido <i class="fas fa-info-circle stat-info-icon"></i></div>
+      <div class="stat-card stat-card-cierre-caja">
+        <div class="stat-label"><i class="fas fa-hourglass-half"></i> Anticipos cobrados - pedido <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Pagos parciales recibidos al registrar o editar pedidos en este periodo. Ya están incluidos en el total cobrado.</span></span></div>
         <div class="stat-value orange">${{ (previewResumenArqueo.total_anticipos_pedidos || 0) | number:'1.2-2' }}</div>
       </div>
-      <div class="stat-card stat-card-cierre-caja" title="Suma de saldos restantes cobrados al entregar pedidos finalizados en este día.">
-        <div class="stat-label">Saldos cobrados - pedido <i class="fas fa-info-circle stat-info-icon"></i></div>
+      <div class="stat-card stat-card-cierre-caja">
+        <div class="stat-label"><i class="fas fa-box-open"></i> Saldos cobrados - pedido <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Resto pagado al entregar pedidos en este periodo. Ya está incluido en el total cobrado.</span></span></div>
         <div class="stat-value green">${{ (previewResumenArqueo.total_saldos_pedidos || 0) | number:'1.2-2' }}</div>
+      </div>
+    </section>
+
+    <div class="section-chip" *ngIf="previewResumen && selectedId === 'corte-caja'">
+      <i class="fas fa-file-invoice-dollar"></i>
+      <span>Ventas registradas en el periodo</span>
+    </div>
+    <section class="resumen-cards" *ngIf="previewResumen && selectedId === 'corte-caja'">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fas fa-check-circle"></i> Ventas completadas <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Número de tickets de venta registrados y no cancelados.</span></span></div>
+        <div class="stat-value blue">{{ previewResumen.ventas_completadas || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fas fa-ban"></i> Ventas canceladas <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Ventas anuladas en el periodo; no suman a ingresos ni a la caja.</span></span></div>
+        <div class="stat-value red">{{ previewResumen.ventas_canceladas || 0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fas fa-chart-line"></i> Total ingresos (ventas) <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Importe de las ventas completadas según su fecha de venta. Puede diferir del total cobrado porque no considera anticipos ni saldos de pedidos cobrados en otro momento.</span></span></div>
+        <div class="stat-value green">${{ (previewResumen.total_ingresos || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card" *ngIf="(previewResumen.total_cancelado || 0) > 0">
+        <div class="stat-label"><i class="fas fa-rotate-left"></i> Monto cancelado <small>(no cuenta)</small> <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Importe de las ventas canceladas. Solo informativo.</span></span></div>
+        <div class="stat-value red">${{ (previewResumen.total_cancelado || 0) | number:'1.2-2' }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fas fa-tags"></i> Total descuentos <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Suma de descuentos aplicados en las ventas completadas.</span></span></div>
+        <div class="stat-value orange">${{ (previewResumen.total_descuentos || 0) | number:'1.2-2' }}</div>
       </div>
     </section>
 
     <section class="preview-section" *ngIf="selectedId === 'corte-caja' && previewArqueoMetodos.length > 0">
       <div class="preview-header">
-        <span class="preview-count"><i class="fas fa-wallet"></i> Cobros por método de pago</span>
+        <span class="preview-count"><i class="fas fa-wallet"></i> Cobros por método de pago <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Cuántos cobros se recibieron y cuánto dinero entró con cada forma de pago.</span></span></span>
       </div>
       <div class="table-wrapper">
         <table class="preview-table">
           <thead>
             <tr>
-              <th>Código</th>
               <th>Método</th>
+              <th>Código</th>
               <th>Movimientos</th>
               <th>Total</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let row of previewArqueoMetodos">
-              <td>{{ row.metodo_pago_codigo }}</td>
               <td>{{ row.metodo_pago_descripcion }}</td>
+              <td>{{ row.metodo_pago_codigo }}</td>
               <td>{{ row.movimientos }}</td>
               <td>${{ (row.total || 0) | number:'1.2-2' }}</td>
             </tr>
           </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2">Total</td>
+              <td>{{ totalArqueoMovimientos }}</td>
+              <td>${{ (previewResumenArqueo?.total_cobrado || 0) | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>
 
     <section class="preview-section" *ngIf="selectedId === 'corte-caja' && previewArqueoMovimientos.length > 0">
       <div class="preview-header">
-        <span class="preview-count"><i class="fas fa-receipt"></i> Detalle de cobros del día</span>
-        <span class="preview-hint">Incluye ventas directas/cotizaciones, anticipos y saldos de pedidos.</span>
+        <span class="preview-count"><i class="fas fa-receipt"></i> Detalle de cobros ({{ previewArqueoMovimientos.length }}) <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Cada pago recibido: ventas directas/cotizaciones, anticipos y saldos de pedidos.</span></span></span>
       </div>
       <div class="table-wrapper">
         <table class="preview-table">
@@ -334,7 +432,6 @@
               <th>Origen</th>
               <th>Referencia</th>
               <th>Vendedor</th>
-              <th>Código</th>
               <th>Método</th>
               <th>Monto</th>
             </tr>
@@ -345,7 +442,6 @@
               <td>{{ formatOrigenArqueo(row.origen) }}</td>
               <td>{{ row.referencia }}</td>
               <td>{{ row.vendedor_nombre || '—' }}</td>
-              <td>{{ row.metodo_pago_codigo }}</td>
               <td>{{ row.metodo_pago_descripcion }}</td>
               <td>${{ (row.monto || 0) | number:'1.2-2' }}</td>
             </tr>
@@ -411,8 +507,231 @@
       </div>
     </section>
 
+    <!-- ── Productos más vendidos ───────────────────────────────────────── -->
+    <ng-container *ngIf="selectedId === 'productos' && previewResumen">
+      <div class="periodo-banner" *ngIf="previewPeriodo">
+        <span><i class="far fa-calendar-alt"></i> <strong>Periodo:</strong> {{ previewPeriodo.etiqueta }}</span>
+        <span><i class="fas fa-layer-group"></i> <strong>Departamento:</strong> {{ previewPeriodo.departamento }}</span>
+        <span><i class="fas fa-list-ol"></i> <strong>Top:</strong> {{ previewPeriodo.top }}</span>
+      </div>
+
+      <section class="resumen-cards">
+        <div class="stat-card highlight">
+          <div class="stat-label"><i class="fas fa-sack-dollar"></i> Total generado <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Suma de las líneas vendidas en el periodo (todos los productos del filtro, no solo el top). No descuenta descuentos aplicados al ticket completo.</span></span></div>
+          <div class="stat-value green">${{ previewResumen.total_generado | number:'1.2-2' }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-cubes"></i> Unidades vendidas <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Cantidad total vendida (piezas, copias, servicios).</span></span></div>
+          <div class="stat-value blue">{{ previewResumen.cantidad_total | number:'1.0-2' }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-boxes-stacked"></i> Productos distintos <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Productos, servicios e ítems libres diferentes que se vendieron. Se listan {{ previewResumen.productos_listados }}.</span></span></div>
+          <div class="stat-value blue">{{ previewResumen.productos_distintos }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-receipt"></i> Ventas <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Tickets completados que incluyen al menos uno de estos productos.</span></span></div>
+          <div class="stat-value blue">{{ previewResumen.ventas }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-pen-to-square"></i> Ítems libres <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">{{ previewResumen.libres_distintos }} conceptos escritos a mano en el POS, {{ previewResumen.libres_cantidad | number:'1.0-2' }} unidades.</span></span></div>
+          <div class="stat-value orange">${{ previewResumen.libres_total | number:'1.2-2' }}</div>
+        </div>
+      </section>
+
+      <section class="preview-section" *ngIf="previewRows.length > 0">
+        <div class="preview-header">
+          <span class="preview-count"><i class="fas fa-star"></i> Top {{ previewRows.length }} productos / servicios <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Ordenado por cantidad vendida. Precio prom. = total ÷ cantidad.</span></span></span>
+        </div>
+        <div class="table-wrapper">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Producto / Servicio</th>
+                <th>SKU</th>
+                <th>Departamento</th>
+                <th>Tipo</th>
+                <th class="num">Cant. vendida</th>
+                <th class="num"># Ventas</th>
+                <th class="num">Precio prom.</th>
+                <th class="num">Total generado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of previewRows">
+                <td>{{ r.posicion }}</td>
+                <td>{{ r.nombre_producto }}</td>
+                <td>{{ r.sku || '—' }}</td>
+                <td>{{ r.departamento }}</td>
+                <td><span class="tipo-badge" [class.libre]="r.tipo === 'Ítem libre'">{{ r.tipo }}</span></td>
+                <td class="num">{{ r.cantidad_vendida | number:'1.0-2' }}</td>
+                <td class="num">{{ r.num_ventas }}</td>
+                <td class="num">${{ r.precio_promedio | number:'1.2-2' }}</td>
+                <td class="num">${{ r.total_generado | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5">Total de los {{ previewRows.length }} listados</td>
+                <td class="num">{{ previewResumen.cantidad_listados | number:'1.0-2' }}</td>
+                <td></td>
+                <td></td>
+                <td class="num">${{ previewResumen.total_listados | number:'1.2-2' }}</td>
+              </tr>
+              <tr class="tfoot-periodo">
+                <td colspan="5">Total del periodo (todos los productos)</td>
+                <td class="num">{{ previewResumen.cantidad_total | number:'1.0-2' }}</td>
+                <td class="num">{{ previewResumen.ventas }}</td>
+                <td></td>
+                <td class="num">${{ previewResumen.total_generado | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="preview-section" *ngIf="previewPorDepartamento.length > 0">
+        <div class="preview-header">
+          <span class="preview-count"><i class="fas fa-layer-group"></i> Ventas por departamento <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Cuánto aportó cada departamento al total generado.</span></span></span>
+        </div>
+        <div class="table-wrapper">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>Departamento</th>
+                <th class="num">Productos</th>
+                <th class="num">Cant. vendida</th>
+                <th class="num"># Ventas</th>
+                <th class="num">Total</th>
+                <th class="num">% del total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of previewPorDepartamento">
+                <td>{{ r.departamento }}</td>
+                <td class="num">{{ r.productos }}</td>
+                <td class="num">{{ r.cantidad | number:'1.0-2' }}</td>
+                <td class="num">{{ r.ventas }}</td>
+                <td class="num">${{ r.total | number:'1.2-2' }}</td>
+                <td class="num">{{ r.porcentaje | number:'1.2-2' }}%</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td class="num">{{ previewResumen.productos_distintos }}</td>
+                <td class="num">{{ previewResumen.cantidad_total | number:'1.0-2' }}</td>
+                <td class="num">{{ previewResumen.ventas }}</td>
+                <td class="num">${{ previewResumen.total_generado | number:'1.2-2' }}</td>
+                <td class="num">100%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+
+    <!-- ── Top de clientes ──────────────────────────────────────────────── -->
+    <ng-container *ngIf="selectedId === 'clientes' && previewResumen">
+      <div class="periodo-banner" *ngIf="previewPeriodo">
+        <span><i class="far fa-calendar-alt" *ngIf="!previewPeriodo.historico"></i><i class="fas fa-infinity" *ngIf="previewPeriodo.historico"></i> <strong>Periodo:</strong> {{ previewPeriodo.etiqueta }}</span>
+        <span><i class="fas fa-ranking-star"></i> <strong>Ranking por:</strong> {{ previewPeriodo.criterio }}</span>
+        <span><i class="fas fa-list-ol"></i> <strong>Top:</strong> {{ previewPeriodo.top }}</span>
+      </div>
+
+      <section class="resumen-cards">
+        <div class="stat-card highlight">
+          <div class="stat-label"><i class="fas fa-sack-dollar"></i> Monto clientes registrados <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Lo que compraron en el periodo los clientes con registro ({{ previewResumen.clientes_con_compras }} clientes).</span></span></div>
+          <div class="stat-value green">${{ previewResumen.monto_total | number:'1.2-2' }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-receipt"></i> Compras <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Tickets completados de clientes registrados. Ticket promedio: ${{ previewResumen.ticket_promedio | number:'1.2-2' }}.</span></span></div>
+          <div class="stat-value blue">{{ previewResumen.compras }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-star"></i> Puntos ganados <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Puntos acumulados en el periodo. Canjeados: {{ previewResumen.puntos_canjeados_periodo | number }}.</span></span></div>
+          <div class="stat-value orange">{{ previewResumen.puntos_ganados_periodo | number }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-wallet"></i> Puntos disponibles <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">Saldo actual de puntos de {{ previewResumen.clientes_con_puntos }} clientes (no depende del periodo).</span></span></div>
+          <div class="stat-value blue">{{ previewResumen.puntos_disponibles | number }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-users"></i> Público General <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">{{ previewResumen.publico_compras }} ventas sin cliente registrado. No entran en el ranking.</span></span></div>
+          <div class="stat-value">${{ previewResumen.publico_monto | number:'1.2-2' }}</div>
+        </div>
+      </section>
+
+      <section class="preview-section" *ngIf="previewRows.length > 0">
+        <div class="preview-header">
+          <span class="preview-count"><i class="fas fa-ranking-star"></i> Top {{ previewRows.length }} clientes por {{ previewPeriodo?.criterio | lowercase }} <span class="info-tip" tabindex="0" aria-label="Más información" (click)="$event.stopPropagation()"><i class="fas fa-circle-info"></i><span class="info-tip-text" role="tooltip">La columna % es la parte de cada cliente sobre el monto total comprado por clientes registrados.</span></span></span>
+          <span class="preview-hint">{{ previewResumen.clientes_en_ranking }} clientes cumplen el criterio.</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Cliente</th>
+                <th>RFC</th>
+                <th>Teléfono</th>
+                <th class="num">Compras</th>
+                <th class="num">Ticket prom.</th>
+                <th class="num">Monto total</th>
+                <th class="num">%</th>
+                <th>Última compra</th>
+                <th class="num">Pts. ganados</th>
+                <th class="num">Pts. disponibles</th>
+                <th>Nivel</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of previewRows">
+                <td>{{ r.posicion }}</td>
+                <td>{{ r.nombre_comercial }}</td>
+                <td>{{ r.rfc || '—' }}</td>
+                <td>{{ r.telefono || '—' }}</td>
+                <td class="num">{{ r.total_compras }}</td>
+                <td class="num">${{ r.ticket_promedio | number:'1.2-2' }}</td>
+                <td class="num">${{ r.monto_total | number:'1.2-2' }}</td>
+                <td class="num">{{ r.porcentaje_monto | number:'1.1-1' }}%</td>
+                <td>{{ r.ultima_compra ? formatCell(r.ultima_compra, 'fecha') : '—' }}</td>
+                <td class="num">{{ r.puntos_ganados_periodo | number }}</td>
+                <td class="num">{{ r.puntos_disponibles | number }}</td>
+                <td><span class="tipo-badge" [class.vip]="r.nivel_cliente === 'VIP'">{{ r.nivel_cliente }}</span></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4">Total de los {{ previewRows.length }} listados</td>
+                <td class="num">{{ previewResumen.listados_compras }}</td>
+                <td></td>
+                <td class="num">${{ previewResumen.listados_monto | number:'1.2-2' }}</td>
+                <td class="num">{{ previewResumen.listados_porcentaje | number:'1.1-1' }}%</td>
+                <td></td>
+                <td class="num">{{ previewResumen.listados_puntos_ganados | number }}</td>
+                <td class="num">{{ previewResumen.listados_puntos_disponibles | number }}</td>
+                <td></td>
+              </tr>
+              <tr class="tfoot-periodo">
+                <td colspan="4">Total clientes registrados</td>
+                <td class="num">{{ previewResumen.compras }}</td>
+                <td class="num">${{ previewResumen.ticket_promedio | number:'1.2-2' }}</td>
+                <td class="num">${{ previewResumen.monto_total | number:'1.2-2' }}</td>
+                <td class="num">100%</td>
+                <td></td>
+                <td class="num">{{ previewResumen.puntos_ganados_periodo | number }}</td>
+                <td class="num">{{ previewResumen.puntos_disponibles | number }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+
     <!-- ── Tabla de preview ──────────────────────────────────────────────── -->
-    <section class="preview-section" *ngIf="previewRows.length > 0">
+    <section class="preview-section" *ngIf="previewRows.length > 0 && selectedId !== 'productos' && selectedId !== 'clientes'">
       <div class="preview-header">
         <span class="preview-count"><i class="fas fa-table"></i> {{ previewRows.length }} registros</span>
         <span class="preview-hint">Vista previa (máx. 5000 filas). Usa PDF o Excel para el reporte completo.</span>
@@ -503,7 +822,7 @@
     </div>
 
     <!-- Estado vacío -->
-    <section class="empty-state" *ngIf="!loadingPreview && previewRows.length === 0 && !errorMsg">
+    <section class="empty-state" *ngIf="!loadingPreview && previewRows.length === 0 && !errorMsg && !((selectedId === 'productos' || selectedId === 'clientes') && previewResumen)">
       <i class="fas fa-chart-line empty-icon"></i>
       <h3>Configura los filtros y ejecuta el reporte</h3>
       <p>Haz clic en <strong>Vista Previa</strong> para ver los datos en pantalla,<br>
