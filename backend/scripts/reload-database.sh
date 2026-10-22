@@ -139,6 +139,15 @@ else
     write_error "Error al crear la base de datos"
     exit 1
 fi
+
+# Extensión requerida por los índices de búsqueda (gin_trgm_ops)
+psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;" &> /dev/null
+if [ $? -eq 0 ]; then
+    write_success "Extensión pg_trgm disponible"
+else
+    write_error "No se pudo crear la extensión pg_trgm (instala postgresql-contrib)"
+    exit 1
+fi
 echo ""
 
 # Paso 4: Restaurar desde el archivo SQL con encoding UTF-8

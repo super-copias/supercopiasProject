@@ -121,6 +121,11 @@ export class ReportesService {
 
   // ── Ventas ────────────────────────────────────────────────────
 
+  /** Ids de reportes a los que el usuario autenticado tiene acceso. */
+  getReportesPermitidos(): Observable<{ success: boolean; data: { permitidos: string[] } }> {
+    return this.http.get<{ success: boolean; data: { permitidos: string[] } }>(`${this.base}/permitidos`);
+  }
+
   previewVentas(f: FiltrosVentas): Observable<any> {
     return this.http.get(`${this.base}/ventas`, { params: this.buildParams(f) });
   }

@@ -27,6 +27,21 @@
   <!-- ── Panel principal ─────────────────────────────────────────────────── -->
   <main class="reportes-main">
 
+    <!-- Cargando permisos -->
+    <section class="loading-state" *ngIf="cargandoPermisos">
+      <div class="spinner"></div>
+      <span>Verificando permisos...</span>
+    </section>
+
+    <!-- Sin reportes permitidos -->
+    <section class="empty-state" *ngIf="!cargandoPermisos && reportes.length === 0">
+      <i class="fas fa-lock empty-icon"></i>
+      <h3>No tienes acceso a ningún reporte</h3>
+      <p>Tu usuario no tiene reportes asignados.<br>
+         Solicita a un administrador que te habilite los reportes que necesitas.</p>
+    </section>
+
+    <ng-container *ngIf="!cargandoPermisos && selectedReport">
     <!-- Cabecera del reporte seleccionado -->
     <header class="report-header" *ngIf="selectedReport">
       <div class="report-header-info">
@@ -834,6 +849,7 @@
       <div class="spinner"></div>
       <span>Consultando datos...</span>
     </section>
+    </ng-container>
 
   </main>
 </div>

@@ -284,6 +284,8 @@ export class EmpleadosService {
       fechaModificacion: empleado.fechaModificacion || empleado.fecha_modificacion,
       roles: empleado.modulosPermitidos || [],
       modulosPermitidos: empleado.modulosPermitidos || [],
+      // null = acceso a todos los reportes
+      reportesPermitidos: empleado.reportesPermitidos ?? empleado.reportes_permitidos ?? null,
       tieneUsuario: !!(empleado.usuario?.id || empleado.usuario_id),
       usuarioId: empleado.usuario?.id || empleado.usuario_id,
       usuario: empleado.usuario

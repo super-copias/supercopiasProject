@@ -121,6 +121,16 @@ function Restore-Database {
         exit 1
     }
 
+    # Extension requerida por los indices de busqueda (gin_trgm_ops)
+    psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;" 2>$null | Out-Null
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] Extension pg_trgm disponible" -ForegroundColor Green
+    } else {
+        Write-Host "[ERROR] No se pudo crear la extension pg_trgm" -ForegroundColor Red
+        exit 1
+    }
+
     Write-Host ""
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host "  PASO 4: Restaurando estructura y datos" -ForegroundColor Cyan

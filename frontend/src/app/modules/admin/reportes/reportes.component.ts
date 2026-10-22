@@ -9,27 +9,8 @@ import {
   FiltrosClientes, FiltrosInventario, FiltrosMovimientos, FiltrosBitacora,
   FiltrosVendedores, FiltrosAuditoria
 } from '../../../services/reportes.service';
-
-// ── Catálogo de reportes disponibles ────────────────────────────────────────
-export interface ReporteCatalogo {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  categoria: string;
-  icono: string;
-}
-
-const REPORTES: ReporteCatalogo[] = [
-  { id: 'ventas',      titulo: 'Ventas por Período',          descripcion: 'Lista de ventas con filtros de fecha, vendedor, cliente y método de pago.', categoria: 'Ventas',     icono: 'fas fa-cash-register' },
-  { id: 'corte-caja',  titulo: 'Corte de Caja',               descripcion: 'Dinero cobrado por método de pago para cuadrar caja, por rango de fechas y turno.', categoria: 'Ventas',     icono: 'fas fa-coins' },
-  { id: 'productos',   titulo: 'Productos Más Vendidos',       descripcion: 'Ranking de productos, servicios e ítems libres por cantidad vendida y monto generado, filtrable por departamento.', categoria: 'Ventas',     icono: 'fas fa-star' },
-  { id: 'vendedores',  titulo: 'Ventas por Vendedor',          descripcion: 'Ranking de usuarios con total de ventas, ingresos, clientes atendidos y producto top.', categoria: 'Ventas', icono: 'fas fa-user-tie' },
-  { id: 'clientes',    titulo: 'Compras por Cliente',          descripcion: 'Top de clientes por dinero comprado, número de compras o puntos, con totales del periodo.', categoria: 'Clientes',   icono: 'fas fa-users' },
-  { id: 'inventario',  titulo: 'Inventario Actual',            descripcion: 'Stock actual con nivel de riesgo, costos y precios de venta.', categoria: 'Inventario', icono: 'fas fa-boxes' },
-  { id: 'movimientos', titulo: 'Movimientos de Inventario',    descripcion: 'Entradas, salidas y ajustes de stock por período.', categoria: 'Inventario', icono: 'fas fa-exchange-alt' },
-  { id: 'bitacora',    titulo: 'Bitácora del Sistema',         descripcion: 'Registro de todas las acciones críticas del sistema.', categoria: 'Auditoría', icono: 'fas fa-history' },
-  { id: 'auditoria',   titulo: 'Bitácora de Auditoría',       descripcion: 'Log de cambios en BD: inserciones, actualizaciones y eliminaciones por tabla.', categoria: 'Auditoría', icono: 'fas fa-database' },
-];
+import { NotificationService } from '../../../services/notification.service';
+import { REPORTES, ReporteCatalogo } from '../../../shared/reportes-catalogo';
 
 // ── Tipos de filtros para el formulario reactivo ─────────────────────────────
 // El tipo Filtros une todos los interfaces para el objeto ngModel compartido
@@ -48,8 +29,10 @@ export class ReportesComponent implements OnInit, OnDestroy {
   // Cancela consultas/descargas en curso al limpiar filtros
   private reset$ = new Subject<void>();
 
-  readonly reportes = REPORTES;
-  readonly categorias = [...new Set(REPORTES.map(r => r.categoria))];
+  // Solo los reportes permitidos para el usuario (se cargan en ngOnInit)
+  reportes: ReporteCatalogo[] = [];
+  categorias: string[] = [];
+  cargandoPermisos = true;
 
   selectedId: string = 'ventas';
   loadingPreview = false;
@@ -132,9 +115,14 @@ export class ReportesComponent implements OnInit, OnDestroy {
     { value: 'error',    label: 'Error' },
   ];
 
-  constructor(private svc: ReportesService, private inventariosSvc: InventariosService) {}
+  constructor(
+    private svc: ReportesService,
+    private inventariosSvc: InventariosService,
+    private notificationService: NotificationService
+  ) {}
 
   ngOnInit(): void {
+    this.cargarReportesPermitidos();
     this.inventariosSvc.getDepartamentos()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -145,6 +133,59 @@ export class ReportesComponent implements OnInit, OnDestroy {
         error: () => { this.departamentos = []; }
       });
   }
+  /** Carga los reportes a los que el usuario tiene acceso y ajusta el menú. */
+  private cargarReportesPermitidos(): void {
+    this.cargandoPermisos = true;
+    this.svc.getReportesPermitidos()
+      .pipe(takeUntil(this.destroy$), finalize(() => this.cargandoPermisos = false))
+      .subscribe({
+        next: (resp) => {
+          const permitidos = resp?.data?.permitidos ?? [];
+          this.setReportesVisibles(REPORTES.filter(r => permitidos.includes(r.id)));
+          if (this.reportes.length === 0) {
+            this.notificationService.warning(
+              'No tienes reportes asignados. Solicita acceso a un administrador.',
+              'Sin acceso a reportes'
+            );
+          }
+        },
+        error: () => {
+          // El backend sigue validando cada reporte; se muestran todos y se avisa del fallo
+          this.setReportesVisibles(REPORTES);
+          this.notificationService.warning(
+            'No se pudieron verificar tus permisos de reportes. Algunos reportes podrían no estar disponibles.',
+            'Permisos de reportes'
+          );
+        }
+      });
+  }
+
+  private setReportesVisibles(lista: ReporteCatalogo[]): void {
+    this.reportes = lista;
+    this.categorias = [...new Set(lista.map(r => r.categoria))];
+    if (!lista.some(r => r.id === this.selectedId) && lista.length > 0) {
+      this.selectReport(lista[0].id);
+    }
+  }
+
+  /**
+   * Maneja un 403 del backend: el reporte dejó de estar permitido
+   * (p. ej. se cambiaron los permisos con la sesión abierta).
+   * Devuelve true si el error fue de permisos.
+   */
+  private manejarSinPermiso(err: any): boolean {
+    if (err?.status !== 403) return false;
+    const titulo = this.selectedReport?.titulo ?? 'este reporte';
+    this.notificationService.error(
+      `No tienes permiso para acceder a "${titulo}". Solicita acceso a un administrador.`,
+      'Acceso denegado'
+    );
+    const restantes = this.reportes.filter(r => r.id !== this.selectedId);
+    this.setReportesVisibles(restantes);
+    if (restantes.length === 0) this.selectReport('');
+    return true;
+  }
+
   ngOnDestroy(): void {
     this.reset$.next(); this.reset$.complete();
     this.destroy$.next(); this.destroy$.complete();
@@ -177,8 +218,14 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   // ── Navegación ───────────────────────────────────────────────────────────────
-  get selectedReport(): ReporteCatalogo {
-    return this.reportes.find(r => r.id === this.selectedId)!;
+  get selectedReport(): ReporteCatalogo | undefined {
+    return this.reportes.find(r => r.id === this.selectedId);
+  }
+
+  private validarReportePermitido(): boolean {
+    if (this.selectedReport) return true;
+    this.notificationService.warning('Selecciona un reporte permitido para continuar.', 'Reporte no disponible');
+    return false;
   }
 
   selectReport(id: string): void {
@@ -275,6 +322,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   // ── Preview ──────────────────────────────────────────────────────────────────
   onPreview(): void {
+    if (!this.validarReportePermitido()) return;
     if (this.selectedId === 'corte-caja') {
       const err = this.validarCorte();
       if (err) { this.errorMsg = err; return; }
@@ -322,6 +370,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
           }
         },
         error: (err: any) => {
+          if (this.manejarSinPermiso(err)) return;
           this.errorMsg = err?.error?.message ?? err?.error?.error?.message ?? 'Error al cargar la vista previa.';
         }
       });
@@ -345,6 +394,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   // ── Descarga ─────────────────────────────────────────────────────────────────
   onDownload(formato: FormatoReporte): void {
+    if (!this.validarReportePermitido()) return;
     if (this.selectedId === 'corte-caja') {
       const err = this.validarCorte();
       if (err) { this.errorMsg = err; return; }
@@ -361,6 +411,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (resp: HttpResponse<Blob>) => this.saveBlob(resp, formato),
         error: (err: any) => {
+          if (this.manejarSinPermiso(err)) return;
           this.errorMsg = 'Error al generar el archivo. Verifica los filtros e intenta de nuevo.';
         }
       });

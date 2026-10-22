@@ -6,6 +6,7 @@ import { CatalogosService, Sucursal, Puesto } from '../../services/catalogos.ser
 import { TurnosService, DIAS_SEMANA_LABELS } from '../../services/turnos.service';
 import { Turno } from '../../shared/interfaces';
 import { NotificationService } from '../../services/notification.service';
+import { REPORTES, ReporteCatalogo } from '../../shared/reportes-catalogo';
 
 @Component({
   selector: 'app-empleados-form',
@@ -321,7 +322,60 @@ import { NotificationService } from '../../services/notification.service';
                 <div *ngIf="tipoPermiso === 'administrador'" class="mt-3">
                   <div class="alert alert-warning border-warning">
                     <i class="fas fa-crown me-2"></i>
-                    <strong>👑 Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema con permisos de administrador. Podrá gestionar empleados, clientes, proveedores, inventarios, equipos y reportes.
+                    <strong>👑 Acceso de Administrador:</strong> Este empleado tendrá acceso completo a todos los módulos del sistema con permisos de administrador. Podrá gestionar empleados, clientes, proveedores, inventarios, equipos y los reportes que se habiliten abajo.
+                  </div>
+                </div>
+
+                <!-- Reportes permitidos (administrador o personalizado con módulo de reportes) -->
+                <div class="card reportes-permitidos mt-3" *ngIf="aplicaReportesPermitidos" [class.border-danger]="reportesSeleccionados.length === 0">
+                  <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                      <i class="fas fa-chart-bar me-2 text-primary"></i>
+                      <strong>Reportes permitidos</strong>
+                      <span class="badge ms-2"
+                            [class.bg-success]="reportesSeleccionados.length === reportesDisponibles.length"
+                            [class.bg-warning]="reportesSeleccionados.length > 0 && reportesSeleccionados.length < reportesDisponibles.length"
+                            [class.bg-danger]="reportesSeleccionados.length === 0">
+                        {{reportesSeleccionados.length}} / {{reportesDisponibles.length}}
+                      </span>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-success" (click)="setTodosReportes(true)"
+                              [disabled]="reportesSeleccionados.length === reportesDisponibles.length">
+                        <i class="fas fa-check-double me-1"></i>Activar todos
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary" (click)="setTodosReportes(false)"
+                              [disabled]="reportesSeleccionados.length === 0">
+                        <i class="fas fa-times me-1"></i>Desactivar todos
+                      </button>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <p class="text-muted small mb-3">
+                      Selecciona los reportes del módulo de Reportes a los que este empleado podrá acceder.
+                    </p>
+                    <div class="row">
+                      <div class="col-md-6 col-lg-3 mb-3" *ngFor="let cat of categoriasReportes">
+                        <div class="reporte-categoria">{{cat}}</div>
+                        <div class="form-check form-switch mb-2" *ngFor="let r of getReportesPorCategoria(cat)">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            [id]="'rep_' + r.id"
+                            [checked]="isReporteSeleccionado(r.id)"
+                            (change)="toggleReporte(r.id)">
+                          <label class="form-check-label" [for]="'rep_' + r.id" [title]="r.descripcion">
+                            <i [class]="r.icono + ' me-1 text-muted'"></i>
+                            {{r.titulo}}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="alert alert-danger py-2 mb-0" *ngIf="reportesSeleccionados.length === 0">
+                      <i class="fas fa-exclamation-triangle me-2"></i>
+                      Debes habilitar al menos un reporte o quitar el acceso al módulo de Reportes.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -453,6 +507,10 @@ export class EmpleadosFormComponent implements OnInit {
   tipoPermiso = 'sin_permisos'; // Valor inicial por defecto
   seleccionados: string[] = [];
   seleccionadosPersonalizados: string[] = []; // Mantiene los módulos seleccionados para personalizado
+  // Reportes permitidos para administradores (por defecto todos activos)
+  readonly reportesDisponibles: ReporteCatalogo[] = REPORTES;
+  readonly categoriasReportes = [...new Set(REPORTES.map(r => r.categoria))];
+  reportesSeleccionados: string[] = REPORTES.map(r => r.id);
   sucursales: Sucursal[] = [];
   puestos: Puesto[] = [];
   turnos: Turno[] = [];
@@ -695,6 +753,11 @@ export class EmpleadosFormComponent implements OnInit {
       this.seleccionados = [];
       this.seleccionadosPersonalizados = [];
     }
+
+    // Reportes permitidos: null = todos
+    this.reportesSeleccionados = Array.isArray(empleado.reportesPermitidos)
+      ? REPORTES.filter(r => empleado.reportesPermitidos.includes(r.id)).map(r => r.id)
+      : REPORTES.map(r => r.id);
   }
 
   private createForm(): FormGroup {
@@ -774,6 +837,38 @@ export class EmpleadosFormComponent implements OnInit {
     }
   }
 
+  /** La selección de reportes aplica a administradores y a personalizados con el módulo de reportes. */
+  get aplicaReportesPermitidos(): boolean {
+    return this.tipoPermiso === 'administrador'
+      || (this.tipoPermiso === 'personalizado' && this.isSelected('reportes'));
+  }
+
+  getReportesPorCategoria(cat: string): ReporteCatalogo[] {
+    return this.reportesDisponibles.filter(r => r.categoria === cat);
+  }
+
+  isReporteSeleccionado(reporteId: string): boolean {
+    return this.reportesSeleccionados.includes(reporteId);
+  }
+
+  toggleReporte(reporteId: string) {
+    if (this.isReporteSeleccionado(reporteId)) {
+      this.reportesSeleccionados = this.reportesSeleccionados.filter(id => id !== reporteId);
+      if (this.reportesSeleccionados.length === 0) {
+        this.notificationService.warning(
+          'El empleado debe tener al menos un reporte habilitado',
+          'Reportes permitidos'
+        );
+      }
+    } else {
+      this.reportesSeleccionados = [...this.reportesSeleccionados, reporteId];
+    }
+  }
+
+  setTodosReportes(activar: boolean) {
+    this.reportesSeleccionados = activar ? REPORTES.map(r => r.id) : [];
+  }
+
   getNombre(moduloClave: string): string {
     const modulo = this.modulos.find(m => m.clave === moduloClave);
     return modulo ? modulo.nombre : moduloClave;
@@ -785,10 +880,20 @@ export class EmpleadosFormComponent implements OnInit {
     if (this.tipoPermiso === 'personalizado' && this.seleccionados.length === 0) {
       return false;
     }
+    if (this.aplicaReportesPermitidos && this.reportesSeleccionados.length === 0) {
+      return false;
+    }
     return true;
   }
 
   onSubmit() {
+    if (this.aplicaReportesPermitidos && this.reportesSeleccionados.length === 0) {
+      this.notificationService.warning(
+        'Habilita al menos un reporte o quita el acceso al módulo de Reportes antes de guardar',
+        'Reportes permitidos'
+      );
+      return;
+    }
     if (!this.isFormValid()) {
       this.notificationService.warning(
         'Por favor completa todos los campos requeridos correctamente',
@@ -805,6 +910,7 @@ export class EmpleadosFormComponent implements OnInit {
       modulosPermitidos: this.tipoPermiso === 'administrador' 
         ? this.modulos.map(m => m.clave) 
         : this.seleccionados,
+      reportesPermitidos: this.aplicaReportesPermitidos ? this.reportesSeleccionados : null,
       turnosDias: this.diasSemana.map(d => ({ diaSemana: d.dia, turnoId: d.turnoId }))
     };
     
@@ -915,7 +1021,7 @@ export class EmpleadosFormComponent implements OnInit {
       error: (error) => {
         this.loading = false;
         this.notificationService.error(
-          error.error?.message || 'Error al actualizar el empleado',
+          error.error?.error?.message || error.error?.message || 'Error al actualizar el empleado',
           'Error al actualizar'
         );
       }
