@@ -13,7 +13,19 @@ const {
 } = require('../utils/apiStandard');
 const { getAllRoles } = require('../utils/rolesSystem');
 const { registrarBitacora, getIp } = require('../utils/bitacora');
+const { normalizarReportesPermitidos } = require('../utils/reportesCatalogo');
 const { sincronizarSalarioEmpleado } = require('./sueldosController');
+
+/**
+ * Helper: La selección de reportes aplica a administradores y a
+ * personalizados que tienen el módulo de reportes.
+ */
+function aplicaReportesPermitidos(tipoPermiso, modulosPermitidos = []) {
+  if (tipoPermiso === 'administrador') return true;
+  return tipoPermiso === 'personalizado'
+    && Array.isArray(modulosPermitidos)
+    && modulosPermitidos.map(String).includes('reportes');
+}
 
 /**
  * Helper: Obtener todos los módulos activos de la base de datos
@@ -250,6 +262,8 @@ async function getEmpleado(req, res) {
       tipoAcceso: empleado.tipo_acceso,
       tipoPermiso, // Agregar el tipo de permiso en formato frontend
       modulosPermitidos,
+      // null = acceso a todos los reportes
+      reportesPermitidos: Array.isArray(empleado.reportes_permitidos) ? empleado.reportes_permitidos : null,
       usuario: empleado.usuario_id ? {
         id: empleado.usuario_id,
         username: empleado.username,
@@ -294,6 +308,8 @@ async function createEmpleado(req, res) {
       // Campos del frontend
       tipoPermiso,
       modulosPermitidos = [],
+      // Reportes permitidos para administradores (null/undefined = todos)
+      reportesPermitidos = null,
       // Asignación semanal de turnos: [{ diaSemana, turnoId }]
       turnosDias = []
     } = req.body;
@@ -355,6 +371,18 @@ async function createEmpleado(req, res) {
         modulos[modId] = { acceso: true };
       });
     }
+
+    // Reportes permitidos: aplica a administradores y a personalizados con el módulo de reportes (null = todos)
+    let reportesPermitidosFinal = null;
+    if (aplicaReportesPermitidos(tipoPermisoFinal, modulosPermitidos)) {
+      try {
+        reportesPermitidosFinal = normalizarReportesPermitidos(reportesPermitidos);
+      } catch (e) {
+        return res.status(400).json(
+          createErrorResponse(e.message, CODIGOS_ERROR.VALIDATION_ERROR)
+        );
+      }
+    }
     
     // Verificar si el email ya existe (si se proporciona)
     if (email) {
@@ -378,8 +406,8 @@ async function createEmpleado(req, res) {
       INSERT INTO empleados (
         nombre, email, telefono, puesto_id, sucursal_id, salario,
         fecha_ingreso, dias_vacaciones_sugeridos, activo, fecha_baja, tipo_acceso,
-        fecha_registro
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+        reportes_permitidos, fecha_registro
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       RETURNING *
     `;
     
@@ -394,7 +422,8 @@ async function createEmpleado(req, res) {
       diasVacacionesSugeridos || 12,
       activo !== undefined ? activo : true,
       (!activo && fechaBaja) ? fechaBaja : null,
-      tipoAcceso
+      tipoAcceso,
+      reportesPermitidosFinal ? JSON.stringify(reportesPermitidosFinal) : null
     ];
     
     const result = await queryAudit(insertQuery, values, req.user?.id, req.user?.nombre || req.user?.username);
@@ -652,13 +681,29 @@ async function updateEmpleado(req, res) {
         });
       }
       
+      // Reportes permitidos: aplica a administradores y a personalizados con el módulo de reportes (null = todos)
+      let reportesPermitidosFinal = null;
+      if (aplicaReportesPermitidos(tipoPermisoFinal, modulosPermitidos)) {
+        try {
+          reportesPermitidosFinal = normalizarReportesPermitidos(updateData.reportesPermitidos);
+        } catch (e) {
+          return res.status(400).json(
+            createErrorResponse(e.message, CODIGOS_ERROR.VALIDATION_ERROR)
+          );
+        }
+      }
+      
       // Reemplazar con formato de la DB
       datosConvertidos.tipoAcceso = tipoAcceso;
       datosConvertidos.modulos = modulos;
+      datosConvertidos.reportesPermitidos = reportesPermitidosFinal;
       
       // Eliminar campos del frontend
       delete datosConvertidos.tipoPermiso;
       delete datosConvertidos.modulosPermitidos;
+    } else {
+      // Sin cambio de permisos: no tocar los reportes permitidos
+      delete datosConvertidos.reportesPermitidos;
     }
     
     // Manejar fechaBaja según el estado activo
@@ -733,6 +778,10 @@ async function updateEmpleado(req, res) {
     if (datosConvertidos.tipoAcceso !== undefined) {
       camposActualizar.push(`tipo_acceso = $${contador++}`);
       valores.push(datosConvertidos.tipoAcceso);
+    }
+    if (datosConvertidos.reportesPermitidos !== undefined) {
+      camposActualizar.push(`reportes_permitidos = $${contador++}`);
+      valores.push(datosConvertidos.reportesPermitidos ? JSON.stringify(datosConvertidos.reportesPermitidos) : null);
     }
     
     // Los módulos se actualizan en la tabla empleados_modulos, no aquí

@@ -65,3 +65,25 @@
   from { opacity: 0; transform: translateY(-16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Reportes permitidos (administrador) */
+.reportes-permitidos .card-header {
+  background: #f8f9fa;
+}
+
+.reporte-categoria {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.reportes-permitidos .form-switch .form-check-input {
+  cursor: pointer;
+}
+
+.reportes-permitidos .form-check-label {
+  cursor: pointer;
+}

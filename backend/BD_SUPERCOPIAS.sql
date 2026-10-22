@@ -10,7 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+-- SET transaction_timeout = 0;  -- Solo PostgreSQL 17+; se omite para compatibilidad con PostgreSQL 15
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -23,7 +23,7 @@ SET row_security = off;
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA public;
+CREATE SCHEMA IF NOT EXISTS public;
 
 
 --
@@ -31,6 +31,20 @@ CREATE SCHEMA public;
 --
 
 COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+--
+-- Name: pg_trgm; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pg_trgm; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
 
 
 --
@@ -750,6 +764,7 @@ CREATE TABLE public.empleados (
     usuario_id integer,
     dias_vacaciones_sugeridos integer DEFAULT 12,
     notas_vacaciones text,
+    reportes_permitidos jsonb,
     CONSTRAINT chk_empleados_email CHECK (((email)::text ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
     CONSTRAINT chk_empleados_fecha_baja CHECK (((fecha_baja IS NULL) OR (fecha_baja >= fecha_ingreso))),
     CONSTRAINT chk_empleados_tipo_acceso CHECK (((tipo_acceso)::text = ANY (ARRAY[('completo'::character varying)::text, ('limitado'::character varying)::text, ('solo_lectura'::character varying)::text, ('administrador'::character varying)::text, ('personalizado'::character varying)::text, ('inactivo'::character varying)::text])))
@@ -761,6 +776,13 @@ CREATE TABLE public.empleados (
 --
 
 COMMENT ON TABLE public.empleados IS 'Información completa de empleados de la empresa';
+
+
+--
+-- Name: COLUMN empleados.reportes_permitidos; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.empleados.reportes_permitidos IS 'Ids de reportes permitidos (ej. ["ventas","corte-caja"]). NULL = todos los reportes';
 
 
 --
